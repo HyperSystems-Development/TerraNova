@@ -1,0 +1,39 @@
+{
+  "Type": "NoiseRange",
+  "DefaultBiome": "Hills",
+  "DefaultTransitionDistance": 24,
+  "MaxBiomeEdgeDistance": 48,
+  "Biomes": [
+    {
+      "Biome": "Hills",
+      "Min": -1,
+      "Max": 1
+    }
+  ],
+  "Density": {
+    "Type": "SimplexNoise2D",
+    "Seed": "world_biome",
+    "Octaves": 3,
+    "Lacunarity": 2,
+    "Frequency": 0.001,
+    "Gain": 0.5
+  },
+  "ContentFields": [
+    {
+      "Type": "BaseHeight",
+      "Name": "Base",
+      "Y": 100
+    },
+    {
+      "Type": "BaseHeight",
+      "Name": "Water",
+      "Y": 100
+    },
+    {
+      "Type": "BaseHeight",
+      "Name": "Bedrock",
+      "Y": 0
+    }
+  ],
+  "Framework": {}
+}

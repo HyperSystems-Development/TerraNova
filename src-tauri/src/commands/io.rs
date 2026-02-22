@@ -104,7 +104,7 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
         return Err("Target directory is not empty".into());
     }
 
-    let gen = target.join("HytaleGenerator");
+    let gen = target.join("Server").join("HytaleGenerator");
 
     // Create subdirectories
     for sub in &["Biomes", "Settings", "WorldStructures"] {

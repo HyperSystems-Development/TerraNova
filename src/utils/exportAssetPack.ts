@@ -56,7 +56,18 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
     }
     const densityJson = graphToJson(nodes, edges);
     if (densityJson) output.Density = densityJson;
-    return normalizeExport(output, nodes) as Record<string, unknown>;
+    const noiseRangeResult = normalizeExport(output, nodes) as Record<string, unknown>;
+    // ContentFields → Framework conversion for Hytale compatibility
+    if (Array.isArray(noiseRangeResult.ContentFields) && (!noiseRangeResult.Framework || (Array.isArray(noiseRangeResult.Framework) && noiseRangeResult.Framework.length === 0) || (typeof noiseRangeResult.Framework === "object" && Object.keys(noiseRangeResult.Framework as object).length === 0))) {
+      const entries = (noiseRangeResult.ContentFields as Record<string, unknown>[]).map((cf) => ({
+        Name: (cf.Name ?? cf.name) as string,
+        Value: (cf.Y ?? cf.y ?? cf.Value ?? cf.value) as number,
+      }));
+      noiseRangeResult.Framework = [{ Type: "DecimalConstants", Entries: entries }];
+      delete noiseRangeResult.ContentFields;
+    }
+    delete noiseRangeResult.Skip;
+    return noiseRangeResult;
   }
 
   // Settings files
@@ -284,6 +295,32 @@ function flattenEntries(entries: DirectoryEntryData[], basePath: string): { path
   return result;
 }
 
+/** TerraNova-internal field names that Hytale doesn't recognize. */
+const INTERNAL_ONLY_FIELDS = new Set(["BoxBlockType"]);
+
+/**
+ * Recursively strip TerraNova-internal fields from a JSON tree.
+ * Used for files already in Hytale format that may contain leftover internal fields.
+ */
+function stripInternalFields(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (INTERNAL_ONLY_FIELDS.has(key)) continue;
+    if (Array.isArray(value)) {
+      result[key] = value.map((item) =>
+        item && typeof item === "object" && !Array.isArray(item)
+          ? stripInternalFields(item as Record<string, unknown>)
+          : item,
+      );
+    } else if (value && typeof value === "object" && !Array.isArray(value)) {
+      result[key] = stripInternalFields(value as Record<string, unknown>);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 /**
  * Convert a single JSON asset file from disk to Hytale-native format.
  * Reads from disk, detects type, applies conversion, and returns the output JSON.
@@ -294,9 +331,9 @@ async function convertFileForExport(sourcePath: string): Promise<Record<string, 
 
   const content = rawContent as Record<string, unknown>;
 
-  // Already in Hytale native format (e.g. template biome files with $NodeId) — pass through as-is
+  // Already in Hytale native format (e.g. template biome files with $NodeId) — strip internal fields and pass through
   if (isHytaleNativeFormat(content)) {
-    return content;
+    return stripInternalFields(content);
   }
 
   // Settings files pass through unchanged
@@ -311,7 +348,23 @@ async function convertFileForExport(sourcePath: string): Promise<Record<string, 
 
   // Typed assets
   if ("Type" in content) {
-    return normalizeExport(content) as Record<string, unknown>;
+    let result = normalizeExport(content) as Record<string, unknown>;
+
+    // NoiseRange post-processing: ContentFields → Framework, strip root Skip
+    if (result.Type === "NoiseRange") {
+      result = { ...result };
+      if (Array.isArray(result.ContentFields) && (!result.Framework || (Array.isArray(result.Framework) && result.Framework.length === 0) || (typeof result.Framework === "object" && Object.keys(result.Framework as object).length === 0))) {
+        const entries = (result.ContentFields as Record<string, unknown>[]).map((cf) => ({
+          Name: cf.Name as string,
+          Value: cf.Y as number,
+        }));
+        result.Framework = [{ Type: "DecimalConstants", Entries: entries }];
+        delete result.ContentFields;
+      }
+      delete result.Skip;
+    }
+
+    return result;
   }
 
   // Non-typed wrapper with typed children

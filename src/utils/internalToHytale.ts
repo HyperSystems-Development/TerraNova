@@ -337,6 +337,8 @@ function transformBoxPropFields(asset: Record<string, unknown>): Record<string, 
       Solid: result.Material,
     };
   }
+  // Strip TerraNova-internal field that Hytale doesn't recognize
+  delete result.BoxBlockType;
   return result;
 }
 

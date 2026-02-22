@@ -243,6 +243,8 @@ export const FIELD_TO_CATEGORY: Record<string, string> = {
   Directionality: "directionality",
   EnvironmentProvider: "environment",
   TintProvider: "tint",
+  DistanceFunction: "distanceFunction",
+  ReturnType: "returnType",
 };
 
 // ---------------------------------------------------------------------------
