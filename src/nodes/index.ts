@@ -83,6 +83,7 @@ import {
   SquareGrid2dPositionNode, SquareGrid3dPositionNode, ScalerPositionNode,
   Jitter2dPositionNode, Jitter3dPositionNode, TriangularGrid2dPositionNode,
   ClustersPositionNode, EmptyPositionNode,
+  FrameworkPositionNode, BaseHeightPositionNode, AnchorPositionNode, BoundPositionNode,
 } from "./positions";
 
 // ── Prop nodes ─────────────────────────────────────────────────────────
@@ -365,6 +366,10 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Position:TriangularGrid2d": TriangularGrid2dPositionNode,
   "Position:Clusters": ClustersPositionNode,
   "Position:Empty": EmptyPositionNode,
+  "Position:Framework": FrameworkPositionNode,
+  "Position:BaseHeight": BaseHeightPositionNode,
+  "Position:Anchor": AnchorPositionNode,
+  "Position:Bound": BoundPositionNode,
 
   // ── Prop ─────────────────────────────────────────────────────────────
   "Prop:Box": BoxPropNode,

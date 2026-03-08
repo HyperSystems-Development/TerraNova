@@ -21,4 +21,8 @@ export {
   TriangularGrid2dPositionNode,
   ClustersPositionNode,
   EmptyPositionNode,
+  FrameworkPositionNode,
+  BaseHeightPositionNode,
+  AnchorPositionNode,
+  BoundPositionNode,
 } from "./PositionNodes";
