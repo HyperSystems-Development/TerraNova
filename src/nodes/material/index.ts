@@ -19,4 +19,14 @@ export {
   NoiseThicknessNode,
   RangeThicknessNode,
   WeightedThicknessNode,
+  // Additional V2 material nodes
+  QueueMaterialNode,
+  SolidityMaterialNode,
+  TerrainDensityMaterialNode,
+  SimpleHorizontalMaterialNode,
+  DownwardDepthMaterialNode,
+  UpwardDepthMaterialNode,
+  DownwardSpaceMaterialNode,
+  UpwardSpaceMaterialNode,
+  StripedMaterialNode,
 } from "./MaterialNodes";

@@ -116,3 +116,12 @@ export const AverageFunctionNode = memo(function AverageFunctionNode(props: Type
     </BaseNode>
   );
 });
+
+export const MultiMixNode = memo(function MultiMixNode(props: TypedNodeProps) {
+  const handles = useCompoundHandles(props.id, "MultiMix");
+  return (
+    <BaseNode {...props} category={AssetCategory.Density} handles={handles}>
+      <div className="text-tn-text-muted text-center py-1">Multi mix</div>
+    </BaseNode>
+  );
+});

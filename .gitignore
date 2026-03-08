@@ -35,3 +35,4 @@ src-tauri/gen/
 *.log
 .claude/
 docs/plans/
+docs/audit/

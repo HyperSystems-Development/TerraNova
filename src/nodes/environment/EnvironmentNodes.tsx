@@ -255,7 +255,7 @@ export const NormalDirectionalityNode = memo(function NormalDirectionalityNode(p
 export const StaticDirectionalityNode = memo(function StaticDirectionalityNode(props: TypedNodeProps) {
   const data = props.data;
   return (
-    <BaseNode {...props} category={AssetCategory.Directionality} handles={HANDLES_DIR_OUT}>
+    <BaseNode {...props} category={AssetCategory.Directionality} handles={HANDLES_DIR_PATTERN}>
       <div className="flex justify-between">
         <span className="text-tn-text-muted">Rotation</span>
         <span>{safeDisplay(data.fields.Rotation, 0)}°</span>

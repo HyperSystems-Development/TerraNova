@@ -15,7 +15,7 @@ import {
   AngleFromOriginNode, AngleFromPointNode, HeightAboveSurfaceNode, AngleNode,
   CurveFunctionNode, SplineFunctionNode, FlatCacheNode,
   ConditionalNode, SwitchNode, BlendNode, BlendCurveNode,
-  MinFunctionNode, MaxFunctionNode, AverageFunctionNode,
+  MinFunctionNode, MaxFunctionNode, AverageFunctionNode, MultiMixNode,
   CacheOnceNode, WrapNode, TranslatedPositionNode, ScaledPositionNode,
   RotatedPositionNode, MirroredPositionNode, QuantizedPositionNode,
   SurfaceDensityNode, TerrainBooleanNode, TerrainMaskNode, GradientDensityNode,
@@ -55,15 +55,22 @@ import {
   SurfaceMaterialNode, CaveMaterialNode, ClusterMaterialNode,
   ImportedMaterialNode, ExportedMaterialNode, FieldFunctionMaterialNode,
   ConstantThicknessNode, NoiseThicknessNode, RangeThicknessNode, WeightedThicknessNode,
+  QueueMaterialNode, SolidityMaterialNode, TerrainDensityMaterialNode,
+  SimpleHorizontalMaterialNode, DownwardDepthMaterialNode, UpwardDepthMaterialNode,
+  DownwardSpaceMaterialNode, UpwardSpaceMaterialNode, StripedMaterialNode,
 } from "./material";
 
 // ── Pattern nodes ──────────────────────────────────────────────────────
 import {
   FloorPatternNode, CeilingPatternNode, WallPatternNode, SurfacePatternNode,
-  GapPatternNode, BlockTypePatternNode, BlockSetPatternNode, CuboidPatternNode,
+  BlockTypePatternNode, BlockSetPatternNode, CuboidPatternNode,
   OffsetPatternNode, ConditionalPatternNode, BlendPatternNode,
   UnionPatternNode, IntersectionPatternNode, ImportedPatternNode, ExportedPatternNode,
   ConstantPatternNode,
+  FieldFunctionPatternNode,
+  AndPatternNode,
+  OrPatternNode,
+  NotPatternNode,
 } from "./patterns";
 
 // ── Position nodes ─────────────────────────────────────────────────────
@@ -76,6 +83,7 @@ import {
   SquareGrid2dPositionNode, SquareGrid3dPositionNode, ScalerPositionNode,
   Jitter2dPositionNode, Jitter3dPositionNode, TriangularGrid2dPositionNode,
   ClustersPositionNode, EmptyPositionNode,
+  FrameworkPositionNode, BaseHeightPositionNode, AnchorPositionNode, BoundPositionNode,
 } from "./positions";
 
 // ── Prop nodes ─────────────────────────────────────────────────────────
@@ -87,6 +95,7 @@ import {
   CuboidPropNode, ManualPropNode, LocatorPropNode, MaskPropNode,
   RandomRotatorPropNode, StaticRotatorPropNode, OrienterPropNode,
   DensitySelectorPropNode, UniquePrefabPropNode,
+  PondFillerPropNode, QueuePropNode, OffsetPropNode,
 } from "./props";
 
 // ── Scanner nodes ──────────────────────────────────────────────────────
@@ -187,6 +196,7 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   MinFunction: MinFunctionNode,
   MaxFunction: MaxFunctionNode,
   AverageFunction: AverageFunctionNode,
+  MultiMix: MultiMixNode,
   CacheOnce: CacheOnceNode,
   Wrap: WrapNode,
   TranslatedPosition: TranslatedPositionNode,
@@ -304,13 +314,21 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Material:NoiseThickness": NoiseThicknessNode,
   "Material:RangeThickness": RangeThicknessNode,
   "Material:WeightedThickness": WeightedThicknessNode,
+  "Material:Queue": QueueMaterialNode,
+  "Material:Solidity": SolidityMaterialNode,
+  "Material:TerrainDensity": TerrainDensityMaterialNode,
+  "Material:SimpleHorizontal": SimpleHorizontalMaterialNode,
+  "Material:DownwardDepth": DownwardDepthMaterialNode,
+  "Material:UpwardDepth": UpwardDepthMaterialNode,
+  "Material:DownwardSpace": DownwardSpaceMaterialNode,
+  "Material:UpwardSpace": UpwardSpaceMaterialNode,
+  "Material:Striped": StripedMaterialNode,
 
   // ── Pattern ──────────────────────────────────────────────────────────
   "Pattern:Floor": FloorPatternNode,
   "Pattern:Ceiling": CeilingPatternNode,
   "Pattern:Wall": WallPatternNode,
   "Pattern:Surface": SurfacePatternNode,
-  "Pattern:Gap": GapPatternNode,
   "Pattern:BlockType": BlockTypePatternNode,
   "Pattern:BlockSet": BlockSetPatternNode,
   "Pattern:Cuboid": CuboidPatternNode,
@@ -322,6 +340,10 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Pattern:Constant": ConstantPatternNode,
   "Pattern:Imported": ImportedPatternNode,
   "Pattern:Exported": ExportedPatternNode,
+  "Pattern:FieldFunction": FieldFunctionPatternNode,
+  "Pattern:And": AndPatternNode,
+  "Pattern:Or": OrPatternNode,
+  "Pattern:Not": NotPatternNode,
 
   // ── Position Provider ────────────────────────────────────────────────
   "Position:List": ListPositionNode,
@@ -346,6 +368,10 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Position:TriangularGrid2d": TriangularGrid2dPositionNode,
   "Position:Clusters": ClustersPositionNode,
   "Position:Empty": EmptyPositionNode,
+  "Position:Framework": FrameworkPositionNode,
+  "Position:BaseHeight": BaseHeightPositionNode,
+  "Position:Anchor": AnchorPositionNode,
+  "Position:Bound": BoundPositionNode,
 
   // ── Prop ─────────────────────────────────────────────────────────────
   "Prop:Box": BoxPropNode,
@@ -370,6 +396,9 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Prop:UniquePrefab": UniquePrefabPropNode,
   "Prop:Imported": ImportedPropNode,
   "Prop:Exported": ExportedPropNode,
+  "Prop:PondFiller": PondFillerPropNode,
+  "Prop:Queue": QueuePropNode,
+  "Prop:Offset": OffsetPropNode,
 
   // ── Scanner ──────────────────────────────────────────────────────────
   "Scanner:Origin": OriginScannerNode,

@@ -85,6 +85,7 @@ const FIELD_CATEGORY_PREFIX: Record<string, string> = {
   Pattern: "Pattern",
   SubPattern: "Pattern",
   PositionProvider: "Position",
+  Positions: "Position",
   VectorProvider: "Vector",
   MaterialProvider: "Material",
   Scanner: "Scanner",
@@ -108,7 +109,33 @@ const FIELD_CATEGORY_PREFIX: Record<string, string> = {
   // Curve fields on non-CurveFunction parents (e.g. PositionsCellNoise, Shell)
   ReturnCurve: "Curve",
   AngleCurve: "Curve",
+  // Curve fields on SDF shape nodes
   DistanceCurve: "Curve",
+  PinchCurve: "Curve",
+  TwistCurve: "Curve",
+  RadialCurve: "Curve",
+  AxialCurve: "Curve",
+  // Curve array field (Curve:Sum, Curve:Multiplier, etc.)
+  Curves: "Curve",
+  // Pattern array field (Pattern:And, Pattern:Or)
+  Patterns: "Pattern",
+  // Material queue array
+  Queue: "Material",
+  // Cross-category fields on Prop:Prefab, etc.
+  BlockMask: "BlockMask",
+  Directionality: "Directionality",
+  // Position:Clusters handle fields
+  Distributor: "Position",
+  Cluster: "Position",
+  // Array fields for compound nodes
+  Scanners: "Scanner",
+  Props: "Prop",
+  // Density fields (no prefix — bare density type)
+  FieldFunction: "",
+  Density: "",
+  SolidityFunction: "",
+  TerrainDensity: "",
+  Pipeline: "",
 };
 
 /**

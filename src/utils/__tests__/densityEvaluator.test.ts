@@ -798,30 +798,54 @@ describe("BaseHeight", () => {
 
 /* ── Floor / Ceiling ─────────────────────────────────────────────── */
 
-describe("Floor", () => {
-  it("floors the input value", () => {
+describe("Floor (V2: hard minimum limiter)", () => {
+  it("clamps input up to the Floor value via max(v, floor)", () => {
     const nodes = [
-      makeNode("c", "Constant", { Value: 3.7 }),
-      makeNode("f", "Floor"),
+      makeNode("c", "Constant", { Value: -0.5 }),
+      makeNode("f", "Floor", { Floor: 0 }),
     ];
     const edges = [makeEdge("c", "f", "Input")];
     const result = evalSingle(nodes, edges, "f");
     for (let i = 0; i < result.values.length; i++) {
-      expect(result.values[i]).toBe(3);
+      expect(result.values[i]).toBe(0); // max(-0.5, 0) = 0
+    }
+  });
+
+  it("passes through values already above the floor", () => {
+    const nodes = [
+      makeNode("c", "Constant", { Value: 3.7 }),
+      makeNode("f", "Floor", { Floor: 0 }),
+    ];
+    const edges = [makeEdge("c", "f", "Input")];
+    const result = evalSingle(nodes, edges, "f");
+    for (let i = 0; i < result.values.length; i++) {
+      expect(result.values[i]).toBeCloseTo(3.7); // max(3.7, 0) = 3.7
     }
   });
 });
 
-describe("Ceiling", () => {
-  it("ceils the input value", () => {
+describe("Ceiling (V2: hard maximum limiter)", () => {
+  it("clamps input down to the Ceiling value via min(v, ceiling)", () => {
     const nodes = [
       makeNode("c", "Constant", { Value: 3.2 }),
-      makeNode("ceil", "Ceiling"),
+      makeNode("ceil", "Ceiling", { Ceiling: 1 }),
     ];
     const edges = [makeEdge("c", "ceil", "Input")];
     const result = evalSingle(nodes, edges, "ceil");
     for (let i = 0; i < result.values.length; i++) {
-      expect(result.values[i]).toBe(4);
+      expect(result.values[i]).toBe(1); // min(3.2, 1) = 1
+    }
+  });
+
+  it("passes through values already below the ceiling", () => {
+    const nodes = [
+      makeNode("c", "Constant", { Value: 0.5 }),
+      makeNode("ceil", "Ceiling", { Ceiling: 1 }),
+    ];
+    const edges = [makeEdge("c", "ceil", "Input")];
+    const result = evalSingle(nodes, edges, "ceil");
+    for (let i = 0; i < result.values.length; i++) {
+      expect(result.values[i]).toBeCloseTo(0.5); // min(0.5, 1) = 0.5
     }
   });
 });

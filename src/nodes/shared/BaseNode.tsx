@@ -133,6 +133,7 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
     [AssetCategory.EnvironmentProvider]: "Environment",
     [AssetCategory.TintProvider]: "Tint",
     [AssetCategory.Directionality]: "Directionality",
+    [AssetCategory.Scanner]: "Scanner",
   };
   const legacyPrefix = CATEGORY_TO_PREFIX[category];
   const legacyKey = legacyPrefix ? `${legacyPrefix}:${nodeData.type}` : nodeData.type;

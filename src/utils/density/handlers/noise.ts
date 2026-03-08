@@ -5,22 +5,22 @@ const handleSimplexNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) => {
   const freq = Number(fields.Frequency ?? 1.0);
   const amp = Number(fields.Amplitude ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
-  const octaves = Math.max(1, Number(fields.Octaves ?? 1));
-  const lacunarity = Number(fields.Lacunarity ?? 1.0);
-  const gain = Number(fields.Gain ?? 1.0);
+  const octaves = Math.max(1, Number(fields.Octaves ?? 4));
+  const lacunarity = Number(fields.Lacunarity ?? 2.0);
+  const gain = Number(fields.Gain ?? 0.5);
   const noise = ctx.getNoise2D(seed);
-  return fbm2D(noise, x, z, freq, octaves, lacunarity, gain) * amp;
+  return fbm2D(noise, x, z, freq, octaves, lacunarity, gain, seed) * amp;
 };
 
 const handleSimplexNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) => {
   const freq = Number(fields.Frequency ?? 1.0);
   const amp = Number(fields.Amplitude ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
-  const octaves = Math.max(1, Number(fields.Octaves ?? 1));
-  const lacunarity = Number(fields.Lacunarity ?? 1.0);
-  const gain = Number(fields.Gain ?? 1.0);
+  const octaves = Math.max(1, Number(fields.Octaves ?? 4));
+  const lacunarity = Number(fields.Lacunarity ?? 2.0);
+  const gain = Number(fields.Gain ?? 0.5);
   const noise = ctx.getNoise3D(seed);
-  return fbm3D(noise, x, y, z, freq, octaves, lacunarity, gain) * amp;
+  return fbm3D(noise, x, y, z, freq, octaves, lacunarity, gain, seed) * amp;
 };
 
 const handleSimplexRidgeNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) => {
@@ -29,7 +29,7 @@ const handleSimplexRidgeNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) 
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const octaves = Math.max(1, Number(fields.Octaves ?? 1));
   const noise = ctx.getNoise2D(seed);
-  return ridgeFbm2D(noise, x, z, freq, octaves) * amp;
+  return ridgeFbm2D(noise, x, z, freq, octaves, seed) * amp;
 };
 
 const handleSimplexRidgeNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) => {
@@ -38,7 +38,7 @@ const handleSimplexRidgeNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) =
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const octaves = Math.max(1, Number(fields.Octaves ?? 1));
   const noise = ctx.getNoise3D(seed);
-  return ridgeFbm3D(noise, x, y, z, freq, octaves) * amp;
+  return ridgeFbm3D(noise, x, y, z, freq, octaves, seed) * amp;
 };
 
 const handleVoronoiNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
@@ -52,7 +52,7 @@ const handleVoronoiNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const returnType = (fields.ReturnType as string) ?? "Distance";
   const noise = ctx.getVoronoi2D(seed, cellType, jitter);
   let raw = octaves > 1
-    ? fbm2D(noise, x, z, freq, octaves, lacunarity, gain)
+    ? fbm2D(noise, x, z, freq, octaves, lacunarity, gain, seed)
     : noise(x * freq, z * freq);
   if (returnType === "Curve") {
     raw = ctx.applyCurve("ReturnCurve", raw, inputs);
@@ -73,7 +73,7 @@ const handleVoronoiNoise3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const returnType = (fields.ReturnType as string) ?? "Distance";
   const noise = ctx.getVoronoi3D(seed, cellType, jitter);
   let raw = octaves > 1
-    ? fbm3D(noise, x, y, z, freq, octaves, lacunarity, gain)
+    ? fbm3D(noise, x, y, z, freq, octaves, lacunarity, gain, seed)
     : noise(x * freq, y * freq, z * freq);
   if (returnType === "Curve") {
     raw = ctx.applyCurve("ReturnCurve", raw, inputs);
@@ -86,21 +86,21 @@ const handleVoronoiNoise3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 const handleFractalNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) => {
   const freq = Number(fields.Frequency ?? 1.0);
   const octaves = Math.max(1, Number(fields.Octaves ?? 4));
-  const lacunarity = Number(fields.Lacunarity ?? 1.0);
-  const gain = Number(fields.Gain ?? 1.0);
+  const lacunarity = Number(fields.Lacunarity ?? 2.0);
+  const gain = Number(fields.Gain ?? 0.5);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const noise = ctx.getNoise2D(seed);
-  return fbm2D(noise, x, z, freq, octaves, lacunarity, gain);
+  return fbm2D(noise, x, z, freq, octaves, lacunarity, gain, seed);
 };
 
 const handleFractalNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) => {
   const freq = Number(fields.Frequency ?? 1.0);
   const octaves = Math.max(1, Number(fields.Octaves ?? 4));
-  const lacunarity = Number(fields.Lacunarity ?? 1.0);
-  const gain = Number(fields.Gain ?? 1.0);
+  const lacunarity = Number(fields.Lacunarity ?? 2.0);
+  const gain = Number(fields.Gain ?? 0.5);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const noise = ctx.getNoise3D(seed);
-  return fbm3D(noise, x, y, z, freq, octaves, lacunarity, gain);
+  return fbm3D(noise, x, y, z, freq, octaves, lacunarity, gain, seed);
 };
 
 export function buildNoiseHandlers(): Map<string, NodeHandler> {

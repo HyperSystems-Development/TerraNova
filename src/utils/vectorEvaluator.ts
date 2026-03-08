@@ -64,7 +64,7 @@ export function evaluateVectorProvider(
       const densityNodeId = inputs.get("DensityFunction") ?? inputs.get("Input");
       if (!densityNodeId) return { x: 0, y: 1, z: 0 };
 
-      const eps = 0.5;
+      const eps = 0.01;
       const inv2e = 1.0 / (2.0 * eps);
 
       const dfdx = (densityEvaluate(densityNodeId, x + eps, y, z)

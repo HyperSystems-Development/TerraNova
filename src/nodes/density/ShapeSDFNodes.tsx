@@ -3,14 +3,16 @@ import { AssetCategory } from "@/schema/types";
 import { BaseNode, type TypedNodeProps } from "../shared/BaseNode";
 import { curveInput, densityOutput } from "../shared/handles";
 
-const OUTPUT_ONLY_HANDLES = [densityOutput()];
+const SINGLE_CURVE_SDF_HANDLES = [curveInput("Curve", "Curve"), densityOutput()];
+const CYLINDER_HANDLES = [curveInput("RadialCurve", "Radial Curve"), curveInput("AxialCurve", "Axial Curve"), densityOutput()];
+const SHELL_HANDLES = [curveInput("AngleCurve", "Angle Curve"), curveInput("DistanceCurve", "Distance Curve"), densityOutput()];
 const CURVE_INPUT_HANDLES = [curveInput("Curve", "Curve"), densityOutput()];
 
 export const EllipsoidNode = memo(function EllipsoidNode(props: TypedNodeProps) {
   const data = props.data;
   const r = data.fields.Radius as { x?: number; y?: number; z?: number } | undefined;
   return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.Density} handles={SINGLE_CURVE_SDF_HANDLES}>
       <div className="flex justify-between">
         <span className="text-tn-text-muted">Radius</span>
         <span>{Number(r?.x ?? 1).toFixed(1)}, {Number(r?.y ?? 1).toFixed(1)}, {Number(r?.z ?? 1).toFixed(1)}</span>
@@ -23,7 +25,7 @@ export const CuboidNode = memo(function CuboidNode(props: TypedNodeProps) {
   const data = props.data;
   const s = data.fields.Size as { x?: number; y?: number; z?: number } | undefined;
   return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.Density} handles={SINGLE_CURVE_SDF_HANDLES}>
       <div className="flex justify-between">
         <span className="text-tn-text-muted">Size</span>
         <span>{Number(s?.x ?? 1).toFixed(1)}, {Number(s?.y ?? 1).toFixed(1)}, {Number(s?.z ?? 1).toFixed(1)}</span>
@@ -35,7 +37,7 @@ export const CuboidNode = memo(function CuboidNode(props: TypedNodeProps) {
 export const CylinderNode = memo(function CylinderNode(props: TypedNodeProps) {
   const data = props.data;
   return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.Density} handles={CYLINDER_HANDLES}>
       <div className="space-y-0.5">
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Radius</span>
@@ -54,7 +56,7 @@ export const PlaneNode = memo(function PlaneNode(props: TypedNodeProps) {
   const data = props.data;
   const n = data.fields.Normal as { x?: number; y?: number; z?: number } | undefined;
   return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.Density} handles={SINGLE_CURVE_SDF_HANDLES}>
       <div className="space-y-0.5">
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Normal</span>
@@ -72,7 +74,7 @@ export const PlaneNode = memo(function PlaneNode(props: TypedNodeProps) {
 export const ShellNode = memo(function ShellNode(props: TypedNodeProps) {
   const data = props.data;
   return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.Density} handles={SHELL_HANDLES}>
       <div className="space-y-0.5">
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Inner R</span>

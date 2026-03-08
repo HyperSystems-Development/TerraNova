@@ -147,7 +147,7 @@ export const UnionPositionNode = memo(function UnionPositionNode(props: TypedNod
 export const SimpleHorizontalPositionNode = memo(function SimpleHorizontalPositionNode(props: TypedNodeProps) {
   const data = props.data;
   return (
-    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_PASSTHROUGH_HANDLES}>
       <div className="space-y-1">
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Spacing</span>
@@ -339,6 +339,46 @@ export const ClustersPositionNode = memo(function ClustersPositionNode(props: Ty
           {bounds ? `(${bounds.X ?? 4}, ${bounds.Y ?? 4}, ${bounds.Z ?? 4})` : "(4, 4, 4)"}
         </span>
       </div>
+    </BaseNode>
+  );
+});
+
+export const FrameworkPositionNode = memo(function FrameworkPositionNode(props: TypedNodeProps) {
+  const data = props.data;
+  return (
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
+      <div className="flex justify-between">
+        <span className="text-tn-text-muted">Name</span>
+        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
+      </div>
+    </BaseNode>
+  );
+});
+
+export const BaseHeightPositionNode = memo(function BaseHeightPositionNode(props: TypedNodeProps) {
+  const data = props.data;
+  return (
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
+      <div className="flex justify-between">
+        <span className="text-tn-text-muted">Name</span>
+        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.BaseHeightName, "")}</span>
+      </div>
+    </BaseNode>
+  );
+});
+
+export const AnchorPositionNode = memo(function AnchorPositionNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_PASSTHROUGH_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Anchor</div>
+    </BaseNode>
+  );
+});
+
+export const BoundPositionNode = memo(function BoundPositionNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_PASSTHROUGH_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Bound</div>
     </BaseNode>
   );
 });

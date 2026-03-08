@@ -8,7 +8,6 @@ export type PatternType =
   | "Ceiling"
   | "Wall"
   | "Surface"
-  | "Gap"
   | "BlockType"
   | "BlockSet"
   | "Cuboid"

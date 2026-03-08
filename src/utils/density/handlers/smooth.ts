@@ -41,12 +41,16 @@ const handleSmoothMax: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   return result;
 };
 
-const handleFloor: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
-  return Math.floor(ctx.getInput(inputs, "Input", x, y, z));
+const handleFloor: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+  const v = ctx.getInput(inputs, "Input", x, y, z);
+  const floor = Number(fields.Floor ?? 0);
+  return Math.max(v, floor);
 };
 
-const handleCeiling: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
-  return Math.ceil(ctx.getInput(inputs, "Input", x, y, z));
+const handleCeiling: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+  const v = ctx.getInput(inputs, "Input", x, y, z);
+  const ceiling = Number(fields.Ceiling ?? 1);
+  return Math.min(v, ceiling);
 };
 
 export function buildSmoothHandlers(): Map<string, NodeHandler> {

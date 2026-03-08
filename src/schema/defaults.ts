@@ -17,8 +17,8 @@ type DefaultFields = Record<string, unknown>;
 
 export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   // Core noise
-  SimplexNoise2D: { Frequency: 1.0, Amplitude: 1.0, Seed: "A", Octaves: 1, Lacunarity: 1.0, Gain: 1.0 },
-  SimplexNoise3D: { Frequency: 1.0, Amplitude: 1.0, Seed: "A", Octaves: 1, Lacunarity: 1.0, Gain: 1.0 },
+  SimplexNoise2D: { Frequency: 1.0, Amplitude: 1.0, Seed: "A", Octaves: 4, Lacunarity: 2.0, Gain: 0.5 },
+  SimplexNoise3D: { Frequency: 1.0, Amplitude: 1.0, Seed: "A", Octaves: 4, Lacunarity: 2.0, Gain: 0.5 },
   SimplexRidgeNoise2D: { Frequency: 0.01, Amplitude: 1.0, Seed: "A", Octaves: 1 },
   SimplexRidgeNoise3D: { Frequency: 0.01, Amplitude: 1.0, Seed: "A", Octaves: 1 },
   VoronoiNoise2D: { Frequency: 0.01, Seed: "A" },
@@ -85,8 +85,8 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   BeardDensity: {},
   ColumnDensity: {},
   CaveDensity: { Radius: 4.0 },
-  FractalNoise2D: { Frequency: 1.0, Octaves: 4, Lacunarity: 1.0, Gain: 1.0 },
-  FractalNoise3D: { Frequency: 1.0, Octaves: 4, Lacunarity: 1.0, Gain: 1.0 },
+  FractalNoise2D: { Frequency: 1.0, Octaves: 4, Lacunarity: 2.0, Gain: 0.5 },
+  FractalNoise3D: { Frequency: 1.0, Octaves: 4, Lacunarity: 2.0, Gain: 0.5 },
   DomainWarp2D: { Amplitude: 1.0 },
   DomainWarp3D: { Amplitude: 1.0 },
   // Smooth operations
@@ -97,8 +97,8 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   // Additional math
   AmplitudeConstant: { Value: 1.0 },
   Pow: { Exponent: 2.0 },
-  Floor: {},
-  Ceiling: {},
+  Floor: { Floor: 0 },
+  Ceiling: { Ceiling: 1 },
   // Position overrides & sampling
   Anchor: {},
   YOverride: { OverrideY: 0 },
@@ -121,7 +121,7 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   ZOverride: { OverrideZ: 0 },
   // Warp types
   GradientWarp: { WarpFactor: 1.0, WarpScale: 1.0, SampleRange: 1.0, Is2D: false, YFor2D: 0.0 },
-  FastGradientWarp: { WarpFactor: 1.0, WarpSeed: "A", WarpScale: 0.01, WarpOctaves: 3, WarpLacunarity: 2.0, WarpPersistence: 0.5, Is2D: false },
+  FastGradientWarp: { WarpFactor: 1.0, WarpSeed: "A", WarpScale: 1.0, WarpOctaves: 3, WarpLacunarity: 2.0, WarpPersistence: 0.5, Is2D: false },
   VectorWarp: { WarpFactor: 1.0 },
   // Context-dependent
   Terrain: {},
@@ -157,7 +157,7 @@ export const CURVE_DEFAULTS: Record<CurveType, DefaultFields> = {
   Manual: { Points: [] },
   Constant: { Value: 0.0 },
   DistanceExponential: { Exponent: 2.0, Range: { Min: 0, Max: 1 } },
-  DistanceS: { Distance: 1.0, Steepness: 1.0, Offset: 0.5, Width: 0.5, Exponent: 2.0 },
+  DistanceS: { ExponentA: 1.0, ExponentB: 1.0, Transition: 1.0, Range: 1.0, TransitionSmooth: 1.0 },
   Multiplier: {},
   Sum: {},
   Inverter: {},
@@ -243,7 +243,6 @@ export const PATTERN_DEFAULTS: Record<PatternType, DefaultFields> = {
   Ceiling: { Depth: 1 },
   Wall: {},
   Surface: {},
-  Gap: { Size: 1 },
   BlockType: { Material: "Rock_Lime_Cobble" },
   BlockSet: {},
   Cuboid: { Min: { x: 0, y: 0, z: 0 }, Max: { x: 1, y: 1, z: 1 } },

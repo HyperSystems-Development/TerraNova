@@ -8,6 +8,7 @@ import { useCompoundHandles } from "@/hooks/useCompoundHandles";
 // ── Hoisted handle arrays ───────────────────────────────────────────────
 const PATTERN_PASSTHROUGH_HANDLES = [patternInput("SubPattern", "Pattern"), patternOutput()];
 const PATTERN_OUTPUT_HANDLES = [patternOutput()];
+const PATTERN_FIELD_FUNCTION_HANDLES = [densityInput("FieldFunction", "Field Fn"), patternOutput()];
 const SURFACE_PATTERN_HANDLES = [
   patternInput("Floor", "Floor"),
   patternInput("Ceiling", "Ceiling"),
@@ -87,18 +88,6 @@ export const SurfacePatternNode = memo(function SurfacePatternNode(props: TypedN
       handles={SURFACE_PATTERN_HANDLES}
     >
       <div className="text-tn-text-muted text-center py-1">Surface</div>
-    </BaseNode>
-  );
-});
-
-export const GapPatternNode = memo(function GapPatternNode(props: TypedNodeProps) {
-  const data = props.data;
-  return (
-    <BaseNode {...props} category={AssetCategory.Pattern} handles={PATTERN_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Size</span>
-        <span>{safeDisplay(data.fields.Size, 1)}</span>
-      </div>
     </BaseNode>
   );
 });
@@ -252,6 +241,40 @@ export const ConstantPatternNode = memo(function ConstantPatternNode(props: Type
         <span className="text-tn-text-muted">Value</span>
         <span>{data.fields.Value === false ? "false" : "true"}</span>
       </div>
+    </BaseNode>
+  );
+});
+
+export const FieldFunctionPatternNode = memo(function FieldFunctionPatternNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.Pattern} handles={PATTERN_FIELD_FUNCTION_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Field function</div>
+    </BaseNode>
+  );
+});
+
+export const AndPatternNode = memo(function AndPatternNode(props: TypedNodeProps) {
+  const handles = useCompoundHandles(props.id, "Pattern:And");
+  return (
+    <BaseNode {...props} category={AssetCategory.Pattern} handles={handles}>
+      <div className="text-tn-text-muted text-center py-1">AND</div>
+    </BaseNode>
+  );
+});
+
+export const OrPatternNode = memo(function OrPatternNode(props: TypedNodeProps) {
+  const handles = useCompoundHandles(props.id, "Pattern:Or");
+  return (
+    <BaseNode {...props} category={AssetCategory.Pattern} handles={handles}>
+      <div className="text-tn-text-muted text-center py-1">OR</div>
+    </BaseNode>
+  );
+});
+
+export const NotPatternNode = memo(function NotPatternNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.Pattern} handles={PATTERN_PASSTHROUGH_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">NOT</div>
     </BaseNode>
   );
 });

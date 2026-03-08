@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
-import { densityInput, densityOutput, curveInput, vectorInput } from "@/nodes/shared/handles";
+import { densityInput, densityOutput, curveInput, vectorInput, positionInput } from "@/nodes/shared/handles";
 import { safeDisplay } from "@/nodes/shared/displayUtils";
 import { useCompoundHandles } from "@/hooks/useCompoundHandles";
 
@@ -10,7 +10,11 @@ const OUTPUT_ONLY_HANDLES = [densityOutput()];
 const DISTANCE_HANDLES = [curveInput("Curve", "Curve"), densityOutput()];
 const YSAMPLED_HANDLES = [densityInput("Input", "Input"), densityInput("YProvider", "Y Provider"), densityOutput()];
 const GRADIENT_WARP_HANDLES = [densityInput("Input", "Input"), densityInput("WarpSource", "Warp Source"), densityOutput()];
-const VECTOR_WARP_HANDLES = [densityInput("Input", "Input"), vectorInput("WarpVector", "Warp Vector"), densityOutput()];
+const VECTOR_WARP_HANDLES = [densityInput("Input", "Input"), densityInput("Magnitude", "Magnitude"), vectorInput("WarpVector", "Warp Vector"), densityOutput()];
+const POSITIONS_CELL_NOISE_HANDLES = [positionInput("Positions", "Positions"), curveInput("ReturnCurve", "Return Curve"), densityOutput()];
+const POSITIONS_3D_HANDLES = [positionInput("Positions", "Positions"), curveInput("DistanceCurve", "Distance Curve"), densityOutput()];
+const POSITIONS_PINCH_HANDLES = [positionInput("Positions", "Positions"), curveInput("PinchCurve", "Pinch Curve"), densityOutput()];
+const POSITIONS_TWIST_HANDLES = [positionInput("Positions", "Positions"), curveInput("TwistCurve", "Twist Curve"), densityOutput()];
 
 export const SurfaceDensityNode = memo(function SurfaceDensityNode(props: TypedNodeProps) {
   return (
@@ -374,7 +378,7 @@ export const Cache2DNode = memo(function Cache2DNode(props: TypedNodeProps) {
 export const PositionsCellNoiseNode = memo(function PositionsCellNoiseNode(props: TypedNodeProps) {
   const data = props.data;
   return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.Density} handles={POSITIONS_CELL_NOISE_HANDLES}>
       <div className="space-y-1">
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Freq</span>
@@ -392,7 +396,7 @@ export const PositionsCellNoiseNode = memo(function PositionsCellNoiseNode(props
 export const Positions3DNode = memo(function Positions3DNode(props: TypedNodeProps) {
   const data = props.data;
   return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.Density} handles={POSITIONS_3D_HANDLES}>
       <div className="space-y-1">
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Freq</span>
@@ -410,7 +414,7 @@ export const Positions3DNode = memo(function Positions3DNode(props: TypedNodePro
 export const PositionsPinchNode = memo(function PositionsPinchNode(props: TypedNodeProps) {
   const data = props.data;
   return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.Density} handles={POSITIONS_PINCH_HANDLES}>
       <div className="flex justify-between">
         <span className="text-tn-text-muted">Strength</span>
         <span>{safeDisplay(data.fields.Strength, 1)}</span>
@@ -422,7 +426,7 @@ export const PositionsPinchNode = memo(function PositionsPinchNode(props: TypedN
 export const PositionsTwistNode = memo(function PositionsTwistNode(props: TypedNodeProps) {
   const data = props.data;
   return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.Density} handles={POSITIONS_TWIST_HANDLES}>
       <div className="flex justify-between">
         <span className="text-tn-text-muted">Angle</span>
         <span>{safeDisplay(data.fields.Angle, 0)}°</span>

@@ -130,7 +130,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   BaseHeight: [densityOutput()],
   Offset: [densityInput("Input", "Input"), densityInput("Offset", "Offset"), densityOutput()],
   Distance: [curveInput("Curve", "Curve"), densityOutput()],
-  PositionsCellNoise: [curveInput("ReturnCurve", "Return Curve"), densityOutput()],
+  PositionsCellNoise: [positionInput("Positions", "Positions"), curveInput("ReturnCurve", "Return Curve"), densityOutput()],
 
   // Additional density types
   XOverride: [densityInput("Input", "Input"), densityOutput()],
@@ -138,11 +138,11 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   SmoothCeiling: [densityInput("Input", "Input"), densityOutput()],
   Gradient: [densityOutput()],
   Amplitude: [densityInput("Input", "Input"), densityInput("Amplitude", "Amplitude"), densityOutput()],
-  YSampled: [densityInput("Input", "Input"), densityOutput()],
+  YSampled: [densityInput("Input", "Input"), densityInput("YProvider", "Y Provider"), densityOutput()],
   SwitchState: [densityOutput()],
-  Positions3D: [densityOutput()],
-  PositionsPinch: [densityInput("Input", "Input"), densityOutput()],
-  PositionsTwist: [densityInput("Input", "Input"), densityOutput()],
+  Positions3D: [positionInput("Positions", "Positions"), curveInput("DistanceCurve", "Distance Curve"), densityOutput()],
+  PositionsPinch: [positionInput("Positions", "Positions"), curveInput("PinchCurve", "Pinch Curve"), densityOutput()],
+  PositionsTwist: [positionInput("Positions", "Positions"), curveInput("TwistCurve", "Twist Curve"), densityOutput()],
   GradientWarp: [densityInput("Input", "Input"), densityInput("WarpSource", "Warp Source"), densityOutput()],
   FastGradientWarp: [densityInput("Input", "Input"), densityOutput()],
   VectorWarp: [densityInput("Input", "Input"), densityInput("Magnitude", "Magnitude"), vectorInput("WarpVector", "Warp Vector"), densityOutput()],
@@ -152,10 +152,10 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   Pipeline: [densityInput("Input", "Input"), densityOutput()],
 
   // Shape SDFs (output only — pure geometry)
-  Ellipsoid: [densityOutput()],
-  Cuboid: [densityOutput()],
-  Cylinder: [densityOutput()],
-  Plane: [densityOutput()],
+  Ellipsoid: [curveInput("Curve", "Curve"), densityOutput()],
+  Cuboid: [curveInput("Curve", "Curve"), densityOutput()],
+  Cylinder: [curveInput("RadialCurve", "Radial Curve"), curveInput("AxialCurve", "Axial Curve"), densityOutput()],
+  Plane: [curveInput("Curve", "Curve"), densityOutput()],
   Shell: [curveInput("AngleCurve", "Angle Curve"), curveInput("DistanceCurve", "Distance Curve"), densityOutput()],
   Cube: [curveInput("Curve", "Curve"), densityOutput()],
   Axis: [curveInput("Curve", "Curve"), densityOutput()],
@@ -250,7 +250,6 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
 
   // ── Pattern ────────────────────────────────────────────────────────────
 
-  "Pattern:Gap": [patternOutput()],
   "Pattern:BlockType": [patternOutput()],
   "Pattern:Cuboid": [patternOutput()],
   "Pattern:Imported": [patternOutput()],
@@ -281,7 +280,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Position:List": [positionOutput()],
   "Position:Mesh2D": [positionOutput()],
   "Position:Mesh3D": [positionOutput()],
-  "Position:SimpleHorizontal": [positionOutput()],
+  "Position:SimpleHorizontal": [positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Imported": [positionOutput()],
 
   "Position:Occurrence": [positionInput("PositionProvider", "Positions"), positionOutput()],

@@ -1082,6 +1082,47 @@ describe("round-trip: internal → hytale → internal", () => {
     expect(imported.TargetRange).toEqual({ Min: 0, Max: 1 });
   });
 
+  it("round-trips Floor density with Floor field", () => {
+    const original = {
+      Type: "Floor",
+      Floor: 0,
+      Input: { Type: "Constant", Value: 3.7 },
+    };
+    const exported = internalToHytale(original);
+    expect(exported.Type).toBe("Floor");
+    expect(exported.Floor).toBe(0);
+    // Input should be in Inputs[] array
+    const inputs = exported.Inputs as Record<string, unknown>[];
+    expect(inputs).toHaveLength(1);
+    expect(inputs[0].Type).toBe("Constant");
+
+    const { asset: imported } = hytaleToInternal(exported);
+    expect(imported.Type).toBe("Floor");
+    expect(imported.Floor).toBe(0);
+    expect((imported.Input as Record<string, unknown>).Type).toBe("Constant");
+    expect((imported.Input as Record<string, unknown>).Value).toBe(3.7);
+  });
+
+  it("round-trips Ceiling density with Ceiling field", () => {
+    const original = {
+      Type: "Ceiling",
+      Ceiling: 1,
+      Input: { Type: "Constant", Value: -0.5 },
+    };
+    const exported = internalToHytale(original);
+    expect(exported.Type).toBe("Ceiling");
+    expect(exported.Ceiling).toBe(1);
+    const inputs = exported.Inputs as Record<string, unknown>[];
+    expect(inputs).toHaveLength(1);
+    expect(inputs[0].Type).toBe("Constant");
+
+    const { asset: imported } = hytaleToInternal(exported);
+    expect(imported.Type).toBe("Ceiling");
+    expect(imported.Ceiling).toBe(1);
+    expect((imported.Input as Record<string, unknown>).Type).toBe("Constant");
+    expect((imported.Input as Record<string, unknown>).Value).toBe(-0.5);
+  });
+
   it("round-trips noise with frequency/scale inversion", () => {
     const original = {
       Type: "SimplexNoise2D",

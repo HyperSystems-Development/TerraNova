@@ -81,6 +81,7 @@ export {
   MinFunctionNode,
   MaxFunctionNode,
   AverageFunctionNode,
+  MultiMixNode,
 } from "./CombinatorNodes";
 
 // Transform nodes

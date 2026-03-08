@@ -3,7 +3,6 @@ export {
   CeilingPatternNode,
   WallPatternNode,
   SurfacePatternNode,
-  GapPatternNode,
   BlockTypePatternNode,
   BlockSetPatternNode,
   CuboidPatternNode,
@@ -15,4 +14,8 @@ export {
   ImportedPatternNode,
   ExportedPatternNode,
   ConstantPatternNode,
+  FieldFunctionPatternNode,
+  AndPatternNode,
+  OrPatternNode,
+  NotPatternNode,
 } from "./PatternNodes";
