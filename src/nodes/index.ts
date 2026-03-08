@@ -67,6 +67,10 @@ import {
   OffsetPatternNode, ConditionalPatternNode, BlendPatternNode,
   UnionPatternNode, IntersectionPatternNode, ImportedPatternNode, ExportedPatternNode,
   ConstantPatternNode,
+  FieldFunctionPatternNode,
+  AndPatternNode,
+  OrPatternNode,
+  NotPatternNode,
 } from "./patterns";
 
 // ── Position nodes ─────────────────────────────────────────────────────
@@ -333,6 +337,10 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Pattern:Constant": ConstantPatternNode,
   "Pattern:Imported": ImportedPatternNode,
   "Pattern:Exported": ExportedPatternNode,
+  "Pattern:FieldFunction": FieldFunctionPatternNode,
+  "Pattern:And": AndPatternNode,
+  "Pattern:Or": OrPatternNode,
+  "Pattern:Not": NotPatternNode,
 
   // ── Position Provider ────────────────────────────────────────────────
   "Position:List": ListPositionNode,

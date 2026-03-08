@@ -14,4 +14,8 @@ export {
   ImportedPatternNode,
   ExportedPatternNode,
   ConstantPatternNode,
+  FieldFunctionPatternNode,
+  AndPatternNode,
+  OrPatternNode,
+  NotPatternNode,
 } from "./PatternNodes";
