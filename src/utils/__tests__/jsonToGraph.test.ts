@@ -293,6 +293,7 @@ describe("jsonToGraph edge creation (handle audit)", () => {
       FieldFunction: { Type: "SimplexNoise2D" },
     };
     const { nodes, edges } = jsonToGraph(json, 0, 0, "g", "MaterialProvider");
+    expect(edges).toHaveLength(1);
     expect(nodes.some((n) => n.type === "SimplexNoise2D")).toBe(true);
     expect(edges[0].targetHandle).toBe("FieldFunction");
   });
