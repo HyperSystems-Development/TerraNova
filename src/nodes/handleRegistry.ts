@@ -130,7 +130,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   BaseHeight: [densityOutput()],
   Offset: [densityInput("Input", "Input"), densityInput("Offset", "Offset"), densityOutput()],
   Distance: [curveInput("Curve", "Curve"), densityOutput()],
-  PositionsCellNoise: [curveInput("ReturnCurve", "Return Curve"), densityOutput()],
+  PositionsCellNoise: [positionInput("Positions", "Positions"), curveInput("ReturnCurve", "Return Curve"), densityOutput()],
 
   // Additional density types
   XOverride: [densityInput("Input", "Input"), densityOutput()],

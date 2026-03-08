@@ -85,6 +85,7 @@ const FIELD_CATEGORY_PREFIX: Record<string, string> = {
   Pattern: "Pattern",
   SubPattern: "Pattern",
   PositionProvider: "Position",
+  Positions: "Position",
   VectorProvider: "Vector",
   MaterialProvider: "Material",
   Scanner: "Scanner",

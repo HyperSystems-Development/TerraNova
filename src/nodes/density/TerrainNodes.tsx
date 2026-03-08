@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
-import { densityInput, densityOutput, curveInput, vectorInput } from "@/nodes/shared/handles";
+import { densityInput, densityOutput, curveInput, vectorInput, positionInput } from "@/nodes/shared/handles";
 import { safeDisplay } from "@/nodes/shared/displayUtils";
 import { useCompoundHandles } from "@/hooks/useCompoundHandles";
 
@@ -11,6 +11,7 @@ const DISTANCE_HANDLES = [curveInput("Curve", "Curve"), densityOutput()];
 const YSAMPLED_HANDLES = [densityInput("Input", "Input"), densityInput("YProvider", "Y Provider"), densityOutput()];
 const GRADIENT_WARP_HANDLES = [densityInput("Input", "Input"), densityInput("WarpSource", "Warp Source"), densityOutput()];
 const VECTOR_WARP_HANDLES = [densityInput("Input", "Input"), vectorInput("WarpVector", "Warp Vector"), densityOutput()];
+const POSITIONS_CELL_NOISE_HANDLES = [positionInput("Positions", "Positions"), curveInput("ReturnCurve", "Return Curve"), densityOutput()];
 
 export const SurfaceDensityNode = memo(function SurfaceDensityNode(props: TypedNodeProps) {
   return (
@@ -374,7 +375,7 @@ export const Cache2DNode = memo(function Cache2DNode(props: TypedNodeProps) {
 export const PositionsCellNoiseNode = memo(function PositionsCellNoiseNode(props: TypedNodeProps) {
   const data = props.data;
   return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.Density} handles={POSITIONS_CELL_NOISE_HANDLES}>
       <div className="space-y-1">
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Freq</span>
