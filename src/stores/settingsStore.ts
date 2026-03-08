@@ -1,22 +1,7 @@
 import { create } from "zustand";
-import type { LanguageId } from "@/languages/types";
 import { DEFAULT_FLOW_DIRECTION, type FlowDirection } from "@/constants";
 
 const STORAGE_KEY = "tn-settings";
-
-function getStoredLanguage(): LanguageId {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return "hytale";
-    const parsed = JSON.parse(raw);
-    if (parsed.language === "terranova" || parsed.language === "hytale") {
-      return parsed.language;
-    }
-  } catch {
-    // ignore
-  }
-  return "hytale";
-}
 
 function getStoredFlowDirection(): FlowDirection {
   try {
@@ -87,7 +72,6 @@ function getStoredKeybindingOverrides(): Record<string, string> {
 }
 
 function persistSettings(settings: {
-  language: LanguageId;
   flowDirection: FlowDirection;
   autoLayoutOnOpen: boolean;
   autoCheckUpdates: boolean;
@@ -102,13 +86,11 @@ function persistSettings(settings: {
 }
 
 interface SettingsState {
-  language: LanguageId;
   flowDirection: FlowDirection;
   autoLayoutOnOpen: boolean;
   autoCheckUpdates: boolean;
   keybindingOverrides: Record<string, string>;
   exportPath: string | null;
-  setLanguage: (lang: LanguageId) => void;
   setFlowDirection: (dir: FlowDirection) => void;
   setAutoLayoutOnOpen: (value: boolean) => void;
   setAutoCheckUpdates: (value: boolean) => void;
@@ -120,7 +102,6 @@ interface SettingsState {
 
 function getAllSettings(state: SettingsState) {
   return {
-    language: state.language,
     flowDirection: state.flowDirection,
     autoLayoutOnOpen: state.autoLayoutOnOpen,
     autoCheckUpdates: state.autoCheckUpdates,
@@ -130,17 +111,11 @@ function getAllSettings(state: SettingsState) {
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  language: getStoredLanguage(),
   flowDirection: getStoredFlowDirection(),
   autoLayoutOnOpen: getStoredAutoLayoutOnOpen(),
   autoCheckUpdates: getStoredAutoCheckUpdates(),
   keybindingOverrides: getStoredKeybindingOverrides(),
   exportPath: getStoredExportPath(),
-
-  setLanguage: (lang) => {
-    set({ language: lang });
-    persistSettings(getAllSettings({ ...get(), language: lang }));
-  },
 
   setFlowDirection: (dir) => {
     set({ flowDirection: dir });

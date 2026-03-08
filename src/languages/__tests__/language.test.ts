@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getLanguageHelpers } from "../useLanguage";
 import { hytaleLanguage } from "../hytale";
-import { terranovaLanguage } from "../terranova";
 import { internalToHytale } from "@/utils/internalToHytale";
 import { hytaleToInternal } from "@/utils/hytaleToInternal";
 import { INTERNAL_TO_HYTALE_TYPES } from "@/utils/translationMaps";
@@ -11,107 +10,76 @@ import { INTERNAL_TO_HYTALE_TYPES } from "@/utils/translationMaps";
 // ---------------------------------------------------------------------------
 
 describe("getLanguageHelpers", () => {
-  describe("Hytale language", () => {
-    const h = getLanguageHelpers("hytale");
+  const h = getLanguageHelpers();
 
-    it("returns Hytale display names for mapped types", () => {
-      expect(h.getTypeDisplayName("Product")).toBe("Multiplier");
-      expect(h.getTypeDisplayName("Negate")).toBe("Inverter");
-      expect(h.getTypeDisplayName("CurveFunction")).toBe("CurveMapper");
-      expect(h.getTypeDisplayName("CacheOnce")).toBe("Cache");
-      expect(h.getTypeDisplayName("ImportedValue")).toBe("Imported");
-      expect(h.getTypeDisplayName("Blend")).toBe("Mix");
-      expect(h.getTypeDisplayName("MinFunction")).toBe("Min");
-      expect(h.getTypeDisplayName("MaxFunction")).toBe("Max");
-      expect(h.getTypeDisplayName("VoronoiNoise2D")).toBe("CellNoise2D");
-      expect(h.getTypeDisplayName("VoronoiNoise3D")).toBe("CellNoise3D");
-      expect(h.getTypeDisplayName("SquareRoot")).toBe("Sqrt");
-      expect(h.getTypeDisplayName("DomainWarp2D")).toBe("FastGradientWarp");
-      expect(h.getTypeDisplayName("ScaledPosition")).toBe("Scale");
-      expect(h.getTypeDisplayName("TranslatedPosition")).toBe("Slider");
-      expect(h.getTypeDisplayName("RotatedPosition")).toBe("Rotator");
-      expect(h.getTypeDisplayName("LinearTransform")).toBe("AmplitudeConstant");
-      expect(h.getTypeDisplayName("BlendCurve")).toBe("MultiMix");
-      expect(h.getTypeDisplayName("Square")).toBe("Pow");
-    });
-
-    it("falls back to internal name for unmapped types", () => {
-      expect(h.getTypeDisplayName("SimplexNoise2D")).toBe("SimplexNoise2D");
-      expect(h.getTypeDisplayName("Clamp")).toBe("Clamp");
-      expect(h.getTypeDisplayName("Constant")).toBe("Constant");
-    });
-
-    it("returns Hytale field display names", () => {
-      expect(h.getFieldDisplayName("Clamp", "Min")).toBe("WallB");
-      expect(h.getFieldDisplayName("Clamp", "Max")).toBe("WallA");
-      expect(h.getFieldDisplayName("SmoothClamp", "Min")).toBe("WallB");
-      expect(h.getFieldDisplayName("SmoothClamp", "Max")).toBe("WallA");
-      expect(h.getFieldDisplayName("RotatedPosition", "AngleDegrees")).toBe("SpinAngle");
-      expect(h.getFieldDisplayName("DomainWarp2D", "Amplitude")).toBe("WarpFactor");
-      expect(h.getFieldDisplayName("DomainWarp3D", "Amplitude")).toBe("WarpFactor");
-      expect(h.getFieldDisplayName("SimplexNoise2D", "Gain")).toBe("Persistence");
-      expect(h.getFieldDisplayName("SimplexNoise3D", "Gain")).toBe("Persistence");
-    });
-
-    it("returns transform displayName for transformed fields", () => {
-      expect(h.getFieldDisplayName("SimplexNoise2D", "Frequency")).toBe("Scale");
-      expect(h.getFieldDisplayName("SimplexNoise3D", "Frequency")).toBe("Scale");
-      expect(h.getFieldDisplayName("VoronoiNoise2D", "Frequency")).toBe("Scale");
-      expect(h.getFieldDisplayName("VoronoiNoise3D", "Frequency")).toBe("Scale");
-    });
-
-    it("falls back to raw field name for unmapped fields", () => {
-      expect(h.getFieldDisplayName("SimplexNoise2D", "Octaves")).toBe("Octaves");
-      expect(h.getFieldDisplayName("Clamp", "Input")).toBe("Input");
-    });
-
-    it("hides convenience types", () => {
-      expect(h.isTypeVisible("SimplexRidgeNoise2D")).toBe(false);
-      expect(h.isTypeVisible("SimplexRidgeNoise3D")).toBe(false);
-      expect(h.isTypeVisible("FractalNoise2D")).toBe(false);
-      expect(h.isTypeVisible("FractalNoise3D")).toBe(false);
-      expect(h.isTypeVisible("GradientDensity")).toBe(false);
-      expect(h.isTypeVisible("LinearTransform")).toBe(false);
-      expect(h.isTypeVisible("Conditional")).toBe(false);
-      expect(h.isTypeVisible("HeightGradient")).toBe(false);
-      expect(h.isTypeVisible("DensityBased")).toBe(false);
-    });
-
-    it("shows standard Hytale types", () => {
-      expect(h.isTypeVisible("SimplexNoise2D")).toBe(true);
-      expect(h.isTypeVisible("Clamp")).toBe(true);
-      expect(h.isTypeVisible("Constant")).toBe(true);
-      expect(h.isTypeVisible("Product")).toBe(true);
-    });
+  it("returns Hytale display names for mapped types", () => {
+    expect(h.getTypeDisplayName("Product")).toBe("Multiplier");
+    expect(h.getTypeDisplayName("Negate")).toBe("Inverter");
+    expect(h.getTypeDisplayName("CurveFunction")).toBe("CurveMapper");
+    expect(h.getTypeDisplayName("CacheOnce")).toBe("Cache");
+    expect(h.getTypeDisplayName("ImportedValue")).toBe("Imported");
+    expect(h.getTypeDisplayName("Blend")).toBe("Mix");
+    expect(h.getTypeDisplayName("MinFunction")).toBe("Min");
+    expect(h.getTypeDisplayName("MaxFunction")).toBe("Max");
+    expect(h.getTypeDisplayName("VoronoiNoise2D")).toBe("CellNoise2D");
+    expect(h.getTypeDisplayName("VoronoiNoise3D")).toBe("CellNoise3D");
+    expect(h.getTypeDisplayName("SquareRoot")).toBe("Sqrt");
+    expect(h.getTypeDisplayName("DomainWarp2D")).toBe("FastGradientWarp");
+    expect(h.getTypeDisplayName("ScaledPosition")).toBe("Scale");
+    expect(h.getTypeDisplayName("TranslatedPosition")).toBe("Slider");
+    expect(h.getTypeDisplayName("RotatedPosition")).toBe("Rotator");
+    expect(h.getTypeDisplayName("LinearTransform")).toBe("AmplitudeConstant");
+    expect(h.getTypeDisplayName("BlendCurve")).toBe("MultiMix");
+    expect(h.getTypeDisplayName("Square")).toBe("Pow");
   });
 
-  describe("TerraNova language", () => {
-    const t = getLanguageHelpers("terranova");
+  it("falls back to internal name for unmapped types", () => {
+    expect(h.getTypeDisplayName("SimplexNoise2D")).toBe("SimplexNoise2D");
+    expect(h.getTypeDisplayName("Clamp")).toBe("Clamp");
+    expect(h.getTypeDisplayName("Constant")).toBe("Constant");
+  });
 
-    it("returns internal names as-is (identity)", () => {
-      expect(t.getTypeDisplayName("Product")).toBe("Product");
-      expect(t.getTypeDisplayName("Negate")).toBe("Negate");
-      expect(t.getTypeDisplayName("SimplexNoise2D")).toBe("SimplexNoise2D");
-    });
+  it("returns Hytale field display names", () => {
+    expect(h.getFieldDisplayName("Clamp", "Min")).toBe("WallB");
+    expect(h.getFieldDisplayName("Clamp", "Max")).toBe("WallA");
+    expect(h.getFieldDisplayName("SmoothClamp", "Min")).toBe("WallB");
+    expect(h.getFieldDisplayName("SmoothClamp", "Max")).toBe("WallA");
+    expect(h.getFieldDisplayName("RotatedPosition", "AngleDegrees")).toBe("SpinAngle");
+    expect(h.getFieldDisplayName("DomainWarp2D", "Amplitude")).toBe("WarpFactor");
+    expect(h.getFieldDisplayName("DomainWarp3D", "Amplitude")).toBe("WarpFactor");
+    expect(h.getFieldDisplayName("SimplexNoise2D", "Gain")).toBe("Persistence");
+    expect(h.getFieldDisplayName("SimplexNoise3D", "Gain")).toBe("Persistence");
+  });
 
-    it("returns field names as-is", () => {
-      expect(t.getFieldDisplayName("Clamp", "Min")).toBe("Min");
-      expect(t.getFieldDisplayName("Clamp", "Max")).toBe("Max");
-      expect(t.getFieldDisplayName("SimplexNoise2D", "Frequency")).toBe("Frequency");
-    });
+  it("returns transform displayName for transformed fields", () => {
+    expect(h.getFieldDisplayName("SimplexNoise2D", "Frequency")).toBe("Scale");
+    expect(h.getFieldDisplayName("SimplexNoise3D", "Frequency")).toBe("Scale");
+    expect(h.getFieldDisplayName("VoronoiNoise2D", "Frequency")).toBe("Scale");
+    expect(h.getFieldDisplayName("VoronoiNoise3D", "Frequency")).toBe("Scale");
+  });
 
-    it("shows all types including convenience types", () => {
-      expect(t.isTypeVisible("SimplexRidgeNoise2D")).toBe(true);
-      expect(t.isTypeVisible("FractalNoise2D")).toBe(true);
-      expect(t.isTypeVisible("GradientDensity")).toBe(true);
-      expect(t.isTypeVisible("LinearTransform")).toBe(true);
-      expect(t.isTypeVisible("Conditional")).toBe(true);
-    });
+  it("falls back to raw field name for unmapped fields", () => {
+    expect(h.getFieldDisplayName("SimplexNoise2D", "Octaves")).toBe("Octaves");
+    expect(h.getFieldDisplayName("Clamp", "Input")).toBe("Input");
+  });
 
-    it("has no field transforms", () => {
-      expect(t.getFieldTransform("SimplexNoise2D", "Frequency")).toBeNull();
-      expect(t.getFieldTransform("VoronoiNoise2D", "Frequency")).toBeNull();
-    });
+  it("hides convenience types", () => {
+    expect(h.isTypeVisible("SimplexRidgeNoise2D")).toBe(false);
+    expect(h.isTypeVisible("SimplexRidgeNoise3D")).toBe(false);
+    expect(h.isTypeVisible("FractalNoise2D")).toBe(false);
+    expect(h.isTypeVisible("FractalNoise3D")).toBe(false);
+    expect(h.isTypeVisible("GradientDensity")).toBe(false);
+    expect(h.isTypeVisible("LinearTransform")).toBe(false);
+    expect(h.isTypeVisible("Conditional")).toBe(false);
+    expect(h.isTypeVisible("HeightGradient")).toBe(false);
+    expect(h.isTypeVisible("DensityBased")).toBe(false);
+  });
+
+  it("shows standard Hytale types", () => {
+    expect(h.isTypeVisible("SimplexNoise2D")).toBe(true);
+    expect(h.isTypeVisible("Clamp")).toBe(true);
+    expect(h.isTypeVisible("Constant")).toBe(true);
+    expect(h.isTypeVisible("Product")).toBe(true);
   });
 });
 
@@ -120,7 +88,7 @@ describe("getLanguageHelpers", () => {
 // ---------------------------------------------------------------------------
 
 describe("field transforms", () => {
-  const h = getLanguageHelpers("hytale");
+  const h = getLanguageHelpers();
 
   describe("Frequency ↔ Scale inverse", () => {
     const types = ["SimplexNoise2D", "SimplexNoise3D", "VoronoiNoise2D", "VoronoiNoise3D"];
@@ -180,7 +148,7 @@ describe("field transforms", () => {
 // ---------------------------------------------------------------------------
 
 describe("matchesSearch", () => {
-  const h = getLanguageHelpers("hytale");
+  const h = getLanguageHelpers();
 
   it("matches by internal name", () => {
     expect(h.matchesSearch("Product", "product")).toBe(true);
@@ -212,25 +180,17 @@ describe("matchesSearch", () => {
 
 // ---------------------------------------------------------------------------
 // End-to-end: Hytale language display → internal storage → JSON export
-//
-// Scenario: User is in Hytale language mode. They see a SimplexNoise2D node
-// with field "Scale: 100". Internally this is stored as Frequency: 0.01.
-// When saved to JSON, the export pipeline produces correct Hytale JSON.
-// When re-imported, the internal values are preserved exactly.
 // ---------------------------------------------------------------------------
 
 describe("end-to-end: Hytale display → internal → export → import round-trip", () => {
-  const h = getLanguageHelpers("hytale");
+  const h = getLanguageHelpers();
 
   it("SimplexNoise2D: Scale display value exports correctly", () => {
-    // User sees "Scale: 100" in Hytale mode
     const userDisplayValue = 100;
     const transform = h.getFieldTransform("SimplexNoise2D", "Frequency")!;
-    // The display layer converts this back to internal: Frequency = 1/100 = 0.01
     const internalFrequency = transform.fromDisplay(userDisplayValue);
     expect(internalFrequency).toBeCloseTo(0.01, 10);
 
-    // Internal JSON asset (as stored in the graph)
     const internalAsset = {
       Type: "SimplexNoise2D",
       Frequency: internalFrequency,
@@ -240,27 +200,23 @@ describe("end-to-end: Hytale display → internal → export → import round-tr
       Gain: 0.5,
     };
 
-    // Export to Hytale JSON
     const exported = internalToHytale(internalAsset);
 
-    // Verify exported JSON has correct Hytale structure
     expect(exported.Type).toBe("SimplexNoise2D");
-    expect(exported.Scale).toBeCloseTo(100, 5);  // Frequency 0.01 → Scale 100
-    expect(exported.Persistence).toBe(0.5);       // Gain → Persistence
+    expect(exported.Scale).toBeCloseTo(100, 5);
+    expect(exported.Persistence).toBe(0.5);
     expect(exported.Seed).toBe("A");
     expect(exported.Octaves).toBe(3);
-    expect(exported).not.toHaveProperty("Frequency"); // Internal field stripped
-    expect(exported).not.toHaveProperty("Gain");      // Internal field stripped
-    expect(exported).not.toHaveProperty("Amplitude");  // Stripped on export
+    expect(exported).not.toHaveProperty("Frequency");
+    expect(exported).not.toHaveProperty("Gain");
+    expect(exported).not.toHaveProperty("Amplitude");
 
-    // Re-import from Hytale JSON
     const importedJson = {
       $NodeId: "SimplexNoise2DDensityNode-test123",
       ...exported,
     };
     const { asset: reimported } = hytaleToInternal(importedJson);
 
-    // Verify round-trip: internal values match
     expect(reimported.Type).toBe("SimplexNoise2D");
     expect((reimported as Record<string, unknown>).Frequency).toBeCloseTo(0.01, 5);
     expect((reimported as Record<string, unknown>).Gain).toBe(0.5);
@@ -295,7 +251,7 @@ describe("end-to-end: Hytale display → internal → export → import round-tr
   it("VoronoiNoise2D: Frequency ↔ Scale export round-trip", () => {
     const transform = h.getFieldTransform("VoronoiNoise2D", "Frequency")!;
     const displayScale = 50;
-    const internalFreq = transform.fromDisplay(displayScale); // 0.02
+    const internalFreq = transform.fromDisplay(displayScale);
 
     const exported = internalToHytale({
       Type: "VoronoiNoise2D",
@@ -320,7 +276,7 @@ describe("end-to-end: Hytale display → internal → export → import round-tr
   it("VoronoiNoise3D: Frequency ↔ Scale export round-trip", () => {
     const transform = h.getFieldTransform("VoronoiNoise3D", "Frequency")!;
     const displayScale = 25;
-    const internalFreq = transform.fromDisplay(displayScale); // 0.04
+    const internalFreq = transform.fromDisplay(displayScale);
 
     const exported = internalToHytale({
       Type: "VoronoiNoise3D",
@@ -343,14 +299,10 @@ describe("end-to-end: Hytale display → internal → export → import round-tr
   });
 
   it("Clamp: field display names do not affect exported values", () => {
-    // In Hytale mode, user sees WallB for Min and WallA for Max
     expect(h.getFieldDisplayName("Clamp", "Min")).toBe("WallB");
     expect(h.getFieldDisplayName("Clamp", "Max")).toBe("WallA");
 
-    // Internal asset
     const internalAsset = { Type: "Clamp", Min: -1, Max: 1 };
-
-    // Export to Hytale JSON: Min→WallB, Max→WallA
     const exported = internalToHytale(internalAsset);
 
     expect(exported.Type).toBe("Clamp");
@@ -359,7 +311,6 @@ describe("end-to-end: Hytale display → internal → export → import round-tr
     expect(exported).not.toHaveProperty("Min");
     expect(exported).not.toHaveProperty("Max");
 
-    // Re-import: WallA→Max, WallB→Min
     const { asset: reimported } = hytaleToInternal({
       $NodeId: "ClampDensityNode-test",
       ...exported,
@@ -371,17 +322,12 @@ describe("end-to-end: Hytale display → internal → export → import round-tr
   });
 
   it("Product: type display name does not affect exported Type field", () => {
-    // In Hytale mode, Product displays as "Multiplier"
     expect(h.getTypeDisplayName("Product")).toBe("Multiplier");
 
-    // But the internal store still has Type: "Product"
     const internalAsset = { Type: "Product", Inputs: [] };
-
-    // Export produces Hytale type name
     const exported = internalToHytale(internalAsset);
     expect(exported.Type).toBe("Multiplier");
 
-    // Import recovers internal type name
     const { asset: reimported } = hytaleToInternal({
       $NodeId: "MultiplierDensityNode-test",
       ...exported,
@@ -414,7 +360,7 @@ describe("end-to-end: Hytale display → internal → export → import round-tr
   it("SimplexNoise3D: Frequency → ScaleXZ + ScaleY on export", () => {
     const transform = h.getFieldTransform("SimplexNoise3D", "Frequency")!;
     const displayScale = 200;
-    const internalFreq = transform.fromDisplay(displayScale); // 0.005
+    const internalFreq = transform.fromDisplay(displayScale);
 
     const exported = internalToHytale({
       Type: "SimplexNoise3D",
@@ -443,31 +389,13 @@ describe("end-to-end: Hytale display → internal → export → import round-tr
 });
 
 // ---------------------------------------------------------------------------
-// Verify language system is display-only: internal storage is unaffected
+// Verify language display names match export type mapping
 // ---------------------------------------------------------------------------
 
-describe("language system is display-only", () => {
+describe("language system consistency", () => {
   it("Hytale type display names match the export type mapping", () => {
-    // Every entry in hytaleLanguage.typeDisplayNames should match
-    // the INTERNAL_TO_HYTALE_TYPES mapping used by the export pipeline
     for (const [internal, hytale] of Object.entries(INTERNAL_TO_HYTALE_TYPES)) {
       expect(hytaleLanguage.typeDisplayNames[internal]).toBe(hytale);
     }
-  });
-
-  it("TerraNova language has no type display names (identity)", () => {
-    expect(Object.keys(terranovaLanguage.typeDisplayNames).length).toBe(0);
-  });
-
-  it("TerraNova language has no hidden types", () => {
-    expect(terranovaLanguage.hiddenTypes.size).toBe(0);
-  });
-
-  it("TerraNova language has no field transforms", () => {
-    expect(Object.keys(terranovaLanguage.fieldTransforms).length).toBe(0);
-  });
-
-  it("TerraNova language has no field display names", () => {
-    expect(Object.keys(terranovaLanguage.fieldDisplayNames).length).toBe(0);
   });
 });

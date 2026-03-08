@@ -1,5 +1,3 @@
-export type LanguageId = "terranova" | "hytale";
-
 export interface FieldTransform {
   displayName: string;
   toDisplay: (v: number) => number;
@@ -7,7 +5,7 @@ export interface FieldTransform {
 }
 
 export interface LanguageDefinition {
-  id: LanguageId;
+  id: string;
   displayName: string;
   description: string;
   typeDisplayNames: Record<string, string>;

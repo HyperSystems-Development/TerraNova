@@ -3,16 +3,8 @@ import { getVersion } from "@tauri-apps/api/app";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useUpdateStore } from "@/stores/updateStore";
 import { checkForUpdates, downloadAndInstall, restartToUpdate } from "@/utils/updater";
-import { terranovaLanguage } from "@/languages/terranova";
-import { hytaleLanguage } from "@/languages/hytale";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import type { LanguageId, LanguageDefinition } from "@/languages/types";
 import type { FlowDirection } from "@/constants";
-
-const LANGUAGES: { def: LanguageDefinition; recommended?: boolean }[] = [
-  { def: hytaleLanguage, recommended: true },
-  { def: terranovaLanguage },
-];
 
 const FLOW_DIRECTIONS: { id: FlowDirection; label: string; description: string }[] = [
   { id: "LR", label: "Left to Right", description: "Inputs on left, output on right (TerraNova default)" },
@@ -25,8 +17,6 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
-  const language = useSettingsStore((s) => s.language);
-  const setLanguage = useSettingsStore((s) => s.setLanguage);
   const flowDirection = useSettingsStore((s) => s.flowDirection);
   const setFlowDirection = useSettingsStore((s) => s.setFlowDirection);
   const autoLayoutOnOpen = useSettingsStore((s) => s.autoLayoutOnOpen);
@@ -59,29 +49,6 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-base font-semibold">Settings</h2>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-tn-text-muted">Node Language</label>
-          <div className="flex flex-col gap-2">
-            {LANGUAGES.map(({ def, recommended }) => (
-              <button
-                key={def.id}
-                onClick={() => setLanguage(def.id as LanguageId)}
-                className={`text-left px-3 py-2 rounded border text-sm ${
-                  language === def.id
-                    ? "border-tn-accent bg-tn-accent/10"
-                    : "border-tn-border bg-tn-bg hover:bg-tn-surface"
-                }`}
-              >
-                <span className="font-medium">{def.displayName}</span>
-                {recommended && (
-                  <span className="ml-2 text-[10px] text-tn-accent font-medium">Recommended</span>
-                )}
-                <p className="text-xs text-tn-text-muted mt-0.5">{def.description}</p>
-              </button>
-            ))}
-          </div>
-        </div>
 
         <div className="flex flex-col gap-1">
           <label className="text-xs text-tn-text-muted">Graph Flow Direction</label>

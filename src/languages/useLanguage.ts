@@ -1,13 +1,6 @@
 import { useMemo } from "react";
-import type { LanguageDefinition, FieldTransform, LanguageId } from "./types";
-import { terranovaLanguage } from "./terranova";
+import type { LanguageDefinition, FieldTransform } from "./types";
 import { hytaleLanguage } from "./hytale";
-import { useSettingsStore } from "@/stores/settingsStore";
-
-const LANGUAGES: Record<LanguageId, LanguageDefinition> = {
-  terranova: terranovaLanguage,
-  hytale: hytaleLanguage,
-};
 
 export interface LanguageHelpers {
   language: LanguageDefinition;
@@ -45,14 +38,14 @@ function buildHelpers(lang: LanguageDefinition): LanguageHelpers {
   return { language: lang, getTypeDisplayName, getFieldDisplayName, getFieldTransform, isTypeVisible, matchesSearch };
 }
 
+const HELPERS = buildHelpers(hytaleLanguage);
+
 /** Non-hook version for use outside React components. */
-export function getLanguageHelpers(langId?: LanguageId): LanguageHelpers {
-  const id = langId ?? useSettingsStore.getState().language;
-  return buildHelpers(LANGUAGES[id]);
+export function getLanguageHelpers(): LanguageHelpers {
+  return HELPERS;
 }
 
 /** React hook that returns memoized language helpers. */
 export function useLanguage(): LanguageHelpers {
-  const langId = useSettingsStore((s) => s.language);
-  return useMemo(() => buildHelpers(LANGUAGES[langId]), [langId]);
+  return useMemo(() => HELPERS, []);
 }
