@@ -33,6 +33,7 @@ export const COMPOUND_PORTS: Record<string, CompoundPortConfig> = {
   TerrainBoolean:   { arrayBase: "Inputs", label: "Input", category: AssetCategory.Density, minSlots: 2 },
   WeightedSum:      { arrayBase: "Inputs", label: "Input", category: AssetCategory.Density, minSlots: 2 },
   Switch:           { arrayBase: "Inputs", label: "Case",  category: AssetCategory.Density, minSlots: 2 },
+  MultiMix:         { arrayBase: "Densities", label: "Density", category: AssetCategory.Density, minSlots: 2 },
 
   // ── Curve ──────────────────────────────────────────────────────
   "Curve:Multiplier": { arrayBase: "Inputs", label: "Input", category: AssetCategory.Curve, minSlots: 2 },
