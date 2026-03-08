@@ -21,4 +21,7 @@ export {
   OrienterPropNode,
   DensitySelectorPropNode,
   UniquePrefabPropNode,
+  PondFillerPropNode,
+  QueuePropNode,
+  OffsetPropNode,
 } from "./PropNodes";

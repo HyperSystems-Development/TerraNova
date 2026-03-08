@@ -446,3 +446,28 @@ export const UniquePrefabPropNode = memo(function UniquePrefabPropNode(props: Ty
     </BaseNode>
   );
 });
+
+export const PondFillerPropNode = memo(function PondFillerPropNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.Prop} handles={PROP_OUTPUT_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Pond filler</div>
+    </BaseNode>
+  );
+});
+
+export const QueuePropNode = memo(function QueuePropNode(props: TypedNodeProps) {
+  const handles = useCompoundHandles(props.id, "Prop:Queue");
+  return (
+    <BaseNode {...props} category={AssetCategory.Prop} handles={handles}>
+      <div className="text-tn-text-muted text-center py-1">Queue</div>
+    </BaseNode>
+  );
+});
+
+export const OffsetPropNode = memo(function OffsetPropNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.Prop} handles={EXPORTED_PROP_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Offset</div>
+    </BaseNode>
+  );
+});

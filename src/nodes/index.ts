@@ -15,7 +15,7 @@ import {
   AngleFromOriginNode, AngleFromPointNode, HeightAboveSurfaceNode, AngleNode,
   CurveFunctionNode, SplineFunctionNode, FlatCacheNode,
   ConditionalNode, SwitchNode, BlendNode, BlendCurveNode,
-  MinFunctionNode, MaxFunctionNode, AverageFunctionNode,
+  MinFunctionNode, MaxFunctionNode, AverageFunctionNode, MultiMixNode,
   CacheOnceNode, WrapNode, TranslatedPositionNode, ScaledPositionNode,
   RotatedPositionNode, MirroredPositionNode, QuantizedPositionNode,
   SurfaceDensityNode, TerrainBooleanNode, TerrainMaskNode, GradientDensityNode,
@@ -95,6 +95,7 @@ import {
   CuboidPropNode, ManualPropNode, LocatorPropNode, MaskPropNode,
   RandomRotatorPropNode, StaticRotatorPropNode, OrienterPropNode,
   DensitySelectorPropNode, UniquePrefabPropNode,
+  PondFillerPropNode, QueuePropNode, OffsetPropNode,
 } from "./props";
 
 // ── Scanner nodes ──────────────────────────────────────────────────────
@@ -195,6 +196,7 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   MinFunction: MinFunctionNode,
   MaxFunction: MaxFunctionNode,
   AverageFunction: AverageFunctionNode,
+  MultiMix: MultiMixNode,
   CacheOnce: CacheOnceNode,
   Wrap: WrapNode,
   TranslatedPosition: TranslatedPositionNode,
@@ -394,6 +396,9 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Prop:UniquePrefab": UniquePrefabPropNode,
   "Prop:Imported": ImportedPropNode,
   "Prop:Exported": ExportedPropNode,
+  "Prop:PondFiller": PondFillerPropNode,
+  "Prop:Queue": QueuePropNode,
+  "Prop:Offset": OffsetPropNode,
 
   // ── Scanner ──────────────────────────────────────────────────────────
   "Scanner:Origin": OriginScannerNode,
