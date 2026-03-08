@@ -13,4 +13,12 @@ export {
   SurfaceProjectionPositionNode,
   ImportedPositionNode,
   ExportedPositionNode,
+  SquareGrid2dPositionNode,
+  SquareGrid3dPositionNode,
+  ScalerPositionNode,
+  Jitter2dPositionNode,
+  Jitter3dPositionNode,
+  TriangularGrid2dPositionNode,
+  ClustersPositionNode,
+  EmptyPositionNode,
 } from "./PositionNodes";

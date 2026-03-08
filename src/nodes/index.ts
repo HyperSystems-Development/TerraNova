@@ -73,6 +73,9 @@ import {
   UnionPositionNode, SimpleHorizontalPositionNode, CachePositionNode,
   ConditionalPositionNode, DensityBasedPositionNode, SurfaceProjectionPositionNode,
   ImportedPositionNode, ExportedPositionNode,
+  SquareGrid2dPositionNode, SquareGrid3dPositionNode, ScalerPositionNode,
+  Jitter2dPositionNode, Jitter3dPositionNode, TriangularGrid2dPositionNode,
+  ClustersPositionNode, EmptyPositionNode,
 } from "./positions";
 
 // ── Prop nodes ─────────────────────────────────────────────────────────
@@ -81,12 +84,17 @@ import {
   PrefabPropNode, ConditionalPropNode, WeightedRandomPropNode,
   SurfacePropNode, CavePropNode, ImportedPropNode, ExportedPropNode,
   UnionPropNode, WeightedPropNode,
+  CuboidPropNode, ManualPropNode, LocatorPropNode, MaskPropNode,
+  RandomRotatorPropNode, StaticRotatorPropNode, OrienterPropNode,
+  DensitySelectorPropNode, UniquePrefabPropNode,
 } from "./props";
 
 // ── Scanner nodes ──────────────────────────────────────────────────────
 import {
   OriginScannerNode, ColumnLinearScannerNode, ColumnRandomScannerNode,
-  AreaScannerNode, ImportedScannerNode,
+  AreaScannerNode, LinearScannerNode, RandomScannerNode,
+  RadialScannerNode, QueueScannerNode, DirectScannerNode,
+  ImportedScannerNode,
 } from "./scanners";
 
 // ── Assignment nodes ───────────────────────────────────────────────────
@@ -330,6 +338,14 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Position:SurfaceProjection": SurfaceProjectionPositionNode,
   "Position:Imported": ImportedPositionNode,
   "Position:Exported": ExportedPositionNode,
+  "Position:SquareGrid2d": SquareGrid2dPositionNode,
+  "Position:SquareGrid3d": SquareGrid3dPositionNode,
+  "Position:Scaler": ScalerPositionNode,
+  "Position:Jitter2d": Jitter2dPositionNode,
+  "Position:Jitter3d": Jitter3dPositionNode,
+  "Position:TriangularGrid2d": TriangularGrid2dPositionNode,
+  "Position:Clusters": ClustersPositionNode,
+  "Position:Empty": EmptyPositionNode,
 
   // ── Prop ─────────────────────────────────────────────────────────────
   "Prop:Box": BoxPropNode,
@@ -343,6 +359,15 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Prop:Cave": CavePropNode,
   "Prop:Union": UnionPropNode,
   "Prop:Weighted": WeightedPropNode,
+  "Prop:Cuboid": CuboidPropNode,
+  "Prop:Manual": ManualPropNode,
+  "Prop:Locator": LocatorPropNode,
+  "Prop:Mask": MaskPropNode,
+  "Prop:RandomRotator": RandomRotatorPropNode,
+  "Prop:StaticRotator": StaticRotatorPropNode,
+  "Prop:Orienter": OrienterPropNode,
+  "Prop:DensitySelector": DensitySelectorPropNode,
+  "Prop:UniquePrefab": UniquePrefabPropNode,
   "Prop:Imported": ImportedPropNode,
   "Prop:Exported": ExportedPropNode,
 
@@ -351,6 +376,11 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Scanner:ColumnLinear": ColumnLinearScannerNode,
   "Scanner:ColumnRandom": ColumnRandomScannerNode,
   "Scanner:Area": AreaScannerNode,
+  "Scanner:Linear": LinearScannerNode,
+  "Scanner:Random": RandomScannerNode,
+  "Scanner:Radial": RadialScannerNode,
+  "Scanner:Queue": QueueScannerNode,
+  "Scanner:Direct": DirectScannerNode,
   "Scanner:Imported": ImportedScannerNode,
 
   // ── Assignment ───────────────────────────────────────────────────────

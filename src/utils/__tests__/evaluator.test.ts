@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Node, Edge } from "@xyflow/react";
-import { evaluateDensityGrid } from "../densityEvaluator";
+import { evaluateDensityGrid, createEvaluationContext } from "../densityEvaluator";
 
 /* ── Helpers (same pattern as densityEvaluator.test.ts) ────────────── */
 
@@ -39,6 +39,13 @@ function expectAll(result: ReturnType<typeof evalSingle>, value: number, precisi
   for (let i = 0; i < result.values.length; i++) {
     expect(result.values[i]).toBeCloseTo(value, precision);
   }
+}
+
+/** Evaluate at a single point (x, y, z) */
+function evalAt(nodes: Node[], edges: Edge[], x: number, y: number, z: number, rootNodeId?: string): number {
+  const ctx = createEvaluationContext(nodes, edges, rootNodeId);
+  if (!ctx) return 0;
+  return ctx.evaluate(ctx.rootId, x, y, z);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -220,6 +227,49 @@ describe("YSampled", () => {
     const result = evalSingle(nodes, edges, "ys");
     // CoordinateY evaluated at y=100 should return 100
     expectAll(result, 100);
+  });
+
+  it("respects SampleDistance field", () => {
+    // Without YProvider, YSampled snaps Y to the nearest multiple of SampleDistance.
+    // CoordinateY returns the snapped Y value, so we can observe the snapping.
+    // With SampleDistance=8 at y=5: round(5/8)*8 = round(0.625)*8 = 1*8 = 8
+    const nodes = [
+      makeNode("cy", "CoordinateY"),
+      makeNode("ys", "YSampled", { SampleDistance: 8.0 }),
+    ];
+    const edges = [makeEdge("cy", "ys", "Input")];
+    const result = evalAt(nodes, edges, 0, 5, 0, "ys");
+    expect(result).toBeCloseTo(8, 5);
+  });
+
+  it("uses default SampleDistance=4 when not specified", () => {
+    // With default SampleDistance=4 at y=5: round(5/4)*4 = round(1.25)*4 = 1*4 = 4
+    const nodes = [
+      makeNode("cy", "CoordinateY"),
+      makeNode("ys", "YSampled"),
+    ];
+    const edges = [makeEdge("cy", "ys", "Input")];
+    const result = evalAt(nodes, edges, 0, 5, 0, "ys");
+    expect(result).toBeCloseTo(4, 5);
+  });
+
+  it("different SampleDistance values produce different snapping", () => {
+    // At y=5, SampleDistance=8 snaps to 8, SampleDistance=4 snaps to 4.
+    // This confirms SampleDistance is read from fields, not hardcoded.
+    const nodes8 = [
+      makeNode("cy", "CoordinateY"),
+      makeNode("ys", "YSampled", { SampleDistance: 8.0 }),
+    ];
+    const nodes4 = [
+      makeNode("cy", "CoordinateY"),
+      makeNode("ys", "YSampled", { SampleDistance: 4.0 }),
+    ];
+    const edges = [makeEdge("cy", "ys", "Input")];
+    const result8 = evalAt(nodes8, edges, 0, 5, 0, "ys");
+    const result4 = evalAt(nodes4, edges, 0, 5, 0, "ys");
+    expect(result8).toBeCloseTo(8, 5);
+    expect(result4).toBeCloseTo(4, 5);
+    expect(result8).not.toBeCloseTo(result4, 5);
   });
 });
 

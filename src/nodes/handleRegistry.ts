@@ -301,6 +301,14 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Position:Anchor": [positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Bound": [positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Framework": [positionOutput()],
+  "Position:SquareGrid2d": [positionOutput()],
+  "Position:SquareGrid3d": [positionOutput()],
+  "Position:TriangularGrid2d": [positionOutput()],
+  "Position:Empty": [positionOutput()],
+  "Position:Scaler": [positionInput("Positions", "Positions"), positionOutput()],
+  "Position:Jitter2d": [positionInput("Positions", "Positions"), positionOutput()],
+  "Position:Jitter3d": [positionInput("Positions", "Positions"), positionOutput()],
+  "Position:Clusters": [positionInput("Distributor", "Distributor"), positionInput("Cluster", "Cluster"), positionOutput()],
 
   // ── Prop ───────────────────────────────────────────────────────────────
 
@@ -327,6 +335,42 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Prop:Surface": [patternInput("Pattern", "Pattern"), scannerInput("Scanner", "Scanner"), propOutput()],
   "Prop:Cave": [patternInput("Pattern", "Pattern"), scannerInput("Scanner", "Scanner"), propOutput()],
 
+  // Content props
+  "Prop:Cuboid": [materialInput("Material", "Material"), propOutput()],
+  "Prop:Manual": [propOutput()],
+
+  // Wrapper props
+  "Prop:Locator": [
+    scannerInput("Scanner", "Scanner"),
+    patternInput("Pattern", "Pattern"),
+    propInput("Prop", "Prop"),
+    propOutput(),
+  ],
+  "Prop:Mask": [
+    blockMaskInput("BlockMask", "Block Mask"),
+    propInput("Prop", "Prop"),
+    propOutput(),
+  ],
+  "Prop:RandomRotator": [propInput("Prop", "Prop"), propOutput()],
+  "Prop:StaticRotator": [propInput("Prop", "Prop"), propOutput()],
+  "Prop:Orienter": [
+    patternInput("Pattern", "Pattern"),
+    propInput("Prop", "Prop"),
+    propOutput(),
+  ],
+  "Prop:DensitySelector": [
+    densityInput("Density", "Density"),
+    propInput("Props[0]", "Prop 0"),
+    propInput("Props[1]", "Prop 1"),
+    propOutput(),
+  ],
+  "Prop:UniquePrefab": [
+    scannerInput("Scanner", "Scanner"),
+    blockMaskInput("BlockMask", "Block Mask"),
+    directionalityInput("Directionality", "Direction"),
+    propOutput(),
+  ],
+
   // Additional prop types
   "Prop:PondFiller": [propOutput()],
   "Prop:Queue": [propInput("Props[0]", "Prop 0"), propInput("Props[1]", "Prop 1"), propOutput()],
@@ -339,6 +383,11 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Scanner:ColumnRandom": [scannerOutput()],
   "Scanner:Imported": [scannerOutput()],
   "Scanner:Area": [scannerInput("ChildScanner", "Child"), scannerOutput()],
+  "Scanner:Linear": [scannerInput("Scanner", "Child"), scannerOutput()],
+  "Scanner:Random": [scannerInput("Scanner", "Child"), scannerOutput()],
+  "Scanner:Radial": [scannerInput("Scanner", "Child"), scannerOutput()],
+  "Scanner:Queue": [scannerInput("Scanners[0]", "Scanner 0"), scannerInput("Scanners[1]", "Scanner 1"), scannerOutput()],
+  "Scanner:Direct": [scannerOutput()],
 
   // ── Assignment ─────────────────────────────────────────────────────────
 

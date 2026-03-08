@@ -33,3 +33,5 @@ src-tauri/gen/
 
 # Logs
 *.log
+.claude/
+docs/plans/

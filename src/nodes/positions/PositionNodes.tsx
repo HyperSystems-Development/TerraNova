@@ -8,6 +8,9 @@ import { useCompoundHandles } from "@/hooks/useCompoundHandles";
 // ── Hoisted handle arrays ───────────────────────────────────────────────
 const POSITION_OUTPUT_HANDLES = [positionOutput()];
 const POSITION_PASSTHROUGH_HANDLES = [positionInput("PositionProvider", "Positions"), positionOutput()];
+const SCALER_HANDLES = [positionInput("Positions", "Positions"), positionOutput()];
+const JITTER_HANDLES = [positionInput("Positions", "Positions"), positionOutput()];
+const CLUSTERS_HANDLES = [positionInput("Distributor", "Distributor"), positionInput("Cluster", "Cluster"), positionOutput()];
 const FIELD_FUNCTION_POSITION_HANDLES = [
   densityInput("FieldFunction", "Field Fn"),
   positionInput("PositionProvider", "Positions"),
@@ -238,6 +241,103 @@ export const ExportedPositionNode = memo(function ExportedPositionNode(props: Ty
       <div className="flex justify-between">
         <span className="text-tn-text-muted">Name</span>
         <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
+      </div>
+    </BaseNode>
+  );
+});
+
+// ── New V2 position providers ───────────────────────────────────────────
+
+export const SquareGrid2dPositionNode = memo(function SquareGrid2dPositionNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Square grid (2D)</div>
+    </BaseNode>
+  );
+});
+
+export const SquareGrid3dPositionNode = memo(function SquareGrid3dPositionNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Square grid (3D)</div>
+    </BaseNode>
+  );
+});
+
+export const TriangularGrid2dPositionNode = memo(function TriangularGrid2dPositionNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Triangular grid (2D)</div>
+    </BaseNode>
+  );
+});
+
+export const EmptyPositionNode = memo(function EmptyPositionNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Empty</div>
+    </BaseNode>
+  );
+});
+
+export const ScalerPositionNode = memo(function ScalerPositionNode(props: TypedNodeProps) {
+  const data = props.data;
+  return (
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={SCALER_HANDLES}>
+      <div className="flex justify-between">
+        <span className="text-tn-text-muted">Scale</span>
+        <span>{formatVec3(data.fields.Scale)}</span>
+      </div>
+    </BaseNode>
+  );
+});
+
+export const Jitter2dPositionNode = memo(function Jitter2dPositionNode(props: TypedNodeProps) {
+  const data = props.data;
+  return (
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={JITTER_HANDLES}>
+      <div className="space-y-1">
+        <div className="flex justify-between">
+          <span className="text-tn-text-muted">Magnitude</span>
+          <span>{safeDisplay(data.fields.Magnitude, 14.0)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-tn-text-muted">Seed</span>
+          <span>{safeDisplay(data.fields.Seed, "A")}</span>
+        </div>
+      </div>
+    </BaseNode>
+  );
+});
+
+export const Jitter3dPositionNode = memo(function Jitter3dPositionNode(props: TypedNodeProps) {
+  const data = props.data;
+  return (
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={JITTER_HANDLES}>
+      <div className="space-y-1">
+        <div className="flex justify-between">
+          <span className="text-tn-text-muted">Magnitude</span>
+          <span>{safeDisplay(data.fields.Magnitude, 14.0)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-tn-text-muted">Seed</span>
+          <span>{safeDisplay(data.fields.Seed, "A")}</span>
+        </div>
+      </div>
+    </BaseNode>
+  );
+});
+
+export const ClustersPositionNode = memo(function ClustersPositionNode(props: TypedNodeProps) {
+  const data = props.data;
+  const bounds = data.fields.ClusterBounds as { X?: number; Y?: number; Z?: number } | undefined;
+  return (
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={CLUSTERS_HANDLES}>
+      <div className="flex justify-between">
+        <span className="text-tn-text-muted">Bounds</span>
+        <span>
+          {bounds ? `(${bounds.X ?? 4}, ${bounds.Y ?? 4}, ${bounds.Z ?? 4})` : "(4, 4, 4)"}
+        </span>
       </div>
     </BaseNode>
   );

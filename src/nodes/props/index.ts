@@ -12,4 +12,13 @@ export {
   ExportedPropNode,
   UnionPropNode,
   WeightedPropNode,
+  CuboidPropNode,
+  ManualPropNode,
+  LocatorPropNode,
+  MaskPropNode,
+  RandomRotatorPropNode,
+  StaticRotatorPropNode,
+  OrienterPropNode,
+  DensitySelectorPropNode,
+  UniquePrefabPropNode,
 } from "./PropNodes";

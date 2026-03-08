@@ -20,6 +20,14 @@ export type PositionProviderType =
   | "Anchor"
   | "Bound"
   | "Framework"
+  | "SquareGrid2d"
+  | "SquareGrid3d"
+  | "Scaler"
+  | "Jitter2d"
+  | "Jitter3d"
+  | "TriangularGrid2d"
+  | "Clusters"
+  | "Empty"
   | "Imported"
   | "Exported";
 

@@ -85,6 +85,79 @@ export const AreaScannerNode = memo(function AreaScannerNode(props: TypedNodePro
   );
 });
 
+// ── New V2 scanner types ────────────────────────────────────────────────
+const CHILD_SCANNER_HANDLES = [scannerInput("Scanner", "Child"), scannerOutput()];
+const QUEUE_SCANNER_HANDLES = [scannerInput("Scanners[0]", "Scanner 0"), scannerInput("Scanners[1]", "Scanner 1"), scannerOutput()];
+const DIRECT_SCANNER_HANDLES = [scannerOutput()];
+
+export const LinearScannerNode = memo(function LinearScannerNode(props: TypedNodeProps) {
+  const data = props.data;
+  return (
+    <BaseNode {...props} category={AssetCategory.Scanner} handles={CHILD_SCANNER_HANDLES}>
+      <div className="space-y-1">
+        <div className="flex justify-between">
+          <span className="text-tn-text-muted">Axis</span>
+          <span>{safeDisplay(data.fields.Axis, "Y")}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-tn-text-muted">Range</span>
+          <span>{formatRange(data.fields.Range)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-tn-text-muted">Ascending</span>
+          <span>{data.fields.AscendingOrder !== false ? "Yes" : "No"}</span>
+        </div>
+      </div>
+    </BaseNode>
+  );
+});
+
+export const RandomScannerNode = memo(function RandomScannerNode(props: TypedNodeProps) {
+  const data = props.data;
+  return (
+    <BaseNode {...props} category={AssetCategory.Scanner} handles={CHILD_SCANNER_HANDLES}>
+      <div className="space-y-1">
+        <div className="flex justify-between">
+          <span className="text-tn-text-muted">Axis</span>
+          <span>{safeDisplay(data.fields.Axis, "Y")}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-tn-text-muted">Range</span>
+          <span>{formatRange(data.fields.Range)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-tn-text-muted">Seed</span>
+          <span>{safeDisplay(data.fields.Seed, "A")}</span>
+        </div>
+      </div>
+    </BaseNode>
+  );
+});
+
+export const RadialScannerNode = memo(function RadialScannerNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.Scanner} handles={CHILD_SCANNER_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">3D radial search</div>
+    </BaseNode>
+  );
+});
+
+export const QueueScannerNode = memo(function QueueScannerNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.Scanner} handles={QUEUE_SCANNER_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Sequential multi-scanner</div>
+    </BaseNode>
+  );
+});
+
+export const DirectScannerNode = memo(function DirectScannerNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.Scanner} handles={DIRECT_SCANNER_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Identity scanner</div>
+    </BaseNode>
+  );
+});
+
 export const ImportedScannerNode = memo(function ImportedScannerNode(props: TypedNodeProps) {
   const data = props.data;
   return (

@@ -8,6 +8,11 @@ export type ScannerType =
   | "ColumnLinear"
   | "ColumnRandom"
   | "Area"
+  | "Linear"
+  | "Random"
+  | "Radial"
+  | "Queue"
+  | "Direct"
   | "Imported";
 
 export interface ScannerFields extends BaseFields {
