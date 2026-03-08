@@ -29,15 +29,21 @@ export const LEGACY_TYPE_KEYS: ReadonlySet<string> = new Set([
   // Patterns (5)
   "Pattern:Exported", "Pattern:Conditional", "Pattern:Blend",
   "Pattern:Union", "Pattern:Intersection",
-  // Positions (4)
+  // Positions (4 + 2 deprecated 2026.03.05)
   "Position:SurfaceProjection", "Position:Exported",
   "Position:Conditional", "Position:DensityBased",
-  // Props (4)
+  // Positions (deprecated 2026.03.05 — replaced by SquareGrid2d + Scaler + Jitter chain)
+  "Position:Mesh2D", "Position:Mesh3D",
+  // Props (4 + 3 deprecated 2026.03.05)
   "Prop:Surface", "Prop:Cave", "Prop:Conditional", "Prop:Exported",
-  // Environment (2)
-  "Environment:Imported", "Environment:Exported",
-  // Tint (2)
-  "Tint:Imported", "Tint:Exported",
+  // Props (deprecated 2026.03.05 — replaced by Cuboid + Locator + Mask wrappers)
+  "Prop:Box", "Prop:Column", "Prop:Cluster",
+  // Scanners (deprecated 2026.03.05 — replaced by Linear, Random, Radial, Queue, Direct)
+  "Scanner:ColumnLinear", "Scanner:ColumnRandom", "Scanner:Area", "Scanner:Origin",
+  // Environment (1 — Environment:Imported is an active V2 type)
+  "Environment:Exported",
+  // Tint (1 — Tint:Imported is an active V2 type)
+  "Tint:Exported",
   // Directionality (3)
   "Directionality:Uniform", "Directionality:Directional", "Directionality:Normal",
 ]);
