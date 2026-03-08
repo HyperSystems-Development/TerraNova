@@ -2,8 +2,8 @@ import type { NodeHandler } from "../evalContext";
 
 const handleClamp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const v = ctx.getInput(inputs, "Input", x, y, z);
-  const min = Number(fields.Min ?? 0);
-  const max = Number(fields.Max ?? 1);
+  const min = Number(fields.Min ?? -Infinity);
+  const max = Number(fields.Max ?? Infinity);
   return Math.max(min, Math.min(max, v));
 };
 

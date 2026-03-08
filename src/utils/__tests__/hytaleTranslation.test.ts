@@ -299,6 +299,75 @@ describe("clamp field renames", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Smooth* field renames (Smoothness→Range, Threshold→SmoothRange)
+// ---------------------------------------------------------------------------
+
+describe("smooth field renames", () => {
+  it("exports SmoothClamp Smoothness as Range", () => {
+    const result = internalToHytale({ Type: "SmoothClamp", Min: 0, Max: 1, Smoothness: 0.1 });
+    expect(result.Range).toBe(0.1);
+    expect(result.Smoothness).toBeUndefined();
+  });
+
+  it("exports SmoothMin Smoothness as Range", () => {
+    const result = internalToHytale({ Type: "SmoothMin", Smoothness: 0.2 });
+    expect(result.Range).toBe(0.2);
+    expect(result.Smoothness).toBeUndefined();
+  });
+
+  it("exports SmoothMax Smoothness as Range", () => {
+    const result = internalToHytale({ Type: "SmoothMax", Smoothness: 0.3 });
+    expect(result.Range).toBe(0.3);
+    expect(result.Smoothness).toBeUndefined();
+  });
+
+  it("exports SmoothFloor Threshold as SmoothRange", () => {
+    const result = internalToHytale({ Type: "SmoothFloor", Threshold: 0.5, Smoothness: 0.1 });
+    expect(result.SmoothRange).toBe(0.5);
+    expect(result.Threshold).toBeUndefined();
+    // SmoothFloor also renames Smoothness → Range
+    expect(result.Range).toBe(0.1);
+    expect(result.Smoothness).toBeUndefined();
+  });
+
+  it("exports SmoothCeiling Threshold as SmoothRange", () => {
+    const result = internalToHytale({ Type: "SmoothCeiling", Threshold: 0.8, Smoothness: 0.15 });
+    expect(result.SmoothRange).toBe(0.8);
+    expect(result.Threshold).toBeUndefined();
+    // SmoothCeiling also renames Smoothness → Range
+    expect(result.Range).toBe(0.15);
+    expect(result.Smoothness).toBeUndefined();
+  });
+
+  it("imports Range back as Smoothness for SmoothClamp", () => {
+    const { asset } = hytaleToInternal({
+      $NodeId: "SmoothClampDensityNode-123",
+      Type: "SmoothClamp",
+      WallA: 1,
+      WallB: 0,
+      Range: 0.1,
+      Skip: false,
+    });
+    expect(asset.Smoothness).toBe(0.1);
+    expect(asset.Range).toBeUndefined();
+  });
+
+  it("imports SmoothRange back as Threshold for SmoothFloor", () => {
+    const { asset } = hytaleToInternal({
+      $NodeId: "SmoothFloorDensityNode-123",
+      Type: "SmoothFloor",
+      SmoothRange: 0.5,
+      Range: 0.1,
+      Skip: false,
+    });
+    expect(asset.Threshold).toBe(0.5);
+    expect(asset.SmoothRange).toBeUndefined();
+    expect(asset.Smoothness).toBe(0.1);
+    expect(asset.Range).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Normalizer field flattening
 // ---------------------------------------------------------------------------
 

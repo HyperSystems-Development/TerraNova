@@ -460,7 +460,7 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     WeightedPrefabPaths: "List of prefab paths with weights. Higher-weight paths are chosen more often when multiple are present.",
     LegacyPath: "When true, uses the legacy single-path format instead of WeightedPrefabPaths.",
     LoadEntities: "Whether to load entity data embedded in the prefab. Disable to place only blocks.",
-    MoldingDirection: "Direction to mold the prefab to the terrain surface: NONE (no molding), UP, DOWN, or ALL.",
+    MoldingDirection: "Direction to mold the prefab to the terrain surface: NONE (no molding), UP, DOWN, NORTH, SOUTH, EAST, or WEST.",
     MoldingChildren: "When true, child prefabs are also molded to the terrain surface along with the parent.",
   },
 

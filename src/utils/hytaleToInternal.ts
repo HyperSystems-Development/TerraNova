@@ -119,6 +119,24 @@ function reverseClampFields(asset: Record<string, unknown>): Record<string, unkn
   return result;
 }
 
+function reverseSmoothFields(
+  asset: Record<string, unknown>,
+  hytaleType: string,
+): Record<string, unknown> {
+  const result = { ...asset };
+  // All Smooth* types: Range → Smoothness
+  if ("Range" in result) {
+    result.Smoothness = result.Range;
+    delete result.Range;
+  }
+  // SmoothFloor / SmoothCeiling: SmoothRange → Threshold
+  if ((hytaleType === "SmoothFloor" || hytaleType === "SmoothCeiling") && "SmoothRange" in result) {
+    result.Threshold = result.SmoothRange;
+    delete result.SmoothRange;
+  }
+  return result;
+}
+
 function reverseNormalizerFields(asset: Record<string, unknown>): Record<string, unknown> {
   const result = { ...asset };
   const { nested } = NORMALIZER_FIELDS_EXPORT;
@@ -897,6 +915,11 @@ function transformNodeToInternal(
   // Clamp / SmoothClamp
   if (hytaleType === "Clamp" || hytaleType === "SmoothClamp") {
     processedFields = reverseClampFields(processedFields);
+  }
+
+  // Smooth* field renames: Range→Smoothness, SmoothRange→Threshold
+  if (["SmoothClamp", "SmoothMin", "SmoothMax", "SmoothFloor", "SmoothCeiling"].includes(hytaleType)) {
+    processedFields = reverseSmoothFields(processedFields, hytaleType);
   }
 
   // Normalizer

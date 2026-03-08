@@ -18,6 +18,15 @@ export type PropType =
   | "PondFiller"
   | "Queue"
   | "Offset"
+  | "Cuboid"
+  | "Manual"
+  | "Locator"
+  | "Mask"
+  | "RandomRotator"
+  | "StaticRotator"
+  | "Orienter"
+  | "DensitySelector"
+  | "UniquePrefab"
   | "Imported"
   | "Exported";
 
@@ -54,7 +63,7 @@ export interface PrefabProp extends PropFields {
   WeightedPrefabPaths?: Array<{ Path: string; Weight: number }>;
   LegacyPath?: boolean;
   LoadEntities?: boolean;
-  MoldingDirection?: "NONE" | "UP" | "DOWN" | "ALL";
+  MoldingDirection?: "NONE" | "UP" | "DOWN" | "NORTH" | "SOUTH" | "EAST" | "WEST";
   MoldingChildren?: boolean;
 }
 

@@ -17,8 +17,8 @@ type DefaultFields = Record<string, unknown>;
 
 export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   // Core noise
-  SimplexNoise2D: { Frequency: 0.01, Amplitude: 1.0, Seed: "A", Octaves: 1, Lacunarity: 2.0, Gain: 0.5 },
-  SimplexNoise3D: { Frequency: 0.01, Amplitude: 1.0, Seed: "A", Octaves: 1, Lacunarity: 2.0, Gain: 0.5 },
+  SimplexNoise2D: { Frequency: 1.0, Amplitude: 1.0, Seed: "A", Octaves: 1, Lacunarity: 1.0, Gain: 1.0 },
+  SimplexNoise3D: { Frequency: 1.0, Amplitude: 1.0, Seed: "A", Octaves: 1, Lacunarity: 1.0, Gain: 1.0 },
   SimplexRidgeNoise2D: { Frequency: 0.01, Amplitude: 1.0, Seed: "A", Octaves: 1 },
   SimplexRidgeNoise3D: { Frequency: 0.01, Amplitude: 1.0, Seed: "A", Octaves: 1 },
   VoronoiNoise2D: { Frequency: 0.01, Seed: "A" },
@@ -40,7 +40,7 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   Constant: { Value: 0.0 },
   ImportedValue: { Name: "" },
   // Clamping & range
-  Clamp: { Min: 0.0, Max: 1.0 },
+  Clamp: { Min: -Infinity, Max: Infinity },
   ClampToIndex: { Min: 0, Max: 255 },
   Normalizer: { SourceRange: { Min: -1, Max: 1 }, TargetRange: { Min: 0, Max: 1 } },
   DoubleNormalizer: { SourceRangeA: { Min: -1, Max: 0 }, TargetRangeA: { Min: 0, Max: 0.5 }, SourceRangeB: { Min: 0, Max: 1 }, TargetRangeB: { Min: 0.5, Max: 1 } },
@@ -85,8 +85,8 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   BeardDensity: {},
   ColumnDensity: {},
   CaveDensity: { Radius: 4.0 },
-  FractalNoise2D: { Frequency: 0.01, Octaves: 4, Lacunarity: 2.0, Gain: 0.5 },
-  FractalNoise3D: { Frequency: 0.01, Octaves: 4, Lacunarity: 2.0, Gain: 0.5 },
+  FractalNoise2D: { Frequency: 1.0, Octaves: 4, Lacunarity: 1.0, Gain: 1.0 },
+  FractalNoise3D: { Frequency: 1.0, Octaves: 4, Lacunarity: 1.0, Gain: 1.0 },
   DomainWarp2D: { Amplitude: 1.0 },
   DomainWarp3D: { Amplitude: 1.0 },
   // Smooth operations
@@ -155,7 +155,7 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
 
 export const CURVE_DEFAULTS: Record<CurveType, DefaultFields> = {
   Manual: { Points: [] },
-  Constant: { Value: 1.0 },
+  Constant: { Value: 0.0 },
   DistanceExponential: { Exponent: 2.0, Range: { Min: 0, Max: 1 } },
   DistanceS: { Distance: 1.0, Steepness: 1.0, Offset: 0.5, Width: 0.5, Exponent: 2.0 },
   Multiplier: {},
@@ -282,6 +282,14 @@ export const POSITION_DEFAULTS: Record<PositionProviderType, DefaultFields> = {
   Anchor: {},
   Bound: { Min: { x: -64, y: 0, z: -64 }, Max: { x: 64, y: 256, z: 64 } },
   Framework: {},
+  SquareGrid2d: {},
+  SquareGrid3d: {},
+  Scaler: { Scale: { x: 40, y: 40, z: 40 } },
+  Jitter2d: { Magnitude: 14.0, Seed: "A" },
+  Jitter3d: { Magnitude: 14.0, Seed: "A" },
+  TriangularGrid2d: {},
+  Clusters: { ClusterBounds: { X: 4, Y: 4, Z: 4 } },
+  Empty: {},
   Imported: { Name: "" },
   Exported: { Name: "" },
 };
@@ -311,6 +319,20 @@ export const PROP_DEFAULTS: Record<PropType, DefaultFields> = {
   PondFiller: { Material: "Water" },
   Queue: {},
   Offset: { Offset: { x: 0, y: 0, z: 0 } },
+  Cuboid: { Bounds: { PointA: [0, 0, 0], PointB: [1, 1, 1] } },
+  Manual: { Blocks: [] },
+  Locator: { PlacementCap: 1 },
+  Mask: {},
+  RandomRotator: { HorizontalRotations: true, Seed: "A" },
+  StaticRotator: { Rotation: { Yaw: "None", Pitch: "None", Roll: "None" } },
+  Orienter: { Seed: "A" },
+  DensitySelector: {},
+  UniquePrefab: {
+    WeightedPrefabPaths: [{ Path: "", Weight: 1 }],
+    LegacyPath: false,
+    LoadEntities: true,
+    UniqueScope: "WORLD",
+  },
   Imported: { Name: "" },
   Exported: { Name: "" },
 };
@@ -324,6 +346,11 @@ export const SCANNER_DEFAULTS: Record<ScannerType, DefaultFields> = {
   ColumnLinear: { StepSize: 1, Range: { Min: 0, Max: 256 } },
   ColumnRandom: { Count: 8, Range: { Min: 0, Max: 256 } },
   Area: { Size: { x: 16, y: 16, z: 16 } },
+  Linear: { Axis: "Y", Range: { Min: 0, Max: 256 }, AscendingOrder: true },
+  Random: { Axis: "Y", Range: { Min: 0, Max: 256 }, Seed: "A" },
+  Radial: { Bounds: { PointA: [0, 0, 0], PointB: [16, 16, 16] } },
+  Queue: {},
+  Direct: {},
   Imported: { Name: "" },
 };
 

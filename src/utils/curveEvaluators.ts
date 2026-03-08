@@ -88,14 +88,14 @@ export function evalDistanceS(
   };
 }
 
-/** V2 Inverter: negates the value (-x). */
+/** V2 Inverter: complement (1 - x). */
 export function evalInverter(): (x: number) => number {
-  return (x) => -x;
+  return (x) => 1 - x;
 }
 
-/** V2 Not: boolean complement (1 - x). */
+/** V2 Not: negates the value (-x). */
 export function evalNot(): (x: number) => number {
-  return (x) => 1 - x;
+  return (x) => -x;
 }
 
 /** Manual curve: linear interpolation between sorted control points. */

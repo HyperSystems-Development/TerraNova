@@ -143,6 +143,24 @@ function transformClampFields(asset: Record<string, unknown>): Record<string, un
   return result;
 }
 
+function transformSmoothFields(
+  asset: Record<string, unknown>,
+  hytaleType: string,
+): Record<string, unknown> {
+  const result = { ...asset };
+  // All Smooth* types: Smoothness → Range
+  if ("Smoothness" in result) {
+    result.Range = result.Smoothness;
+    delete result.Smoothness;
+  }
+  // SmoothFloor / SmoothCeiling: Threshold → SmoothRange
+  if ((hytaleType === "SmoothFloor" || hytaleType === "SmoothCeiling") && "Threshold" in result) {
+    result.SmoothRange = result.Threshold;
+    delete result.Threshold;
+  }
+  return result;
+}
+
 function transformNormalizerFields(asset: Record<string, unknown>): Record<string, unknown> {
   const result = { ...asset };
   const { nested } = NORMALIZER_FIELDS_EXPORT;
@@ -298,6 +316,11 @@ function transformPrefabPropFields(asset: Record<string, unknown>): Record<strin
     delete result.Path;
   }
   if (!("MoldingDirection" in result)) result.MoldingDirection = "NONE";
+  // Sanitize invalid MoldingDirection values — V2 only supports NONE|UP|DOWN|NORTH|SOUTH|EAST|WEST
+  const VALID_MOLDING_DIRECTIONS = new Set(["NONE", "UP", "DOWN", "NORTH", "SOUTH", "EAST", "WEST"]);
+  if (!VALID_MOLDING_DIRECTIONS.has(result.MoldingDirection as string)) {
+    result.MoldingDirection = "NONE";
+  }
   if (!("MoldingChildren" in result)) result.MoldingChildren = false;
   return result;
 }
@@ -1321,6 +1344,11 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
   // Clamp / SmoothClamp
   if (hytaleType === "Clamp" || hytaleType === "SmoothClamp") {
     transformedFields = transformClampFields(transformedFields);
+  }
+
+  // Smooth* field renames: Smoothness→Range, Threshold→SmoothRange
+  if (["SmoothClamp", "SmoothMin", "SmoothMax", "SmoothFloor", "SmoothCeiling"].includes(hytaleType)) {
+    transformedFields = transformSmoothFields(transformedFields, hytaleType);
   }
 
   // Normalizer
