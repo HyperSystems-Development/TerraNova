@@ -60,7 +60,7 @@ import {
 // ── Pattern nodes ──────────────────────────────────────────────────────
 import {
   FloorPatternNode, CeilingPatternNode, WallPatternNode, SurfacePatternNode,
-  GapPatternNode, BlockTypePatternNode, BlockSetPatternNode, CuboidPatternNode,
+  BlockTypePatternNode, BlockSetPatternNode, CuboidPatternNode,
   OffsetPatternNode, ConditionalPatternNode, BlendPatternNode,
   UnionPatternNode, IntersectionPatternNode, ImportedPatternNode, ExportedPatternNode,
   ConstantPatternNode,
@@ -310,7 +310,6 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Pattern:Ceiling": CeilingPatternNode,
   "Pattern:Wall": WallPatternNode,
   "Pattern:Surface": SurfacePatternNode,
-  "Pattern:Gap": GapPatternNode,
   "Pattern:BlockType": BlockTypePatternNode,
   "Pattern:BlockSet": BlockSetPatternNode,
   "Pattern:Cuboid": CuboidPatternNode,

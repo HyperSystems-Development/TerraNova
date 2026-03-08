@@ -3,7 +3,6 @@ export {
   CeilingPatternNode,
   WallPatternNode,
   SurfacePatternNode,
-  GapPatternNode,
   BlockTypePatternNode,
   BlockSetPatternNode,
   CuboidPatternNode,

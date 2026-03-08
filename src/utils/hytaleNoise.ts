@@ -3,7 +3,7 @@
  *
  * Matches the V2 Java runtime's noise generation pipeline:
  * - Java String.hashCode() for seed string → integer conversion
- * - Fisher-Yates shuffle for permutation table construction
+ * - Fixed 256-entry permutation table (V2 uses a hardcoded table, not seed-generated)
  * - Exact gradient vectors from the V2 decompiled source
  * - Standard simplex noise algorithm with correct skew/unskew factors
  *
@@ -12,13 +12,8 @@
 
 /* ── Gradient vectors ─────────────────────────────────────────────── */
 
-// 2D: 8 gradient directions (cardinal + diagonal, unnormalized)
-const GRAD2: ReadonlyArray<readonly [number, number]> = [
-  [ 1,  0], [-1,  0], [ 0,  1], [ 0, -1],
-  [ 1,  1], [-1,  1], [ 1, -1], [-1, -1],
-];
-
 // 3D: 12 gradient directions (edges of a cube)
+// 2D simplex noise uses these same vectors projected to 2D via (grad.x * x + grad.y * y)
 const GRAD3: ReadonlyArray<readonly [number, number, number]> = [
   [ 1,  1,  0], [-1,  1,  0], [ 1, -1,  0], [-1, -1,  0],
   [ 1,  0,  1], [-1,  0,  1], [ 1,  0, -1], [-1,  0, -1],
@@ -70,35 +65,35 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-/* ── Permutation table ────────────────────────────────────────────── */
+/* ── Fixed permutation table ──────────────────────────────────────── */
 
-/**
- * Build a 512-entry permutation table using Fisher-Yates shuffle.
- * First 256 entries are a shuffled identity [0..255],
- * second 256 entries are a copy (to avoid modular arithmetic).
- */
-function buildPermutationTable(seed: number): Uint8Array {
-  const rng = mulberry32(seed);
+/** V2 fixed permutation table (Simplex.java lines 63-320) */
+const FIXED_PERM: readonly number[] = [
+  151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,
+  140,36,103,30,69,142,8,99,37,240,21,10,23,190,6,148,
+  247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,
+  57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,
+  74,165,71,134,139,48,27,166,77,146,158,231,83,111,229,122,
+  60,211,133,230,220,105,92,41,55,46,245,40,244,102,143,54,
+  65,25,63,161,1,216,80,73,209,76,132,187,208,89,18,169,
+  200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,
+  52,217,226,250,124,123,5,202,38,147,118,126,255,82,85,212,
+  207,206,59,227,47,16,58,17,182,189,28,42,223,183,170,213,
+  119,248,152,2,44,154,163,70,221,153,101,155,167,43,172,9,
+  129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,
+  218,246,97,228,251,34,242,193,238,210,144,12,191,179,162,241,
+  81,51,145,235,249,14,239,107,49,192,214,31,181,199,106,157,
+  184,84,204,176,115,121,50,45,127,4,150,254,138,236,205,93,
+  222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180,
+];
+
+/** Build 512-entry lookup from fixed V2 table (seed is ignored — V2 uses fixed perm) */
+function buildPermutationTable(_seed: number): Uint8Array {
   const perm = new Uint8Array(512);
-
-  // Initialize identity
   for (let i = 0; i < 256; i++) {
-    perm[i] = i;
+    perm[i] = FIXED_PERM[i];
+    perm[i + 256] = FIXED_PERM[i];
   }
-
-  // Fisher-Yates shuffle
-  for (let i = 255; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    const tmp = perm[i];
-    perm[i] = perm[j];
-    perm[j] = tmp;
-  }
-
-  // Double for wrap-around
-  for (let i = 0; i < 256; i++) {
-    perm[i + 256] = perm[i];
-  }
-
   return perm;
 }
 
@@ -135,9 +130,9 @@ export function createHytaleNoise2D(seed: number): (x: number, y: number) => num
     // Step 5: Hash gradient indices
     const ii = i & 255;
     const jj = j & 255;
-    const gi0 = perm[ii + perm[jj]] % 8;
-    const gi1 = perm[ii + i1 + perm[jj + j1]] % 8;
-    const gi2 = perm[ii + 1 + perm[jj + 1]] % 8;
+    const gi0 = perm[ii + perm[jj]] % 12;
+    const gi1 = perm[ii + i1 + perm[jj + j1]] % 12;
+    const gi2 = perm[ii + 1 + perm[jj + 1]] % 12;
 
     // Step 6: Corner contributions
     let n0 = 0, n1 = 0, n2 = 0;
@@ -145,19 +140,19 @@ export function createHytaleNoise2D(seed: number): (x: number, y: number) => num
     let t0 = 0.5 - x0 * x0 - y0 * y0;
     if (t0 >= 0) {
       t0 *= t0;
-      n0 = t0 * t0 * (GRAD2[gi0][0] * x0 + GRAD2[gi0][1] * y0);
+      n0 = t0 * t0 * (GRAD3[gi0][0] * x0 + GRAD3[gi0][1] * y0);
     }
 
     let t1 = 0.5 - x1 * x1 - y1 * y1;
     if (t1 >= 0) {
       t1 *= t1;
-      n1 = t1 * t1 * (GRAD2[gi1][0] * x1 + GRAD2[gi1][1] * y1);
+      n1 = t1 * t1 * (GRAD3[gi1][0] * x1 + GRAD3[gi1][1] * y1);
     }
 
     let t2 = 0.5 - x2 * x2 - y2 * y2;
     if (t2 >= 0) {
       t2 *= t2;
-      n2 = t2 * t2 * (GRAD2[gi2][0] * x2 + GRAD2[gi2][1] * y2);
+      n2 = t2 * t2 * (GRAD3[gi2][0] * x2 + GRAD3[gi2][1] * y2);
     }
 
     // Step 7: Scale to approximately [-1, 1]
@@ -277,9 +272,9 @@ export function createHytaleNoise2DWithGradient(seed: number): (x: number, y: nu
 
     const ii = i & 255;
     const jj = j & 255;
-    const gi0 = perm[ii + perm[jj]] % 8;
-    const gi1 = perm[ii + i1 + perm[jj + j1]] % 8;
-    const gi2 = perm[ii + 1 + perm[jj + 1]] % 8;
+    const gi0 = perm[ii + perm[jj]] % 12;
+    const gi1 = perm[ii + i1 + perm[jj + j1]] % 12;
+    const gi2 = perm[ii + 1 + perm[jj + 1]] % 12;
 
     let value = 0;
     let gdx = 0;
@@ -288,7 +283,7 @@ export function createHytaleNoise2DWithGradient(seed: number): (x: number, y: nu
     // Corner 0
     let t0 = 0.5 - x0 * x0 - y0 * y0;
     if (t0 >= 0) {
-      const g0x = GRAD2[gi0][0], g0y = GRAD2[gi0][1];
+      const g0x = GRAD3[gi0][0], g0y = GRAD3[gi0][1];
       const dot0 = g0x * x0 + g0y * y0;
       const t02 = t0 * t0;
       const t04 = t02 * t02;
@@ -304,7 +299,7 @@ export function createHytaleNoise2DWithGradient(seed: number): (x: number, y: nu
     // Corner 1
     let t1 = 0.5 - x1 * x1 - y1 * y1;
     if (t1 >= 0) {
-      const g1x = GRAD2[gi1][0], g1y = GRAD2[gi1][1];
+      const g1x = GRAD3[gi1][0], g1y = GRAD3[gi1][1];
       const dot1 = g1x * x1 + g1y * y1;
       const t12 = t1 * t1;
       const t14 = t12 * t12;
@@ -318,7 +313,7 @@ export function createHytaleNoise2DWithGradient(seed: number): (x: number, y: nu
     // Corner 2
     let t2 = 0.5 - x2 * x2 - y2 * y2;
     if (t2 >= 0) {
-      const g2x = GRAD2[gi2][0], g2y = GRAD2[gi2][1];
+      const g2x = GRAD3[gi2][0], g2y = GRAD3[gi2][1];
       const dot2 = g2x * x2 + g2y * y2;
       const t22 = t2 * t2;
       const t24 = t22 * t22;

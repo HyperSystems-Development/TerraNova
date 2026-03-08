@@ -250,7 +250,6 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
 
   // ── Pattern ────────────────────────────────────────────────────────────
 
-  "Pattern:Gap": [patternOutput()],
   "Pattern:BlockType": [patternOutput()],
   "Pattern:Cuboid": [patternOutput()],
   "Pattern:Imported": [patternOutput()],

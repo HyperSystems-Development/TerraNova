@@ -406,32 +406,49 @@ export async function exportAssetPack(): Promise<void> {
     const allFiles = flattenEntries(entries, projectPath).filter((f) => !f.isDir);
 
     // Try to read TerraNova's internal manifest for project metadata.
-    // Check both the project root and one level up (if projectPath is HytaleGenerator itself).
+    // Walk up from projectPath (which may be a subdirectory like Server/HytaleGenerator).
     let terraNovaManifest: Record<string, unknown> | null = null;
-    for (const candidate of [`${projectPath}/manifest.json`, `${projectPath}/../manifest.json`]) {
-      try {
-        const raw = await readAssetFile(candidate);
-        if (raw && typeof raw === "object") {
-          terraNovaManifest = raw as Record<string, unknown>;
-          break;
+    {
+      let searchDir = projectPath;
+      for (let i = 0; i < 4; i++) {
+        try {
+          const raw = await readAssetFile(`${searchDir}/manifest.json`);
+          if (raw && typeof raw === "object") {
+            terraNovaManifest = raw as Record<string, unknown>;
+            break;
+          }
+        } catch {
+          // try parent directory
         }
-      } catch {
-        // try next candidate
+        const parent = searchDir.replace(/[/\\][^/\\]+$/, "");
+        if (parent === searchDir) break;
+        searchDir = parent;
       }
     }
 
     // Derive mod identifiers and build the named mod folder inside the target directory.
     // Hytale manifest uses: Group (short org id), Name (hyphenated id), folder = Group.Name
-    const projectName = (terraNovaManifest?.name as string) || projectPath.split("/").pop() || "TerraNovaPack";
+    const manifestName = terraNovaManifest?.name as string | undefined;
+    const projectName = manifestName || projectPath.split(/[/\\]/).pop() || "TerraNovaPack";
     const projectVersion = (terraNovaManifest?.version as string) || "1.0.0";
     const projectDescription = (terraNovaManifest?.description as string) || "";
     const modGroup = "TerraNova";
-    const modName = projectName.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "");
+    let modName = projectName.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "");
+    // When falling back to folder name, strip modGroup prefix to avoid "TerraNova.TerraNova-..."
+    if (!manifestName && modName.toLowerCase().startsWith(`${modGroup.toLowerCase()}-`)) {
+      modName = modName.slice(modGroup.length + 1);
+    }
     const modFolderName = `${modGroup}.${modName}`;
     const modRoot = `${targetDir}/${modFolderName}`;
 
     let exportedCount = 0;
     const failedFiles: string[] = [];
+
+    // Track biome Names and WorldStructure biome references for cross-validation
+    const biomeNameCorrections: string[] = [];
+    const exportedBiomeNames = new Set<string>();
+    const worldStructureBiomeRefs: { wsFile: string; refs: string[] }[] = [];
+
     for (const file of allFiles) {
       // Compute relative path from project root
       const relativePath = file.path.slice(projectPath.length);
@@ -450,6 +467,34 @@ export async function exportAssetPack(): Promise<void> {
         try {
           const converted = await convertFileForExport(file.path);
           if (converted) {
+            const filenameStem = destPath.split("/").pop()?.replace(/\.json$/i, "") ?? "";
+
+            // Auto-sync biome Name to match filename (Hytale resolves biomes by Name)
+            if (isBiomeFile(converted, destPath)) {
+              const currentName = converted.Name as string | undefined;
+              if (currentName && currentName !== filenameStem) {
+                biomeNameCorrections.push(`${filenameStem}: "${currentName}" \u2192 "${filenameStem}"`);
+                converted.Name = filenameStem;
+              } else if (!currentName) {
+                converted.Name = filenameStem;
+              }
+              exportedBiomeNames.add(filenameStem);
+            }
+
+            // Collect WorldStructure biome references for cross-validation
+            if (converted.Type === "NoiseRange") {
+              const refs: string[] = [];
+              if (typeof converted.DefaultBiome === "string") refs.push(converted.DefaultBiome);
+              if (Array.isArray(converted.Biomes)) {
+                for (const b of converted.Biomes as Record<string, unknown>[]) {
+                  if (typeof b.Biome === "string") refs.push(b.Biome);
+                }
+              }
+              if (refs.length > 0) {
+                worldStructureBiomeRefs.push({ wsFile: filenameStem, refs });
+              }
+            }
+
             await exportAssetFile(destPath, converted);
           }
         } catch {
@@ -462,6 +507,16 @@ export async function exportAssetPack(): Promise<void> {
         await copyFile(file.path, destPath);
       }
       exportedCount++;
+    }
+
+    // Cross-validate: every WorldStructure biome reference should have a matching biome file
+    const missingBiomeRefs: string[] = [];
+    for (const { wsFile, refs } of worldStructureBiomeRefs) {
+      for (const ref of refs) {
+        if (!exportedBiomeNames.has(ref)) {
+          missingBiomeRefs.push(`"${ref}" (in ${wsFile})`);
+        }
+      }
     }
 
     // Generate Hytale-format manifest.json at the mod root (sibling to Server/)
@@ -487,6 +542,12 @@ export async function exportAssetPack(): Promise<void> {
       addToast(`Exported ${exportedCount} files (${failedFiles.length} copied without conversion: ${failedFiles.join(", ")})`, "warning");
     } else {
       addToast(`Exported ${exportedCount} files to ${modRoot}`, "success");
+    }
+    if (biomeNameCorrections.length > 0) {
+      addToast(`Auto-corrected biome Name fields: ${biomeNameCorrections.join(", ")}`, "info");
+    }
+    if (missingBiomeRefs.length > 0) {
+      addToast(`WorldStructure references biomes with no matching file: ${missingBiomeRefs.join(", ")}`, "error");
     }
     addToast(`Remember to enable the mod in your server/world config.json`, "info");
   } catch (err) {

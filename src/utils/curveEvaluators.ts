@@ -72,30 +72,52 @@ export function evalDistanceExponential(
 }
 
 /**
- * V2 DistanceS: dual-exponential tent/bell curve.
- * Formula: exp(-((|x - offset| / width) ^ exponent) * steepness)
+ * V2 DistanceS: dual-exponential distance falloff with cosine-eased transition.
+ *
+ * Two decay functions (exponentA, exponentB) are blended across a transition
+ * zone centered around range/2, using cosine easing controlled by transitionSmooth.
  */
 export function evalDistanceS(
-  steepness: number,
-  offset: number,
-  width: number,
-  exponent: number,
+  exponentA: number,
+  exponentB: number,
+  transition: number,
+  range: number,
+  transitionSmooth: number,
 ): (x: number) => number {
-  return (x) => {
-    if (width <= 0) return 0;
-    const d = Math.abs(x - offset) / width;
-    return Math.exp(-Math.pow(d, exponent) * steepness);
+  const fnA = (d: number): number => {
+    if (d >= range) return 0;
+    return Math.pow(1 - d / range, exponentA);
+  };
+  const fnB = (d: number): number => {
+    if (d >= range) return 0;
+    return Math.pow(1 - d / range, exponentB);
+  };
+
+  const transitionDist = transition * range;
+  const posA = range / 2 - transitionDist / 2;
+  const posB = posA + transitionDist;
+
+  return (x: number): number => {
+    const d = Math.abs(x);
+    if (d >= range) return 0;
+    if (transitionDist <= 0 || d <= posA) return fnA(d);
+    if (d >= posB) return fnB(d);
+
+    const ratio = (d - posA) / (posB - posA);
+    const cosEase = (1 - Math.cos(ratio * Math.PI)) / 2;
+    const blend = cosEase * transitionSmooth + ratio * (1 - transitionSmooth);
+    return (1 - blend) * fnA(d) + blend * fnB(d);
   };
 }
 
-/** V2 Inverter: complement (1 - x). */
+/** V2 Inverter: negation (-x). */
 export function evalInverter(): (x: number) => number {
-  return (x) => 1 - x;
+  return (x) => -x;
 }
 
-/** V2 Not: negates the value (-x). */
+/** V2 Not: complement (1 - x). */
 export function evalNot(): (x: number) => number {
-  return (x) => -x;
+  return (x) => 1 - x;
 }
 
 /** Manual curve: linear interpolation between sorted control points. */
@@ -238,10 +260,11 @@ export function getCurveEvaluator(
     }
     case "DistanceS":
       return evalDistanceS(
-        Number(fields.Steepness ?? 1),
-        Number(fields.Offset ?? 0.5),
-        Number(fields.Width ?? 0.5),
-        Number(fields.Exponent ?? 2),
+        Number(fields.ExponentA ?? fields.Exponent ?? 1),
+        Number(fields.ExponentB ?? fields.Exponent ?? 1),
+        Number(fields.Transition ?? 1),
+        Number(fields.Range ?? fields.Distance ?? 1),
+        Number(fields.TransitionSmooth ?? 1),
       );
     case "Inverter":
       return evalInverter();

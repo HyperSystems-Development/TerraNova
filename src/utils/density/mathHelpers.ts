@@ -5,7 +5,13 @@ export function smoothMin(a: number, b: number, k: number): number {
 }
 
 export function smoothMax(a: number, b: number, k: number): number {
-  return -smoothMin(-a, -b, k);
+  if (k <= 0) return Math.max(a, b);
+  const diff = b - a;
+  // V2: hard max when |a-b| > k (strict, not >=)
+  if (diff > k) return b;
+  if (diff < -k) return a;
+  const h = Math.max(0, Math.min(1, 0.5 + 0.5 * diff / k));
+  return a + (b - a) * h + k * h * (1 - h);
 }
 
 /* ── Rotation helpers (Rodrigues' formula) ────────────────────────── */

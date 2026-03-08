@@ -84,16 +84,6 @@ describe("hytaleNoise", () => {
       }
     });
 
-    it("should produce different values for different seeds", () => {
-      const noise1 = createHytaleNoise3D(1);
-      const noise2 = createHytaleNoise3D(999);
-      let diffs = 0;
-      for (let i = 0; i < 20; i++) {
-        const x = i * 1.7, y = i * 2.3, z = i * 0.9;
-        if (noise1(x, y, z) !== noise2(x, y, z)) diffs++;
-      }
-      expect(diffs).toBeGreaterThan(10);
-    });
   });
 
   describe("createHytaleNoise3DWithGradient", () => {
@@ -128,6 +118,21 @@ describe("hytaleNoise", () => {
 
       expect(min).toBeGreaterThanOrEqual(-1.0);
       expect(max).toBeLessThanOrEqual(1.0);
+    });
+  });
+
+  describe("Simplex noise uses V2 fixed permutation table", () => {
+    it("same coordinates produce identical output regardless of seed", () => {
+      const noise1 = createHytaleNoise2D(42);
+      const noise2 = createHytaleNoise2D(99);
+      // With fixed perm table, different seeds produce same base noise
+      expect(noise1(1.5, 2.3)).toBe(noise2(1.5, 2.3));
+    });
+
+    it("3D noise is also seed-independent (fixed perm)", () => {
+      const noise1 = createHytaleNoise3D(42);
+      const noise2 = createHytaleNoise3D(99);
+      expect(noise1(1.5, 2.3, 3.7)).toBe(noise2(1.5, 2.3, 3.7));
     });
   });
 });

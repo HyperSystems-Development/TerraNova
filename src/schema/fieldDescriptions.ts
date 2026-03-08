@@ -400,9 +400,6 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   Ceiling: {
     Depth: "How many blocks up from the ceiling surface are affected. A depth of 2 replaces the bottom 2 layers of overhangs.",
   },
-  Gap: {
-    Size: "Size of the gap in blocks. Defines the amount of empty space inserted.",
-  },
   BlockType: {
     Material: "Block material identifier (e.g. 'stone', 'dirt'). Must match a material defined in the asset pack.",
   },

@@ -8,7 +8,9 @@ import {
   evalThreshold,
   evalSmoothStep,
   evalDistanceExponential,
+  evalDistanceS,
   evalInverter,
+  evalNot,
   evalClamp,
   evalLinearRemap,
   getCurveEvaluator,
@@ -98,21 +100,62 @@ describe("evalSmoothStep", () => {
 });
 
 describe("evalDistanceExponential", () => {
-  it("returns ((x-min)/(max-min))^exp", () => {
+  it("returns 1 - ((x-min)/(max-min))^exp", () => {
     const fn = evalDistanceExponential(2, 0, 1);
-    expect(fn(0.5)).toBe(0.25);
-    expect(fn(0)).toBe(0);
-    expect(fn(1)).toBe(1);
+    expect(fn(0.5)).toBe(0.75);  // 1 - 0.25
+    expect(fn(0)).toBe(1);       // 1 - 0
+    expect(fn(1)).toBe(0);       // 1 - 1
   });
 });
 
-describe("evalInverter", () => {
-  it("returns 1 - x", () => {
+describe("V2 Curve: DistanceS (dual-exponential with transition)", () => {
+  it("returns 1.0 at x=0 (origin of distance)", () => {
+    const fn = evalDistanceS(1.0, 1.0, 1.0, 1.0, 1.0);
+    expect(fn(0)).toBeCloseTo(1.0);
+  });
+
+  it("returns 0.0 at x >= range", () => {
+    const fn = evalDistanceS(1.0, 1.0, 1.0, 1.0, 1.0);
+    expect(fn(1.0)).toBeCloseTo(0.0);
+    expect(fn(2.0)).toBe(0.0);
+  });
+
+  it("with exponentA=2, transition=0: follows (1-x/range)^2", () => {
+    const fn = evalDistanceS(2.0, 1.0, 0.0, 1.0, 1.0);
+    expect(fn(0.0)).toBeCloseTo(1.0);
+    expect(fn(0.5)).toBeCloseTo(0.25);
+    expect(fn(0.75)).toBeCloseTo(0.0625);
+  });
+
+  it("handles negative input via abs", () => {
+    const fn = evalDistanceS(1.0, 1.0, 0.0, 1.0, 1.0);
+    expect(fn(-0.5)).toBeCloseTo(fn(0.5));
+  });
+
+  it("equal exponents with transition=1 still produces smooth output", () => {
+    const fn = evalDistanceS(2.0, 2.0, 1.0, 1.0, 1.0);
+    expect(fn(0.25)).toBeGreaterThan(0);
+    expect(fn(0.25)).toBeLessThan(1);
+  });
+});
+
+describe("V2 Curve: Inverter (negation)", () => {
+  it("returns -x", () => {
     const fn = evalInverter();
+    expect(fn(0.7)).toBeCloseTo(-0.7);
+    expect(fn(-0.3)).toBeCloseTo(0.3);
+    expect(fn(0)).toBeCloseTo(0);
+    expect(fn(1)).toBe(-1);
+  });
+});
+
+describe("V2 Curve: Not (complement)", () => {
+  it("returns 1 - x", () => {
+    const fn = evalNot();
+    expect(fn(0.7)).toBeCloseTo(0.3);
     expect(fn(0)).toBe(1);
-    expect(fn(0.25)).toBe(0.75);
-    expect(fn(0.5)).toBe(0.5);
     expect(fn(1)).toBe(0);
+    expect(fn(-0.5)).toBeCloseTo(1.5);
   });
 });
 
@@ -163,7 +206,7 @@ describe("getCurveEvaluator", () => {
   it("returns evaluator for Inverter, Clamp, LinearRemap", () => {
     const inv = getCurveEvaluator("Inverter", {});
     expect(inv).not.toBeNull();
-    expect(inv!(0.25)).toBe(0.75);
+    expect(inv!(0.25)).toBe(-0.25);
 
     const clamp = getCurveEvaluator("Clamp", { Min: 0.2, Max: 0.8 });
     expect(clamp).not.toBeNull();

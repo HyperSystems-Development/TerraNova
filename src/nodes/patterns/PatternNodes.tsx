@@ -91,18 +91,6 @@ export const SurfacePatternNode = memo(function SurfacePatternNode(props: TypedN
   );
 });
 
-export const GapPatternNode = memo(function GapPatternNode(props: TypedNodeProps) {
-  const data = props.data;
-  return (
-    <BaseNode {...props} category={AssetCategory.Pattern} handles={PATTERN_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Size</span>
-        <span>{safeDisplay(data.fields.Size, 1)}</span>
-      </div>
-    </BaseNode>
-  );
-});
-
 export const BlockTypePatternNode = memo(function BlockTypePatternNode(props: TypedNodeProps) {
   const data = props.data;
   return (
