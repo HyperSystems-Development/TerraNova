@@ -343,5 +343,10 @@ describe("jsonToGraph edge creation (handle audit)", () => {
     expect(prefabNode).toBeDefined();
     const prefabEdges = edges.filter((e) => e.target === prefabNode!.id);
     expect(prefabEdges).toHaveLength(4);
+    // Verify cross-category type prefixing
+    expect(nodes.some((n) => n.type === "Scanner:Linear")).toBe(true);
+    expect(nodes.some((n) => n.type === "Pattern:Floor")).toBe(true);
+    expect(nodes.some((n) => n.type === "BlockMask:All")).toBe(true);
+    expect(nodes.some((n) => n.type === "Directionality:Uniform")).toBe(true);
   });
 });

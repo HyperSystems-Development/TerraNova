@@ -121,6 +121,15 @@ const FIELD_CATEGORY_PREFIX: Record<string, string> = {
   Patterns: "Pattern",
   // Material queue array
   Queue: "Material",
+  // Cross-category fields on Prop:Prefab, etc.
+  BlockMask: "BlockMask",
+  Directionality: "Directionality",
+  // Position:Clusters handle fields
+  Distributor: "Position",
+  Cluster: "Position",
+  // Array fields for compound nodes
+  Scanners: "Scanner",
+  Props: "Prop",
   // Density fields (no prefix — bare density type)
   FieldFunction: "",
   Density: "",
