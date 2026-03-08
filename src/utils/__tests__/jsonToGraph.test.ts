@@ -177,3 +177,170 @@ describe("jsonToGraph", () => {
     expect(fields.SomeNumber).toBe(42);
   });
 });
+
+describe("jsonToGraph edge creation (handle audit)", () => {
+  it("CurveMapper: Curve field creates edge to Curve handle", () => {
+    const json = {
+      Type: "CurveMapper",
+      Curve: { Type: "Manual", Points: [] },
+    };
+    const { nodes, edges } = jsonToGraph(json);
+    expect(nodes).toHaveLength(2);
+    expect(edges).toHaveLength(1);
+    expect(edges[0].targetHandle).toBe("Curve");
+    const child = nodes.find((n) => n.type === "Curve:Manual");
+    expect(child).toBeDefined();
+  });
+
+  it("PositionsCellNoise: Positions field creates edge to Positions handle", () => {
+    const json = {
+      Type: "PositionsCellNoise",
+      Positions: { Type: "Jitter2d", Magnitude: 40.5, Seed: "A" },
+      ReturnCurve: { Type: "Manual", Points: [] },
+    };
+    const { nodes, edges } = jsonToGraph(json);
+    expect(nodes).toHaveLength(3);
+    const pcnNode = nodes.find((n) => n.type === "PositionsCellNoise");
+    expect(pcnNode).toBeDefined();
+    const posEdge = edges.find((e) => e.target === pcnNode!.id && e.targetHandle === "Positions");
+    expect(posEdge).toBeDefined();
+    const curveEdge = edges.find((e) => e.target === pcnNode!.id && e.targetHandle === "ReturnCurve");
+    expect(curveEdge).toBeDefined();
+    expect(nodes.some((n) => n.type === "Position:Jitter2d")).toBe(true);
+  });
+
+  it("Shell: AngleCurve + DistanceCurve create 2 edges", () => {
+    const json = {
+      Type: "Shell",
+      AngleCurve: { Type: "Constant", Value: 1 },
+      DistanceCurve: { Type: "Manual", Points: [] },
+    };
+    const { nodes, edges } = jsonToGraph(json);
+    expect(nodes).toHaveLength(3);
+    const shellNode = nodes.find((n) => n.type === "Shell");
+    expect(edges.filter((e) => e.target === shellNode!.id)).toHaveLength(2);
+    expect(edges.some((e) => e.targetHandle === "AngleCurve")).toBe(true);
+    expect(edges.some((e) => e.targetHandle === "DistanceCurve")).toBe(true);
+  });
+
+  it("Cylinder: RadialCurve + AxialCurve create 2 edges", () => {
+    const json = {
+      Type: "Cylinder",
+      RadialCurve: { Type: "Constant", Value: 1 },
+      AxialCurve: { Type: "Manual", Points: [] },
+    };
+    const { nodes, edges } = jsonToGraph(json);
+    expect(nodes).toHaveLength(3);
+    expect(edges.some((e) => e.targetHandle === "RadialCurve")).toBe(true);
+    expect(edges.some((e) => e.targetHandle === "AxialCurve")).toBe(true);
+  });
+
+  it("Full position chain: SquareGrid2d → Scaler → Jitter2d → PositionsCellNoise", () => {
+    const json = {
+      Type: "PositionsCellNoise",
+      Positions: {
+        Type: "Jitter2d",
+        Magnitude: 40.5,
+        Seed: "Test",
+        Positions: {
+          Type: "Scaler",
+          Positions: {
+            Type: "SquareGrid2d",
+          },
+        },
+      },
+    };
+    const { nodes, edges } = jsonToGraph(json);
+    expect(nodes).toHaveLength(4);
+    expect(edges).toHaveLength(3);
+    expect(nodes.some((n) => n.type === "PositionsCellNoise")).toBe(true);
+    expect(nodes.some((n) => n.type === "Position:Jitter2d")).toBe(true);
+    expect(nodes.some((n) => n.type === "Position:Scaler")).toBe(true);
+    expect(nodes.some((n) => n.type === "Position:SquareGrid2d")).toBe(true);
+  });
+
+  it("Environment:DensityDelimited: Density field creates edge", () => {
+    const json = {
+      Type: "DensityDelimited",
+      Density: { Type: "SimplexNoise2D" },
+    };
+    const { nodes, edges } = jsonToGraph(json, 0, 0, "g", "EnvironmentProvider");
+    expect(edges).toHaveLength(1);
+    expect(edges[0].targetHandle).toBe("Density");
+  });
+
+  it("Node type prefixing: Curve:Manual under Curve field", () => {
+    const json = {
+      Type: "CurveMapper",
+      Curve: { Type: "Manual", Points: [] },
+    };
+    const { nodes } = jsonToGraph(json);
+    expect(nodes.some((n) => n.type === "Curve:Manual")).toBe(true);
+  });
+
+  it("Node type prefixing: Position:Jitter2d under Positions field", () => {
+    const json = {
+      Type: "PositionsCellNoise",
+      Positions: { Type: "Jitter2d" },
+    };
+    const { nodes } = jsonToGraph(json);
+    expect(nodes.some((n) => n.type === "Position:Jitter2d")).toBe(true);
+  });
+
+  it("FieldFunction density field (no prefix) under FieldFunction", () => {
+    const json = {
+      Type: "FieldFunction",
+      FieldFunction: { Type: "SimplexNoise2D" },
+    };
+    const { nodes, edges } = jsonToGraph(json, 0, 0, "g", "MaterialProvider");
+    expect(nodes.some((n) => n.type === "SimplexNoise2D")).toBe(true);
+    expect(edges[0].targetHandle).toBe("FieldFunction");
+  });
+
+  it("Regression: FlatBiome PositionsCellNoise structure", () => {
+    const json = {
+      Type: "PositionsCellNoise",
+      Skip: false,
+      MaxDistance: 25,
+      DistanceFunction: { Type: "Euclidean" },
+      Positions: {
+        Type: "Jitter2d",
+        Skip: false,
+        Magnitude: 40.5,
+        Seed: "Voidspire_SmallCraters",
+        Positions: {
+          Type: "Scaler",
+          Skip: false,
+          Scale: { x: 70, y: 1, z: 45 },
+          Positions: { Type: "SquareGrid2d" },
+        },
+      },
+    };
+    const { nodes, edges } = jsonToGraph(json);
+    expect(nodes).toHaveLength(5);
+    const pcnNode = nodes.find((n) => n.type === "PositionsCellNoise");
+    const jitterNode = nodes.find((n) => n.type === "Position:Jitter2d");
+    expect(pcnNode).toBeDefined();
+    expect(jitterNode).toBeDefined();
+    const posEdge = edges.find(
+      (e) => e.source === jitterNode!.id && e.target === pcnNode!.id && e.targetHandle === "Positions",
+    );
+    expect(posEdge).toBeDefined();
+  });
+
+  it("Prop:Prefab cross-category: Scanner + Pattern + BlockMask + Directionality", () => {
+    const json = {
+      Type: "Prefab",
+      Scanner: { Type: "Linear" },
+      Pattern: { Type: "Floor", SubPattern: { Type: "BlockType" } },
+      BlockMask: { Type: "All" },
+      Directionality: { Type: "Uniform" },
+    };
+    const { nodes, edges } = jsonToGraph(json, 0, 0, "g", "Prop");
+    expect(nodes).toHaveLength(6);
+    const prefabNode = nodes.find((n) => n.type === "Prop:Prefab");
+    expect(prefabNode).toBeDefined();
+    const prefabEdges = edges.filter((e) => e.target === prefabNode!.id);
+    expect(prefabEdges).toHaveLength(4);
+  });
+});
