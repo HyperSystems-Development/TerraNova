@@ -138,7 +138,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   SmoothCeiling: [densityInput("Input", "Input"), densityOutput()],
   Gradient: [densityOutput()],
   Amplitude: [densityInput("Input", "Input"), densityInput("Amplitude", "Amplitude"), densityOutput()],
-  YSampled: [densityInput("Input", "Input"), densityOutput()],
+  YSampled: [densityInput("Input", "Input"), densityInput("YProvider", "Y Provider"), densityOutput()],
   SwitchState: [densityOutput()],
   Positions3D: [positionInput("Positions", "Positions"), curveInput("DistanceCurve", "Distance Curve"), densityOutput()],
   PositionsPinch: [positionInput("Positions", "Positions"), curveInput("PinchCurve", "Pinch Curve"), densityOutput()],
@@ -280,7 +280,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Position:List": [positionOutput()],
   "Position:Mesh2D": [positionOutput()],
   "Position:Mesh3D": [positionOutput()],
-  "Position:SimpleHorizontal": [positionOutput()],
+  "Position:SimpleHorizontal": [positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Imported": [positionOutput()],
 
   "Position:Occurrence": [positionInput("PositionProvider", "Positions"), positionOutput()],

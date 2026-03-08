@@ -147,7 +147,7 @@ export const UnionPositionNode = memo(function UnionPositionNode(props: TypedNod
 export const SimpleHorizontalPositionNode = memo(function SimpleHorizontalPositionNode(props: TypedNodeProps) {
   const data = props.data;
   return (
-    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_PASSTHROUGH_HANDLES}>
       <div className="space-y-1">
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Spacing</span>
