@@ -152,10 +152,10 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   Pipeline: [densityInput("Input", "Input"), densityOutput()],
 
   // Shape SDFs (output only — pure geometry)
-  Ellipsoid: [densityOutput()],
-  Cuboid: [densityOutput()],
-  Cylinder: [densityOutput()],
-  Plane: [densityOutput()],
+  Ellipsoid: [curveInput("Curve", "Curve"), densityOutput()],
+  Cuboid: [curveInput("Curve", "Curve"), densityOutput()],
+  Cylinder: [curveInput("RadialCurve", "Radial Curve"), curveInput("AxialCurve", "Axial Curve"), densityOutput()],
+  Plane: [curveInput("Curve", "Curve"), densityOutput()],
   Shell: [curveInput("AngleCurve", "Angle Curve"), curveInput("DistanceCurve", "Distance Curve"), densityOutput()],
   Cube: [curveInput("Curve", "Curve"), densityOutput()],
   Axis: [curveInput("Curve", "Curve"), densityOutput()],
