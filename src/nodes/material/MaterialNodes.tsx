@@ -14,6 +14,9 @@ const HANDLES_MAT_IN_OUT = [materialInput("Input", "Input"), materialOutput()];
 
 const HANDLES_MAT_MATERIAL_OUT = [materialInput("Material", "Material"), materialOutput()];
 
+const SOLIDITY_HANDLES = [densityInput("SolidityFunction", "Solidity"), materialOutput()];
+const TERRAIN_DENSITY_HANDLES = [densityInput("TerrainDensity", "Terrain Density"), materialOutput()];
+
 
 const HANDLES_CONDITIONAL = [
   densityInput("Condition", "Condition"),
@@ -400,6 +403,83 @@ export const WeightedThicknessNode = memo(function WeightedThicknessNode(props: 
           </div>
         ) : null}
       </div>
+    </BaseNode>
+  );
+});
+
+/* ── Additional V2 material nodes ──────────────────────────────────── */
+
+export const QueueMaterialNode = memo(function QueueMaterialNode(props: TypedNodeProps) {
+  const handles = useCompoundHandles(props.id, "Material:Queue");
+  return (
+    <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={handles}>
+      <div className="text-tn-text-muted text-center py-1">Queue</div>
+    </BaseNode>
+  );
+});
+
+export const SolidityMaterialNode = memo(function SolidityMaterialNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={SOLIDITY_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Solidity</div>
+    </BaseNode>
+  );
+});
+
+export const TerrainDensityMaterialNode = memo(function TerrainDensityMaterialNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={TERRAIN_DENSITY_HANDLES}>
+      <div className="text-tn-text-muted text-center py-1">Terrain density</div>
+    </BaseNode>
+  );
+});
+
+export const SimpleHorizontalMaterialNode = memo(function SimpleHorizontalMaterialNode(props: TypedNodeProps) {
+  const handles = useCompoundHandles(props.id, "Material:SimpleHorizontal");
+  return (
+    <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={handles}>
+      <div className="text-tn-text-muted text-center py-1">Simple horizontal</div>
+    </BaseNode>
+  );
+});
+
+export const DownwardDepthMaterialNode = memo(function DownwardDepthMaterialNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={HANDLES_MAT_IN_OUT}>
+      <div className="text-tn-text-muted text-center py-1">Downward depth</div>
+    </BaseNode>
+  );
+});
+
+export const UpwardDepthMaterialNode = memo(function UpwardDepthMaterialNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={HANDLES_MAT_IN_OUT}>
+      <div className="text-tn-text-muted text-center py-1">Upward depth</div>
+    </BaseNode>
+  );
+});
+
+export const DownwardSpaceMaterialNode = memo(function DownwardSpaceMaterialNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={HANDLES_MAT_IN_OUT}>
+      <div className="text-tn-text-muted text-center py-1">Downward space</div>
+    </BaseNode>
+  );
+});
+
+export const UpwardSpaceMaterialNode = memo(function UpwardSpaceMaterialNode(props: TypedNodeProps) {
+  return (
+    <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={HANDLES_MAT_IN_OUT}>
+      <div className="text-tn-text-muted text-center py-1">Upward space</div>
+    </BaseNode>
+  );
+});
+
+export const StripedMaterialNode = memo(function StripedMaterialNode(props: TypedNodeProps) {
+  const handles = useCompoundHandles(props.id, "Material:Striped");
+  return (
+    <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={handles}>
+      <div className="text-tn-text-muted text-center py-1">Striped</div>
     </BaseNode>
   );
 });

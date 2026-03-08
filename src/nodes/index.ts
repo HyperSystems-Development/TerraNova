@@ -55,6 +55,9 @@ import {
   SurfaceMaterialNode, CaveMaterialNode, ClusterMaterialNode,
   ImportedMaterialNode, ExportedMaterialNode, FieldFunctionMaterialNode,
   ConstantThicknessNode, NoiseThicknessNode, RangeThicknessNode, WeightedThicknessNode,
+  QueueMaterialNode, SolidityMaterialNode, TerrainDensityMaterialNode,
+  SimpleHorizontalMaterialNode, DownwardDepthMaterialNode, UpwardDepthMaterialNode,
+  DownwardSpaceMaterialNode, UpwardSpaceMaterialNode, StripedMaterialNode,
 } from "./material";
 
 // ── Pattern nodes ──────────────────────────────────────────────────────
@@ -304,6 +307,15 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Material:NoiseThickness": NoiseThicknessNode,
   "Material:RangeThickness": RangeThicknessNode,
   "Material:WeightedThickness": WeightedThicknessNode,
+  "Material:Queue": QueueMaterialNode,
+  "Material:Solidity": SolidityMaterialNode,
+  "Material:TerrainDensity": TerrainDensityMaterialNode,
+  "Material:SimpleHorizontal": SimpleHorizontalMaterialNode,
+  "Material:DownwardDepth": DownwardDepthMaterialNode,
+  "Material:UpwardDepth": UpwardDepthMaterialNode,
+  "Material:DownwardSpace": DownwardSpaceMaterialNode,
+  "Material:UpwardSpace": UpwardSpaceMaterialNode,
+  "Material:Striped": StripedMaterialNode,
 
   // ── Pattern ──────────────────────────────────────────────────────────
   "Pattern:Floor": FloorPatternNode,
