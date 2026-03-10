@@ -16,6 +16,7 @@ export function ColorPickerField({ label, value, onChange }: ColorPickerFieldPro
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="h-8 w-10 rounded border border-tn-border bg-transparent cursor-pointer"
+          aria-label={label}
         />
         <div
           className="h-5 w-5 rounded border border-tn-border/80 shrink-0"

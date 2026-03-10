@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, type ReactNode } from "react";
 import { useEditorStore } from "@/stores/editorStore";
+import { useProjectStore } from "@/stores/projectStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { writeTextFile } from "@/utils/ipc";
 import { ColorPickerField } from "./ColorPickerField";
@@ -266,6 +267,9 @@ export function AtmosphereTab({
   onBiomeTintChange: (field: string, value: string) => void;
 }) {
   const biomeConfig = useEditorStore((s) => s.biomeConfig);
+  const setBiomeConfig = useEditorStore((s) => s.setBiomeConfig);
+  const commitState = useEditorStore((s) => s.commitState);
+  const setDirty = useProjectStore((s) => s.setDirty);
   const setAtmosphereSettings = usePreviewStore((s) => s.setAtmosphereSettings);
   const storeAtm = usePreviewStore((s) => s.atmosphereSettings);
   const setTintColors = usePreviewStore((s) => s.setTintColors);
@@ -358,8 +362,22 @@ export function AtmosphereTab({
 
     try {
       await writeTextFile(filePath, JSON.stringify(envDoc, null, 2));
+      const environmentName = `Env_${name}`;
+      if (biomeConfig) {
+        const currentEnvProvider = (biomeConfig.EnvironmentProvider as Record<string, unknown>) ?? {};
+        setBiomeConfig({
+          ...biomeConfig,
+          EnvironmentProvider: {
+            ...currentEnvProvider,
+            Type: "Constant",
+            Environment: environmentName,
+          },
+        });
+        setDirty(true);
+        commitState(`Set EnvironmentProvider to ${environmentName}`);
+      }
       setExportStatus("ok");
-      setExportMsg(`Saved â†’ ...\\${preset.zoneFolder}\\Env_${name}.json`);
+      setExportMsg(`Saved -> ...\\${preset.zoneFolder}\\Env_${name}.json and applied ${environmentName}`);
     } catch (e) {
       setExportStatus("err");
       setExportMsg(String(e));
@@ -556,4 +574,3 @@ export function AtmosphereTab({
     </div>
   );
 }
-

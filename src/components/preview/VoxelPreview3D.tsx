@@ -225,7 +225,7 @@ const VoxelScene = memo(function VoxelScene({ wireframe }: { wireframe: boolean 
   return (
     <>
       {/* Atmosphere-driven lighting */}
-      <hemisphereLight args={[atm.skyHorizon as unknown as string, "#8B7355", 0.4]} />
+      <hemisphereLight args={[atm.skyHorizon, "#8B7355", 0.4]} />
       <directionalLight
         position={[15, 30, 10]}
         intensity={0.8}
