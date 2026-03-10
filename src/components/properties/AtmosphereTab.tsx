@@ -337,6 +337,35 @@ export function AtmosphereTab({
     waterTint: storeAtm.waterTint,
   }));
 
+  useEffect(() => {
+    setAtm((prev) => ({
+      ...prev,
+      skyHorizon: storeAtm.skyHorizon,
+      skyZenith: storeAtm.skyZenith,
+      sunsetColor: storeAtm.sunsetColor,
+      sunGlowColor: storeAtm.sunGlowColor,
+      cloudDensity: storeAtm.cloudDensity,
+      fogColor: storeAtm.fogColor,
+      fogNear: storeAtm.fogNear,
+      fogFar: storeAtm.fogFar,
+      ambientColor: storeAtm.ambientColor,
+      sunColor: storeAtm.sunColor,
+      waterTint: storeAtm.waterTint,
+    }));
+  }, [
+    storeAtm.skyHorizon,
+    storeAtm.skyZenith,
+    storeAtm.sunsetColor,
+    storeAtm.sunGlowColor,
+    storeAtm.cloudDensity,
+    storeAtm.fogColor,
+    storeAtm.fogNear,
+    storeAtm.fogFar,
+    storeAtm.ambientColor,
+    storeAtm.sunColor,
+    storeAtm.waterTint,
+  ]);
+
   function syncStore(next: AtmosphereState) {
     setAtmosphereSettings({
       skyHorizon: next.skyHorizon,

@@ -22,6 +22,8 @@ import type { BiomeConfig, BiomeSectionData, SectionHistoryEntry } from "@/store
 import { extractMaterialConfig } from "@/utils/materialResolver";
 import { useUIStore } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { usePreviewStore } from "@/stores/previewStore";
+import { resolveBiomeAtmosphere } from "@/utils/resolveBiomeAtmosphere";
 
 /**
  * Conditionally run autoLayout based on the autoLayoutOnOpen setting.
@@ -326,6 +328,17 @@ export function useTauriIO() {
         if (cached) {
           // Override bookmarks with cached biome section (if any)
           useUIStore.getState().reloadBookmarks(filePath, projectPath, cached.activeBiomeSection ?? "");
+          if (cached.editingContext === "Biome" && cached.biomeConfig) {
+            void resolveBiomeAtmosphere({
+              biomeConfig: cached.biomeConfig,
+              biomeFilePath: filePath,
+              projectPath,
+            }).then((resolved) => {
+              usePreviewStore.getState().setAtmosphereSettings(resolved.settings);
+            }).catch(() => {
+              // Keep last preview atmosphere on resolver failure.
+            });
+          }
           setDirty(cached.isDirty);
           return;
         }
@@ -507,6 +520,16 @@ export function useTauriIO() {
             }
             useEditorStore.setState({ biomeSections: updatedSections });
           }
+
+          void resolveBiomeAtmosphere({
+            biomeConfig: config,
+            biomeFilePath: filePath,
+            projectPath,
+          }).then((resolved) => {
+            usePreviewStore.getState().setAtmosphereSettings(resolved.settings);
+          }).catch(() => {
+            // Keep last preview atmosphere on resolver failure.
+          });
         } else if (content && typeof content === "object") {
           // Non-typed wrapper file (e.g., Biome with nested typed assets)
           // Try to find a typed subtree to edit
