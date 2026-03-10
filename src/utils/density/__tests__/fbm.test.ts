@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fbm2D, fbm3D } from "../fbm";
+import { fbm2D } from "../fbm";
 
 describe("FBm per-octave offsets", () => {
   const identity2D = (x: number, y: number) => x + y;

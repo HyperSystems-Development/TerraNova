@@ -362,7 +362,6 @@ const MATERIAL_PROPERTIES: Record<string, MaterialPBRProperties> = {
 
   // Canonical Rock variants
   Rock_Stone_Mossy: { roughness: 0.75 },
-  Rock_Basalt: { roughness: 0.9 },
   Rock_Volcanic: { roughness: 0.88 },
   Rock_Marble: { roughness: 0.3, metalness: 0.05 },
   Rock_Salt: { roughness: 0.6 },

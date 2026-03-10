@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect, type ReactNode } from "react";
 import { useEditorStore } from "@/stores/editorStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { writeTextFile } from "@/utils/ipc";
@@ -11,7 +11,7 @@ import { SliderField } from "./SliderField";
 
 function SectionHeader({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2 mt-3 mb-1.5">
+    <div className="flex items-center gap-2">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">
         {label}
       </span>
@@ -20,8 +20,17 @@ function SectionHeader({ label }: { label: string }) {
   );
 }
 
+function SectionCard({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <section className="rounded-md border border-tn-border/80 bg-tn-bg/40 p-2.5 flex flex-col gap-2">
+      <SectionHeader label={label} />
+      {children}
+    </section>
+  );
+}
+
 // ---------------------------------------------------------------------------
-// Weather presets — matched to actual Hytale zone weather JSON keyframes
+// Weather presets â€” matched to actual Hytale zone weather JSON keyframes
 // ---------------------------------------------------------------------------
 
 const HYTALE_ASSETS_BASE =
@@ -125,10 +134,10 @@ function WeatherSelector({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs text-tn-text-muted">Preset</span>
+      <span className="text-[11px] text-tn-text-muted">Preset</span>
       {Object.entries(grouped).map(([zone, presets]) => (
         <div key={zone} className="flex flex-col gap-1">
-          <span className="text-[10px] text-tn-text-muted/60 font-medium">{zoneLabels[zone]}</span>
+          <span className="text-[10px] text-tn-text-muted/70 font-medium">{zoneLabels[zone]}</span>
           <div className="flex flex-wrap gap-1">
             {presets.map((p) => (
               <button
@@ -137,7 +146,7 @@ function WeatherSelector({
                 className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
                   value === p.label
                     ? "bg-tn-accent/20 border-tn-accent text-tn-accent"
-                    : "border-tn-border text-tn-text-muted hover:border-white/20 hover:text-tn-text"
+                    : "border-tn-border/80 bg-tn-panel/40 text-tn-text-muted hover:border-white/20 hover:text-tn-text"
                 }`}
               >
                 {p.label.replace(/^Zone\d+ /, "")}
@@ -323,7 +332,7 @@ export function AtmosphereTab({
     syncStore(next);
   }
 
-  // ── Environment export ──────────────────────────────────────────
+  // â”€â”€ Environment export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [exportName, setExportName] = useState("");
   const [exportStatus, setExportStatus] = useState<"idle" | "ok" | "err">("idle");
   const [exportMsg, setExportMsg] = useState("");
@@ -335,7 +344,7 @@ export function AtmosphereTab({
     const preset = WEATHER_PRESET_DEFS.find((p) => p.label === atm.weather)
       ?? WEATHER_PRESET_DEFS[0];
 
-    // Zone tag is derived from zone folder, e.g. "Zone1" → { Zone1: [name] }
+    // Zone tag is derived from zone folder, e.g. "Zone1" â†’ { Zone1: [name] }
     const zoneKey = preset.zoneFolder; // "Zone1" | "Zone2" | ...
     const tagLabel = name.replace(/^.*_/, ""); // last segment as tag
 
@@ -350,7 +359,7 @@ export function AtmosphereTab({
     try {
       await writeTextFile(filePath, JSON.stringify(envDoc, null, 2));
       setExportStatus("ok");
-      setExportMsg(`Saved → ...\\${preset.zoneFolder}\\Env_${name}.json`);
+      setExportMsg(`Saved â†’ ...\\${preset.zoneFolder}\\Env_${name}.json`);
     } catch (e) {
       setExportStatus("err");
       setExportMsg(String(e));
@@ -383,136 +392,138 @@ export function AtmosphereTab({
   }
 
   return (
-    <div className="flex flex-col p-3 gap-1.5" onBlur={onBlur}>
+    <div className="flex flex-col p-3 gap-3" onBlur={onBlur}>
 
-      {/* SKY */}
-      <SectionHeader label="Sky" />
-      <ColorPickerField
-        label="Horizon Color"
-        value={atm.skyHorizon}
-        onChange={(v) => update("skyHorizon", v)}
-      />
-      <ColorPickerField
-        label="Zenith Color"
-        value={atm.skyZenith}
-        onChange={(v) => update("skyZenith", v)}
-      />
-      <ColorPickerField
-        label="Sunset Color"
-        value={atm.sunsetColor}
-        onChange={(v) => update("sunsetColor", v)}
-      />
-      <SliderField
-        label="Cloud Density"
-        value={atm.cloudDensity}
-        min={0}
-        max={1}
-        step={0.05}
-        onChange={(v) => update("cloudDensity", v)}
-        onBlur={() => {}}
-      />
-
-      {/* FOG */}
-      <SectionHeader label="Fog" />
-      <ColorPickerField
-        label="Fog Color"
-        value={atm.fogColor}
-        onChange={(v) => update("fogColor", v)}
-      />
-      <SliderField
-        label="Fog Near"
-        value={atm.fogNear}
-        min={-512}
-        max={512}
-        step={16}
-        onChange={(v) => update("fogNear", v)}
-        onBlur={() => {}}
-      />
-      <SliderField
-        label="Fog Far"
-        value={atm.fogFar}
-        min={64}
-        max={2048}
-        step={64}
-        onChange={(v) => update("fogFar", v)}
-        onBlur={() => {}}
-      />
-
-      {/* LIGHTING */}
-      <SectionHeader label="Lighting" />
-      <ColorPickerField
-        label="Ambient Color"
-        value={atm.ambientColor}
-        onChange={(v) => update("ambientColor", v)}
-      />
-      <ColorPickerField
-        label="Sun Color"
-        value={atm.sunColor}
-        onChange={(v) => update("sunColor", v)}
-      />
-      <ColorPickerField
-        label="Sun Glow"
-        value={atm.sunGlowColor}
-        onChange={(v) => update("sunGlowColor", v)}
-      />
-
-      {/* WATER */}
-      <SectionHeader label="Water" />
-      <ColorPickerField
-        label="Water Tint"
-        value={atm.waterTint}
-        onChange={(v) => update("waterTint", v)}
-      />
-
-      {/* WEATHER */}
-      <SectionHeader label="Weather" />
-      <WeatherSelector
-        value={atm.weather}
-        onChange={applyPreset}
-      />
-
-      {/* TINT */}
-      <SectionHeader label="Tint" />
-      <div
-        className="h-7 w-full rounded border border-tn-border"
-        style={{ background: `linear-gradient(to right, ${tintColor1}, ${tintColor2}, ${tintColor3})` }}
-      />
-      <div className="flex flex-col gap-1.5">
+      <SectionCard label="Sky">
         <ColorPickerField
-          label="Band 1 (Cool)"
-          value={tintColor1}
-          onChange={(v) => handleTintChange("color1", v)}
+          label="Horizon Color"
+          value={atm.skyHorizon}
+          onChange={(v) => update("skyHorizon", v)}
         />
         <ColorPickerField
-          label="Band 2 (Mid)"
-          value={tintColor2}
-          onChange={(v) => handleTintChange("color2", v)}
+          label="Zenith Color"
+          value={atm.skyZenith}
+          onChange={(v) => update("skyZenith", v)}
         />
         <ColorPickerField
-          label="Band 3 (Warm)"
-          value={tintColor3}
-          onChange={(v) => handleTintChange("color3", v)}
+          label="Sunset Color"
+          value={atm.sunsetColor}
+          onChange={(v) => update("sunsetColor", v)}
         />
-      </div>
+        <SliderField
+          label="Cloud Density"
+          value={atm.cloudDensity}
+          min={0}
+          max={1}
+          step={0.05}
+          onChange={(v) => update("cloudDensity", v)}
+          onBlur={() => {}}
+        />
+      </SectionCard>
 
-      {/* AUDIO */}
-      <SectionHeader label="Ambient Audio" />
-      <div className="flex flex-col gap-2">
-        <AudioRow label="Wind" volume={atm.audioWind} onVolumeChange={(v) => update("audioWind", v)} />
-        <AudioRow label="Water" volume={atm.audioWater} onVolumeChange={(v) => update("audioWater", v)} />
-        <AudioRow label="Insects" volume={atm.audioInsects} onVolumeChange={(v) => update("audioInsects", v)} />
-        <AudioRow label="Storm" volume={atm.audioStorm} onVolumeChange={(v) => update("audioStorm", v)} />
-      </div>
+      <SectionCard label="Fog">
+        <ColorPickerField
+          label="Fog Color"
+          value={atm.fogColor}
+          onChange={(v) => update("fogColor", v)}
+        />
+        <SliderField
+          label="Fog Near"
+          value={atm.fogNear}
+          min={-512}
+          max={512}
+          step={16}
+          onChange={(v) => update("fogNear", v)}
+          onBlur={() => {}}
+        />
+        <SliderField
+          label="Fog Far"
+          value={atm.fogFar}
+          min={64}
+          max={2048}
+          step={64}
+          onChange={(v) => update("fogFar", v)}
+          onBlur={() => {}}
+        />
+      </SectionCard>
 
-      {/* EXPORT */}
-      <SectionHeader label="Export Environment" />
-      <div className="flex flex-col gap-2">
-        {/* Zone destination derived from active preset */}
+      <SectionCard label="Lighting">
+        <ColorPickerField
+          label="Ambient Color"
+          value={atm.ambientColor}
+          onChange={(v) => update("ambientColor", v)}
+        />
+        <ColorPickerField
+          label="Sun Color"
+          value={atm.sunColor}
+          onChange={(v) => update("sunColor", v)}
+        />
+        <ColorPickerField
+          label="Sun Glow"
+          value={atm.sunGlowColor}
+          onChange={(v) => update("sunGlowColor", v)}
+        />
+      </SectionCard>
+
+      <SectionCard label="Water">
+        <ColorPickerField
+          label="Water Tint"
+          value={atm.waterTint}
+          onChange={(v) => update("waterTint", v)}
+        />
+      </SectionCard>
+
+      <SectionCard label="Weather">
+        <WeatherSelector
+          value={atm.weather}
+          onChange={applyPreset}
+        />
+      </SectionCard>
+
+      <SectionCard label="Tint">
+        <div
+          className="h-7 w-full rounded border border-tn-border"
+          style={{ background: `linear-gradient(to right, ${tintColor1}, ${tintColor2}, ${tintColor3})` }}
+        />
+        <div className="grid grid-cols-3 gap-1 text-[10px] text-tn-text-muted">
+          <div className="rounded border border-tn-border bg-tn-panel/40 px-1.5 py-1 text-center">Cool</div>
+          <div className="rounded border border-tn-border bg-tn-panel/40 px-1.5 py-1 text-center">Mid</div>
+          <div className="rounded border border-tn-border bg-tn-panel/40 px-1.5 py-1 text-center">Warm</div>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <ColorPickerField
+            label="Band 1"
+            value={tintColor1}
+            onChange={(v) => handleTintChange("color1", v)}
+          />
+          <ColorPickerField
+            label="Band 2"
+            value={tintColor2}
+            onChange={(v) => handleTintChange("color2", v)}
+          />
+          <ColorPickerField
+            label="Band 3"
+            value={tintColor3}
+            onChange={(v) => handleTintChange("color3", v)}
+          />
+        </div>
+      </SectionCard>
+
+      <SectionCard label="Ambient Audio">
+        <div className="flex flex-col gap-2">
+          <AudioRow label="Wind" volume={atm.audioWind} onVolumeChange={(v) => update("audioWind", v)} />
+          <AudioRow label="Water" volume={atm.audioWater} onVolumeChange={(v) => update("audioWater", v)} />
+          <AudioRow label="Insects" volume={atm.audioInsects} onVolumeChange={(v) => update("audioInsects", v)} />
+          <AudioRow label="Storm" volume={atm.audioStorm} onVolumeChange={(v) => update("audioStorm", v)} />
+        </div>
+      </SectionCard>
+
+      <SectionCard label="Export Environment">
         {(() => {
           const preset = WEATHER_PRESET_DEFS.find((p) => p.label === atm.weather) ?? WEATHER_PRESET_DEFS[0];
           return (
             <div className="text-[10px] text-tn-text-muted font-mono bg-tn-bg rounded px-2 py-1 border border-tn-border truncate">
-              → Server/Environments/<span className="text-tn-accent">{preset.zoneFolder}</span>/Env_<span className="text-tn-text">{exportName || "…"}</span>.json
+              {"-> "}Server/Environments/<span className="text-tn-accent">{preset.zoneFolder}</span>/Env_<span className="text-tn-text">{exportName || "..."}</span>.json
             </div>
           );
         })()}
@@ -534,14 +545,15 @@ export function AtmosphereTab({
         </div>
         {exportStatus !== "idle" && (
           <p className={`text-[10px] font-mono truncate ${exportStatus === "ok" ? "text-[#7DB350]" : "text-red-400"}`}>
-            {exportStatus === "ok" ? "✓ " : "✗ "}{exportMsg}
+            {exportStatus === "ok" ? "[OK] " : "[X] "}{exportMsg}
           </p>
         )}
         <p className="text-[10px] text-tn-text-muted/60 leading-tight">
           Writes a sub-environment JSON with the active zone as parent. Hytale will inherit its weather and water tint from the zone root.
         </p>
-      </div>
+      </SectionCard>
 
     </div>
   );
 }
+

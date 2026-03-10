@@ -1,8 +1,8 @@
-/**
+﻿/**
  * Hytale-compatible simplex noise implementation.
  *
  * Matches the V2 Java runtime's noise generation pipeline:
- * - Java String.hashCode() for seed string → integer conversion
+ * - Java String.hashCode() for seed string â†’ integer conversion
  * - Fixed 256-entry permutation table (V2 uses a hardcoded table, not seed-generated)
  * - Exact gradient vectors from the V2 decompiled source
  * - Standard simplex noise algorithm with correct skew/unskew factors
@@ -10,7 +10,7 @@
  * Reference: WorldGenV2/docs/math/noise-functions.md
  */
 
-/* ── Gradient vectors ─────────────────────────────────────────────── */
+/* â”€â”€ Gradient vectors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 // 3D: 12 gradient directions (edges of a cube)
 // 2D simplex noise uses these same vectors projected to 2D via (grad.x * x + grad.y * y)
@@ -20,7 +20,7 @@ const GRAD3: ReadonlyArray<readonly [number, number, number]> = [
   [ 0,  1,  1], [ 0, -1,  1], [ 0,  1, -1], [ 0, -1, -1],
 ];
 
-/* ── Skew / unskew constants ──────────────────────────────────────── */
+/* â”€â”€ Skew / unskew constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 // 2D: F2 = (sqrt(3) - 1) / 2, G2 = (3 - sqrt(3)) / 6
 const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
@@ -30,7 +30,7 @@ const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
 const F3 = 1.0 / 3.0;
 const G3 = 1.0 / 6.0;
 
-/* ── Java-compatible string hash ──────────────────────────────────── */
+/* â”€â”€ Java-compatible string hash â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /**
  * Java's String.hashCode() algorithm.
@@ -53,19 +53,8 @@ export function seedToInt(seed: string | number | undefined): number {
   return javaStringHashCode(seed);
 }
 
-/* ── Seeded PRNG (mulberry32 — fast 32-bit) ───────────────────────── */
 
-function mulberry32(seed: number): () => number {
-  let s = seed | 0;
-  return () => {
-    s = (s + 0x6d2b79f5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/* ── Fixed permutation table ──────────────────────────────────────── */
+/* â”€â”€ Fixed permutation table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /** V2 fixed permutation table (Simplex.java lines 63-320) */
 const FIXED_PERM: readonly number[] = [
@@ -87,7 +76,7 @@ const FIXED_PERM: readonly number[] = [
   222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180,
 ];
 
-/** Build 512-entry lookup from fixed V2 table (seed is ignored — V2 uses fixed perm) */
+/** Build 512-entry lookup from fixed V2 table (seed is ignored â€” V2 uses fixed perm) */
 function buildPermutationTable(_seed: number): Uint8Array {
   const perm = new Uint8Array(512);
   for (let i = 0; i < 256; i++) {
@@ -97,7 +86,7 @@ function buildPermutationTable(_seed: number): Uint8Array {
   return perm;
 }
 
-/* ── 2D Simplex Noise ─────────────────────────────────────────────── */
+/* â”€â”€ 2D Simplex Noise â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export function createHytaleNoise2D(seed: number): (x: number, y: number) => number {
   const perm = buildPermutationTable(seed);
@@ -160,7 +149,7 @@ export function createHytaleNoise2D(seed: number): (x: number, y: number) => num
   };
 }
 
-/* ── 3D Simplex Noise ─────────────────────────────────────────────── */
+/* â”€â”€ 3D Simplex Noise â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export function createHytaleNoise3D(seed: number): (x: number, y: number, z: number) => number {
   const perm = buildPermutationTable(seed);
@@ -244,7 +233,7 @@ export function createHytaleNoise3D(seed: number): (x: number, y: number, z: num
   };
 }
 
-/* ── 2D Simplex Noise with analytic gradient ──────────────────────── */
+/* â”€â”€ 2D Simplex Noise with analytic gradient â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /**
  * Returns both the noise value and its analytic gradient at (x, y).
@@ -332,7 +321,7 @@ export function createHytaleNoise2DWithGradient(seed: number): (x: number, y: nu
   };
 }
 
-/* ── 3D Simplex Noise with analytic gradient ──────────────────────── */
+/* â”€â”€ 3D Simplex Noise with analytic gradient â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export function createHytaleNoise3DWithGradient(seed: number): (x: number, y: number, z: number) => { value: number; dx: number; dy: number; dz: number } {
   const perm = buildPermutationTable(seed);
@@ -414,3 +403,5 @@ export function createHytaleNoise3DWithGradient(seed: number): (x: number, y: nu
     };
   };
 }
+
+

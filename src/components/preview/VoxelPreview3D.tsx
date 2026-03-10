@@ -38,6 +38,17 @@ const SAND_TINTABLE = new Set([
   "Sand", "Sand_White", "Sand_Red", "Sand_Dark", "Soil_Sand",
 ]);
 
+const COOL_TINT_MATERIALS = new Set([
+  "Grass_Swamp", "Grass_Snow", "Soil_Grass_Cold", "Soil_Grass_Wet",
+  "Plant_Leaves_Azure", "Plant_Leaves_Crystal", "Plant_Leaves_Fir", "Plant_Leaves_Birch",
+]);
+
+const WARM_TINT_MATERIALS = new Set([
+  "Grass_Dry", "Grass_Dead", "Soil_Grass_Burnt", "Soil_Grass_Dry", "Soil_Grass_Sunny",
+  "Plant_Leaves_Autumn", "Plant_Leaves_Maple", "Plant_Leaves_Goldentree", "Plant_Leaves_Amber",
+  "Plant_Leaves_Burnt", "Plant_Leaves_Fire",
+]);
+
 /** Blend hex color `a` toward `b` by factor [0..1] */
 function blendHex(a: string, b: string, t: number): string {
   const ca = new Color(a);
@@ -106,15 +117,20 @@ const VoxelMeshGroup = memo(function VoxelMeshGroup({
       {meshData.map((data) => {
         const name = data.materialName ?? "";
         let tintColor: string | undefined;
+        const baseTint = COOL_TINT_MATERIALS.has(name)
+          ? color1
+          : WARM_TINT_MATERIALS.has(name)
+            ? color3
+            : color2;
         if (TINTABLE_MATERIALS.has(name)) {
-          // Full tint: use color2 (mid-band, most common across noise distribution)
-          tintColor = color2;
+          // Full tint for grass/leaves, biased by the material's climate flavor.
+          tintColor = baseTint;
         } else if (SOIL_TINTABLE.has(name)) {
-          // Subtle soil tint: 30% blend toward color2
-          tintColor = blendHex("#ffffff", color2, 0.3);
+          // Subtle soil tint: 30% blend toward the selected tint band.
+          tintColor = blendHex("#ffffff", baseTint, 0.3);
         } else if (SAND_TINTABLE.has(name)) {
-          // Very light sand tint: 15% blend toward color2
-          tintColor = blendHex("#ffffff", color2, 0.15);
+          // Very light sand tint: blend toward warm-mid average to stay natural.
+          tintColor = blendHex("#ffffff", blendHex(color2, color3, 0.5), 0.15);
         }
         return (
           <VoxelMesh

@@ -1,7 +1,7 @@
-/**
+﻿/**
  * End-to-end export pipeline tests.
  *
- * Validates the full Hytale-native → import → internal → export → Hytale-native
+ * Validates the full Hytale-native â†’ import â†’ internal â†’ export â†’ Hytale-native
  * pipeline for various file types and edge cases.
  */
 import { describe, it, expect } from "vitest";
@@ -15,32 +15,12 @@ import { validateExport } from "../exportAssetPack";
 // Helper: full round-trip through the pipeline
 // ---------------------------------------------------------------------------
 
-/** Import Hytale-native → internal → graph → JSON → export Hytale-native */
+/** Import Hytale-native â†’ internal â†’ graph â†’ JSON â†’ export Hytale-native */
 function roundTrip(hytaleInput: Record<string, unknown>): Record<string, unknown> {
   const { asset } = hytaleToInternal(hytaleInput);
   const { nodes, edges } = jsonToGraph(asset);
   const internalJson = graphToJson(nodes, edges)!;
   return internalToHytale(internalJson as { Type: string; [key: string]: unknown });
-}
-
-/** Import Hytale-native biome → internal → export Hytale-native biome */
-function roundTripBiome(hytaleInput: Record<string, unknown>): Record<string, unknown> {
-  const { wrapper } = hytaleToInternalBiome(hytaleInput);
-  return internalToHytaleBiome(wrapper);
-}
-
-/** Check that a value is structurally equivalent, ignoring $NodeId values */
-function stripNodeIds(obj: unknown): unknown {
-  if (Array.isArray(obj)) return obj.map(stripNodeIds);
-  if (obj && typeof obj === "object") {
-    const result: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
-      if (k === "$NodeId") continue;
-      result[k] = stripNodeIds(v);
-    }
-    return result;
-  }
-  return obj;
 }
 
 // ---------------------------------------------------------------------------
@@ -324,7 +304,7 @@ describe("NoiseRange round-trip", () => {
 // ---------------------------------------------------------------------------
 
 describe("compound node round-trips", () => {
-  it("SimplexRidgeNoise2D → Abs(SimplexNoise2D) → SimplexRidgeNoise2D", () => {
+  it("SimplexRidgeNoise2D â†’ Abs(SimplexNoise2D) â†’ SimplexRidgeNoise2D", () => {
     // Start with internal format
     const internal = {
       Type: "SimplexRidgeNoise2D",
@@ -347,7 +327,7 @@ describe("compound node round-trips", () => {
     expect(reimported.Type).toBe("SimplexRidgeNoise2D");
   });
 
-  it("GradientDensity → Normalizer(YValue) → GradientDensity", () => {
+  it("GradientDensity â†’ Normalizer(YValue) â†’ GradientDensity", () => {
     const internal = { Type: "GradientDensity", FromY: 100, ToY: 40 };
     const exported = internalToHytale(internal);
     expect(exported.Type).toBe("Normalizer");
@@ -358,7 +338,7 @@ describe("compound node round-trips", () => {
     expect(reimported.ToY).toBe(40);
   });
 
-  it("HeightGradient material → Queue[FieldFunction(YValue)]", () => {
+  it("HeightGradient material â†’ Queue[FieldFunction(YValue)]", () => {
     const internal = {
       Type: "HeightGradient",
       Range: { Min: 20, Max: 60 },
@@ -377,7 +357,7 @@ describe("compound node round-trips", () => {
     expect(queue[0].Type).toBe("FieldFunction");
   });
 
-  it("LinearTransform with non-zero offset → Sum(AmplitudeConstant, Constant)", () => {
+  it("LinearTransform with non-zero offset â†’ Sum(AmplitudeConstant, Constant)", () => {
     const internal = {
       Type: "LinearTransform",
       Scale: 2.0,
@@ -394,7 +374,7 @@ describe("compound node round-trips", () => {
     expect(inputs[1].Value).toBe(5.0);
   });
 
-  it("Density Conditional → Mix with step function", () => {
+  it("Density Conditional â†’ Mix with step function", () => {
     const internal = {
       Type: "Conditional",
       Threshold: 0.5,
@@ -411,7 +391,7 @@ describe("compound node round-trips", () => {
     expect(inputs).toHaveLength(3);
   });
 
-  it("Material Conditional chain → Queue[FieldFunction]", () => {
+  it("Material Conditional chain â†’ Queue[FieldFunction]", () => {
     const internal = {
       Type: "Material:Conditional",
       Threshold: 0.7,
@@ -504,7 +484,7 @@ describe("$Position and editor metadata stripping", () => {
     const jsonStr = JSON.stringify(asset);
     expect(jsonStr).not.toContain("$Position");
 
-    // Actual fields should be preserved (WallA→Max, WallB→Min per Hytale spec)
+    // Actual fields should be preserved (WallAâ†’Max, WallBâ†’Min per Hytale spec)
     expect(asset.Type).toBe("Clamp");
     expect(asset.Min).toBe(1);
     expect(asset.Max).toBe(0);
@@ -631,3 +611,4 @@ describe("validateExport", () => {
     expect(warnings.some((w) => w.includes("DefaultBiome"))).toBe(true);
   });
 });
+

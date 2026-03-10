@@ -155,22 +155,41 @@ export function PropertyPanel() {
         const delimMatch = delimPattern.exec(field);
         if (delimMatch) {
           const idx = parseInt(delimMatch[1], 10);
+          const defaultTintColors = ["#5b9e28", "#6ca229", "#7ea629"] as const;
           const tintProvider = (biomeConfig.TintProvider as Record<string, unknown>) ?? {};
           const sourceDelimiters = Array.isArray(tintProvider.Delimiters)
             ? (tintProvider.Delimiters as Array<Record<string, unknown>>)
             : [];
+
           const delimiters: Array<Record<string, unknown>> = sourceDelimiters.map((d) => ({ ...d }));
-          if (delimiters.length === 0) {
-            delimiters.push({ Tint: { Color: "#5b9e28" } });
-            delimiters.push({ Tint: { Color: "#6ca229" } });
-            delimiters.push({ Tint: { Color: "#7ea629" } });
+          while (delimiters.length < 3) {
+            delimiters.push({});
           }
           while (delimiters.length <= idx) {
-            delimiters.push({ Tint: { Color: "#6ca229" } });
+            delimiters.push({});
           }
-          const existingTint = (delimiters[idx].Tint as Record<string, unknown>) ?? {};
-          delimiters[idx] = { ...delimiters[idx], Tint: { ...existingTint, Color: value } };
-          const updatedTint = { ...tintProvider, Delimiters: delimiters };
+
+          // Always persist the first 3 tint bands so biome export keeps a complete gradient.
+          for (let band = 0; band < 3; band++) {
+            const existing = delimiters[band] ?? {};
+            const existingTint = (existing.Tint as Record<string, unknown>) ?? {};
+            const fallbackColor = defaultTintColors[band];
+            const existingColor = typeof existingTint.Color === "string" ? existingTint.Color : fallbackColor;
+            delimiters[band] = {
+              ...existing,
+              Tint: { ...existingTint, Color: existingColor },
+            };
+          }
+
+          const targetDelimiter = delimiters[idx] ?? {};
+          const targetTint = (targetDelimiter.Tint as Record<string, unknown>) ?? {};
+          delimiters[idx] = { ...targetDelimiter, Tint: { ...targetTint, Color: value } };
+
+          const updatedTint = {
+            ...tintProvider,
+            Type: typeof tintProvider.Type === "string" ? tintProvider.Type : "DensityDelimited",
+            Delimiters: delimiters,
+          };
           setBiomeConfig({ ...biomeConfig, TintProvider: updatedTint });
         } else {
           // Legacy flat field path
