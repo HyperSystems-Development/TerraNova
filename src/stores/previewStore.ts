@@ -18,6 +18,13 @@ export interface AtmosphereSettings {
   sunColor: string;
 }
 
+export interface TintColors {
+  /** Low-density tint (e.g. shade/cool end) */
+  from: string;
+  /** High-density tint (e.g. sunny/warm end) */
+  to: string;
+}
+
 export interface CanvasTransform {
   scale: number;
   offsetX: number;
@@ -218,6 +225,9 @@ interface PreviewState {
 
   atmosphereSettings: AtmosphereSettings;
   setAtmosphereSettings: (settings: AtmosphereSettings) => void;
+
+  tintColors: TintColors;
+  setTintColors: (colors: TintColors) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -271,6 +281,7 @@ const PERSIST_MAP: Record<string, string> = {
   linkCameras3D: "tn-linkCameras3D",
   splitDirection: "tn-splitDirection",
   atmosphereSettings: "tn-atmosphereSettings",
+  tintColors: "tn-tintColors",
 };
 
 function getStored(key: string): string | null {
@@ -344,6 +355,13 @@ function hydratePersistedState() {
       } catch { /* ignore */ }
       return DEFAULT_ATMOSPHERE_SETTINGS;
     })(),
+    tintColors: (() => {
+      try {
+        const raw = getStored("tn-tintColors");
+        if (raw) return { ...DEFAULT_TINT_COLORS, ...JSON.parse(raw) } as TintColors;
+      } catch { /* ignore */ }
+      return DEFAULT_TINT_COLORS;
+    })(),
   };
 }
 
@@ -357,6 +375,11 @@ const DEFAULT_ATMOSPHERE_SETTINGS: AtmosphereSettings = {
   fogDensity: 0.008,
   ambientColor: "#3a3a4a",
   sunColor: "#fff8e0",
+};
+
+const DEFAULT_TINT_COLORS: TintColors = {
+  from: "#5b9e28",
+  to: "#7ea629",
 };
 
 export const usePreviewStore = create<PreviewState>((originalSet) => {
@@ -504,5 +527,6 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setSplitDirection: (splitDirection) => persistedSet({ splitDirection }),
 
     setAtmosphereSettings: (atmosphereSettings) => persistedSet({ atmosphereSettings }),
+    setTintColors: (tintColors) => persistedSet({ tintColors }),
   };
 });

@@ -215,6 +215,7 @@ export function buildWorldMeshes(
 
     results.push({
       materialIndex: matIdx++,
+      materialName: entry.info.name ?? "",
       color: entry.info.color,
       positions: new Float32Array(entry.positions),
       normals: new Float32Array(entry.normals),

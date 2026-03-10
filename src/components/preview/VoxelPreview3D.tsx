@@ -11,16 +11,43 @@ import { EdgeOutlineEffect } from "./EdgeOutlineEffect";
 import { HytaleSky, HytaleFog, GroundShadow } from "./SceneEnvironment";
 import type { VoxelData } from "@/utils/voxelExtractor";
 import type { VoxelMeshData } from "@/utils/voxelMeshBuilder";
-import { BufferGeometry, BufferAttribute, Vector2 } from "three";
+import { BufferGeometry, BufferAttribute, Vector2, Color } from "three";
+
+// Materials that receive biome tint (grass surface, soil with grass, moss)
+const TINTABLE_MATERIALS = new Set([
+  "Grass", "Soil_Grass", "GrassDeep", "GrassDeepSunny",
+  "Grass_Dry", "Grass_Dead", "Grass_Swamp", "Grass_Snow",
+  "Soil_Moss", "Soil_Leaves", "Soil_Pathway",
+]);
+
+// Lightly tinted — secondary influence (soil blends 50% with tint)
+const SOIL_TINTABLE = new Set([
+  "Soil_Dirt", "Soil_Loam", "Soil_Peat", "Tilled_Soil",
+]);
+
+// Sand tintable at low influence
+const SAND_TINTABLE = new Set([
+  "Sand", "Sand_White", "Sand_Red", "Sand_Dark", "Soil_Sand",
+]);
+
+/** Blend hex color `a` toward `b` by factor [0..1] */
+function blendHex(a: string, b: string, t: number): string {
+  const ca = new Color(a);
+  const cb = new Color(b);
+  ca.lerp(cb, t);
+  return "#" + ca.getHexString();
+}
 
 /* ── Single merged mesh per material ─────────────────────────────── */
 
 const VoxelMesh = memo(function VoxelMesh({
   data,
   wireframe,
+  tintColor,
 }: {
   data: VoxelMeshData;
   wireframe: boolean;
+  tintColor?: string;
 }) {
   const geometry = useMemo(() => {
     const geo = new BufferGeometry();
@@ -41,6 +68,7 @@ const VoxelMesh = memo(function VoxelMesh({
       <meshStandardMaterial
         vertexColors
         wireframe={wireframe}
+        color={tintColor ?? "#ffffff"}
         roughness={data.materialProperties?.roughness ?? 0.8}
         metalness={data.materialProperties?.metalness ?? 0.0}
         emissive={data.materialProperties?.emissive ?? "#000000"}
@@ -55,15 +83,38 @@ const VoxelMesh = memo(function VoxelMesh({
 const VoxelMeshGroup = memo(function VoxelMeshGroup({
   meshData,
   wireframe,
+  tintFrom,
+  tintTo,
 }: {
   meshData: VoxelMeshData[];
   wireframe: boolean;
+  tintFrom: string;
+  tintTo: string;
 }) {
   return (
     <>
-      {meshData.map((data) => (
-        <VoxelMesh key={data.materialIndex} data={data} wireframe={wireframe} />
-      ))}
+      {meshData.map((data) => {
+        const name = data.materialName ?? "";
+        let tintColor: string | undefined;
+        if (TINTABLE_MATERIALS.has(name)) {
+          // Full tint: blend between from/to at midpoint (0.5)
+          tintColor = blendHex(tintFrom, tintTo, 0.5);
+        } else if (SOIL_TINTABLE.has(name)) {
+          // Subtle soil tint: 25% blend toward mid-tint
+          tintColor = blendHex("#ffffff", blendHex(tintFrom, tintTo, 0.5), 0.25);
+        } else if (SAND_TINTABLE.has(name)) {
+          // Very light sand tint: 15% blend
+          tintColor = blendHex("#ffffff", blendHex(tintFrom, tintTo, 0.5), 0.15);
+        }
+        return (
+          <VoxelMesh
+            key={data.materialIndex}
+            data={data}
+            wireframe={wireframe}
+            tintColor={tintColor}
+          />
+        );
+      })}
     </>
   );
 });
@@ -142,15 +193,17 @@ const VoxelScene = memo(function VoxelScene({ wireframe }: { wireframe: boolean 
   const voxelMeshData = usePreviewStore((s) => s.voxelMeshData);
   const enableShadows = useConfigStore((s) => s.enableShadows);
   const shadowMapSize = useConfigStore((s) => s.shadowMapSize);
+  const atm = usePreviewStore((s) => s.atmosphereSettings);
+  const tint = usePreviewStore((s) => s.tintColors);
 
   return (
     <>
-      {/* Hytale-style lighting */}
-      <hemisphereLight args={["#87CEEB", "#8B7355", 0.4]} />
+      {/* Atmosphere-driven lighting */}
+      <hemisphereLight args={[atm.skyHorizon as unknown as string, "#8B7355", 0.4]} />
       <directionalLight
         position={[15, 30, 10]}
         intensity={0.8}
-        color="#fff5e0"
+        color={atm.sunColor}
         castShadow={enableShadows}
         shadow-mapSize-width={shadowMapSize}
         shadow-mapSize-height={shadowMapSize}
@@ -161,10 +214,15 @@ const VoxelScene = memo(function VoxelScene({ wireframe }: { wireframe: boolean 
         shadow-camera-near={0.5}
         shadow-camera-far={100}
       />
-      <directionalLight position={[-12, 15, -8]} intensity={0.2} color="#b0c4de" />
+      <directionalLight position={[-12, 15, -8]} intensity={0.2} color={atm.ambientColor} />
 
       {voxelMeshData && voxelMeshData.length > 0 && (
-        <VoxelMeshGroup meshData={voxelMeshData} wireframe={wireframe} />
+        <VoxelMeshGroup
+          meshData={voxelMeshData}
+          wireframe={wireframe}
+          tintFrom={tint.from}
+          tintTo={tint.to}
+        />
       )}
 
       <OrbitControls enableDamping dampingFactor={0.1} />

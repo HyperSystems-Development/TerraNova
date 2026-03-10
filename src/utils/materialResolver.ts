@@ -16,6 +16,12 @@ const HYTALE_MATERIAL_COLORS: Record<string, string> = {
   Marble: "#e0ddd5",
   Quartzite: "#d6cec0",
   Cobblestone: "#7a7a7a",
+  Rock_Andesite: "#888890",
+  Rock_Diorite: "#c8c8c0",
+  Rock_Obsidian: "#1a0a2e",
+  Rock_Pumice: "#b8a898",
+  Rock_Chalk: "#f0ede0",
+  Rock_Flint: "#666670",
   // ── Soil / Earth ──
   Dirt: "#a0724a",
   Dirt_Dark: "#6e4e30",
@@ -26,29 +32,95 @@ const HYTALE_MATERIAL_COLORS: Record<string, string> = {
   Soil_Gravel: "#a0a0a0",
   Soil_Moss: "#4a7a4a",
   Tilled_Soil: "#8a6035",
-  // ── Sand ──
+  Soil_Peat: "#5a3e28",
+  Soil_Loam: "#8c6040",
+  // ── Sand / Desert ──
   Sand: "#d4c590",
   Sand_White: "#e8dfc8",
+  Sand_Red: "#c8704a",
+  Sand_Dark: "#b09060",
   // ── Gravel ──
   Gravel: "#a0a0a0",
+  Gravel_Dark: "#787878",
   // ── Surface / Grass ──
   Grass: "#5cb85c",
   Soil_Grass: "#5cb85c",
   GrassDeep: "#3e8a3e",
   GrassDeepSunny: "#6ec86e",
+  Grass_Dry: "#9aad52",
+  Grass_Dead: "#8a8a50",
+  Grass_Swamp: "#4a7040",
+  Grass_Snow: "#d8dce8",
   // ── Snow / Ice ──
   Snow: "#e8e8f0",
   Ice: "#b0e0e6",
-  // ── Wood ──
+  Ice_Blue: "#88c8e0",
+  Packed_Ice: "#9dcad4",
+  Snow_Deep: "#dcdce8",
+  Frost: "#d0e8f0",
+  // ── Wood / Organic ──
   Wood: "#8b6b4a",
   Lightwoods: "#c4a870",
   Softwoods: "#a68b5b",
-  // ── Special ──
-  Bedrock: "#2a2a2a",
-  Water: "#4169e1",
-  Fluid_Slime_Red: "#c0392b",
+  Wood_Dark: "#5a3e28",
+  Wood_Birch: "#d4c8a0",
+  Wood_Oak: "#9a7850",
+  Wood_Pine: "#7a5c38",
+  Wood_Jungle: "#6a8a38",
+  Bark: "#6a5038",
+  Planks: "#c4a870",
+  // ── Leaves / Vegetation ──
+  Leaves: "#3e8a3e",
+  Leaves_Oak: "#4a9a4a",
+  Leaves_Birch: "#8ab840",
+  Leaves_Pine: "#2a6a2a",
+  Leaves_Jungle: "#1a8a28",
+  Leaves_Autumn_Red: "#c04830",
+  Leaves_Autumn_Orange: "#d07820",
+  Leaves_Dead: "#7a6a40",
+  // ── Fungi / Swamp ──
+  Mushroom_Cap: "#c0392b",
+  Mushroom_White: "#e8e0d0",
+  Mycelium: "#7a5a70",
+  Peat_Bog: "#4a3820",
+  // ── Zone 4 / Volcanic ──
+  Ash: "#c0b8b0",
+  Ash_Dark: "#888078",
+  Magma: "#d03000",
+  Magma_Rock: "#5a2810",
   Lava: "#ff4500",
   Lava_Source: "#ff4500",
+  Scorched_Stone: "#3a2828",
+  Ember: "#d86020",
+  // ── Zone 3 / Arctic ──
+  Tundra: "#8a9088",
+  Permafrost: "#a8b0b8",
+  Lichen: "#8aaa70",
+  // ── Zone 2 / Desert ──
+  Sandstone_Red: "#c87850",
+  Terracotta: "#c07040",
+  Caliche: "#d0b888",
+  Duricrust: "#b89060",
+  // ── Crystals / Ores ──
+  Crystal: "#88ccee",
+  Crystal_Blue: "#4488dd",
+  Crystal_Purple: "#aa44cc",
+  Crystal_Red: "#dd3344",
+  Ore_Coal: "#3a3a3a",
+  Ore_Iron: "#b8916e",
+  Ore_Gold: "#ffd700",
+  Ore_Copper: "#b87333",
+  // ── Fluids ──
+  Water: "#4169e1",
+  Water_Murky: "#2a5a40",
+  Water_Hot: "#4090b0",
+  Fluid_Slime_Red: "#c0392b",
+  Fluid_Slime_Green: "#40a840",
+  // ── Built / Constructed ──
+  Bedrock: "#2a2a2a",
+  Brick: "#8b4513",
+  Stone_Brick: "#7a7a80",
+  Mossy_Stone: "#607060",
 };
 
 /* ── PBR material properties ─────────────────────────────────────── */
@@ -73,6 +145,12 @@ const MATERIAL_PROPERTIES: Record<string, MaterialPBRProperties> = {
   Marble: { roughness: 0.4, metalness: 0.05 },
   Quartzite: { roughness: 0.5 },
   Cobblestone: { roughness: 0.9 },
+  Rock_Andesite: { roughness: 0.88 },
+  Rock_Diorite: { roughness: 0.85 },
+  Rock_Obsidian: { roughness: 0.2, metalness: 0.1 },
+  Rock_Pumice: { roughness: 0.95 },
+  Rock_Chalk: { roughness: 0.85 },
+  Rock_Flint: { roughness: 0.75 },
   // Soil / Earth
   Dirt: { roughness: 0.9 },
   Dirt_Dark: { roughness: 0.9 },
@@ -83,27 +161,90 @@ const MATERIAL_PROPERTIES: Record<string, MaterialPBRProperties> = {
   Soil_Gravel: { roughness: 0.9 },
   Soil_Moss: { roughness: 0.7 },
   Tilled_Soil: { roughness: 0.9 },
-  // Sand
+  Soil_Peat: { roughness: 0.92 },
+  Soil_Loam: { roughness: 0.88 },
+  // Sand / Desert
   Sand: { roughness: 0.8 },
   Sand_White: { roughness: 0.75 },
-  // Grass — slightly soft
+  Sand_Red: { roughness: 0.82 },
+  Sand_Dark: { roughness: 0.82 },
+  Sandstone_Red: { roughness: 0.85 },
+  Terracotta: { roughness: 0.8 },
+  Caliche: { roughness: 0.85 },
+  Duricrust: { roughness: 0.85 },
+  // Grass
   Grass: { roughness: 0.7 },
   Soil_Grass: { roughness: 0.7 },
   GrassDeep: { roughness: 0.7 },
   GrassDeepSunny: { roughness: 0.7 },
+  Grass_Dry: { roughness: 0.75 },
+  Grass_Dead: { roughness: 0.8 },
+  Grass_Swamp: { roughness: 0.72 },
+  Grass_Snow: { roughness: 0.65 },
   // Snow / Ice
   Snow: { roughness: 0.6 },
+  Snow_Deep: { roughness: 0.58 },
+  Frost: { roughness: 0.45 },
   Ice: { roughness: 0.2, metalness: 0.1 },
+  Ice_Blue: { roughness: 0.15, metalness: 0.1 },
+  Packed_Ice: { roughness: 0.25, metalness: 0.05 },
+  Tundra: { roughness: 0.85 },
+  Permafrost: { roughness: 0.9 },
+  Lichen: { roughness: 0.75 },
   // Wood
   Wood: { roughness: 0.7 },
   Lightwoods: { roughness: 0.65 },
   Softwoods: { roughness: 0.7 },
-  // Special
-  Bedrock: { roughness: 0.95 },
-  Water: { roughness: 0.1, metalness: 0.0 },
+  Wood_Dark: { roughness: 0.72 },
+  Wood_Birch: { roughness: 0.65 },
+  Wood_Oak: { roughness: 0.7 },
+  Wood_Pine: { roughness: 0.72 },
+  Wood_Jungle: { roughness: 0.65 },
+  Bark: { roughness: 0.85 },
+  Planks: { roughness: 0.65 },
+  // Leaves / Vegetation
+  Leaves: { roughness: 0.65 },
+  Leaves_Oak: { roughness: 0.65 },
+  Leaves_Birch: { roughness: 0.65 },
+  Leaves_Pine: { roughness: 0.68 },
+  Leaves_Jungle: { roughness: 0.62 },
+  Leaves_Autumn_Red: { roughness: 0.68 },
+  Leaves_Autumn_Orange: { roughness: 0.68 },
+  Leaves_Dead: { roughness: 0.75 },
+  // Fungi / Swamp
+  Mushroom_Cap: { roughness: 0.6 },
+  Mushroom_White: { roughness: 0.6 },
+  Mycelium: { roughness: 0.8 },
+  Peat_Bog: { roughness: 0.9 },
+  // Zone 4 / Volcanic
+  Ash: { roughness: 0.92 },
+  Ash_Dark: { roughness: 0.92 },
+  Magma: { roughness: 0.4, emissive: "#d03000", emissiveIntensity: 1.2 },
+  Magma_Rock: { roughness: 0.7 },
   Lava: { roughness: 0.3, emissive: "#ff4500", emissiveIntensity: 2.0 },
   Lava_Source: { roughness: 0.3, emissive: "#ff4500", emissiveIntensity: 2.0 },
+  Scorched_Stone: { roughness: 0.88 },
+  Ember: { roughness: 0.5, emissive: "#d86020", emissiveIntensity: 0.6 },
+  // Crystals / Ores
+  Crystal: { roughness: 0.1, metalness: 0.2 },
+  Crystal_Blue: { roughness: 0.08, metalness: 0.2 },
+  Crystal_Purple: { roughness: 0.08, metalness: 0.2 },
+  Crystal_Red: { roughness: 0.08, metalness: 0.2 },
+  Ore_Coal: { roughness: 0.9 },
+  Ore_Iron: { roughness: 0.7, metalness: 0.3 },
+  Ore_Gold: { roughness: 0.4, metalness: 0.6 },
+  Ore_Copper: { roughness: 0.55, metalness: 0.45 },
+  // Fluids
+  Bedrock: { roughness: 0.95 },
+  Water: { roughness: 0.1, metalness: 0.0 },
+  Water_Murky: { roughness: 0.3 },
+  Water_Hot: { roughness: 0.15 },
   Fluid_Slime_Red: { roughness: 0.4, emissive: "#c0392b", emissiveIntensity: 0.8 },
+  Fluid_Slime_Green: { roughness: 0.4, emissive: "#40a840", emissiveIntensity: 0.5 },
+  // Built
+  Brick: { roughness: 0.85 },
+  Stone_Brick: { roughness: 0.88 },
+  Mossy_Stone: { roughness: 0.8 },
 };
 
 /**
@@ -121,13 +262,18 @@ export function getMaterialProperties(name: string): MaterialPBRProperties {
   }
 
   // Keyword match
-  if (lower.includes("lava")) return MATERIAL_PROPERTIES.Lava;
+  if (lower.includes("lava") || lower.includes("magma")) return MATERIAL_PROPERTIES.Lava;
+  if (lower.includes("obsidian")) return MATERIAL_PROPERTIES.Rock_Obsidian;
+  if (lower.includes("crystal")) return MATERIAL_PROPERTIES.Crystal;
   if (lower.includes("ice")) return MATERIAL_PROPERTIES.Ice;
   if (lower.includes("stone") || lower.includes("rock")) return MATERIAL_PROPERTIES.Stone;
   if (lower.includes("grass")) return MATERIAL_PROPERTIES.Grass;
   if (lower.includes("sand")) return MATERIAL_PROPERTIES.Sand;
-  if (lower.includes("snow")) return MATERIAL_PROPERTIES.Snow;
+  if (lower.includes("snow") || lower.includes("frost")) return MATERIAL_PROPERTIES.Snow;
   if (lower.includes("dirt") || lower.includes("soil")) return MATERIAL_PROPERTIES.Dirt;
+  if (lower.includes("ash")) return MATERIAL_PROPERTIES.Ash;
+  if (lower.includes("wood") || lower.includes("bark")) return MATERIAL_PROPERTIES.Wood;
+  if (lower.includes("ore")) return MATERIAL_PROPERTIES.Ore_Iron;
 
   return {}; // defaults will be applied by consumer
 }
@@ -160,16 +306,34 @@ export function matchMaterialName(name: string): string {
   }
 
   // Keyword match
+  if (lower.includes("lava") || lower.includes("magma")) return HYTALE_MATERIAL_COLORS.Lava;
+  if (lower.includes("obsidian")) return HYTALE_MATERIAL_COLORS.Rock_Obsidian;
   if (lower.includes("stone") || lower.includes("rock")) return HYTALE_MATERIAL_COLORS.Rock_Stone;
+  if (lower.includes("basalt")) return HYTALE_MATERIAL_COLORS.Rock_Basalt;
+  if (lower.includes("granite")) return HYTALE_MATERIAL_COLORS.Rock_Granite;
+  if (lower.includes("sandstone")) return HYTALE_MATERIAL_COLORS.Rock_Sandstone;
+  if (lower.includes("limestone")) return HYTALE_MATERIAL_COLORS.Rock_Limestone;
+  if (lower.includes("marble")) return HYTALE_MATERIAL_COLORS.Marble;
   if (lower.includes("dirt") || lower.includes("soil")) return HYTALE_MATERIAL_COLORS.Soil_Dirt;
+  if (lower.includes("peat") || lower.includes("bog")) return HYTALE_MATERIAL_COLORS.Peat_Bog;
   if (lower.includes("grass")) return HYTALE_MATERIAL_COLORS.Grass;
-  if (lower.includes("sand")) return HYTALE_MATERIAL_COLORS.Soil_Sand;
-  if (lower.includes("snow")) return HYTALE_MATERIAL_COLORS.Snow;
+  if (lower.includes("sand")) return HYTALE_MATERIAL_COLORS.Sand;
+  if (lower.includes("snow") || lower.includes("frost")) return HYTALE_MATERIAL_COLORS.Snow;
   if (lower.includes("ice")) return HYTALE_MATERIAL_COLORS.Ice;
   if (lower.includes("clay")) return HYTALE_MATERIAL_COLORS.Soil_Clay;
-  if (lower.includes("moss")) return HYTALE_MATERIAL_COLORS.Soil_Moss;
+  if (lower.includes("moss") || lower.includes("lichen")) return HYTALE_MATERIAL_COLORS.Soil_Moss;
   if (lower.includes("mud")) return HYTALE_MATERIAL_COLORS.Soil_Mud;
   if (lower.includes("gravel")) return HYTALE_MATERIAL_COLORS.Soil_Gravel;
+  if (lower.includes("ash")) return HYTALE_MATERIAL_COLORS.Ash;
+  if (lower.includes("crystal")) return HYTALE_MATERIAL_COLORS.Crystal;
+  if (lower.includes("water")) return HYTALE_MATERIAL_COLORS.Water;
+  if (lower.includes("wood") || lower.includes("log") || lower.includes("bark")) return HYTALE_MATERIAL_COLORS.Wood;
+  if (lower.includes("leaf") || lower.includes("leave")) return HYTALE_MATERIAL_COLORS.Leaves;
+  if (lower.includes("mushroom")) return HYTALE_MATERIAL_COLORS.Mushroom_Cap;
+  if (lower.includes("ore")) return HYTALE_MATERIAL_COLORS.Ore_Iron;
+  if (lower.includes("brick")) return HYTALE_MATERIAL_COLORS.Brick;
+  if (lower.includes("tundra") || lower.includes("permafrost")) return HYTALE_MATERIAL_COLORS.Tundra;
+  if (lower.includes("terracotta")) return HYTALE_MATERIAL_COLORS.Terracotta;
 
   return "#808080"; // fallback gray
 }

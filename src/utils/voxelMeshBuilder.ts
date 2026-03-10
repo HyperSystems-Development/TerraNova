@@ -5,6 +5,7 @@ import { HASH_PRIME_A, HASH_PRIME_B, HASH_PRIME_C, HASH_PRIME_D } from "@/consta
 
 export interface VoxelMeshData {
   materialIndex: number;
+  materialName: string;
   color: string;
   positions: Float32Array;
   normals: Float32Array;
@@ -457,6 +458,7 @@ export function buildVoxelMeshes(
 
     results.push({
       materialIndex: matId,
+      materialName: material?.name ?? "",
       color: material?.color ?? "#808080",
       positions,
       normals,

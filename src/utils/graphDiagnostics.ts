@@ -8,6 +8,51 @@ import { getEvalStatus } from "@/utils/densityEvaluator";
 import { EvalStatus } from "@/schema/types";
 import connectionsData from "@/data/connections.json";
 
+// ── Hytale known environment names (from Server/Environments/) ──────────────
+
+export const HYTALE_KNOWN_ENVIRONMENTS = new Set([
+  // Zone 0
+  "Env_Zone0",
+  // Zone 1
+  "Env_Zone1", "Env_Zone1_Autumn", "Env_Zone1_Azure", "Env_Zone1_Caves",
+  "Env_Zone1_Caves_Forests", "Env_Zone1_Caves_Goblins", "Env_Zone1_Caves_Mountains",
+  "Env_Zone1_Caves_Plains", "Env_Zone1_Caves_Rats", "Env_Zone1_Caves_Spiders",
+  "Env_Zone1_Caves_Swamps", "Env_Zone1_Caves_Volcanic_T1", "Env_Zone1_Caves_Volcanic_T2",
+  "Env_Zone1_Caves_Volcanic_T3", "Env_Zone1_Dungeons", "Env_Zone1_Encounters",
+  "Env_Zone1_Forests", "Env_Zone1_Graveyard", "Env_Zone1_Kweebec",
+  "Env_Zone1_Mage_Towers", "Env_Zone1_Mineshafts", "Env_Zone1_Mountains",
+  "Env_Zone1_Plains", "Env_Zone1_Shores", "Env_Zone1_Swamps", "Env_Zone1_Trork",
+  // Zone 2
+  "Env_Zone2", "Env_Zone2_Caves", "Env_Zone2_Caves_Deserts", "Env_Zone2_Caves_Goblins",
+  "Env_Zone2_Caves_Plateaus", "Env_Zone2_Caves_Rats", "Env_Zone2_Caves_Savanna",
+  "Env_Zone2_Caves_Scarak", "Env_Zone2_Caves_Scrub", "Env_Zone2_Caves_Volcanic_T1",
+  "Env_Zone2_Caves_Volcanic_T2", "Env_Zone2_Caves_Volcanic_T3", "Env_Zone2_Deserts",
+  "Env_Zone2_Dungeons", "Env_Zone2_Encounters", "Env_Zone2_Feran",
+  "Env_Zone2_Mage_Towers", "Env_Zone2_Mineshafts", "Env_Zone2_Oasis",
+  "Env_Zone2_Plateaus", "Env_Zone2_Savanna", "Env_Zone2_Scarak",
+  "Env_Zone2_Scrub", "Env_Zone2_Shores",
+  // Zone 3
+  "Env_Zone3", "Env_Zone3_Caves", "Env_Zone3_Caves_Forests", "Env_Zone3_Caves_Glacial",
+  "Env_Zone3_Caves_Mountains", "Env_Zone3_Caves_Spider", "Env_Zone3_Caves_Tundra",
+  "Env_Zone3_Caves_Volcanic_T1", "Env_Zone3_Caves_Volcanic_T2", "Env_Zone3_Caves_Volcanic_T3",
+  "Env_Zone3_Dungeons", "Env_Zone3_Encounters", "Env_Zone3_Forests",
+  "Env_Zone3_Glacial", "Env_Zone3_Glacial_Henges", "Env_Zone3_Hedera",
+  "Env_Zone3_Mage_Towers", "Env_Zone3_Mineshafts", "Env_Zone3_Mountains",
+  "Env_Zone3_Outlander", "Env_Zone3_Shores", "Env_Zone3_Tundra",
+  // Zone 4
+  "Env_Zone4", "Env_Zone4_Caves", "Env_Zone4_Caves_Volcanic", "Env_Zone4_Crucible",
+  "Env_Zone4_Dungeons", "Env_Zone4_Encounters", "Env_Zone4_Forests",
+  "Env_Zone4_Jungles", "Env_Zone4_Mage_Towers", "Env_Zone4_Sewers",
+  "Env_Zone4_Shores", "Env_Zone4_Volcanoes", "Env_Zone4_Wastes",
+  // Unique / Special
+  "Env_Creative_Hub", "Env_Default_Flat", "Env_Default_Void",
+  "Env_Forgotten_Temple_Base", "Env_Forgotten_Temple_Exterior",
+  "Env_Forgotten_Temple_Heart", "Env_Forgotten_Temple_Interior_Grand",
+  "Env_Forgotten_Temple_Interior_Small", "Env_Forgotten_Temple_Interior_Tent",
+  "Env_Portals_Hedera", "Env_Portals_Oasis",
+  "Env_Temple_of_Gaia", "Env_Void",
+]);
+
 const connectionMatrix = connectionsData.connectionMatrix as Record<string, Record<string, number>>;
 
 export type DiagnosticSeverity = "error" | "warning" | "info";
@@ -353,6 +398,125 @@ export function analyzeGraph(nodes: Node[], edges: Edge[]): GraphDiagnostic[] {
   }
 
   return diagnostics;
+}
+
+/** Walk a provider node tree and collect all string environment references */
+function collectEnvRefs(node: unknown): string[] {
+  if (!node || typeof node !== "object") return [];
+  const obj = node as Record<string, unknown>;
+  const refs: string[] = [];
+
+  if (typeof obj.Environment === "string") {
+    refs.push(obj.Environment);
+  }
+  for (const val of Object.values(obj)) {
+    if (Array.isArray(val)) {
+      for (const item of val) refs.push(...collectEnvRefs(item));
+    } else if (val && typeof val === "object") {
+      refs.push(...collectEnvRefs(val));
+    }
+  }
+  return refs;
+}
+
+/**
+ * Analyze a biome config for Hytale-specific issues:
+ * - Unknown EnvironmentProvider references
+ * - Missing TintProvider
+ * - TintProvider with a single-color only (no gradient)
+ */
+export function analyzeBiome(biomeConfig: Record<string, unknown> | null): GraphDiagnostic[] {
+  if (!biomeConfig) return [];
+  const diags: GraphDiagnostic[] = [];
+
+  // Check EnvironmentProvider references
+  const envProvider = biomeConfig.EnvironmentProvider;
+  if (!envProvider) {
+    diags.push({
+      nodeId: null,
+      message: "Biome has no EnvironmentProvider — worldgen will use the default environment",
+      severity: "warning",
+    });
+  } else {
+    const refs = collectEnvRefs(envProvider);
+    for (const ref of refs) {
+      if (!HYTALE_KNOWN_ENVIRONMENTS.has(ref)) {
+        diags.push({
+          nodeId: null,
+          message: `EnvironmentProvider references unknown environment "${ref}" — not found in Hytale assets`,
+          severity: "error",
+        });
+      }
+    }
+    if (refs.length === 0) {
+      diags.push({
+        nodeId: null,
+        message: "EnvironmentProvider has no environment constants — biome will have no environment",
+        severity: "warning",
+      });
+    }
+  }
+
+  // Check TintProvider
+  const tintProvider = biomeConfig.TintProvider;
+  if (!tintProvider) {
+    diags.push({
+      nodeId: null,
+      message: "Biome has no TintProvider — grass and foliage will use default color",
+      severity: "info",
+    });
+  } else {
+    const tp = tintProvider as Record<string, unknown>;
+    // A Constant tint with a single color is valid but less interesting than DensityDelimited
+    if (tp.Type === "Constant") {
+      diags.push({
+        nodeId: null,
+        message: "TintProvider is a single Constant color — consider DensityDelimited for noise-varied grass tints",
+        severity: "info",
+      });
+    }
+    // DensityDelimited with no delimiters
+    if (tp.Type === "DensityDelimited") {
+      const delimiters = tp.Delimiters;
+      if (Array.isArray(delimiters) && delimiters.length === 0) {
+        diags.push({
+          nodeId: null,
+          message: "TintProvider DensityDelimited has no delimiters — will produce no tint variation",
+          severity: "warning",
+        });
+      }
+    }
+    // Check that color values in tint constants are valid hex
+    function checkTintColors(obj: unknown): void {
+      if (!obj || typeof obj !== "object") return;
+      const o = obj as Record<string, unknown>;
+      if (o.Type === "Constant" && typeof o.Color === "string") {
+        if (!/^#[0-9a-fA-F]{6}$/.test(o.Color)) {
+          diags.push({
+            nodeId: null,
+            message: `TintProvider has invalid color value "${o.Color}" — must be a 6-digit hex color`,
+            severity: "error",
+          });
+        }
+      }
+      for (const val of Object.values(o)) {
+        if (val && typeof val === "object") checkTintColors(val);
+        if (Array.isArray(val)) val.forEach(checkTintColors);
+      }
+    }
+    checkTintColors(tintProvider);
+  }
+
+  // Check biome Name
+  if (!biomeConfig.Name || typeof biomeConfig.Name !== "string" || !(biomeConfig.Name as string).trim()) {
+    diags.push({
+      nodeId: null,
+      message: "Biome has no Name — Hytale requires a non-empty Name field",
+      severity: "error",
+    });
+  }
+
+  return diags;
 }
 
 /**
