@@ -75,19 +75,18 @@ export function GroundShadow() {
 export function HytaleFog() {
   const { scene } = useThree();
   const atm = usePreviewStore((s) => s.atmosphereSettings);
+  const fogDistanceScale = usePreviewStore((s) => s.fogDistanceScale);
+  const fogMinSpan = usePreviewStore((s) => s.fogMinSpan);
 
   useEffect(() => {
-    // Preview scenes span roughly 50 units, so use a gentler fog scale than
-    // raw worldgen values to avoid starting in an opaque fog wall.
-    const FOG_DISTANCE_SCALE = 0.12;
-    const MIN_FOG_SPAN = 24;
-    const near = Math.max(atm.fogNear * FOG_DISTANCE_SCALE, 0);
-    const far = Math.max(atm.fogFar * FOG_DISTANCE_SCALE, near + MIN_FOG_SPAN);
+    // Keep fog tunable from DebugTab because scene scale varies by preview mode.
+    const near = Math.max(atm.fogNear * fogDistanceScale, 0);
+    const far = Math.max(atm.fogFar * fogDistanceScale, near + fogMinSpan);
     scene.fog = new Fog(atm.fogColor, near, far);
     return () => {
       scene.fog = null;
     };
-  }, [scene, atm.fogColor, atm.fogNear, atm.fogFar]);
+  }, [scene, atm.fogColor, atm.fogNear, atm.fogFar, fogDistanceScale, fogMinSpan]);
 
   return null;
 }

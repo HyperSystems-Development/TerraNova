@@ -73,6 +73,8 @@ interface PreviewState {
   waterPlaneLevel: number;
   showFog3D: boolean;
   showSky3D: boolean;
+  fogDistanceScale: number;
+  fogMinSpan: number;
 
   crossSectionLine: CrossSectionLine | null;
   showCrossSection: boolean;
@@ -168,6 +170,8 @@ interface PreviewState {
   setWaterPlaneLevel: (level: number) => void;
   setShowFog3D: (show: boolean) => void;
   setShowSky3D: (show: boolean) => void;
+  setFogDistanceScale: (scale: number) => void;
+  setFogMinSpan: (span: number) => void;
 
   setCrossSectionLine: (line: CrossSectionLine | null) => void;
   setShowCrossSection: (show: boolean) => void;
@@ -254,6 +258,8 @@ const PERSIST_MAP: Record<string, string> = {
   waterPlaneLevel: "tn-waterPlaneLevel",
   showFog3D: "tn-showFog3D",
   showSky3D: "tn-showSky3D",
+  fogDistanceScale: "tn-fogDistanceScale",
+  fogMinSpan: "tn-fogMinSpan",
   showCrossSection: "tn-showCrossSection",
   voxelYMin: "tn-voxelYMin",
   voxelYMax: "tn-voxelYMax",
@@ -322,6 +328,8 @@ function hydratePersistedState() {
     waterPlaneLevel: getStoredFloat("tn-waterPlaneLevel", 0.5),
     showFog3D: getStoredBool("tn-showFog3D", false),
     showSky3D: getStoredBool("tn-showSky3D", true),
+    fogDistanceScale: getStoredFloat("tn-fogDistanceScale", 0.12),
+    fogMinSpan: getStoredFloat("tn-fogMinSpan", 24),
     showCrossSection: getStoredBool("tn-showCrossSection", false),
     voxelYMin: getStoredFloat("tn-voxelYMin", 0),
     voxelYMax: getStoredFloat("tn-voxelYMax", 128),
@@ -503,6 +511,8 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setWaterPlaneLevel: (waterPlaneLevel) => persistedSet({ waterPlaneLevel }),
     setShowFog3D: (showFog3D) => persistedSet({ showFog3D }),
     setShowSky3D: (showSky3D) => persistedSet({ showSky3D }),
+    setFogDistanceScale: (fogDistanceScale) => persistedSet({ fogDistanceScale }),
+    setFogMinSpan: (fogMinSpan) => persistedSet({ fogMinSpan }),
     setShowCrossSection: (showCrossSection) => persistedSet({ showCrossSection }),
     setVoxelYMin: (voxelYMin) => persistedSet({ voxelYMin }),
     setVoxelYMax: (voxelYMax) => persistedSet({ voxelYMax }),
