@@ -199,6 +199,47 @@ async function extractBiomeSections(
     sectionKeys.push("EnvironmentProvider");
   }
 
+  // TintProvider -> graph entire subtree (biome tint bands)
+  const tintProvider = wrapper.TintProvider;
+  if (
+    tintProvider &&
+    typeof tintProvider === "object" &&
+    "Type" in (tintProvider as Record<string, unknown>)
+  ) {
+    const { nodes, edges } = jsonToGraph(
+      tintProvider as Record<string, unknown>,
+      0,
+      0,
+      "tint",
+      "TintProvider",
+    );
+    let tintOutputId: string | null = null;
+    if (nodes.length > 0) {
+      const rootNode = nodes[nodes.length - 1];
+      rootNode.data = {
+        ...(rootNode.data as Record<string, unknown>),
+        _outputNode: true,
+        _biomeField: "TintProvider",
+      };
+      tintOutputId = rootNode.id;
+    }
+    const layoutedNodes = await maybeAutoLayout(nodes, edges);
+    const tintInitial: SectionHistoryEntry = {
+      nodes: layoutedNodes,
+      edges,
+      outputNodeId: tintOutputId,
+      label: "Initial",
+    };
+    sections["TintProvider"] = {
+      nodes: layoutedNodes,
+      edges,
+      outputNodeId: tintOutputId,
+      history: [tintInitial],
+      historyIndex: 0,
+    };
+    sectionKeys.push("TintProvider");
+  }
+
   // Extract flat config
   const config: BiomeConfig = {
     Name: (wrapper.Name as string) ?? "",
@@ -651,8 +692,16 @@ export function useTauriIO() {
           output.EnvironmentProvider = biomeConfig.EnvironmentProvider;
         }
 
-        // Write remaining flat fields
-        output.TintProvider = biomeConfig.TintProvider;
+        // Rebuild TintProvider from section when present
+        if (updatedSections["TintProvider"]) {
+          const tintJson = graphToJson(
+            updatedSections["TintProvider"].nodes,
+            updatedSections["TintProvider"].edges,
+          );
+          output.TintProvider = tintJson ?? biomeConfig.TintProvider;
+        } else {
+          output.TintProvider = biomeConfig.TintProvider;
+        }
 
         const hytaleOutput = internalToHytaleBiome(output);
         await writeAssetFile(currentFile, hytaleOutput);

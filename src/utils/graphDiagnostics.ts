@@ -51,6 +51,8 @@ export const HYTALE_KNOWN_ENVIRONMENTS = new Set([
   "Env_Forgotten_Temple_Interior_Small", "Env_Forgotten_Temple_Interior_Tent",
   "Env_Portals_Hedera", "Env_Portals_Oasis",
   "Env_Temple_of_Gaia", "Env_Void",
+  // Legacy / alias-style names observed in shipped biome assets
+  "Zone1_Overground", "Zone1_Underground", "Zone1_Plains", "Zone3_Overground",
 ]);
 
 const connectionMatrix = connectionsData.connectionMatrix as Record<string, Record<string, number>>;

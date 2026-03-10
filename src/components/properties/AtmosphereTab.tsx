@@ -236,6 +236,7 @@ const DEFAULT_ATMOSPHERE: AtmosphereState = {
 };
 
 const STORAGE_KEY = "terranova-atmosphere";
+const DEFAULT_BIOME_TINT_COLORS = ["#5b9e28", "#6ca229", "#7ea629"] as const;
 
 function loadAtmosphere(): AtmosphereState {
   try {
@@ -253,6 +254,46 @@ function saveAtmosphere(state: AtmosphereState) {
   } catch {
     // ignore
   }
+}
+
+function applyTintBand(
+  tintProvider: Record<string, unknown> | undefined,
+  index: number,
+  color: string,
+): Record<string, unknown> {
+  const sourceTintProvider = tintProvider ?? {};
+  const sourceDelimiters = Array.isArray(sourceTintProvider.Delimiters)
+    ? (sourceTintProvider.Delimiters as Array<Record<string, unknown>>)
+    : [];
+
+  const delimiters: Array<Record<string, unknown>> = sourceDelimiters.map((d) => ({ ...d }));
+  while (delimiters.length < 3) {
+    delimiters.push({});
+  }
+  while (delimiters.length <= index) {
+    delimiters.push({});
+  }
+
+  for (let band = 0; band < 3; band++) {
+    const existing = delimiters[band] ?? {};
+    const existingTint = (existing.Tint as Record<string, unknown>) ?? {};
+    const fallbackColor = DEFAULT_BIOME_TINT_COLORS[band];
+    const existingColor = typeof existingTint.Color === "string" ? existingTint.Color : fallbackColor;
+    delimiters[band] = {
+      ...existing,
+      Tint: { ...existingTint, Color: existingColor },
+    };
+  }
+
+  const targetDelimiter = delimiters[index] ?? {};
+  const targetTint = (targetDelimiter.Tint as Record<string, unknown>) ?? {};
+  delimiters[index] = { ...targetDelimiter, Tint: { ...targetTint, Color: color } };
+
+  return {
+    ...sourceTintProvider,
+    Type: typeof sourceTintProvider.Type === "string" ? sourceTintProvider.Type : "DensityDelimited",
+    Delimiters: delimiters,
+  };
 }
 
 const VISUAL_KEYS: (keyof AtmosphereState)[] = [
@@ -400,6 +441,59 @@ export function AtmosphereTab({
     }
   }
 
+  function syncTintSection(tintProvider: Record<string, unknown>) {
+    const { biomeSections: latestSections, activeBiomeSection: latestActiveSection } = useEditorStore.getState();
+    const tintSection = latestSections?.TintProvider;
+    if (!tintSection || !latestSections) return;
+
+    const { nodes, edges } = jsonToGraph(
+      tintProvider,
+      0,
+      0,
+      "tint",
+      "TintProvider",
+    );
+
+    const rootNode = nodes[nodes.length - 1];
+    if (rootNode) {
+      rootNode.data = {
+        ...(rootNode.data as Record<string, unknown>),
+        _outputNode: true,
+        _biomeField: "TintProvider",
+      };
+    }
+    const outputNodeId = rootNode?.id ?? null;
+
+    const shouldPushSectionHistory = latestActiveSection !== "TintProvider";
+    const historyEntry = {
+      nodes: structuredClone(nodes),
+      edges: structuredClone(edges),
+      outputNodeId,
+      label: "Update TintProvider",
+    };
+    const nextHistory = shouldPushSectionHistory
+      ? [...tintSection.history.slice(0, tintSection.historyIndex + 1), historyEntry]
+      : tintSection.history;
+
+    setBiomeSections({
+      ...latestSections,
+      TintProvider: {
+        ...tintSection,
+        nodes,
+        edges,
+        outputNodeId,
+        history: nextHistory,
+        historyIndex: shouldPushSectionHistory ? nextHistory.length - 1 : tintSection.historyIndex,
+      },
+    });
+
+    if (latestActiveSection === "TintProvider") {
+      setNodes(structuredClone(nodes));
+      setEdges(structuredClone(edges));
+      setOutputNode(outputNodeId);
+    }
+  }
+
   async function handleExport() {
     const name = exportName.trim().replace(/[^a-zA-Z0-9_]/g, "_");
     if (!name) return;
@@ -459,7 +553,14 @@ export function AtmosphereTab({
     // Map color1/2/3 to Delimiters array index
     const indexMap: Record<string, number> = { color1: 0, color2: 1, color3: 2 };
     const idx = indexMap[field];
+    const liveBiomeConfig = useEditorStore.getState().biomeConfig;
+    const nextTint = applyTintBand(
+      liveBiomeConfig?.TintProvider as Record<string, unknown> | undefined,
+      idx,
+      value,
+    );
     onBiomeTintChange(`Delimiters[${idx}].Tint.Color`, value);
+    syncTintSection(nextTint);
     setTintColors({
       color1: field === "color1" ? value : tintColor1,
       color2: field === "color2" ? value : tintColor2,

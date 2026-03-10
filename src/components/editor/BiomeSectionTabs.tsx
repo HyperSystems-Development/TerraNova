@@ -8,6 +8,7 @@ const TAB_COLORS: Record<string, string> = {
   Terrain: "#5B8DBF",
   MaterialProvider: "#C87D3A",
   EnvironmentProvider: "#7DB350",
+  TintProvider: "#76A26A",
 };
 
 function getTabColor(key: string): string {
@@ -19,6 +20,7 @@ function getTabColor(key: string): string {
 function getTabLabel(key: string): string {
   if (key === "MaterialProvider") return "Materials";
   if (key === "EnvironmentProvider") return "Atmosphere";
+  if (key === "TintProvider") return "Tint";
   if (key.startsWith("Props[")) {
     const match = /\[(\d+)\]/.exec(key);
     return match ? `Prop ${match[1]}` : key;
@@ -57,6 +59,18 @@ function TabIcon({ sectionKey }: { sectionKey: string }) {
         <path d="M2 11h12" />
         <path d="M5 9a3 3 0 0 1 6 0" />
         <path d="M8 3v2" />
+      </svg>
+    );
+  }
+
+  if (sectionKey === "TintProvider") {
+    // Color ramp markers -> tint section
+    return (
+      <svg className={cls} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 10h12" />
+        <circle cx="4" cy="6" r="1.3" fill="currentColor" stroke="none" />
+        <circle cx="8" cy="6" r="1.3" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="6" r="1.3" fill="currentColor" stroke="none" />
       </svg>
     );
   }

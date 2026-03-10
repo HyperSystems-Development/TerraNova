@@ -155,7 +155,15 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
       output.EnvironmentProvider = biomeConfig.EnvironmentProvider;
     }
 
-    output.TintProvider = biomeConfig.TintProvider;
+    if (updatedSections["TintProvider"]) {
+      const tintJson = graphToJson(
+        updatedSections["TintProvider"].nodes,
+        updatedSections["TintProvider"].edges,
+      );
+      output.TintProvider = tintJson ?? biomeConfig.TintProvider;
+    } else {
+      output.TintProvider = biomeConfig.TintProvider;
+    }
 
     return internalToHytaleBiome(output) as Record<string, unknown>;
   }

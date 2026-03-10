@@ -29,7 +29,7 @@ function getActiveStep(context: string | null, biomeSection: string | null | und
     if (!biomeSection || biomeSection === "Terrain") return "terrain";
     if (biomeSection === "MaterialProvider") return "materials";
     if (biomeSection?.startsWith("Props[")) return "props";
-    if (biomeSection === "EnvironmentProvider") return "atmosphere";
+    if (biomeSection === "EnvironmentProvider" || biomeSection === "TintProvider") return "atmosphere";
     return "terrain";
   }
   return "";
@@ -54,6 +54,8 @@ export const PipelineIndicator = memo(function PipelineIndicator() {
     } else if (step.key === "atmosphere") {
       if (biomeSections?.EnvironmentProvider) {
         switchSection("EnvironmentProvider");
+      } else if (biomeSections?.TintProvider) {
+        switchSection("TintProvider");
       } else {
         // Fallback for biome files without an atmosphere graph section.
         setViewMode("preview");
