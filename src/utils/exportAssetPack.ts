@@ -144,7 +144,17 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
       props.push(propEntry);
     }
     output.Props = props;
-    output.EnvironmentProvider = biomeConfig.EnvironmentProvider;
+
+    if (updatedSections["EnvironmentProvider"]) {
+      const envJson = graphToJson(
+        updatedSections["EnvironmentProvider"].nodes,
+        updatedSections["EnvironmentProvider"].edges,
+      );
+      output.EnvironmentProvider = envJson ?? biomeConfig.EnvironmentProvider;
+    } else {
+      output.EnvironmentProvider = biomeConfig.EnvironmentProvider;
+    }
+
     output.TintProvider = biomeConfig.TintProvider;
 
     return internalToHytaleBiome(output) as Record<string, unknown>;

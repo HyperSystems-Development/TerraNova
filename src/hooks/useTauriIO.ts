@@ -158,6 +158,47 @@ async function extractBiomeSections(
     }
   }
 
+  // EnvironmentProvider -> graph entire subtree (atmosphere)
+  const environmentProvider = wrapper.EnvironmentProvider;
+  if (
+    environmentProvider &&
+    typeof environmentProvider === "object" &&
+    "Type" in (environmentProvider as Record<string, unknown>)
+  ) {
+    const { nodes, edges } = jsonToGraph(
+      environmentProvider as Record<string, unknown>,
+      0,
+      0,
+      "env",
+      "EnvironmentProvider",
+    );
+    let environmentOutputId: string | null = null;
+    if (nodes.length > 0) {
+      const rootNode = nodes[nodes.length - 1];
+      rootNode.data = {
+        ...(rootNode.data as Record<string, unknown>),
+        _outputNode: true,
+        _biomeField: "EnvironmentProvider",
+      };
+      environmentOutputId = rootNode.id;
+    }
+    const layoutedNodes = await maybeAutoLayout(nodes, edges);
+    const environmentInitial: SectionHistoryEntry = {
+      nodes: layoutedNodes,
+      edges,
+      outputNodeId: environmentOutputId,
+      label: "Initial",
+    };
+    sections["EnvironmentProvider"] = {
+      nodes: layoutedNodes,
+      edges,
+      outputNodeId: environmentOutputId,
+      history: [environmentInitial],
+      historyIndex: 0,
+    };
+    sectionKeys.push("EnvironmentProvider");
+  }
+
   // Extract flat config
   const config: BiomeConfig = {
     Name: (wrapper.Name as string) ?? "",
@@ -599,8 +640,18 @@ export function useTauriIO() {
         }
         output.Props = props;
 
-        // Write flat fields
-        output.EnvironmentProvider = biomeConfig.EnvironmentProvider;
+        // Rebuild EnvironmentProvider from section when present
+        if (updatedSections["EnvironmentProvider"]) {
+          const envJson = graphToJson(
+            updatedSections["EnvironmentProvider"].nodes,
+            updatedSections["EnvironmentProvider"].edges,
+          );
+          output.EnvironmentProvider = envJson ?? biomeConfig.EnvironmentProvider;
+        } else {
+          output.EnvironmentProvider = biomeConfig.EnvironmentProvider;
+        }
+
+        // Write remaining flat fields
         output.TintProvider = biomeConfig.TintProvider;
 
         const hytaleOutput = internalToHytaleBiome(output);

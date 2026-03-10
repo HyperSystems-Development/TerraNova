@@ -29,6 +29,7 @@ function getActiveStep(context: string | null, biomeSection: string | null | und
     if (!biomeSection || biomeSection === "Terrain") return "terrain";
     if (biomeSection === "MaterialProvider") return "materials";
     if (biomeSection?.startsWith("Props[")) return "props";
+    if (biomeSection === "EnvironmentProvider") return "atmosphere";
     return "terrain";
   }
   return "";
@@ -37,6 +38,7 @@ function getActiveStep(context: string | null, biomeSection: string | null | und
 export const PipelineIndicator = memo(function PipelineIndicator() {
   const editingContext  = useEditorStore((s) => s.editingContext);
   const biomeSection    = useEditorStore((s) => s.activeBiomeSection);
+  const biomeSections   = useEditorStore((s) => s.biomeSections);
   const switchSection   = useEditorStore((s) => s.switchBiomeSection);
   const setViewMode     = usePreviewStore((s) => s.setViewMode);
 
@@ -50,8 +52,12 @@ export const PipelineIndicator = memo(function PipelineIndicator() {
     } else if (step.key === "props") {
       switchSection("Props[0]");
     } else if (step.key === "atmosphere") {
-      // Switch to preview so the atmosphere controls in the inspector are visible
-      setViewMode("preview");
+      if (biomeSections?.EnvironmentProvider) {
+        switchSection("EnvironmentProvider");
+      } else {
+        // Fallback for biome files without an atmosphere graph section.
+        setViewMode("preview");
+      }
     }
     // density: no action — density graph opens via file browser
   }

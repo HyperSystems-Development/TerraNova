@@ -7,6 +7,7 @@ import { getSectionSummary } from "@/utils/biomeSectionUtils";
 const TAB_COLORS: Record<string, string> = {
   Terrain: "#5B8DBF",
   MaterialProvider: "#C87D3A",
+  EnvironmentProvider: "#7DB350",
 };
 
 function getTabColor(key: string): string {
@@ -17,6 +18,7 @@ function getTabColor(key: string): string {
 
 function getTabLabel(key: string): string {
   if (key === "MaterialProvider") return "Materials";
+  if (key === "EnvironmentProvider") return "Atmosphere";
   if (key.startsWith("Props[")) {
     const match = /\[(\d+)\]/.exec(key);
     return match ? `Prop ${match[1]}` : key;
@@ -44,6 +46,17 @@ function TabIcon({ sectionKey }: { sectionKey: string }) {
         <path d="M2 10l6 3 6-3" />
         <path d="M2 7l6 3 6-3" />
         <path d="M2 4l6 3 6-3L8 1 2 4z" />
+      </svg>
+    );
+  }
+
+  if (sectionKey === "EnvironmentProvider") {
+    // Sun + horizon line -> atmosphere/environment section
+    return (
+      <svg className={cls} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 11h12" />
+        <path d="M5 9a3 3 0 0 1 6 0" />
+        <path d="M8 3v2" />
       </svg>
     );
   }

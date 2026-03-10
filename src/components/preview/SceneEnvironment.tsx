@@ -77,10 +77,12 @@ export function HytaleFog() {
   const atm = usePreviewStore((s) => s.atmosphereSettings);
 
   useEffect(() => {
-    // Scale Hytale world units (~1024 wu) to Three.js scene units by 0.05
-    // Clamp near to a minimum of 0.1 so fog is never behind the camera
-    const near = Math.max(atm.fogNear * 0.05, 0.1);
-    const far = Math.max(atm.fogFar * 0.05, near + 1);
+    // Preview scenes span roughly 50 units, so use a gentler fog scale than
+    // raw worldgen values to avoid starting in an opaque fog wall.
+    const FOG_DISTANCE_SCALE = 0.12;
+    const MIN_FOG_SPAN = 24;
+    const near = Math.max(atm.fogNear * FOG_DISTANCE_SCALE, 0);
+    const far = Math.max(atm.fogFar * FOG_DISTANCE_SCALE, near + MIN_FOG_SPAN);
     scene.fog = new Fog(atm.fogColor, near, far);
     return () => {
       scene.fog = null;

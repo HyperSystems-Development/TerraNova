@@ -3,6 +3,7 @@ import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { writeTextFile } from "@/utils/ipc";
+import { jsonToGraph } from "@/utils/jsonToGraph";
 import { ColorPickerField } from "./ColorPickerField";
 import { SliderField } from "./SliderField";
 
@@ -267,7 +268,13 @@ export function AtmosphereTab({
   onBiomeTintChange: (field: string, value: string) => void;
 }) {
   const biomeConfig = useEditorStore((s) => s.biomeConfig);
+  const biomeSections = useEditorStore((s) => s.biomeSections);
+  const activeBiomeSection = useEditorStore((s) => s.activeBiomeSection);
   const setBiomeConfig = useEditorStore((s) => s.setBiomeConfig);
+  const setBiomeSections = useEditorStore((s) => s.setBiomeSections);
+  const setNodes = useEditorStore((s) => s.setNodes);
+  const setEdges = useEditorStore((s) => s.setEdges);
+  const setOutputNode = useEditorStore((s) => s.setOutputNode);
   const commitState = useEditorStore((s) => s.commitState);
   const setDirty = useProjectStore((s) => s.setDirty);
   const setAtmosphereSettings = usePreviewStore((s) => s.setAtmosphereSettings);
@@ -341,6 +348,58 @@ export function AtmosphereTab({
   const [exportStatus, setExportStatus] = useState<"idle" | "ok" | "err">("idle");
   const [exportMsg, setExportMsg] = useState("");
 
+  function syncEnvironmentSection(environmentName: string) {
+    const envSection = biomeSections?.EnvironmentProvider;
+    if (!envSection) return;
+
+    const { nodes, edges } = jsonToGraph(
+      { Type: "Constant", Environment: environmentName },
+      0,
+      0,
+      "env",
+      "EnvironmentProvider",
+    );
+
+    const rootNode = nodes[nodes.length - 1];
+    if (rootNode) {
+      rootNode.data = {
+        ...(rootNode.data as Record<string, unknown>),
+        _outputNode: true,
+        _biomeField: "EnvironmentProvider",
+      };
+    }
+    const outputNodeId = rootNode?.id ?? null;
+
+    const shouldPushSectionHistory = activeBiomeSection !== "EnvironmentProvider";
+    const historyEntry = {
+      nodes: structuredClone(nodes),
+      edges: structuredClone(edges),
+      outputNodeId,
+      label: `Set EnvironmentProvider to ${environmentName}`,
+    };
+    const nextHistory = shouldPushSectionHistory
+      ? [...envSection.history.slice(0, envSection.historyIndex + 1), historyEntry]
+      : envSection.history;
+
+    setBiomeSections({
+      ...biomeSections,
+      EnvironmentProvider: {
+        ...envSection,
+        nodes,
+        edges,
+        outputNodeId,
+        history: nextHistory,
+        historyIndex: shouldPushSectionHistory ? nextHistory.length - 1 : envSection.historyIndex,
+      },
+    });
+
+    if (activeBiomeSection === "EnvironmentProvider") {
+      setNodes(structuredClone(nodes));
+      setEdges(structuredClone(edges));
+      setOutputNode(outputNodeId);
+    }
+  }
+
   async function handleExport() {
     const name = exportName.trim().replace(/[^a-zA-Z0-9_]/g, "_");
     if (!name) return;
@@ -364,15 +423,14 @@ export function AtmosphereTab({
       await writeTextFile(filePath, JSON.stringify(envDoc, null, 2));
       const environmentName = `Env_${name}`;
       if (biomeConfig) {
-        const currentEnvProvider = (biomeConfig.EnvironmentProvider as Record<string, unknown>) ?? {};
         setBiomeConfig({
           ...biomeConfig,
           EnvironmentProvider: {
-            ...currentEnvProvider,
             Type: "Constant",
             Environment: environmentName,
           },
         });
+        syncEnvironmentSection(environmentName);
         setDirty(true);
         commitState(`Set EnvironmentProvider to ${environmentName}`);
       }

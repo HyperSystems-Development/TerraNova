@@ -15,6 +15,7 @@ export interface SectionSummary {
 const SECTION_COLORS: Record<string, string> = {
   Terrain: "#5B8DBF",
   MaterialProvider: "#C87D3A",
+  EnvironmentProvider: "#7DB350",
 };
 
 function getSectionColor(key: string): string {
@@ -25,6 +26,7 @@ function getSectionColor(key: string): string {
 
 function getSectionLabel(key: string): string {
   if (key === "MaterialProvider") return "Materials";
+  if (key === "EnvironmentProvider") return "Atmosphere";
   if (key.startsWith("Props[")) {
     const m = /\[(\d+)\]/.exec(key);
     return m ? `Prop ${m[1]}` : key;
