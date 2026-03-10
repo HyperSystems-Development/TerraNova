@@ -150,8 +150,33 @@ export function PropertyPanel() {
     (field: string, value: string) => {
       if (!biomeConfig) return;
       debouncedConfigChange(`Edit ${field}`, () => {
-        const tint = { ...biomeConfig.TintProvider, [field]: value };
-        setBiomeConfig({ ...biomeConfig, TintProvider: tint });
+        // Handle Delimiters[n].Tint.Color path written by AtmosphereTab
+        const delimPattern = /^Delimiters\[(\d+)\]\.Tint\.Color$/;
+        const delimMatch = delimPattern.exec(field);
+        if (delimMatch) {
+          const idx = parseInt(delimMatch[1], 10);
+          const tintProvider = (biomeConfig.TintProvider as Record<string, unknown>) ?? {};
+          const sourceDelimiters = Array.isArray(tintProvider.Delimiters)
+            ? (tintProvider.Delimiters as Array<Record<string, unknown>>)
+            : [];
+          const delimiters: Array<Record<string, unknown>> = sourceDelimiters.map((d) => ({ ...d }));
+          if (delimiters.length === 0) {
+            delimiters.push({ Tint: { Color: "#5b9e28" } });
+            delimiters.push({ Tint: { Color: "#6ca229" } });
+            delimiters.push({ Tint: { Color: "#7ea629" } });
+          }
+          while (delimiters.length <= idx) {
+            delimiters.push({ Tint: { Color: "#6ca229" } });
+          }
+          const existingTint = (delimiters[idx].Tint as Record<string, unknown>) ?? {};
+          delimiters[idx] = { ...delimiters[idx], Tint: { ...existingTint, Color: value } };
+          const updatedTint = { ...tintProvider, Delimiters: delimiters };
+          setBiomeConfig({ ...biomeConfig, TintProvider: updatedTint });
+        } else {
+          // Legacy flat field path
+          const tint = { ...(biomeConfig.TintProvider as Record<string, unknown>), [field]: value };
+          setBiomeConfig({ ...biomeConfig, TintProvider: tint });
+        }
       });
     },
     [biomeConfig, setBiomeConfig, debouncedConfigChange],

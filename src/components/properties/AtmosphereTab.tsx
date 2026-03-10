@@ -34,57 +34,76 @@ interface WeatherPresetDef {
   zoneFolder: string;  // subfolder name under Server/Environments/
   skyHorizon: string;
   skyZenith: string;
+  sunsetColor: string;
+  sunGlowColor: string;
   fogColor: string;
-  fogDensity: number;
+  fogNear: number;
+  fogFar: number;
   sunColor: string;
   ambientColor: string;
+  waterTint: string;
 }
 
 const WEATHER_PRESET_DEFS: WeatherPresetDef[] = [
   {
     label: "Zone1 Sunny",    zone: "z1", parentEnv: "Env_Zone1", zoneFolder: "Zone1",
     skyHorizon: "#8fd8f8", skyZenith: "#077ddd", fogColor: "#8fd8f8",
-    fogDensity: 0.004, sunColor: "#ffffff", ambientColor: "#6080a0",
+    sunsetColor: "#ffb951", sunGlowColor: "#ffffff",
+    fogNear: -96, fogFar: 1024, sunColor: "#ffffff", ambientColor: "#6080a0", waterTint: "#1983d9",
   },
   {
     label: "Zone1 Storm",    zone: "z1", parentEnv: "Env_Zone1", zoneFolder: "Zone1",
     skyHorizon: "#9e9e9e", skyZenith: "#99a1a1", fogColor: "#9e9e9e",
-    fogDensity: 0.012, sunColor: "#c0c8d0", ambientColor: "#707880",
+    sunsetColor: "#e03569", sunGlowColor: "#808080",
+    fogNear: -96, fogFar: 1024, sunColor: "#c0c8d0", ambientColor: "#707880", waterTint: "#1983d9",
   },
   {
     label: "Zone1 Foggy",    zone: "z1", parentEnv: "Env_Zone1", zoneFolder: "Zone1",
-    skyHorizon: "#b0c8d8", skyZenith: "#7090a8", fogColor: "#a8c0d0",
-    fogDensity: 0.022, sunColor: "#d8e8f0", ambientColor: "#7898a8",
+    skyHorizon: "#c4d8fc", skyZenith: "#699bd4", fogColor: "#c4d8fc",
+    sunsetColor: "#a7cbe1", sunGlowColor: "#a0c0d0",
+    fogNear: -448, fogFar: 256, sunColor: "#d8e8f0", ambientColor: "#7898a8", waterTint: "#1983d9",
   },
   {
     label: "Zone2 Desert",   zone: "z2", parentEnv: "Env_Zone2", zoneFolder: "Zone2",
     skyHorizon: "#cab896", skyZenith: "#6fa6d0", fogColor: "#cab896",
-    fogDensity: 0.005, sunColor: "#ffffff", ambientColor: "#a09070",
+    sunsetColor: "#e8cca3", sunGlowColor: "#ffe0a0",
+    fogNear: 0, fogFar: 1024, sunColor: "#ffffff", ambientColor: "#a09070", waterTint: "#2bb0b0",
   },
   {
     label: "Zone2 Sunny",    zone: "z2", parentEnv: "Env_Zone2", zoneFolder: "Zone2",
     skyHorizon: "#b1f3fe", skyZenith: "#0081b2", fogColor: "#b1f3fe",
-    fogDensity: 0.003, sunColor: "#fff8e0", ambientColor: "#60a0b0",
+    sunsetColor: "#ffffff", sunGlowColor: "#ffe8b0",
+    fogNear: -96, fogFar: 1024, sunColor: "#fff8e0", ambientColor: "#60a0b0", waterTint: "#1496c8",
+  },
+  {
+    label: "Zone2 SandStorm", zone: "z2", parentEnv: "Env_Zone2", zoneFolder: "Zone2",
+    skyHorizon: "#b9976e", skyZenith: "#f4d597", fogColor: "#b9976e",
+    sunsetColor: "#d4bf62", sunGlowColor: "#e0c060",
+    fogNear: -96, fogFar: 400, sunColor: "#d5d0c0", ambientColor: "#a09070", waterTint: "#2bb0b0",
   },
   {
     label: "Zone3 Snow",     zone: "z3", parentEnv: "Env_Zone3", zoneFolder: "Zone3",
     skyHorizon: "#cad8f4", skyZenith: "#c7c9cd", fogColor: "#cad8f4",
-    fogDensity: 0.008, sunColor: "#e8f0f8", ambientColor: "#8898b8",
+    sunsetColor: "#a7cbe1", sunGlowColor: "#d0e0f0",
+    fogNear: -96, fogFar: 1024, sunColor: "#e8f0f8", ambientColor: "#8898b8", waterTint: "#4080c0",
   },
   {
-    label: "Zone3 Aurora",   zone: "z3", parentEnv: "Env_Zone3", zoneFolder: "Zone3",
+    label: "Zone3 NorthLights", zone: "z3", parentEnv: "Env_Zone3", zoneFolder: "Zone3",
     skyHorizon: "#b2cdff", skyZenith: "#699bd4", fogColor: "#b2cdff",
-    fogDensity: 0.006, sunColor: "#c8d8ff", ambientColor: "#6080c0",
+    sunsetColor: "#a7cbe1", sunGlowColor: "#a0c8ff",
+    fogNear: -96, fogFar: 1024, sunColor: "#c8d8ff", ambientColor: "#6080c0", waterTint: "#4080c0",
   },
   {
     label: "Zone4 Ash",      zone: "z4", parentEnv: "Env_Zone4", zoneFolder: "Zone4",
     skyHorizon: "#c8c7b3", skyZenith: "#bfc8c4", fogColor: "#c8c7b3",
-    fogDensity: 0.009, sunColor: "#fefff7", ambientColor: "#909088",
+    sunsetColor: "#e45252", sunGlowColor: "#f0f0e8",
+    fogNear: -96, fogFar: 1024, sunColor: "#fefff7", ambientColor: "#909088", waterTint: "#806050",
   },
   {
     label: "Zone4 Lava",     zone: "z4", parentEnv: "Env_Zone4", zoneFolder: "Zone4",
-    skyHorizon: "#8b4020", skyZenith: "#3a1808", fogColor: "#7a3010",
-    fogDensity: 0.014, sunColor: "#ff8040", ambientColor: "#804028",
+    skyHorizon: "#4e2f2f", skyZenith: "#cd875c", fogColor: "#4e2f2f",
+    sunsetColor: "#4a493c", sunGlowColor: "#ff8040",
+    fogNear: -96, fogFar: 800, sunColor: "#ffca55", ambientColor: "#804028", waterTint: "#ff4010",
   },
 ];
 
@@ -170,11 +189,15 @@ function AudioRow({
 interface AtmosphereState {
   skyHorizon: string;
   skyZenith: string;
+  sunsetColor: string;
+  sunGlowColor: string;
   cloudDensity: number;
   fogColor: string;
-  fogDensity: number;
+  fogNear: number;
+  fogFar: number;
   ambientColor: string;
   sunColor: string;
+  waterTint: string;
   weather: WeatherPreset;
   audioWind: number;
   audioWater: number;
@@ -183,13 +206,17 @@ interface AtmosphereState {
 }
 
 const DEFAULT_ATMOSPHERE: AtmosphereState = {
-  skyHorizon: "#4A90C4",
-  skyZenith: "#1B3A6B",
+  skyHorizon: "#8fd8f8",
+  skyZenith: "#077ddd",
+  sunsetColor: "#ffb951",
+  sunGlowColor: "#ffffff",
   cloudDensity: 0.3,
-  fogColor: "#c0d8f0",
-  fogDensity: 0.008,
-  ambientColor: "#3a3a4a",
-  sunColor: "#fff8e0",
+  fogColor: "#8fd8f8",
+  fogNear: -96,
+  fogFar: 1024,
+  ambientColor: "#6080a0",
+  sunColor: "#ffffff",
+  waterTint: "#1983d9",
   weather: "Zone1 Sunny",
   audioWind: 0.6,
   audioWater: 0.0,
@@ -218,7 +245,8 @@ function saveAtmosphere(state: AtmosphereState) {
 }
 
 const VISUAL_KEYS: (keyof AtmosphereState)[] = [
-  "skyHorizon", "skyZenith", "cloudDensity", "fogColor", "fogDensity", "ambientColor", "sunColor",
+  "skyHorizon", "skyZenith", "sunsetColor", "sunGlowColor", "cloudDensity",
+  "fogColor", "fogNear", "fogFar", "ambientColor", "sunColor", "waterTint",
 ];
 
 export function AtmosphereTab({
@@ -237,27 +265,39 @@ export function AtmosphereTab({
     ...loadAtmosphere(),
     skyHorizon: storeAtm.skyHorizon,
     skyZenith: storeAtm.skyZenith,
+    sunsetColor: storeAtm.sunsetColor,
+    sunGlowColor: storeAtm.sunGlowColor,
     cloudDensity: storeAtm.cloudDensity,
     fogColor: storeAtm.fogColor,
-    fogDensity: storeAtm.fogDensity,
+    fogNear: storeAtm.fogNear,
+    fogFar: storeAtm.fogFar,
     ambientColor: storeAtm.ambientColor,
     sunColor: storeAtm.sunColor,
+    waterTint: storeAtm.waterTint,
   }));
+
+  function syncStore(next: AtmosphereState) {
+    setAtmosphereSettings({
+      skyHorizon: next.skyHorizon,
+      skyZenith: next.skyZenith,
+      sunsetColor: next.sunsetColor,
+      sunGlowColor: next.sunGlowColor,
+      cloudDensity: next.cloudDensity,
+      fogColor: next.fogColor,
+      fogNear: next.fogNear,
+      fogFar: next.fogFar,
+      ambientColor: next.ambientColor,
+      sunColor: next.sunColor,
+      waterTint: next.waterTint,
+    });
+  }
 
   function update<K extends keyof AtmosphereState>(key: K, value: AtmosphereState[K]) {
     const next = { ...atm, [key]: value };
     setAtm(next);
     saveAtmosphere(next);
     if ((VISUAL_KEYS as string[]).includes(key)) {
-      setAtmosphereSettings({
-        skyHorizon: next.skyHorizon,
-        skyZenith: next.skyZenith,
-        cloudDensity: next.cloudDensity,
-        fogColor: next.fogColor,
-        fogDensity: next.fogDensity,
-        ambientColor: next.ambientColor,
-        sunColor: next.sunColor,
-      });
+      syncStore(next);
     }
   }
 
@@ -269,22 +309,18 @@ export function AtmosphereTab({
       weather: label,
       skyHorizon: def.skyHorizon,
       skyZenith: def.skyZenith,
+      sunsetColor: def.sunsetColor,
+      sunGlowColor: def.sunGlowColor,
       fogColor: def.fogColor,
-      fogDensity: def.fogDensity,
+      fogNear: def.fogNear,
+      fogFar: def.fogFar,
       sunColor: def.sunColor,
       ambientColor: def.ambientColor,
+      waterTint: def.waterTint,
     };
     setAtm(next);
     saveAtmosphere(next);
-    setAtmosphereSettings({
-      skyHorizon: next.skyHorizon,
-      skyZenith: next.skyZenith,
-      cloudDensity: next.cloudDensity,
-      fogColor: next.fogColor,
-      fogDensity: next.fogDensity,
-      ambientColor: next.ambientColor,
-      sunColor: next.sunColor,
-    });
+    syncStore(next);
   }
 
   // ── Environment export ──────────────────────────────────────────
@@ -306,6 +342,7 @@ export function AtmosphereTab({
     const envDoc = {
       Parent: preset.parentEnv,
       Tags: { [zoneKey]: [tagLabel] },
+      WaterTint: atm.waterTint,
     };
 
     const filePath = `${HYTALE_ASSETS_BASE}\\Server\\Environments\\${preset.zoneFolder}\\Env_${name}.json`;
@@ -322,20 +359,26 @@ export function AtmosphereTab({
   }
 
   const tint = biomeConfig?.TintProvider as Record<string, unknown> | undefined;
-  const tintFrom = typeof tint?.From === "string" ? tint.From : "#5b9e28";
-  const tintTo = typeof tint?.To === "string" ? tint.To : "#7ea629";
+  const tintDelimiters = Array.isArray(tint?.Delimiters) ? tint!.Delimiters as Array<Record<string, unknown>> : null;
+  const tintColor1 = (tintDelimiters?.[0]?.Tint as Record<string, unknown>)?.Color as string ?? "#5b9e28";
+  const tintColor2 = (tintDelimiters?.[1]?.Tint as Record<string, unknown>)?.Color as string ?? "#6ca229";
+  const tintColor3 = (tintDelimiters?.[2]?.Tint as Record<string, unknown>)?.Color as string ?? "#7ea629";
 
   // Sync tint to previewStore whenever biomeConfig changes
   useEffect(() => {
-    setTintColors({ from: tintFrom, to: tintTo });
+    setTintColors({ color1: tintColor1, color2: tintColor2, color3: tintColor3 });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tintFrom, tintTo]);
+  }, [tintColor1, tintColor2, tintColor3]);
 
-  function handleTintChange(field: "From" | "To", value: string) {
-    onBiomeTintChange(field, value);
+  function handleTintChange(field: "color1" | "color2" | "color3", value: string) {
+    // Map color1/2/3 to Delimiters array index
+    const indexMap: Record<string, number> = { color1: 0, color2: 1, color3: 2 };
+    const idx = indexMap[field];
+    onBiomeTintChange(`Delimiters[${idx}].Tint.Color`, value);
     setTintColors({
-      from: field === "From" ? value : tintFrom,
-      to: field === "To" ? value : tintTo,
+      color1: field === "color1" ? value : tintColor1,
+      color2: field === "color2" ? value : tintColor2,
+      color3: field === "color3" ? value : tintColor3,
     });
   }
 
@@ -353,6 +396,11 @@ export function AtmosphereTab({
         label="Zenith Color"
         value={atm.skyZenith}
         onChange={(v) => update("skyZenith", v)}
+      />
+      <ColorPickerField
+        label="Sunset Color"
+        value={atm.sunsetColor}
+        onChange={(v) => update("sunsetColor", v)}
       />
       <SliderField
         label="Cloud Density"
@@ -372,12 +420,21 @@ export function AtmosphereTab({
         onChange={(v) => update("fogColor", v)}
       />
       <SliderField
-        label="Density"
-        value={atm.fogDensity}
-        min={0}
-        max={0.05}
-        step={0.001}
-        onChange={(v) => update("fogDensity", v)}
+        label="Fog Near"
+        value={atm.fogNear}
+        min={-512}
+        max={512}
+        step={16}
+        onChange={(v) => update("fogNear", v)}
+        onBlur={() => {}}
+      />
+      <SliderField
+        label="Fog Far"
+        value={atm.fogFar}
+        min={64}
+        max={2048}
+        step={64}
+        onChange={(v) => update("fogFar", v)}
         onBlur={() => {}}
       />
 
@@ -393,6 +450,19 @@ export function AtmosphereTab({
         value={atm.sunColor}
         onChange={(v) => update("sunColor", v)}
       />
+      <ColorPickerField
+        label="Sun Glow"
+        value={atm.sunGlowColor}
+        onChange={(v) => update("sunGlowColor", v)}
+      />
+
+      {/* WATER */}
+      <SectionHeader label="Water" />
+      <ColorPickerField
+        label="Water Tint"
+        value={atm.waterTint}
+        onChange={(v) => update("waterTint", v)}
+      />
 
       {/* WEATHER */}
       <SectionHeader label="Weather" />
@@ -405,18 +475,23 @@ export function AtmosphereTab({
       <SectionHeader label="Tint" />
       <div
         className="h-7 w-full rounded border border-tn-border"
-        style={{ background: `linear-gradient(to right, ${tintFrom}, ${tintTo})` }}
+        style={{ background: `linear-gradient(to right, ${tintColor1}, ${tintColor2}, ${tintColor3})` }}
       />
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col gap-1.5">
         <ColorPickerField
-          label="From"
-          value={tintFrom}
-          onChange={(v) => handleTintChange("From", v)}
+          label="Band 1 (Cool)"
+          value={tintColor1}
+          onChange={(v) => handleTintChange("color1", v)}
         />
         <ColorPickerField
-          label="To"
-          value={tintTo}
-          onChange={(v) => handleTintChange("To", v)}
+          label="Band 2 (Mid)"
+          value={tintColor2}
+          onChange={(v) => handleTintChange("color2", v)}
+        />
+        <ColorPickerField
+          label="Band 3 (Warm)"
+          value={tintColor3}
+          onChange={(v) => handleTintChange("color3", v)}
         />
       </div>
 

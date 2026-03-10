@@ -121,6 +121,109 @@ const HYTALE_MATERIAL_COLORS: Record<string, string> = {
   Brick: "#8b4513",
   Stone_Brick: "#7a7a80",
   Mossy_Stone: "#607060",
+
+  // ── Canonical Soil variants (Soils.json) ──
+  Soil_Dirt_Burnt: "#6b4020",
+  Soil_Dirt_Cold: "#8a7a60",
+  Soil_Dirt_Dry: "#a89060",
+  Soil_Dirt_Poisoned: "#6a7820",
+  Soil_Grass_Burnt: "#7a6030",
+  Soil_Grass_Cold: "#9ab8a0",
+  Soil_Grass_Deep: "#3a7a30",
+  Soil_Grass_Dry: "#8aad42",
+  Soil_Grass_Full: "#5ab835",
+  Soil_Grass_Sunny: "#6ec830",
+  Soil_Grass_Wet: "#3a8c28",
+
+  // ── Canonical Rock variants (Rock.json) ──
+  Rock_Stone_Mossy: "#707868",
+  Rock_Shale: "#78808c",
+  Rock_Quartzite: "#d0c8c0",
+  Rock_Sandstone_Red: "#c87850",
+  Rock_Sandstone_White: "#e0d8c0",
+  Rock_Volcanic: "#2a2a38",
+  Rock_Marble: "#e8e4e0",
+  Rock_Calcite: "#d8d0c0",
+  Rock_Aqua: "#80a8b0",
+  Rock_Salt: "#f0ece8",
+  Rock_Bedrock: "#303030",
+
+  // ── Canonical Gravel/Pebble variants (Gravel.json) ──
+  Soil_Gravel_Mossy: "#908878",
+  Soil_Gravel_Sand: "#c0b090",
+  Soil_Gravel_Sand_Red: "#b07050",
+  Soil_Gravel_Sand_White: "#d0c8b0",
+  Soil_Pebbles: "#909090",
+  Soil_Pebbles_Frozen: "#a0aab8",
+
+  // ── Canonical Snow variants (Snow.json) ──
+  Soil_Snow: "#e8eef4",
+  Soil_Snow_Half: "#d0d8e0",
+
+  // ── Canonical Tree Leaves (TreeLeaves.json) ──
+  Plant_Leaves_Oak: "#5a9e28",
+  Plant_Leaves_Birch: "#9ab840",
+  Plant_Leaves_Fir: "#2a6a28",
+  Plant_Leaves_Fir_Snow: "#c8d8e0",
+  Plant_Leaves_Fir_Red: "#8a3020",
+  Plant_Leaves_Autumn: "#c87828",
+  Plant_Leaves_Autumn_Floor: "#a05818",
+  Plant_Leaves_Dead: "#786840",
+  Plant_Leaves_Dry: "#a09040",
+  Plant_Leaves_Jungle: "#38821a",
+  Plant_Leaves_Palm: "#6aaa20",
+  Plant_Leaves_Palm_Arid: "#8a9830",
+  Plant_Leaves_Palm_Oasis: "#50b020",
+  Plant_Leaves_Redwood: "#8a3828",
+  Plant_Leaves_Azure: "#2860c0",
+  Plant_Leaves_Crystal: "#80d8f0",
+  Plant_Leaves_Fire: "#e85020",
+  Plant_Leaves_Burnt: "#4a3020",
+  Plant_Leaves_Snow: "#d0dce8",
+  Plant_Leaves_Petrified: "#988878",
+  Plant_Leaves_Wisteria_Wild: "#9050c0",
+  Plant_Leaves_Windwillow: "#80c860",
+  Plant_Leaves_Stormbark: "#606870",
+  Plant_Leaves_Spiral: "#70a828",
+  Plant_Leaves_Ash: "#708070",
+  Plant_Leaves_Aspen: "#c0a030",
+  Plant_Leaves_Amber: "#c08020",
+  Plant_Leaves_Bamboo: "#88c030",
+  Plant_Leaves_Banyan: "#2e7818",
+  Plant_Leaves_Beech: "#7aaa28",
+  Plant_Leaves_Bottle: "#7ab828",
+  Plant_Leaves_Bramble: "#805028",
+  Plant_Leaves_Camphor: "#508040",
+  Plant_Leaves_Cedar: "#3a7028",
+  Plant_Leaves_Gumboab: "#a89020",
+  Plant_Leaves_Goldentree: "#d0aa00",
+  Plant_Leaves_GhostForest: "#c0d0e0",
+  Plant_Leaves_Fig_Blue: "#4060a0",
+  Plant_Leaves_Maple: "#c84020",
+  Plant_Leaves_Poisoned: "#68901a",
+  Plant_Leaves_Poisoned_Floor: "#5a8015",
+
+  // ── Canonical Ore variants ──
+  Ore_Iron_Stone: "#8a7060",
+  Ore_Iron_Basalt: "#707060",
+  Ore_Iron_Shale: "#8a7860",
+  Ore_Iron_Slate: "#707880",
+  Ore_Copper_Stone: "#b06040",
+  Ore_Copper_Sandstone: "#b07840",
+  Ore_Gold_Stone: "#c8a020",
+  Ore_Gold_Basalt: "#c8a030",
+  Ore_Silver_Stone: "#b0b8c0",
+  Ore_Cobalt_Stone: "#4060a0",
+  Ore_Cobalt_Basalt: "#405898",
+  Ore_Mithril_Stone: "#6080c8",
+  Ore_Mithril_Volcanic: "#6878c0",
+  Ore_Mithril_Basalt: "#5870b8",
+  Ore_Adamantite_Stone: "#a04080",
+  Ore_Adamantite_Basalt: "#983878",
+  Ore_Onyxium_Stone: "#202838",
+  Ore_Onyxium_Volcanic: "#181e30",
+  Ore_Thorium_Stone: "#80c040",
+  Ore_Thorium_Basalt: "#78b838",
 };
 
 /* ── PBR material properties ─────────────────────────────────────── */
@@ -245,6 +348,44 @@ const MATERIAL_PROPERTIES: Record<string, MaterialPBRProperties> = {
   Brick: { roughness: 0.85 },
   Stone_Brick: { roughness: 0.88 },
   Mossy_Stone: { roughness: 0.8 },
+
+  // Canonical Soil variants
+  Soil_Dirt_Burnt: { roughness: 0.95 },
+  Soil_Dirt_Cold: { roughness: 0.88 },
+  Soil_Dirt_Dry: { roughness: 0.92 },
+  Soil_Grass_Deep: { roughness: 0.72 },
+  Soil_Grass_Sunny: { roughness: 0.68 },
+  Soil_Grass_Wet: { roughness: 0.65 },
+  Soil_Snow: { roughness: 0.6 },
+  Soil_Gravel_Sand: { roughness: 0.82 },
+  Soil_Pebbles_Frozen: { roughness: 0.7 },
+
+  // Canonical Rock variants
+  Rock_Stone_Mossy: { roughness: 0.75 },
+  Rock_Basalt: { roughness: 0.9 },
+  Rock_Volcanic: { roughness: 0.88 },
+  Rock_Marble: { roughness: 0.3, metalness: 0.05 },
+  Rock_Salt: { roughness: 0.6 },
+  Rock_Aqua: { roughness: 0.55, metalness: 0.05 },
+
+  // Canonical Ore variants — metallic
+  Ore_Iron_Stone: { roughness: 0.6, metalness: 0.5 },
+  Ore_Copper_Stone: { roughness: 0.55, metalness: 0.55 },
+  Ore_Gold_Stone: { roughness: 0.3, metalness: 0.8 },
+  Ore_Silver_Stone: { roughness: 0.25, metalness: 0.85 },
+  Ore_Cobalt_Stone: { roughness: 0.45, metalness: 0.65 },
+  Ore_Mithril_Stone: { roughness: 0.35, metalness: 0.75 },
+  Ore_Adamantite_Stone: { roughness: 0.4, metalness: 0.7 },
+  Ore_Onyxium_Stone: { roughness: 0.2, metalness: 0.9, emissive: "#101828", emissiveIntensity: 0.3 },
+  Ore_Thorium_Stone: { roughness: 0.4, metalness: 0.6, emissive: "#406020", emissiveIntensity: 0.15 },
+
+  // Canonical Leaves — low roughness
+  Plant_Leaves_Oak: { roughness: 0.75 },
+  Plant_Leaves_Autumn: { roughness: 0.7 },
+  Plant_Leaves_Crystal: { roughness: 0.15, metalness: 0.1, emissive: "#60d8f0", emissiveIntensity: 0.2 },
+  Plant_Leaves_Fire: { roughness: 0.6, emissive: "#d04010", emissiveIntensity: 0.4 },
+  Plant_Leaves_Azure: { roughness: 0.6, emissive: "#1840a0", emissiveIntensity: 0.1 },
+  Plant_Leaves_Goldentree: { roughness: 0.5, emissive: "#a08000", emissiveIntensity: 0.15 },
 };
 
 /**
@@ -261,7 +402,11 @@ export function getMaterialProperties(name: string): MaterialPBRProperties {
     if (key.toLowerCase() === lower) return props;
   }
 
-  // Keyword match
+  // Keyword match — prefix-aware for canonical names
+  if (lower.startsWith("ore_")) return { roughness: 0.4, metalness: 0.7 };
+  if (lower.startsWith("plant_leaves_")) return { roughness: 0.75 };
+  if (lower.startsWith("soil_grass_")) return MATERIAL_PROPERTIES.Grass;
+  if (lower.startsWith("soil_dirt_")) return MATERIAL_PROPERTIES.Dirt;
   if (lower.includes("lava") || lower.includes("magma")) return MATERIAL_PROPERTIES.Lava;
   if (lower.includes("obsidian")) return MATERIAL_PROPERTIES.Rock_Obsidian;
   if (lower.includes("crystal")) return MATERIAL_PROPERTIES.Crystal;
@@ -273,7 +418,7 @@ export function getMaterialProperties(name: string): MaterialPBRProperties {
   if (lower.includes("dirt") || lower.includes("soil")) return MATERIAL_PROPERTIES.Dirt;
   if (lower.includes("ash")) return MATERIAL_PROPERTIES.Ash;
   if (lower.includes("wood") || lower.includes("bark")) return MATERIAL_PROPERTIES.Wood;
-  if (lower.includes("ore")) return MATERIAL_PROPERTIES.Ore_Iron;
+  if (lower.includes("ore")) return { roughness: 0.4, metalness: 0.7 };
 
   return {}; // defaults will be applied by consumer
 }
@@ -305,7 +450,19 @@ export function matchMaterialName(name: string): string {
     }
   }
 
-  // Keyword match
+  // Keyword match — prefix-aware for canonical names first
+  if (lower.startsWith("ore_iron_")) return HYTALE_MATERIAL_COLORS.Ore_Iron_Stone;
+  if (lower.startsWith("ore_copper_")) return HYTALE_MATERIAL_COLORS.Ore_Copper_Stone;
+  if (lower.startsWith("ore_gold_")) return HYTALE_MATERIAL_COLORS.Ore_Gold_Stone;
+  if (lower.startsWith("ore_silver_")) return HYTALE_MATERIAL_COLORS.Ore_Silver_Stone;
+  if (lower.startsWith("ore_cobalt_")) return HYTALE_MATERIAL_COLORS.Ore_Cobalt_Stone;
+  if (lower.startsWith("ore_mithril_")) return HYTALE_MATERIAL_COLORS.Ore_Mithril_Stone;
+  if (lower.startsWith("ore_adamantite_")) return HYTALE_MATERIAL_COLORS.Ore_Adamantite_Stone;
+  if (lower.startsWith("ore_onyxium_")) return HYTALE_MATERIAL_COLORS.Ore_Onyxium_Stone;
+  if (lower.startsWith("ore_thorium_")) return HYTALE_MATERIAL_COLORS.Ore_Thorium_Stone;
+  if (lower.startsWith("plant_leaves_")) return HYTALE_MATERIAL_COLORS.Plant_Leaves_Oak;
+  if (lower.startsWith("soil_grass_")) return HYTALE_MATERIAL_COLORS.Soil_Grass;
+  if (lower.startsWith("soil_dirt_")) return HYTALE_MATERIAL_COLORS.Soil_Dirt;
   if (lower.includes("lava") || lower.includes("magma")) return HYTALE_MATERIAL_COLORS.Lava;
   if (lower.includes("obsidian")) return HYTALE_MATERIAL_COLORS.Rock_Obsidian;
   if (lower.includes("stone") || lower.includes("rock")) return HYTALE_MATERIAL_COLORS.Rock_Stone;

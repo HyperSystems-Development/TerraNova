@@ -11,18 +11,24 @@ export type SplitDirection = "horizontal" | "vertical";
 export interface AtmosphereSettings {
   skyHorizon: string;
   skyZenith: string;
+  sunsetColor: string;       // SkySunsetColors daytime
+  sunGlowColor: string;      // SunGlowColors daytime
   cloudDensity: number;
   fogColor: string;
-  fogDensity: number;
+  fogNear: number;           // FogDistance[0] in world units
+  fogFar: number;            // FogDistance[1] in world units
   ambientColor: string;
   sunColor: string;
+  waterTint: string;         // WaterTint from env file
 }
 
 export interface TintColors {
-  /** Low-density tint (e.g. shade/cool end) */
-  from: string;
-  /** High-density tint (e.g. sunny/warm end) */
-  to: string;
+  /** Band 1 — low density (cool/shaded) */
+  color1: string;
+  /** Band 2 — mid density */
+  color2: string;
+  /** Band 3 — high density (sunny/warm) */
+  color3: string;
 }
 
 export interface CanvasTransform {
@@ -368,18 +374,23 @@ function hydratePersistedState() {
 const DEFAULT_CANVAS_TRANSFORM: CanvasTransform = { scale: 1, offsetX: 0, offsetY: 0 };
 
 const DEFAULT_ATMOSPHERE_SETTINGS: AtmosphereSettings = {
-  skyHorizon: "#4A90C4",
-  skyZenith: "#1B3A6B",
+  skyHorizon: "#8fd8f8",
+  skyZenith: "#077ddd",
+  sunsetColor: "#ffb951",
+  sunGlowColor: "#ffffff",
   cloudDensity: 0.3,
-  fogColor: "#c0d8f0",
-  fogDensity: 0.008,
-  ambientColor: "#3a3a4a",
-  sunColor: "#fff8e0",
+  fogColor: "#8fd8f8",
+  fogNear: -96,
+  fogFar: 1024,
+  ambientColor: "#6080a0",
+  sunColor: "#ffffff",
+  waterTint: "#1983d9",
 };
 
 const DEFAULT_TINT_COLORS: TintColors = {
-  from: "#5b9e28",
-  to: "#7ea629",
+  color1: "#5b9e28",
+  color2: "#6ca229",
+  color3: "#7ea629",
 };
 
 export const usePreviewStore = create<PreviewState>((originalSet) => {

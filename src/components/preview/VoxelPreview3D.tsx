@@ -18,6 +18,14 @@ const TINTABLE_MATERIALS = new Set([
   "Grass", "Soil_Grass", "GrassDeep", "GrassDeepSunny",
   "Grass_Dry", "Grass_Dead", "Grass_Swamp", "Grass_Snow",
   "Soil_Moss", "Soil_Leaves", "Soil_Pathway",
+  // Canonical Soil_Grass_* variants
+  "Soil_Grass_Burnt", "Soil_Grass_Cold", "Soil_Grass_Deep", "Soil_Grass_Dry",
+  "Soil_Grass_Full", "Soil_Grass_Sunny", "Soil_Grass_Wet",
+  // Canonical leaf types that receive tint
+  "Plant_Leaves_Oak", "Plant_Leaves_Birch", "Plant_Leaves_Fir",
+  "Plant_Leaves_Jungle", "Plant_Leaves_Palm", "Plant_Leaves_Azure",
+  "Plant_Leaves_Crystal", "Plant_Leaves_Goldentree", "Plant_Leaves_Amber",
+  "Plant_Leaves_Autumn", "Plant_Leaves_Maple",
 ]);
 
 // Lightly tinted — secondary influence (soil blends 50% with tint)
@@ -83,13 +91,15 @@ const VoxelMesh = memo(function VoxelMesh({
 const VoxelMeshGroup = memo(function VoxelMeshGroup({
   meshData,
   wireframe,
-  tintFrom,
-  tintTo,
+  color1,
+  color2,
+  color3,
 }: {
   meshData: VoxelMeshData[];
   wireframe: boolean;
-  tintFrom: string;
-  tintTo: string;
+  color1: string;
+  color2: string;
+  color3: string;
 }) {
   return (
     <>
@@ -97,14 +107,14 @@ const VoxelMeshGroup = memo(function VoxelMeshGroup({
         const name = data.materialName ?? "";
         let tintColor: string | undefined;
         if (TINTABLE_MATERIALS.has(name)) {
-          // Full tint: blend between from/to at midpoint (0.5)
-          tintColor = blendHex(tintFrom, tintTo, 0.5);
+          // Full tint: use color2 (mid-band, most common across noise distribution)
+          tintColor = color2;
         } else if (SOIL_TINTABLE.has(name)) {
-          // Subtle soil tint: 25% blend toward mid-tint
-          tintColor = blendHex("#ffffff", blendHex(tintFrom, tintTo, 0.5), 0.25);
+          // Subtle soil tint: 30% blend toward color2
+          tintColor = blendHex("#ffffff", color2, 0.3);
         } else if (SAND_TINTABLE.has(name)) {
-          // Very light sand tint: 15% blend
-          tintColor = blendHex("#ffffff", blendHex(tintFrom, tintTo, 0.5), 0.15);
+          // Very light sand tint: 15% blend toward color2
+          tintColor = blendHex("#ffffff", color2, 0.15);
         }
         return (
           <VoxelMesh
@@ -220,8 +230,9 @@ const VoxelScene = memo(function VoxelScene({ wireframe }: { wireframe: boolean 
         <VoxelMeshGroup
           meshData={voxelMeshData}
           wireframe={wireframe}
-          tintFrom={tint.from}
-          tintTo={tint.to}
+          color1={tint.color1}
+          color2={tint.color2}
+          color3={tint.color3}
         />
       )}
 

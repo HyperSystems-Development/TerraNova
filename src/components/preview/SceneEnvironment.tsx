@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useThree } from "@react-three/fiber";
-import { ShaderMaterial, BackSide, FogExp2, Color } from "three";
+import { ShaderMaterial, BackSide, Fog, Color } from "three";
 import { usePreviewStore } from "@/stores/previewStore";
 
 /* ── Hytale-style sky dome ───────────────────────────────────────── */
@@ -77,11 +77,15 @@ export function HytaleFog() {
   const atm = usePreviewStore((s) => s.atmosphereSettings);
 
   useEffect(() => {
-    scene.fog = new FogExp2(atm.fogColor, atm.fogDensity);
+    // Scale Hytale world units (~1024 wu) to Three.js scene units by 0.05
+    // Clamp near to a minimum of 0.1 so fog is never behind the camera
+    const near = Math.max(atm.fogNear * 0.05, 0.1);
+    const far = Math.max(atm.fogFar * 0.05, near + 1);
+    scene.fog = new Fog(atm.fogColor, near, far);
     return () => {
       scene.fog = null;
     };
-  }, [scene, atm.fogColor, atm.fogDensity]);
+  }, [scene, atm.fogColor, atm.fogNear, atm.fogFar]);
 
   return null;
 }
