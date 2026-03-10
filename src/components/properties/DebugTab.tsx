@@ -1,6 +1,7 @@
 import { usePreviewStore } from "@/stores/previewStore";
 import { SliderField } from "./SliderField";
 import { ColorPickerField } from "./ColorPickerField";
+import { mapPreviewFogDistances } from "@/utils/fogMapping";
 
 // ---------------------------------------------------------------------------
 // DebugTab — worldgen debug overlay controls
@@ -101,8 +102,12 @@ export function DebugTab() {
   const setStatisticsLogScale = usePreviewStore((s) => s.setStatisticsLogScale);
   const atmosphereSettings = usePreviewStore((s) => s.atmosphereSettings);
 
-  const mappedFogNear = Math.max(atmosphereSettings.fogNear * fogDistanceScale, 0);
-  const mappedFogFar = Math.max(atmosphereSettings.fogFar * fogDistanceScale, mappedFogNear + fogMinSpan);
+  const { near: mappedFogNear, far: mappedFogFar } = mapPreviewFogDistances(
+    atmosphereSettings.fogNear,
+    atmosphereSettings.fogFar,
+    fogDistanceScale,
+    fogMinSpan,
+  );
 
   return (
     <div className="flex flex-col p-3 gap-0.5">

@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useThree } from "@react-three/fiber";
 import { ShaderMaterial, BackSide, Fog, Color } from "three";
 import { usePreviewStore } from "@/stores/previewStore";
+import { mapPreviewFogDistances } from "@/utils/fogMapping";
 
 /* ── Hytale-style sky dome ───────────────────────────────────────── */
 
@@ -79,9 +80,13 @@ export function HytaleFog() {
   const fogMinSpan = usePreviewStore((s) => s.fogMinSpan);
 
   useEffect(() => {
-    // Keep fog tunable from DebugTab because scene scale varies by preview mode.
-    const near = Math.max(atm.fogNear * fogDistanceScale, 0);
-    const far = Math.max(atm.fogFar * fogDistanceScale, near + fogMinSpan);
+    // Keep fog tunable from DebugTab while avoiding over-dense default fog.
+    const { near, far } = mapPreviewFogDistances(
+      atm.fogNear,
+      atm.fogFar,
+      fogDistanceScale,
+      fogMinSpan,
+    );
     scene.fog = new Fog(atm.fogColor, near, far);
     return () => {
       scene.fog = null;
