@@ -1,9 +1,14 @@
-﻿import { useState, useEffect, type ReactNode } from "react";
+﻿import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { writeTextFile } from "@/utils/ipc";
 import { jsonToGraph } from "@/utils/jsonToGraph";
+import {
+  pickEnvironmentNameFromProvider,
+  resolveBiomeAtmosphere,
+  type ResolveBiomeAtmosphereMetadata,
+} from "@/utils/resolveBiomeAtmosphere";
 import { ColorPickerField } from "./ColorPickerField";
 import { SliderField } from "./SliderField";
 
@@ -32,131 +37,121 @@ function SectionCard({ label, children }: { label: string; children: ReactNode }
 }
 
 // ---------------------------------------------------------------------------
-// Weather presets â€” matched to actual Hytale zone weather JSON keyframes
+// Asset-derived weather helpers
 // ---------------------------------------------------------------------------
 
-const HYTALE_ASSETS_BASE =
-  "C:\\Users\\wolft\\AppData\\Roaming\\Hytale\\install\\pre-release\\package\\game\\latest\\Assets";
-
-interface WeatherPresetDef {
-  label: string;
-  zone: string;         // "z1" | "z2" | "z3" | "z4"
-  parentEnv: string;   // e.g. "Env_Zone1"
-  zoneFolder: string;  // subfolder name under Server/Environments/
-  skyHorizon: string;
-  skyZenith: string;
-  sunsetColor: string;
-  sunGlowColor: string;
-  fogColor: string;
-  fogNear: number;
-  fogFar: number;
-  sunColor: string;
-  ambientColor: string;
-  waterTint: string;
+interface ResolvedWeatherInfo {
+  status: "idle" | "loading" | "ok" | "error";
+  hour: number;
+  environmentName: string | null;
+  weatherId: string | null;
+  serverRoot: string | null;
+  environmentPath: string | null;
+  weatherPath: string | null;
+  warnings: string[];
+  error: string | null;
 }
 
-const WEATHER_PRESET_DEFS: WeatherPresetDef[] = [
-  {
-    label: "Zone1 Sunny",    zone: "z1", parentEnv: "Env_Zone1", zoneFolder: "Zone1",
-    skyHorizon: "#8fd8f8", skyZenith: "#077ddd", fogColor: "#8fd8f8",
-    sunsetColor: "#ffb951", sunGlowColor: "#ffffff",
-    fogNear: -96, fogFar: 1024, sunColor: "#ffffff", ambientColor: "#6080a0", waterTint: "#1983d9",
-  },
-  {
-    label: "Zone1 Storm",    zone: "z1", parentEnv: "Env_Zone1", zoneFolder: "Zone1",
-    skyHorizon: "#9e9e9e", skyZenith: "#99a1a1", fogColor: "#9e9e9e",
-    sunsetColor: "#e03569", sunGlowColor: "#808080",
-    fogNear: -96, fogFar: 1024, sunColor: "#c0c8d0", ambientColor: "#707880", waterTint: "#1983d9",
-  },
-  {
-    label: "Zone1 Foggy",    zone: "z1", parentEnv: "Env_Zone1", zoneFolder: "Zone1",
-    skyHorizon: "#c4d8fc", skyZenith: "#699bd4", fogColor: "#c4d8fc",
-    sunsetColor: "#a7cbe1", sunGlowColor: "#a0c0d0",
-    fogNear: -448, fogFar: 256, sunColor: "#d8e8f0", ambientColor: "#7898a8", waterTint: "#1983d9",
-  },
-  {
-    label: "Zone2 Desert",   zone: "z2", parentEnv: "Env_Zone2", zoneFolder: "Zone2",
-    skyHorizon: "#cab896", skyZenith: "#6fa6d0", fogColor: "#cab896",
-    sunsetColor: "#e8cca3", sunGlowColor: "#ffe0a0",
-    fogNear: 0, fogFar: 1024, sunColor: "#ffffff", ambientColor: "#a09070", waterTint: "#2bb0b0",
-  },
-  {
-    label: "Zone2 Sunny",    zone: "z2", parentEnv: "Env_Zone2", zoneFolder: "Zone2",
-    skyHorizon: "#b1f3fe", skyZenith: "#0081b2", fogColor: "#b1f3fe",
-    sunsetColor: "#ffffff", sunGlowColor: "#ffe8b0",
-    fogNear: -96, fogFar: 1024, sunColor: "#fff8e0", ambientColor: "#60a0b0", waterTint: "#1496c8",
-  },
-  {
-    label: "Zone2 SandStorm", zone: "z2", parentEnv: "Env_Zone2", zoneFolder: "Zone2",
-    skyHorizon: "#b9976e", skyZenith: "#f4d597", fogColor: "#b9976e",
-    sunsetColor: "#d4bf62", sunGlowColor: "#e0c060",
-    fogNear: -96, fogFar: 400, sunColor: "#d5d0c0", ambientColor: "#a09070", waterTint: "#2bb0b0",
-  },
-  {
-    label: "Zone3 Snow",     zone: "z3", parentEnv: "Env_Zone3", zoneFolder: "Zone3",
-    skyHorizon: "#cad8f4", skyZenith: "#c7c9cd", fogColor: "#cad8f4",
-    sunsetColor: "#a7cbe1", sunGlowColor: "#d0e0f0",
-    fogNear: -96, fogFar: 1024, sunColor: "#e8f0f8", ambientColor: "#8898b8", waterTint: "#4080c0",
-  },
-  {
-    label: "Zone3 NorthLights", zone: "z3", parentEnv: "Env_Zone3", zoneFolder: "Zone3",
-    skyHorizon: "#b2cdff", skyZenith: "#699bd4", fogColor: "#b2cdff",
-    sunsetColor: "#a7cbe1", sunGlowColor: "#a0c8ff",
-    fogNear: -96, fogFar: 1024, sunColor: "#c8d8ff", ambientColor: "#6080c0", waterTint: "#4080c0",
-  },
-  {
-    label: "Zone4 Ash",      zone: "z4", parentEnv: "Env_Zone4", zoneFolder: "Zone4",
-    skyHorizon: "#c8c7b3", skyZenith: "#bfc8c4", fogColor: "#c8c7b3",
-    sunsetColor: "#e45252", sunGlowColor: "#f0f0e8",
-    fogNear: -96, fogFar: 1024, sunColor: "#fefff7", ambientColor: "#909088", waterTint: "#806050",
-  },
-  {
-    label: "Zone4 Lava",     zone: "z4", parentEnv: "Env_Zone4", zoneFolder: "Zone4",
-    skyHorizon: "#4e2f2f", skyZenith: "#cd875c", fogColor: "#4e2f2f",
-    sunsetColor: "#4a493c", sunGlowColor: "#ff8040",
-    fogNear: -96, fogFar: 800, sunColor: "#ffca55", ambientColor: "#804028", waterTint: "#ff4010",
-  },
-];
+const INITIAL_WEATHER_INFO: ResolvedWeatherInfo = {
+  status: "idle",
+  hour: 12,
+  environmentName: null,
+  weatherId: null,
+  serverRoot: null,
+  environmentPath: null,
+  weatherPath: null,
+  warnings: [],
+  error: null,
+};
 
-const WEATHER_PRESET_LABELS = WEATHER_PRESET_DEFS.map((p) => p.label) as [string, ...string[]];
-type WeatherPreset = (typeof WEATHER_PRESET_LABELS)[number];
+function clampHour(hour: number): number {
+  if (!Number.isFinite(hour)) return 12;
+  const normalized = hour % 24;
+  return normalized < 0 ? normalized + 24 : normalized;
+}
 
-function WeatherSelector({
-  value,
-  onChange,
-}: {
-  value: WeatherPreset;
-  onChange: (v: WeatherPreset) => void;
-}) {
-  const grouped: Record<string, WeatherPresetDef[]> = {};
-  for (const p of WEATHER_PRESET_DEFS) {
-    (grouped[p.zone] ??= []).push(p);
+function getDirectory(path: string | null): string | null {
+  if (!path) return null;
+  const normalized = path.replace(/\\/g, "/");
+  const idx = normalized.lastIndexOf("/");
+  if (idx <= 0) return null;
+  return normalized.slice(0, idx).replace(/\//g, "\\");
+}
+
+function joinWindowsPath(base: string, child: string): string {
+  return `${base.replace(/[\\/]+$/, "")}\\${child}`;
+}
+
+function findServerRoot(path: string | null): string | null {
+  if (!path) return null;
+  const normalized = path.replace(/\\/g, "/");
+  const marker = "/server/";
+  const markerIdx = normalized.toLowerCase().lastIndexOf(marker);
+  if (markerIdx >= 0) {
+    return normalized.slice(0, markerIdx + marker.length - 1).replace(/\//g, "\\");
   }
-  const zoneLabels: Record<string, string> = { z1: "Zone 1", z2: "Zone 2", z3: "Zone 3", z4: "Zone 4" };
+  if (normalized.toLowerCase().endsWith("/server")) {
+    return normalized.replace(/\//g, "\\");
+  }
+  return null;
+}
 
+function inferServerRoot(currentFile: string | null, projectPath: string | null, resolvedRoot: string | null): string | null {
+  if (resolvedRoot) return resolvedRoot;
+  const fromCurrent = findServerRoot(currentFile);
+  if (fromCurrent) return fromCurrent;
+  const fromProject = findServerRoot(projectPath);
+  if (fromProject) return fromProject;
+  if (!projectPath) return null;
+  if (projectPath.toLowerCase().endsWith("\\hytalegenerator")) {
+    return getDirectory(projectPath);
+  }
+  return joinWindowsPath(projectPath, "Server");
+}
+
+function extractZoneKeyFromEnvironmentDir(environmentDir: string | null): string | null {
+  if (!environmentDir) return null;
+  const parts = environmentDir.replace(/\\/g, "/").split("/").filter(Boolean);
+  const environmentIdx = parts.findIndex((p) => p.toLowerCase() === "environments");
+  if (environmentIdx < 0 || environmentIdx >= parts.length - 1) return null;
+  const candidate = parts[environmentIdx + 1];
+  return /^zone\d+$/i.test(candidate) ? candidate : null;
+}
+
+function buildWeatherInfo(metadata: ResolveBiomeAtmosphereMetadata, hour: number): ResolvedWeatherInfo {
+  return {
+    status: "ok",
+    hour,
+    environmentName: metadata.environmentName,
+    weatherId: metadata.weatherId,
+    serverRoot: metadata.serverRoot,
+    environmentPath: metadata.environmentPath,
+    weatherPath: metadata.weatherPath,
+    warnings: metadata.warnings,
+    error: null,
+  };
+}
+
+function sanitizeEnvironmentName(value: string): string {
+  return value.trim().replace(/[^a-zA-Z0-9_]/g, "_");
+}
+
+function toServerRelativePath(path: string, serverRoot: string | null): string {
+  if (!serverRoot) return path;
+  const normalizedPath = path.replace(/\\/g, "/");
+  const normalizedRoot = serverRoot.replace(/\\/g, "/");
+  const rootPrefix = `${normalizedRoot.toLowerCase()}/`;
+  if (normalizedPath.toLowerCase().startsWith(rootPrefix)) {
+    return normalizedPath.slice(normalizedRoot.length + 1);
+  }
+  return normalizedPath;
+}
+
+function WeatherInfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-2">
-      <span className="text-[11px] text-tn-text-muted">Preset</span>
-      {Object.entries(grouped).map(([zone, presets]) => (
-        <div key={zone} className="flex flex-col gap-1">
-          <span className="text-[10px] text-tn-text-muted/70 font-medium">{zoneLabels[zone]}</span>
-          <div className="flex flex-wrap gap-1">
-            {presets.map((p) => (
-              <button
-                key={p.label}
-                onClick={() => onChange(p.label)}
-                className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
-                  value === p.label
-                    ? "bg-tn-accent/20 border-tn-accent text-tn-accent"
-                    : "border-tn-border/80 bg-tn-panel/40 text-tn-text-muted hover:border-white/20 hover:text-tn-text"
-                }`}
-              >
-                {p.label.replace(/^Zone\d+ /, "")}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
+    <div className="flex items-center justify-between gap-2 rounded border border-tn-border/60 bg-tn-panel/30 px-2 py-1">
+      <span className="text-[10px] uppercase tracking-wide text-tn-text-muted">{label}</span>
+      <span className="text-[10px] font-mono text-tn-text truncate max-w-[190px]" title={value}>{value}</span>
     </div>
   );
 }
@@ -209,7 +204,6 @@ interface AtmosphereState {
   ambientColor: string;
   sunColor: string;
   waterTint: string;
-  weather: WeatherPreset;
   audioWind: number;
   audioWater: number;
   audioInsects: number;
@@ -228,7 +222,6 @@ const DEFAULT_ATMOSPHERE: AtmosphereState = {
   ambientColor: "#6080a0",
   sunColor: "#ffffff",
   waterTint: "#1983d9",
-  weather: "Zone1 Sunny",
   audioWind: 0.6,
   audioWater: 0.0,
   audioInsects: 0.4,
@@ -318,9 +311,12 @@ export function AtmosphereTab({
   const setOutputNode = useEditorStore((s) => s.setOutputNode);
   const commitState = useEditorStore((s) => s.commitState);
   const setDirty = useProjectStore((s) => s.setDirty);
+  const currentFile = useProjectStore((s) => s.currentFile);
+  const projectPath = useProjectStore((s) => s.projectPath);
   const setAtmosphereSettings = usePreviewStore((s) => s.setAtmosphereSettings);
   const storeAtm = usePreviewStore((s) => s.atmosphereSettings);
   const setTintColors = usePreviewStore((s) => s.setTintColors);
+  const [weatherInfo, setWeatherInfo] = useState<ResolvedWeatherInfo>(INITIAL_WEATHER_INFO);
 
   const [atm, setAtm] = useState<AtmosphereState>(() => ({
     ...loadAtmosphere(),
@@ -365,6 +361,54 @@ export function AtmosphereTab({
     storeAtm.sunColor,
     storeAtm.waterTint,
   ]);
+  const environmentProviderSignature = JSON.stringify(biomeConfig?.EnvironmentProvider ?? null);
+
+  const resolveAssetWeather = useCallback(
+    async (requestedHour: number, applyToPreview: boolean): Promise<ResolveBiomeAtmosphereMetadata | null> => {
+      const hour = clampHour(requestedHour);
+      setWeatherInfo((prev) => ({
+        ...prev,
+        status: "loading",
+        hour,
+        error: null,
+      }));
+
+      try {
+        const result = await resolveBiomeAtmosphere({
+          biomeConfig,
+          biomeFilePath: currentFile,
+          projectPath,
+          hour,
+        });
+        setWeatherInfo(buildWeatherInfo(result.metadata, hour));
+
+        if (applyToPreview) {
+          setAtmosphereSettings(result.settings);
+          setAtm((prev) => {
+            const next = { ...prev, ...result.settings };
+            saveAtmosphere(next);
+            return next;
+          });
+        }
+
+        return result.metadata;
+      } catch (error) {
+        setWeatherInfo((prev) => ({
+          ...prev,
+          status: "error",
+          hour,
+          error: String(error),
+        }));
+        return null;
+      }
+    },
+    [biomeConfig, currentFile, projectPath, setAtmosphereSettings],
+  );
+
+  useEffect(() => {
+    if (!currentFile && !projectPath) return;
+    void resolveAssetWeather(weatherInfo.hour, false);
+  }, [environmentProviderSignature, currentFile, projectPath, resolveAssetWeather, weatherInfo.hour]);
 
   function syncStore(next: AtmosphereState) {
     setAtmosphereSettings({
@@ -389,28 +433,6 @@ export function AtmosphereTab({
     if ((VISUAL_KEYS as string[]).includes(key)) {
       syncStore(next);
     }
-  }
-
-  function applyPreset(label: WeatherPreset) {
-    const def = WEATHER_PRESET_DEFS.find((p) => p.label === label);
-    if (!def) return;
-    const next: AtmosphereState = {
-      ...atm,
-      weather: label,
-      skyHorizon: def.skyHorizon,
-      skyZenith: def.skyZenith,
-      sunsetColor: def.sunsetColor,
-      sunGlowColor: def.sunGlowColor,
-      fogColor: def.fogColor,
-      fogNear: def.fogNear,
-      fogFar: def.fogFar,
-      sunColor: def.sunColor,
-      ambientColor: def.ambientColor,
-      waterTint: def.waterTint,
-    };
-    setAtm(next);
-    saveAtmosphere(next);
-    syncStore(next);
   }
 
   // â”€â”€ Environment export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -524,27 +546,45 @@ export function AtmosphereTab({
   }
 
   async function handleExport() {
-    const name = exportName.trim().replace(/[^a-zA-Z0-9_]/g, "_");
+    const name = sanitizeEnvironmentName(exportName);
     if (!name) return;
+    const metadata = await resolveAssetWeather(weatherInfo.hour, false);
+    const parentEnvironmentName =
+      metadata?.environmentName
+      ?? weatherInfo.environmentName
+      ?? pickEnvironmentNameFromProvider(biomeConfig?.EnvironmentProvider)
+      ?? null;
+    const serverRoot = inferServerRoot(
+      currentFile,
+      projectPath,
+      metadata?.serverRoot ?? weatherInfo.serverRoot,
+    );
+    const environmentDir =
+      getDirectory(metadata?.environmentPath ?? weatherInfo.environmentPath)
+      ?? (serverRoot ? joinWindowsPath(serverRoot, "Environments") : null);
 
-    const preset = WEATHER_PRESET_DEFS.find((p) => p.label === atm.weather)
-      ?? WEATHER_PRESET_DEFS[0];
+    if (!parentEnvironmentName || !environmentDir) {
+      setExportStatus("err");
+      setExportMsg("Could not resolve environment export location from current biome assets.");
+      setTimeout(() => setExportStatus("idle"), 4000);
+      return;
+    }
 
-    // Zone tag is derived from zone folder, e.g. "Zone1" â†’ { Zone1: [name] }
-    const zoneKey = preset.zoneFolder; // "Zone1" | "Zone2" | ...
-    const tagLabel = name.replace(/^.*_/, ""); // last segment as tag
+    const environmentName = `Env_${name}`;
+    const filePath = joinWindowsPath(environmentDir, `${environmentName}.json`);
+    const zoneKey = extractZoneKeyFromEnvironmentDir(environmentDir);
+    const tagLabel = name.replace(/^.*_/, "");
 
-    const envDoc = {
-      Parent: preset.parentEnv,
-      Tags: { [zoneKey]: [tagLabel] },
+    const envDoc: Record<string, unknown> = {
+      Parent: parentEnvironmentName,
       WaterTint: atm.waterTint,
     };
-
-    const filePath = `${HYTALE_ASSETS_BASE}\\Server\\Environments\\${preset.zoneFolder}\\Env_${name}.json`;
+    if (zoneKey) {
+      envDoc.Tags = { [zoneKey]: [tagLabel] };
+    }
 
     try {
       await writeTextFile(filePath, JSON.stringify(envDoc, null, 2));
-      const environmentName = `Env_${name}`;
       if (biomeConfig) {
         setBiomeConfig({
           ...biomeConfig,
@@ -557,8 +597,9 @@ export function AtmosphereTab({
         setDirty(true);
         commitState(`Set EnvironmentProvider to ${environmentName}`);
       }
+      void resolveAssetWeather(weatherInfo.hour, true);
       setExportStatus("ok");
-      setExportMsg(`Saved -> ...\\${preset.zoneFolder}\\Env_${name}.json and applied ${environmentName}`);
+      setExportMsg(`Saved -> ${toServerRelativePath(filePath, serverRoot)} and applied ${environmentName}`);
     } catch (e) {
       setExportStatus("err");
       setExportMsg(String(e));
@@ -596,6 +637,21 @@ export function AtmosphereTab({
       color3: field === "color3" ? value : tintColor3,
     });
   }
+
+  const exportServerRoot = inferServerRoot(currentFile, projectPath, weatherInfo.serverRoot);
+  const exportEnvironmentDir =
+    getDirectory(weatherInfo.environmentPath)
+    ?? (exportServerRoot ? joinWindowsPath(exportServerRoot, "Environments") : null);
+  const exportFileName = `Env_${sanitizeEnvironmentName(exportName) || "..."}.json`;
+  const exportPreviewPath = exportEnvironmentDir
+    ? toServerRelativePath(joinWindowsPath(exportEnvironmentDir, exportFileName), exportServerRoot)
+    : `Server/Environments/${exportFileName}`;
+  const weatherStatusLabel =
+    weatherInfo.status === "loading"
+      ? "Resolving..."
+      : weatherInfo.status === "error"
+        ? "Resolution failed"
+        : "Resolved from assets";
 
   return (
     <div className="flex flex-col p-3 gap-3" onBlur={onBlur}>
@@ -680,10 +736,47 @@ export function AtmosphereTab({
       </SectionCard>
 
       <SectionCard label="Weather">
-        <WeatherSelector
-          value={atm.weather}
-          onChange={applyPreset}
+        <WeatherInfoRow label="Environment" value={weatherInfo.environmentName ?? "—"} />
+        <WeatherInfoRow label="Weather" value={weatherInfo.weatherId ?? "—"} />
+        <div className="flex items-center justify-between text-[10px] text-tn-text-muted">
+          <span>{weatherStatusLabel}</span>
+          <span className="font-mono">Hour {weatherInfo.hour}:00</span>
+        </div>
+        <SliderField
+          label="Sample Hour"
+          value={weatherInfo.hour}
+          min={0}
+          max={23}
+          step={1}
+          onChange={(v) => setWeatherInfo((prev) => ({ ...prev, hour: clampHour(v) }))}
+          onBlur={() => { void resolveAssetWeather(weatherInfo.hour, true); }}
         />
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => { void resolveAssetWeather(weatherInfo.hour, true); }}
+            className="px-2 py-1 text-[10px] rounded border border-tn-accent text-tn-accent bg-tn-accent/10 hover:bg-tn-accent/20 transition-colors"
+            disabled={weatherInfo.status === "loading"}
+          >
+            Refresh from Assets
+          </button>
+          <button
+            onClick={() => { void resolveAssetWeather(weatherInfo.hour, false); }}
+            className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-text-muted transition-colors"
+            disabled={weatherInfo.status === "loading"}
+          >
+            Re-read Metadata
+          </button>
+        </div>
+        {weatherInfo.error && (
+          <p className="text-[10px] text-red-400 font-mono truncate">
+            {weatherInfo.error}
+          </p>
+        )}
+        {weatherInfo.warnings.length > 0 && (
+          <p className="text-[10px] text-amber-300 leading-tight">
+            {weatherInfo.warnings[0]}
+          </p>
+        )}
       </SectionCard>
 
       <SectionCard label="Tint">
@@ -725,14 +818,12 @@ export function AtmosphereTab({
       </SectionCard>
 
       <SectionCard label="Export Environment">
-        {(() => {
-          const preset = WEATHER_PRESET_DEFS.find((p) => p.label === atm.weather) ?? WEATHER_PRESET_DEFS[0];
-          return (
-            <div className="text-[10px] text-tn-text-muted font-mono bg-tn-bg rounded px-2 py-1 border border-tn-border truncate">
-              {"-> "}Server/Environments/<span className="text-tn-accent">{preset.zoneFolder}</span>/Env_<span className="text-tn-text">{exportName || "..."}</span>.json
-            </div>
-          );
-        })()}
+        <div className="text-[10px] text-tn-text-muted font-mono bg-tn-bg rounded px-2 py-1 border border-tn-border truncate">
+          {"-> "}{exportPreviewPath}
+        </div>
+        <div className="text-[10px] text-tn-text-muted font-mono bg-tn-bg rounded px-2 py-1 border border-tn-border truncate">
+          Parent: <span className="text-tn-text">{weatherInfo.environmentName ?? "unresolved"}</span>
+        </div>
         <div className="flex gap-1.5">
           <input
             type="text"
@@ -755,7 +846,7 @@ export function AtmosphereTab({
           </p>
         )}
         <p className="text-[10px] text-tn-text-muted/60 leading-tight">
-          Writes a sub-environment JSON with the active zone as parent. Hytale will inherit its weather and water tint from the zone root.
+          Writes an Env_* JSON beside the currently resolved environment file and points it at the current parent environment.
         </p>
       </SectionCard>
 
