@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useThree } from "@react-three/fiber";
-import { ShaderMaterial, BackSide, FogExp2 } from "three";
+import { ShaderMaterial, BackSide, FogExp2, Color } from "three";
+import { usePreviewStore } from "@/stores/previewStore";
 
 /* ── Hytale-style sky dome ───────────────────────────────────────── */
 
@@ -14,27 +15,39 @@ void main() {
 `;
 
 const skyFragShader = `
+uniform vec3 uHorizon;
+uniform vec3 uZenith;
 varying vec3 vWorldPos;
 void main() {
   float h = normalize(vWorldPos).y;
   float t = clamp(h * 0.5 + 0.5, 0.0, 1.0);
-  vec3 horizon = vec3(0.290, 0.565, 0.769); // #4A90C4
-  vec3 zenith  = vec3(0.529, 0.808, 0.922); // #87CEEB
-  gl_FragColor = vec4(mix(horizon, zenith, t), 1.0);
+  gl_FragColor = vec4(mix(uHorizon, uZenith, t), 1.0);
 }
 `;
 
 export function HytaleSky() {
+  const atm = usePreviewStore((s) => s.atmosphereSettings);
+
   const material = useMemo(
     () =>
       new ShaderMaterial({
         vertexShader: skyVertShader,
         fragmentShader: skyFragShader,
+        uniforms: {
+          uHorizon: { value: new Color(atm.skyHorizon) },
+          uZenith: { value: new Color(atm.skyZenith) },
+        },
         side: BackSide,
         depthWrite: false,
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+
+  useEffect(() => {
+    material.uniforms.uHorizon.value.set(atm.skyHorizon);
+    material.uniforms.uZenith.value.set(atm.skyZenith);
+  }, [material, atm.skyHorizon, atm.skyZenith]);
 
   useEffect(() => () => material.dispose(), [material]);
 
@@ -61,11 +74,14 @@ export function GroundShadow() {
 
 export function HytaleFog() {
   const { scene } = useThree();
+  const atm = usePreviewStore((s) => s.atmosphereSettings);
+
   useEffect(() => {
-    scene.fog = new FogExp2("#c0d8f0", 0.008);
+    scene.fog = new FogExp2(atm.fogColor, atm.fogDensity);
     return () => {
       scene.fog = null;
     };
-  }, [scene]);
+  }, [scene, atm.fogColor, atm.fogDensity]);
+
   return null;
 }

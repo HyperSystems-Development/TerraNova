@@ -151,6 +151,7 @@ export function Preview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasElemen
   const showWaterPlane = usePreviewStore((s) => s.showWaterPlane);
   const showFog3D = usePreviewStore((s) => s.showFog3D);
   const showSky3D = usePreviewStore((s) => s.showSky3D);
+  const atm = usePreviewStore((s) => s.atmosphereSettings);
   const enableShadows = useConfigStore((s) => s.enableShadows);
   const shadowMapSize = useConfigStore((s) => s.shadowMapSize);
   const gpuPowerPreference = useConfigStore((s) => s.gpuPowerPreference);
@@ -163,11 +164,11 @@ export function Preview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasElemen
         shadows={enableShadows}
       >
         {/* Hytale-style lighting */}
-        <hemisphereLight args={["#87CEEB", "#8B7355", 0.4]} />
+        <hemisphereLight args={[atm.skyHorizon, "#8B7355", 0.4]} />
         <directionalLight
           position={[15, 30, 10]}
           intensity={0.8}
-          color="#fff5e0"
+          color={atm.sunColor}
           castShadow={enableShadows}
           shadow-mapSize-width={shadowMapSize}
           shadow-mapSize-height={shadowMapSize}

@@ -9,6 +9,7 @@ import { RawJsonView } from "./RawJsonView";
 import { PreviewPanel } from "../preview/PreviewPanel";
 import { ComparisonView } from "../preview/ComparisonView";
 import { DiagnosticsStrip } from "../preview/DiagnosticsStrip";
+import { PipelineIndicator } from "./PipelineIndicator";
 
 const VIEW_MODES: { key: ViewMode; label: string }[] = [
   { key: "graph", label: "Graph" },
@@ -126,6 +127,7 @@ const DensityView = memo(function DensityView() {
   return (
     <div className="flex flex-col h-full">
       <DiagnosticsStrip />
+      <PipelineIndicator />
       <div className="flex-1 min-h-0 relative">
         <ViewModeOverlay />
         {viewMode === "graph" && <EditorCanvas />}
@@ -204,6 +206,7 @@ const NoiseRangeView = memo(function NoiseRangeView() {
   return (
     <div className="flex flex-col h-full">
       <DiagnosticsStrip />
+      <PipelineIndicator />
 
       {viewMode === "preview" ? (
         <div className="flex-1 min-h-0 relative">
@@ -258,6 +261,7 @@ const BiomeView = memo(function BiomeView() {
         <BiomeSectionTabs />
       </div>
       <DiagnosticsStrip />
+      <PipelineIndicator />
       <div className="flex-1 min-h-0 relative">
         <ViewModeOverlay />
         {viewMode === "graph" && <EditorCanvas />}

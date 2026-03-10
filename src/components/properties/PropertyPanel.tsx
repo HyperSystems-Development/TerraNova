@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, type ReactNode } from "react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useUIStore } from "@/stores/uiStore";
@@ -15,6 +15,8 @@ import { BiomeDashboard } from "./BiomeDashboard";
 import { SettingsPanel } from "./SettingsPanel";
 import { PropOverviewPanel } from "./PropOverviewPanel";
 import { MaterialLayerStack } from "./MaterialLayerStack";
+import { AtmosphereTab } from "./AtmosphereTab";
+import { DebugTab } from "./DebugTab";
 import { PropPlacementGrid } from "./PropPlacementGrid";
 import { POSITION_TYPE_NAMES } from "@/utils/positionEvaluator";
 import { getCurveEvaluator } from "@/utils/curveEvaluators";
@@ -213,31 +215,12 @@ export function PropertyPanel() {
     }
 
     if (editingContext === "Biome" && biomeConfig) {
-      const propIndex = activeBiomeSection?.startsWith("Props[")
-        ? parseInt(/\[(\d+)\]/.exec(activeBiomeSection)?.[1] ?? "-1", 10)
-        : -1;
-
-      // Props tab → PropOverviewPanel
-      if (propIndex >= 0) {
-        return (
-          <PropOverviewPanel
-            propIndex={propIndex}
-            onPropMetaChange={handlePropMetaChange}
-            onBlur={handleConfigBlur}
-          />
-        );
-      }
-
-      // Materials tab → MaterialLayerStack
-      if (activeBiomeSection === "MaterialProvider") {
-        return <MaterialLayerStack />;
-      }
-
-      // Terrain or no specific tab → BiomeDashboard
       return (
-        <BiomeDashboard
+        <BiomeInspector
+          activeBiomeSection={activeBiomeSection}
           onBiomeConfigChange={handleBiomeConfigChange}
           onBiomeTintChange={handleBiomeTintChange}
+          onPropMetaChange={handlePropMetaChange}
           onBlur={handleConfigBlur}
         />
       );
@@ -538,6 +521,80 @@ export function PropertyPanel() {
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// BiomeInspector - tabbed wrapper for the Biome editing context
+// ---------------------------------------------------------------------------
+
+type BiomeTab = "biome" | "atmosphere" | "debug";
+
+function BiomeInspector({
+  activeBiomeSection,
+  onBiomeConfigChange,
+  onBiomeTintChange,
+  onPropMetaChange,
+  onBlur,
+}: {
+  activeBiomeSection: string | null | undefined;
+  onBiomeConfigChange: (field: string, value: unknown) => void;
+  onBiomeTintChange: (field: string, value: string) => void;
+  onPropMetaChange: (index: number, field: string, value: unknown) => void;
+  onBlur: () => void;
+}) {
+  const [tab, setTab] = useState<BiomeTab>("biome");
+
+  const propIndex = activeBiomeSection?.startsWith("Props[")
+    ? parseInt(/\[(\d+)\]/.exec(activeBiomeSection)?.[1] ?? "-1", 10)
+    : -1;
+
+  function renderBiomeContent(): ReactNode {
+    if (propIndex >= 0) {
+      return (
+        <PropOverviewPanel
+          propIndex={propIndex}
+          onPropMetaChange={onPropMetaChange}
+          onBlur={onBlur}
+        />
+      );
+    }
+    if (activeBiomeSection === "MaterialProvider") {
+      return <MaterialLayerStack />;
+    }
+    return (
+      <BiomeDashboard
+        onBiomeConfigChange={onBiomeConfigChange}
+        onBlur={onBlur}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex border-b border-tn-border shrink-0">
+        {(["biome", "atmosphere", "debug"] as BiomeTab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`flex-1 py-1.5 text-[11px] font-medium capitalize transition-colors ${
+              tab === t
+                ? "text-tn-accent border-b-2 border-tn-accent"
+                : "text-tn-text-muted hover:text-tn-text"
+            }`}
+          >
+            {t === "biome" ? "Biome" : t === "atmosphere" ? "Atmosphere" : "Debug"}
+          </button>
+        ))}
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {tab === "biome" && renderBiomeContent()}
+        {tab === "atmosphere" && <AtmosphereTab onBlur={onBlur} onBiomeTintChange={onBiomeTintChange} />}
+        {tab === "debug" && <DebugTab />}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 
 function FieldWrapper({
   children,

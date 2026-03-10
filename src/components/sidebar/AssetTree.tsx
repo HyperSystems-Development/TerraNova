@@ -45,13 +45,19 @@ function FileIcon({ name }: { name: string }) {
 /** Map file names to semantic colors */
 function getFileColor(name: string): string {
   const lower = name.toLowerCase();
-  if (lower.includes("biome")) return "#4E9E8F";           // jade — biome files
+  if (lower.includes("biome")) return "#4E9E8F";                          // jade
   if (lower.includes("density") || lower.includes("terrain")) return "#5B8DBF"; // slate blue
-  if (lower.includes("material")) return "#C87D3A";        // copper
+  if (lower.includes("material")) return "#C87D3A";                        // copper
+  if (lower.includes("worldstructure") || lower.includes("world_structure")) return "#9B7FBF"; // violet
+  if (lower.includes("structure")) return "#9B7FBF";                       // violet
+  if (lower.includes("assignment")) return "#7BAA7B";                      // muted green
+  if (lower.includes("environment") || lower.includes("environ")) return "#7DB08C"; // sage
+  if (lower.includes("prefab")) return "#A09B74";                          // khaki
+  if (lower.includes("instance")) return "#A0825A";                        // tan
   if (lower.includes("settings") || lower.includes("config")) return "#B5A88C"; // warm stone
-  if (lower.includes("world") || lower.includes("structure")) return "#7B8FBF"; // brighter basalt
-  if (lower === "manifest.json") return "#B5A88C";          // warm stone
-  return "#D4C9B5";                                         // default warm
+  if (lower.includes("world")) return "#7B8FBF";                           // basalt
+  if (lower === "manifest.json") return "#B5A88C";                         // warm stone
+  return "#D4C9B5";                                                        // default warm
 }
 
 /* ── Tree Node ─────────────────────────────────────────────────────── */

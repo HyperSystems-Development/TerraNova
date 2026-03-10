@@ -8,6 +8,16 @@ export type PreviewMode = "2d" | "3d" | "voxel" | "world";
 export type ViewMode = "graph" | "preview" | "split" | "compare";
 export type SplitDirection = "horizontal" | "vertical";
 
+export interface AtmosphereSettings {
+  skyHorizon: string;
+  skyZenith: string;
+  cloudDensity: number;
+  fogColor: string;
+  fogDensity: number;
+  ambientColor: string;
+  sunColor: string;
+}
+
 export interface CanvasTransform {
   scale: number;
   offsetX: number;
@@ -205,6 +215,9 @@ interface PreviewState {
   setSplitDirection: (dir: SplitDirection) => void;
 
   setFidelityScore: (score: number) => void;
+
+  atmosphereSettings: AtmosphereSettings;
+  setAtmosphereSettings: (settings: AtmosphereSettings) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -257,6 +270,7 @@ const PERSIST_MAP: Record<string, string> = {
   compareModeB: "tn-compareModeB",
   linkCameras3D: "tn-linkCameras3D",
   splitDirection: "tn-splitDirection",
+  atmosphereSettings: "tn-atmosphereSettings",
 };
 
 function getStored(key: string): string | null {
@@ -323,10 +337,27 @@ function hydratePersistedState() {
     compareModeB: (getStored("tn-compareModeB") as PreviewMode | null) ?? "2d",
     linkCameras3D: getStoredBool("tn-linkCameras3D", true),
     splitDirection: (getStored("tn-splitDirection") as SplitDirection | null) ?? "horizontal",
+    atmosphereSettings: (() => {
+      try {
+        const raw = getStored("tn-atmosphereSettings");
+        if (raw) return { ...DEFAULT_ATMOSPHERE_SETTINGS, ...JSON.parse(raw) } as AtmosphereSettings;
+      } catch { /* ignore */ }
+      return DEFAULT_ATMOSPHERE_SETTINGS;
+    })(),
   };
 }
 
 const DEFAULT_CANVAS_TRANSFORM: CanvasTransform = { scale: 1, offsetX: 0, offsetY: 0 };
+
+const DEFAULT_ATMOSPHERE_SETTINGS: AtmosphereSettings = {
+  skyHorizon: "#4A90C4",
+  skyZenith: "#1B3A6B",
+  cloudDensity: 0.3,
+  fogColor: "#c0d8f0",
+  fogDensity: 0.008,
+  ambientColor: "#3a3a4a",
+  sunColor: "#fff8e0",
+};
 
 export const usePreviewStore = create<PreviewState>((originalSet) => {
   // Wrap set() to auto-persist any key in PERSIST_MAP
@@ -339,7 +370,8 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     for (const [key, lsKey] of Object.entries(PERSIST_MAP)) {
       if (key in updates) {
         const val = (updates as Record<string, unknown>)[key];
-        localStorage.setItem(lsKey, String(val ?? ""));
+        const serialized = val !== null && typeof val === "object" ? JSON.stringify(val) : String(val ?? "");
+        localStorage.setItem(lsKey, serialized);
       }
     }
   };
@@ -470,5 +502,7 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setLinkCameras3D: (linkCameras3D) => persistedSet({ linkCameras3D }),
 
     setSplitDirection: (splitDirection) => persistedSet({ splitDirection }),
+
+    setAtmosphereSettings: (atmosphereSettings) => persistedSet({ atmosphereSettings }),
   };
 });
