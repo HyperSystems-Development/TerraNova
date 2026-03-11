@@ -605,6 +605,48 @@ export function useTauriIO() {
         return;
       }
 
+      // Instance files: reassemble from InstanceConfig
+      const { instanceConfig } = useEditorStore.getState();
+      if (editingContext === "Instance" && instanceConfig && originalWrapper) {
+        const output: Record<string, unknown> = { ...originalWrapper };
+        output.$Comment = instanceConfig.comment;
+        output.RequiredPlugins = originalWrapper.RequiredPlugins ?? {};
+        output.ChunkStorage = originalWrapper.ChunkStorage ?? { Type: "Hytale" };
+        output.GameMode = instanceConfig.gameMode;
+        output.IsPvpEnabled = instanceConfig.toggles.IsPvpEnabled;
+        output.IsSpawningNPC = instanceConfig.toggles.IsSpawningNPC;
+        output.GameTime = originalWrapper.GameTime ?? "0001-01-01T07:00:00Z";
+        output.UUID = originalWrapper.UUID ?? {
+          $binary: "AZKxiVAMQfWIS0qBsBfjzQ==",
+          $type: "04",
+        };
+        output.GameplayConfig = instanceConfig.gameplayConfig;
+        output.IsCompassUpdating = instanceConfig.toggles.IsCompassUpdating;
+        output.IsTicking = instanceConfig.toggles.IsTicking;
+        output.IsGameTimePaused = instanceConfig.toggles.IsGameTimePaused;
+        output.IsObjectiveMarkersEnabled = instanceConfig.toggles.IsObjectiveMarkersEnabled;
+        output.IsAllNPCFrozen = instanceConfig.toggles.IsAllNPCFrozen;
+        output.IsSavingPlayers = instanceConfig.toggles.IsSavingPlayers;
+        output.WorldGen = {
+          Type: "HytaleGenerator",
+          WorldStructure: instanceConfig.worldStructure,
+        };
+        if (instanceConfig.spawnEnabled) {
+          output.SpawnProvider = {
+            Id: "Global",
+            SpawnPoint: { ...instanceConfig.spawnPoint },
+          };
+        } else {
+          delete output.SpawnProvider;
+        }
+        output.IsSpawnMarkersEnabled = instanceConfig.toggles.IsSpawnMarkersEnabled;
+        output.DeleteOnRemove = instanceConfig.toggles.DeleteOnRemove;
+        output.Version = originalWrapper.Version ?? 2;
+        await writeAssetFile(currentFile, output);
+        setDirty(false);
+        return;
+      }
+
       // RawJson files — save rawJsonContent directly to disk
       if (editingContext === "RawJson") {
         const rawContent = useEditorStore.getState().rawJsonContent;
