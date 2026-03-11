@@ -1,6 +1,7 @@
 import { useId, useRef, useState, useEffect } from "react";
 import { FieldTooltip } from "./FieldTooltip";
 import { HYTALE_MATERIAL_IDS, getMaterialColor, findNearestMaterial } from "@/utils/materialResolver";
+import { BlockIcon } from "./BlockIcon";
 
 interface MaterialFieldProps {
   label: string;
@@ -164,6 +165,8 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
                   i === activeIdx ? "bg-tn-accent/20" : "hover:bg-white/[0.04]"
                 }`}
               >
+                {/* PNG icon for material, fallback to color swatch if missing */}
+                <BlockIcon materialId={id} size={20} className="mr-1" />
                 <span
                   className="w-3.5 h-3.5 shrink-0 rounded-sm border border-tn-border/60"
                   style={{ backgroundColor: color ?? "#444" }}
