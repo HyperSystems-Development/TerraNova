@@ -9,9 +9,11 @@ interface DiagnosticsState {
   diagnostics: GraphDiagnostic[];
   byNodeId: Map<string, GraphDiagnostic[]>;
   assetValidationBadge: AssetValidationBadge;
+  assetNamesByKind: Partial<Record<AssetReferenceKind, string[]>>;
   assetPathIndexByKind: Partial<Record<AssetReferenceKind, Record<string, string[]>>>;
   setDiagnostics: (diags: GraphDiagnostic[]) => void;
   setAssetValidationBadge: (badge: AssetValidationBadge) => void;
+  setAssetNamesByKind: (names: Partial<Record<AssetReferenceKind, string[]>>) => void;
   setAssetPathIndexByKind: (index: Partial<Record<AssetReferenceKind, Record<string, string[]>>>) => void;
 }
 
@@ -23,6 +25,7 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set) => ({
     label: "Built-in validation only",
     detail: "Project asset lookup unavailable",
   },
+  assetNamesByKind: {},
   assetPathIndexByKind: {},
   setDiagnostics: (diags) => {
     const grouped = new Map<string, GraphDiagnostic[]>();
@@ -39,5 +42,6 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set) => ({
     set({ diagnostics: diags, byNodeId: grouped });
   },
   setAssetValidationBadge: (badge) => set({ assetValidationBadge: badge }),
+  setAssetNamesByKind: (names) => set({ assetNamesByKind: names }),
   setAssetPathIndexByKind: (index) => set({ assetPathIndexByKind: index }),
 }));

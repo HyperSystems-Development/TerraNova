@@ -22,6 +22,7 @@ export function useGraphDiagnostics() {
   const projectPath = useProjectStore((s) => s.projectPath);
   const setDiagnostics = useDiagnosticsStore((s) => s.setDiagnostics);
   const setAssetValidationBadge = useDiagnosticsStore((s) => s.setAssetValidationBadge);
+  const setAssetNamesByKind = useDiagnosticsStore((s) => s.setAssetNamesByKind);
   const setAssetPathIndexByKind = useDiagnosticsStore((s) => s.setAssetPathIndexByKind);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [knownAssetNames, setKnownAssetNames] = useState<Record<AssetReferenceKind, string[]> | null>(null);
@@ -33,19 +34,21 @@ export function useGraphDiagnostics() {
         if (disposed) return;
         setKnownAssetNames(lookup.namesByKind);
         setAssetValidationBadge(lookup.badge);
+        setAssetNamesByKind(lookup.namesByKind);
         setAssetPathIndexByKind(lookup.pathIndexByKind);
       })
       .catch(() => {
         if (disposed) return;
         setKnownAssetNames(null);
         setAssetValidationBadge(buildAssetValidationBadge({}));
+        setAssetNamesByKind({});
         setAssetPathIndexByKind({});
       });
 
     return () => {
       disposed = true;
     };
-  }, [currentFile, projectPath, setAssetPathIndexByKind, setAssetValidationBadge]);
+  }, [currentFile, projectPath, setAssetNamesByKind, setAssetPathIndexByKind, setAssetValidationBadge]);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);

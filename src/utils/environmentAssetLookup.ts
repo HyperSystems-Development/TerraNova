@@ -40,6 +40,11 @@ export interface AssetValidationLookup {
   badge: AssetValidationBadge;
 }
 
+export interface AssetReferenceCandidate {
+  name: string;
+  path: string;
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
@@ -486,17 +491,48 @@ export function findAssetReferenceCandidates(
   referenceName: string,
   kind: AssetReferenceKind,
   pathIndexByKind: Partial<Record<AssetReferenceKind, Record<string, string[]>>>,
+  namesByKind?: Partial<Record<AssetReferenceKind, string[]>>,
   limit: number = 3,
 ): string[] {
+  return findAssetReferenceCandidateEntries(
+    referenceName,
+    kind,
+    pathIndexByKind,
+    namesByKind,
+    limit,
+  ).map((candidate) => candidate.path);
+}
+
+export function findAssetReferenceCandidateEntries(
+  referenceName: string,
+  kind: AssetReferenceKind,
+  pathIndexByKind: Partial<Record<AssetReferenceKind, Record<string, string[]>>>,
+  namesByKind?: Partial<Record<AssetReferenceKind, string[]>>,
+  limit: number = 3,
+): AssetReferenceCandidate[] {
   const normalizedReference = normalizeReferenceName(referenceName);
   if (!normalizedReference) return [];
 
   const pathIndex = pathIndexByKind[kind];
   if (!pathIndex) return [];
+  const displayNameByKey = new Map<string, string>();
+  const knownNames = namesByKind?.[kind] ?? [];
+  for (const name of knownNames) {
+    const normalizedName = normalizeReferenceName(name);
+    if (normalizedName && !displayNameByKey.has(normalizedName)) {
+      displayNameByKey.set(normalizedName, name);
+    }
+  }
+  const toCandidate = (candidateKey: string, paths: string[]): AssetReferenceCandidate[] => {
+    if (paths.length === 0) return [];
+    const fallbackName = getFileStem(paths[0]) || candidateKey;
+    const name = displayNameByKey.get(candidateKey) ?? fallbackName;
+    return [{ name, path: paths[0] }];
+  };
 
   const exact = pathIndex[normalizedReference];
   if (exact && exact.length > 0) {
-    return exact.slice(0, limit);
+    return toCandidate(normalizedReference, exact).slice(0, limit);
   }
 
   const scored = Object.entries(pathIndex)
@@ -508,6 +544,7 @@ export function findAssetReferenceCandidates(
           : 0;
       const prefixBonus = candidateName.slice(0, 4) === normalizedReference.slice(0, 4) ? 1 : 0;
       return {
+        candidateName,
         paths,
         score: distance - containsBonus - prefixBonus,
       };
@@ -515,13 +552,16 @@ export function findAssetReferenceCandidates(
     .sort((left, right) => left.score - right.score);
 
   const threshold = Math.max(4, Math.floor(normalizedReference.length * 0.45));
-  const results: string[] = [];
+  const results: AssetReferenceCandidate[] = [];
+  const seenNames = new Set<string>();
   for (const entry of scored) {
     if (entry.score > threshold) continue;
-    for (const path of entry.paths) {
-      if (!results.includes(path)) {
-        results.push(path);
-      }
+    const candidates = toCandidate(entry.candidateName, entry.paths);
+    for (const candidate of candidates) {
+      const key = normalizeReferenceName(candidate.name);
+      if (seenNames.has(key)) continue;
+      seenNames.add(key);
+      results.push(candidate);
       if (results.length >= limit) return results;
     }
   }
