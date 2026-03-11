@@ -16,6 +16,7 @@ const FALLBACK_ATMOSPHERE_SETTINGS: AtmosphereSettings = {
   ambientColor: "#6080a0",
   sunColor: "#ffffff",
   waterTint: "#1983d9",
+  sunAngle: 60,
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -605,6 +606,8 @@ function buildAtmosphereSettings(
     ambientColor,
     sunColor,
     waterTint,
+    // Map sample hour to sun angle: hour 6=0°, 12=90°, 18=180°
+    sunAngle: ((hour - 6 + 24) % 24) * (180 / 24),
   };
 }
 

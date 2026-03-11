@@ -1,9 +1,10 @@
-﻿import { useState, useEffect, useCallback, type ReactNode } from "react";
+﻿import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { usePreviewStore } from "@/stores/previewStore";
-import { writeTextFile } from "@/utils/ipc";
+import { writeTextFile, listDirectory } from "@/utils/ipc";
 import { jsonToGraph } from "@/utils/jsonToGraph";
+import { useTauriIO } from "@/hooks/useTauriIO";
 import {
   pickEnvironmentNameFromProvider,
   resolveBiomeAtmosphere,
@@ -204,6 +205,7 @@ interface AtmosphereState {
   ambientColor: string;
   sunColor: string;
   waterTint: string;
+  sunAngle: number;
   audioWind: number;
   audioWater: number;
   audioInsects: number;
@@ -222,6 +224,7 @@ const DEFAULT_ATMOSPHERE: AtmosphereState = {
   ambientColor: "#6080a0",
   sunColor: "#ffffff",
   waterTint: "#1983d9",
+  sunAngle: 60,
   audioWind: 0.6,
   audioWater: 0.0,
   audioInsects: 0.4,
@@ -291,7 +294,7 @@ function applyTintBand(
 
 const VISUAL_KEYS: (keyof AtmosphereState)[] = [
   "skyHorizon", "skyZenith", "sunsetColor", "sunGlowColor", "cloudDensity",
-  "fogColor", "fogNear", "fogFar", "ambientColor", "sunColor", "waterTint",
+  "fogColor", "fogNear", "fogFar", "ambientColor", "sunColor", "waterTint", "sunAngle",
 ];
 
 export function AtmosphereTab({
@@ -316,6 +319,7 @@ export function AtmosphereTab({
   const setAtmosphereSettings = usePreviewStore((s) => s.setAtmosphereSettings);
   const storeAtm = usePreviewStore((s) => s.atmosphereSettings);
   const setTintColors = usePreviewStore((s) => s.setTintColors);
+  const { openFile } = useTauriIO();
   const [weatherInfo, setWeatherInfo] = useState<ResolvedWeatherInfo>(INITIAL_WEATHER_INFO);
 
   const [atm, setAtm] = useState<AtmosphereState>(() => ({
@@ -331,6 +335,7 @@ export function AtmosphereTab({
     ambientColor: storeAtm.ambientColor,
     sunColor: storeAtm.sunColor,
     waterTint: storeAtm.waterTint,
+    sunAngle: storeAtm.sunAngle,
   }));
 
   useEffect(() => {
@@ -347,6 +352,7 @@ export function AtmosphereTab({
       ambientColor: storeAtm.ambientColor,
       sunColor: storeAtm.sunColor,
       waterTint: storeAtm.waterTint,
+      sunAngle: storeAtm.sunAngle,
     }));
   }, [
     storeAtm.skyHorizon,
@@ -360,6 +366,7 @@ export function AtmosphereTab({
     storeAtm.ambientColor,
     storeAtm.sunColor,
     storeAtm.waterTint,
+    storeAtm.sunAngle,
   ]);
   const environmentProviderSignature = JSON.stringify(biomeConfig?.EnvironmentProvider ?? null);
 
@@ -410,6 +417,40 @@ export function AtmosphereTab({
     void resolveAssetWeather(weatherInfo.hour, false);
   }, [environmentProviderSignature, currentFile, projectPath, resolveAssetWeather, weatherInfo.hour]);
 
+  // ── Time-of-day animation ───────────────────────────────────────────
+  const [animating, setAnimating] = useState(false);
+  const [animSpeed, setAnimSpeed] = useState(1); // hours per second
+  const animIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const animHourRef = useRef<number>(weatherInfo.hour);
+
+  // Keep animHourRef in sync so the interval closure can advance it
+  useEffect(() => {
+    animHourRef.current = weatherInfo.hour;
+  }, [weatherInfo.hour]);
+
+  useEffect(() => {
+    if (!animating) return;
+    const ms = Math.max(100, Math.round(1000 / animSpeed));
+    animIntervalRef.current = setInterval(() => {
+      const next = clampHour(animHourRef.current + 1);
+      animHourRef.current = next;
+      // Update sunAngle: hour 6=0°, 12=90°, 18=180°, simple linear mapping
+      const angle = ((next - 6 + 24) % 24) * (180 / 24);
+      setAtm((prev) => {
+        const updated = { ...prev, sunAngle: angle };
+        saveAtmosphere(updated);
+        return updated;
+      });
+      setAtmosphereSettings({ ...usePreviewStore.getState().atmosphereSettings, sunAngle: angle });
+      setWeatherInfo((prev) => ({ ...prev, hour: next }));
+      void resolveAssetWeather(next, true);
+    }, ms);
+    return () => {
+      if (animIntervalRef.current) clearInterval(animIntervalRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [animating, animSpeed]);
+
   function syncStore(next: AtmosphereState) {
     setAtmosphereSettings({
       skyHorizon: next.skyHorizon,
@@ -423,6 +464,7 @@ export function AtmosphereTab({
       ambientColor: next.ambientColor,
       sunColor: next.sunColor,
       waterTint: next.waterTint,
+      sunAngle: next.sunAngle,
     });
   }
 
@@ -436,6 +478,40 @@ export function AtmosphereTab({
   }
 
   // â”€â”€ Environment export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Biome browser
+  const [biomeBrowserOpen, setBiomeBrowserOpen] = useState(false);
+  const [biomeFiles, setBiomeFiles] = useState<{ name: string; path: string }[]>([]);
+  const [biomeLoadStatus, setBiomeLoadStatus] = useState<"idle" | "loading" | "error">("idle");
+
+  const loadBiomeFiles = useCallback(async () => {
+    const serverRoot = inferServerRoot(currentFile, projectPath, weatherInfo.serverRoot);
+    if (!serverRoot) {
+      setBiomeLoadStatus("error");
+      return;
+    }
+    setBiomeLoadStatus("loading");
+    try {
+      const biomesRoot = `${serverRoot}\\Generator\\Biomes`;
+      const entries = await listDirectory(biomesRoot);
+      const files: { name: string; path: string }[] = [];
+      function collect(list: typeof entries) {
+        for (const entry of list) {
+          if (entry.is_dir && entry.children) collect(entry.children);
+          else if (!entry.is_dir && entry.name.toLowerCase().endsWith(".json")) {
+            files.push({ name: entry.name.replace(/\.json$/i, ""), path: entry.path });
+          }
+        }
+      }
+      collect(entries);
+      files.sort((a, b) => a.name.localeCompare(b.name));
+      setBiomeFiles(files);
+      setBiomeLoadStatus("idle");
+    } catch {
+      setBiomeLoadStatus("error");
+    }
+  }, [currentFile, projectPath, weatherInfo.serverRoot]);
+
+  // Environment export
   const [exportName, setExportName] = useState("");
   const [exportStatus, setExportStatus] = useState<"idle" | "ok" | "err">("idle");
   const [exportMsg, setExportMsg] = useState("");
@@ -777,6 +853,42 @@ export function AtmosphereTab({
             {weatherInfo.warnings[0]}
           </p>
         )}
+        {/* Time-of-day animation */}
+        <div className="flex items-center gap-1.5 pt-1 border-t border-tn-border/60">
+          <button
+            onClick={() => setAnimating((prev) => !prev)}
+            className={`px-2 py-1 text-[10px] rounded border transition-colors ${
+              animating
+                ? "border-red-400/60 text-red-300 bg-red-900/20 hover:bg-red-900/30"
+                : "border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-text-muted"
+            }`}
+          >
+            {animating ? "Stop" : "Animate"}
+          </button>
+          <div className="flex items-center gap-1 flex-1">
+            <span className="text-[10px] text-tn-text-muted shrink-0">Speed</span>
+            <input
+              type="range"
+              min={0.5}
+              max={6}
+              step={0.5}
+              value={animSpeed}
+              onChange={(e) => setAnimSpeed(parseFloat(e.target.value))}
+              className="flex-1 h-1 accent-tn-accent"
+            />
+            <span className="text-[10px] text-tn-text-muted w-8 text-right tabular-nums">{animSpeed}x</span>
+          </div>
+        </div>
+        {/* Sun angle manual control */}
+        <SliderField
+          label="Sun Angle"
+          value={atm.sunAngle}
+          min={0}
+          max={360}
+          step={5}
+          onChange={(v) => update("sunAngle", v)}
+          onBlur={() => {}}
+        />
       </SectionCard>
 
       <SectionCard label="Tint">
@@ -848,6 +960,42 @@ export function AtmosphereTab({
         <p className="text-[10px] text-tn-text-muted/60 leading-tight">
           Writes an Env_* JSON beside the currently resolved environment file and points it at the current parent environment.
         </p>
+      </SectionCard>
+
+      <SectionCard label="Biome Browser">
+        <button
+          onClick={() => {
+            setBiomeBrowserOpen((prev) => !prev);
+            if (!biomeBrowserOpen) void loadBiomeFiles();
+          }}
+          className="w-full px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-text-muted hover:text-tn-text transition-colors text-left"
+        >
+          {biomeBrowserOpen ? "Hide biome list" : "Browse biomes from assets..."}
+        </button>
+
+        {biomeBrowserOpen && (
+          <div className="flex flex-col gap-0.5 mt-1 max-h-48 overflow-y-auto">
+            {biomeLoadStatus === "loading" && (
+              <span className="text-[10px] text-tn-text-muted px-1">Scanning...</span>
+            )}
+            {biomeLoadStatus === "error" && (
+              <span className="text-[10px] text-red-400 px-1">Could not find biomes folder. Open a biome file first.</span>
+            )}
+            {biomeLoadStatus === "idle" && biomeFiles.length === 0 && (
+              <span className="text-[10px] text-tn-text-muted px-1">No biome files found.</span>
+            )}
+            {biomeFiles.map((f) => (
+              <button
+                key={f.path}
+                onClick={() => { void openFile(f.path); }}
+                className="text-left px-2 py-0.5 rounded text-[10px] text-tn-text font-mono hover:bg-tn-accent/15 hover:text-tn-accent transition-colors truncate"
+                title={f.path}
+              >
+                {f.name}
+              </button>
+            ))}
+          </div>
+        )}
       </SectionCard>
 
     </div>

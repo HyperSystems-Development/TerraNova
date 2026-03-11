@@ -11,7 +11,7 @@ import { EdgeOutlineEffect } from "./EdgeOutlineEffect";
 import { HytaleSky, HytaleFog, GroundShadow } from "./SceneEnvironment";
 import type { VoxelData } from "@/utils/voxelExtractor";
 import type { VoxelMeshData } from "@/utils/voxelMeshBuilder";
-import { BufferGeometry, BufferAttribute, Vector2, Color } from "three";
+import { BufferGeometry, BufferAttribute, Vector2, Color, MathUtils } from "three";
 
 // Materials that receive biome tint (grass surface, soil with grass, moss)
 const TINTABLE_MATERIALS = new Set([
@@ -222,13 +222,24 @@ const VoxelScene = memo(function VoxelScene({ wireframe }: { wireframe: boolean 
   const atm = usePreviewStore((s) => s.atmosphereSettings);
   const tint = usePreviewStore((s) => s.tintColors);
 
+  // Sun position derived from sunAngle (0=east horizon, 90=zenith, 180=west horizon)
+  const sunAngleRad = MathUtils.degToRad(atm.sunAngle ?? 60);
+  const sunRadius = 35;
+  const sunX = Math.cos(sunAngleRad) * sunRadius;
+  const sunY = Math.max(0.5, Math.sin(sunAngleRad) * sunRadius);
+  const sunZ = -Math.sin(sunAngleRad * 0.4) * 10;
+  // Dim the sun intensity as it approaches the horizon (sin < 0.15)
+  const sunElevation = Math.sin(sunAngleRad);
+  const sunIntensity = Math.max(0, Math.min(1, sunElevation * 6)) * 0.8;
+  const ambientIntensity = Math.max(0.05, 0.4 - sunElevation * 0.25);
+
   return (
     <>
       {/* Atmosphere-driven lighting */}
-      <hemisphereLight args={[atm.skyHorizon, "#8B7355", 0.4]} />
+      <hemisphereLight args={[atm.skyHorizon, "#8B7355", ambientIntensity]} />
       <directionalLight
-        position={[15, 30, 10]}
-        intensity={0.8}
+        position={[sunX, sunY, sunZ]}
+        intensity={sunIntensity}
         color={atm.sunColor}
         castShadow={enableShadows}
         shadow-mapSize-width={shadowMapSize}

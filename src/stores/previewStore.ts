@@ -20,6 +20,7 @@ export interface AtmosphereSettings {
   ambientColor: string;
   sunColor: string;
   waterTint: string;         // WaterTint from env file
+  sunAngle: number;          // Sun elevation angle in degrees (0=horizon, 90=noon)
 }
 
 export interface TintColors {
@@ -393,6 +394,7 @@ const DEFAULT_ATMOSPHERE_SETTINGS: AtmosphereSettings = {
   ambientColor: "#6080a0",
   sunColor: "#ffffff",
   waterTint: "#1983d9",
+  sunAngle: 60,              // Default ~mid-morning
 };
 
 const DEFAULT_TINT_COLORS: TintColors = {
