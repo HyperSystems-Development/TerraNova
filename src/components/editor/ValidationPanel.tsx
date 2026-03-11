@@ -11,6 +11,7 @@ import {
   resolveDelimiterEnvironmentDefaults,
 } from "@/utils/environmentDelimiters";
 import { findAssetReferenceCandidates } from "@/utils/environmentAssetLookup";
+import { getLegacyReplacement } from "@/nodes/shared/legacyTypes";
 
 const SEVERITY_ORDER: DiagnosticSeverity[] = ["error", "warning", "info"];
 
@@ -43,6 +44,9 @@ export function ValidationPanel() {
   const setEditingContext = useEditorStore((s) => s.setEditingContext);
   const switchBiomeSection = useEditorStore((s) => s.switchBiomeSection);
   const updateNodeField = useEditorStore((s) => s.updateNodeField);
+  const setNodes = useEditorStore((s) => s.setNodes);
+  const removeNode = useEditorStore((s) => s.removeNode);
+  const removeNodes = useEditorStore((s) => s.removeNodes);
   const commitState = useEditorStore((s) => s.commitState);
   const setDirty = useProjectStore((s) => s.setDirty);
   const { openFile } = useTauriIO();
@@ -147,6 +151,11 @@ export function ValidationPanel() {
         return "Use Default";
       case "env-delimiter-unsupported-provider":
         return rawType === "Imported" || rawType === "Exported" ? "Use Default" : null;
+      case "legacy-node": {
+        const typeKey = typeof diagnostic.meta?.legacyTypeKey === "string" ? diagnostic.meta.legacyTypeKey : null;
+        const replacement = typeKey ? getLegacyReplacement(typeKey) : null;
+        return replacement ? `Replace with ${replacement}` : "Remove node";
+      }
       default:
         return null;
     }
@@ -213,6 +222,36 @@ export function ValidationPanel() {
         setDirty(true);
         commitState("Use default biome environment");
         return;
+      case "legacy-node": {
+        if (!diagnostic.nodeId) return;
+        const typeKey = typeof diagnostic.meta?.legacyTypeKey === "string" ? diagnostic.meta.legacyTypeKey : null;
+        const replacement = typeKey ? getLegacyReplacement(typeKey) : null;
+        if (replacement) {
+          // Swap the node type in-place, preserving position and edges
+          setNodes(
+            nodes.map((n) => {
+              if (n.id !== diagnostic.nodeId) return n;
+              const data = n.data as Record<string, unknown>;
+              // The bare type lives in data.type; node.type has the prefixed key
+              // For prefixed keys (e.g. "Curve:Blend") we update both
+              const newBareType = replacement.includes(":") ? replacement.split(":")[1] : replacement;
+              const newNodeType = replacement;
+              return {
+                ...n,
+                type: newNodeType,
+                data: { ...data, type: newBareType },
+              };
+            }),
+          );
+          setDirty(true);
+          commitState(`Replace legacy ${typeKey} with ${replacement}`);
+        } else {
+          removeNode(diagnostic.nodeId);
+          setDirty(true);
+          commitState(`Remove legacy node ${typeKey ?? diagnostic.nodeId}`);
+        }
+        return;
+      }
       default:
         return;
     }
@@ -248,12 +287,22 @@ export function ValidationPanel() {
     counts.info > 0 && `${counts.info} info`,
   ].filter(Boolean);
 
+  const legacyDiagnostics = diagnostics.filter((d) => d.code === "legacy-node");
+
+  function handleRemoveAllLegacy() {
+    const ids = legacyDiagnostics.map((d) => d.nodeId).filter((id): id is string => id !== null);
+    if (ids.length === 0) return;
+    removeNodes(ids);
+    setDirty(true);
+    commitState(`Remove ${ids.length} legacy node${ids.length > 1 ? "s" : ""}`);
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Summary header */}
       <div className="shrink-0 px-3 py-2 border-b border-tn-border text-[11px] text-tn-text-muted flex flex-col gap-1">
         <div>{summaryParts.join(", ")}</div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="rounded border border-tn-border bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wide text-tn-text-muted">
             {assetValidationBadge.label}
           </span>
@@ -263,6 +312,15 @@ export function ValidationPanel() {
             </span>
           )}
         </div>
+        {legacyDiagnostics.length > 0 && (
+          <button
+            type="button"
+            onClick={handleRemoveAllLegacy}
+            className="self-start rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-300 hover:bg-amber-500/20 transition-colors"
+          >
+            Remove all {legacyDiagnostics.length} legacy node{legacyDiagnostics.length > 1 ? "s" : ""}
+          </button>
+        )}
       </div>
 
       {/* Grouped diagnostics */}

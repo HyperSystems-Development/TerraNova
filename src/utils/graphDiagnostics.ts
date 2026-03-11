@@ -84,7 +84,8 @@ export type GraphDiagnosticCode =
   | "biome-tint-missing-provider"
   | "biome-tint-missing-ref-name"
   | "biome-tint-unknown-ref"
-  | "biome-name-missing";
+  | "biome-name-missing"
+  | "legacy-node";
 
 export interface GraphDiagnostic {
   nodeId: string | null;
@@ -262,6 +263,8 @@ export function analyzeGraph(
         nodeId: node.id,
         message: `${type}: legacy type not present in the Hytale pre-release API`,
         severity: "warning",
+        code: "legacy-node",
+        meta: { legacyTypeKey: nodeTypeKey },
       });
     }
   }

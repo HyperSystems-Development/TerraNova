@@ -55,3 +55,49 @@ export const LEGACY_TYPE_KEYS: ReadonlySet<string> = new Set([
 export function isLegacyTypeKey(typeKey: string): boolean {
   return LEGACY_TYPE_KEYS.has(typeKey);
 }
+
+/**
+ * Maps a legacy type key to its closest modern replacement, where a safe 1:1
+ * substitution exists. Returns null when no direct replacement is available
+ * (the user must manually recreate the node with the correct modern type).
+ *
+ * Replacement keys use the same full-key format as the legacy keys.
+ */
+export const LEGACY_TYPE_REPLACEMENTS: ReadonlyMap<string, string> = new Map([
+  // Density — direct functional equivalents
+  ["SimplexRidgeNoise2D", "SimplexNoise2D"],
+  ["SimplexRidgeNoise3D", "SimplexNoise3D"],
+  ["FractalNoise2D",      "SimplexNoise2D"],
+  ["FractalNoise3D",      "SimplexNoise3D"],
+  ["DoubleNormalizer",    "Normalizer"],
+  ["AverageFunction",     "Mix"],
+  ["Interpolate",         "Mix"],
+  ["GradientDensity",     "Gradient"],
+  ["YGradient",           "Gradient"],
+  ["DistanceFromOrigin",  "Distance"],
+  ["DistanceFromPoint",   "Distance"],
+  ["DistanceFromAxis",    "Distance"],
+  ["AngleFromOrigin",     "Angle"],
+  ["AngleFromPoint",      "Angle"],
+  ["FlatCache",           "Cache2D"],
+  ["Zero",                "Slider"],
+  ["One",                 "Slider"],
+  ["Amplitude",           "AmplitudeConstant"],
+  // Curves — direct functional equivalents
+  ["Curve:Blend",         "Curve:Sum"],
+  ["Curve:Cache",         "Curve:Manual"],
+  ["Curve:Noise",         "Curve:Manual"],
+  ["Curve:StepFunction",  "Curve:Manual"],
+  ["Curve:Threshold",     "Curve:Manual"],
+  ["Curve:SmoothStep",    "Curve:Manual"],
+  ["Curve:Power",         "Curve:Manual"],
+  ["Curve:LinearRemap",   "Curve:Manual"],
+]);
+
+/**
+ * Returns the modern replacement type key for a legacy type key, or null if
+ * no direct replacement is available.
+ */
+export function getLegacyReplacement(typeKey: string): string | null {
+  return LEGACY_TYPE_REPLACEMENTS.get(typeKey) ?? null;
+}
