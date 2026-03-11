@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildDelimiterTypeOptions,
   deriveServerRootFromWorkspacePath,
   extractWorkspaceEnvironmentTypeHints,
+  getAdvancedDelimiterTypeDetails,
   validateEnvironmentDelimiters,
 } from "../PropertyPanel";
 
@@ -136,5 +138,26 @@ describe("validateEnvironmentDelimiters", () => {
     expect(serverRoot).toBe(
       "C:\\Users\\wolft\\AppData\\Roaming\\Hytale\\install\\pre-release\\package\\game\\latest\\Server",
     );
+  });
+
+  it("builds type options from workspace hints with advanced read-only entries", () => {
+    const options = buildDelimiterTypeOptions(["Constant", "DensityDelimited", "Imported"]);
+    expect(options.map((option) => option.value)).toEqual([
+      "Constant",
+      "Default",
+      "Imported",
+      "DensityDelimited",
+    ]);
+
+    const advanced = options.find((option) => option.value === "DensityDelimited");
+    expect(advanced?.supported).toBe(false);
+    expect(advanced?.label).toContain("advanced/read-only");
+  });
+
+  it("provides advanced type detail copy for DensityDelimited", () => {
+    const details = getAdvancedDelimiterTypeDetails("DensityDelimited");
+    expect(details.label).toBe("DensityDelimited");
+    expect(details.description.toLowerCase()).toContain("nested density");
+    expect(details.guidance.toLowerCase()).toContain("graph");
   });
 });

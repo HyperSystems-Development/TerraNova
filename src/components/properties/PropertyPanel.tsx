@@ -92,6 +92,18 @@ interface DelimiterEnvironmentReference {
   rawType: string | null;
 }
 
+interface DelimiterTypeOption {
+  value: string;
+  label: string;
+  supported: boolean;
+}
+
+interface AdvancedDelimiterTypeDetails {
+  label: string;
+  description: string;
+  guidance: string;
+}
+
 const DELIMITER_ENVIRONMENT_PROVIDER_TYPES: DelimiterEnvironmentProviderType[] = [
   "Constant",
   "Default",
@@ -152,6 +164,70 @@ function isDelimiterEnvironmentProviderType(
   value: string,
 ): value is DelimiterEnvironmentProviderType {
   return DELIMITER_ENVIRONMENT_PROVIDER_TYPES.includes(value as DelimiterEnvironmentProviderType);
+}
+
+function normalizeTypeHint(value: string): string {
+  return value.trim();
+}
+
+export function buildDelimiterTypeOptions(typeHints: string[]): DelimiterTypeOption[] {
+  const options: DelimiterTypeOption[] = [];
+  const seen = new Set<string>();
+  const pushOption = (value: string, supported: boolean, label?: string) => {
+    const normalizedValue = normalizeTypeHint(value);
+    if (!normalizedValue) return;
+    const key = normalizedValue.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    options.push({
+      value: normalizedValue,
+      supported,
+      label: label ?? normalizedValue,
+    });
+  };
+
+  for (const type of DELIMITER_ENVIRONMENT_PROVIDER_TYPES) {
+    pushOption(type, true);
+  }
+
+  for (const hint of typeHints) {
+    const normalizedHint = normalizeTypeHint(hint);
+    if (!normalizedHint) continue;
+    if (isDelimiterEnvironmentProviderType(normalizedHint)) continue;
+    pushOption(normalizedHint, false, `${normalizedHint} (advanced/read-only)`);
+  }
+
+  return options;
+}
+
+export function getAdvancedDelimiterTypeDetails(type: string): AdvancedDelimiterTypeDetails {
+  const normalized = type.trim().toLowerCase();
+  if (normalized === "densitydelimited") {
+    return {
+      label: "DensityDelimited",
+      description: "Chooses an environment through its own nested density + delimiters graph.",
+      guidance: "Edit this provider in the full EnvironmentProvider node graph; the table only supports direct Constant/Default/Imported refs.",
+    };
+  }
+  if (normalized === "biome") {
+    return {
+      label: "Biome",
+      description: "Resolves environment from biome context rather than a direct environment asset reference.",
+      guidance: "Edit this provider in the graph editor where biome context inputs are available.",
+    };
+  }
+  if (normalized === "exported") {
+    return {
+      label: "Exported",
+      description: "References a named exported environment provider node.",
+      guidance: "Edit the exported provider target in the graph editor, then reference that export.",
+    };
+  }
+  return {
+    label: type,
+    description: "This environment provider type is available in workspace schema but not editable in the inline delimiter table.",
+    guidance: "Use the node graph editor for full configuration of this advanced provider.",
+  };
 }
 
 function readDelimiterEnvironmentReference(
@@ -1376,6 +1452,18 @@ function EnvironmentDelimitersField({
     existing.push(issue);
     rowIssueMap.set(issue.delimiterIndex, existing);
   }
+  const advancedSelections = delimiters
+    .map((delimiter, index) => {
+      const reference = readDelimiterEnvironmentReference(delimiter);
+      const rawType = reference.rawType;
+      if (!rawType || isDelimiterEnvironmentProviderType(rawType)) return null;
+      return {
+        index,
+        type: rawType,
+        details: getAdvancedDelimiterTypeDetails(rawType),
+      };
+    })
+    .filter((item): item is { index: number; type: string; details: AdvancedDelimiterTypeDetails } => item !== null);
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -1413,13 +1501,21 @@ function EnvironmentDelimitersField({
             const environmentReference = readDelimiterEnvironmentReference(delimiter);
             const environmentType = environmentReference.providerType;
             const environmentName = environmentReference.name;
+            const rawType = environmentReference.rawType;
+            const hasAdvancedRawType = !!(rawType && !isDelimiterEnvironmentProviderType(rawType));
+            const selectedTypeValue = hasAdvancedRawType ? rawType! : environmentType;
+            const typeOptions = buildDelimiterTypeOptions(
+              hasAdvancedRawType && rawType
+                ? [...typeHints, rawType]
+                : typeHints,
+            );
             const rowIssues = rowIssueMap.get(index) ?? [];
             const hasRowError = rowIssues.some((issue) => issue.severity === "error");
             const hasRowWarning = rowIssues.some((issue) => issue.severity === "warning");
             const hasUnknownEnvironment = rowIssues.some((issue) => issue.kind === "unknown-environment");
             const hasMissingEnvironment = rowIssues.some((issue) => issue.kind === "missing-environment");
             const hasUnsupportedType = rowIssues.some((issue) => issue.kind === "unsupported-environment-type");
-            const showEnvironmentNameInput = environmentType !== "Default";
+            const showEnvironmentNameInput = !hasAdvancedRawType && environmentType !== "Default";
             return (
               <div
                 key={index}
@@ -1464,12 +1560,10 @@ function EnvironmentDelimitersField({
                   }`}
                 />
                 <select
-                  value={environmentType}
+                  value={selectedTypeValue}
                   onChange={(event) => {
-                    const nextDelimiter = writeDelimiterEnvironmentType(
-                      delimiter,
-                      event.target.value as DelimiterEnvironmentProviderType,
-                    );
+                    if (!isDelimiterEnvironmentProviderType(event.target.value)) return;
+                    const nextDelimiter = writeDelimiterEnvironmentType(delimiter, event.target.value);
                     const nextDelimiters = delimiters.map((item, itemIndex) => (
                       itemIndex === index ? nextDelimiter : item
                     ));
@@ -1480,9 +1574,11 @@ function EnvironmentDelimitersField({
                     hasUnsupportedType ? "border-amber-400/70" : "border-tn-border"
                   }`}
                 >
-                  <option value="Constant">Constant</option>
-                  <option value="Default">Default</option>
-                  <option value="Imported">Imported</option>
+                  {typeOptions.map((option) => (
+                    <option key={option.value} value={option.value} disabled={!option.supported}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
                 {showEnvironmentNameInput ? (
                   <input
@@ -1505,9 +1601,15 @@ function EnvironmentDelimitersField({
                     }`}
                   />
                 ) : (
-                  <span className="px-1.5 py-1 text-[10px] text-tn-text-muted border border-tn-border/60 rounded bg-tn-panel/30">
-                    Uses biome default
-                  </span>
+                  hasAdvancedRawType ? (
+                    <span className="px-1.5 py-1 text-[10px] text-amber-300 border border-amber-400/50 rounded bg-amber-500/10">
+                      Advanced provider type is read-only.
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-1 text-[10px] text-tn-text-muted border border-tn-border/60 rounded bg-tn-panel/30">
+                      Uses biome default
+                    </span>
+                  )
                 )}
                 <button
                   className="text-[11px] text-red-400 hover:text-red-300 px-1 py-1 text-right"
@@ -1521,6 +1623,23 @@ function EnvironmentDelimitersField({
           })}
         </div>
       </div>
+
+      {advancedSelections.length > 0 && (
+        <div className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 flex flex-col gap-1">
+          <span className="text-[10px] uppercase tracking-wide text-amber-200 font-semibold">
+            Advanced Type Details
+          </span>
+          {advancedSelections.map((selection) => (
+            <div key={`${selection.index}-${selection.type}`} className="text-[10px] leading-snug">
+              <span className="text-amber-100 font-medium">
+                Delimiter [{selection.index}] - {selection.details.label}
+              </span>
+              <p className="text-amber-200/90">{selection.details.description}</p>
+              <p className="text-amber-200/80">{selection.details.guidance}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {lookupStatus === "loading" && (
         <p className="text-[10px] text-tn-text-muted">Loading environment names from Server/Environments...</p>
