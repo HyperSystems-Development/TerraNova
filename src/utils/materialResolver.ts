@@ -2,228 +2,268 @@ import { SOLID_THRESHOLD, type VoxelMaterial } from "./voxelExtractor";
 import { HASH_PRIME_A, HASH_PRIME_B, HASH_PRIME_E } from "@/constants";
 
 /* ── Hytale material color map ───────────────────────────────────── */
+// IDs sourced from actual HytaleGenerator biome/assignment JSON files.
 
 const HYTALE_MATERIAL_COLORS: Record<string, string> = {
+  // ── Special ──
+  Empty: "#00000000",
+  Editor_Anchor: "#ff00ff",
+
   // ── Rock / Stone ──
-  Stone: "#909090",
   Rock_Stone: "#909090",
-  Rock_Granite: "#9e8b7e",
-  Rock_Slate: "#5c5c6e",
-  Rock_Limestone: "#c4b99a",
+  Rock_Stone_Cobble: "#7a7a7a",
+  Rock_Stone_Mossy: "#6a7a5a",
+  Rock_Stone_Stalactite_Large: "#888888",
+  Rock_Stone_Stalactite_Small: "#888888",
   Rock_Basalt: "#3d3d3d",
-  Rock_Sandstone: "#d2b48c",
-  Rock_Magma_Cooled: "#4a2020",
-  Marble: "#e0ddd5",
-  Quartzite: "#d6cec0",
-  Cobblestone: "#7a7a7a",
-  Rock_Andesite: "#888890",
-  Rock_Diorite: "#c8c8c0",
-  Rock_Obsidian: "#1a0a2e",
-  Rock_Pumice: "#b8a898",
+  Rock_Bedrock: "#2a2a2a",
+  Rock_Calcite: "#e8e0d0",
+  Rock_Calcite_Cobble: "#d8d0c0",
   Rock_Chalk: "#f0ede0",
-  Rock_Flint: "#666670",
-  // ── Soil / Earth ──
-  Dirt: "#a0724a",
-  Dirt_Dark: "#6e4e30",
-  Soil_Dirt: "#a0724a",
-  Soil_Mud: "#6b4423",
-  Soil_Clay: "#b87333",
-  Soil_Sand: "#c2b280",
-  Soil_Gravel: "#a0a0a0",
-  Soil_Moss: "#4a7a4a",
-  Tilled_Soil: "#8a6035",
-  Soil_Peat: "#5a3e28",
-  Soil_Loam: "#8c6040",
-  // ── Sand / Desert ──
-  Sand: "#d4c590",
-  Sand_White: "#e8dfc8",
-  Sand_Red: "#c8704a",
-  Sand_Dark: "#b09060",
-  // ── Gravel ──
-  Gravel: "#a0a0a0",
-  Gravel_Dark: "#787878",
-  // ── Surface / Grass ──
-  Grass: "#5cb85c",
-  Soil_Grass: "#5cb85c",
-  GrassDeep: "#3e8a3e",
-  GrassDeepSunny: "#6ec86e",
-  Grass_Dry: "#9aad52",
-  Grass_Dead: "#8a8a50",
-  Grass_Swamp: "#4a7040",
-  Grass_Snow: "#d8dce8",
-  // ── Snow / Ice ──
-  Snow: "#e8e8f0",
-  Ice: "#b0e0e6",
-  Ice_Blue: "#88c8e0",
-  Packed_Ice: "#9dcad4",
-  Snow_Deep: "#dcdce8",
-  Frost: "#d0e8f0",
-  // ── Wood / Organic ──
-  Wood: "#8b6b4a",
-  Lightwoods: "#c4a870",
-  Softwoods: "#a68b5b",
-  Wood_Dark: "#5a3e28",
-  Wood_Birch: "#d4c8a0",
-  Wood_Oak: "#9a7850",
-  Wood_Pine: "#7a5c38",
-  Wood_Jungle: "#6a8a38",
-  Bark: "#6a5038",
-  Planks: "#c4a870",
-  // ── Leaves / Vegetation ──
-  Leaves: "#3e8a3e",
-  Leaves_Oak: "#4a9a4a",
-  Leaves_Birch: "#8ab840",
-  Leaves_Pine: "#2a6a2a",
-  Leaves_Jungle: "#1a8a28",
-  Leaves_Autumn_Red: "#c04830",
-  Leaves_Autumn_Orange: "#d07820",
-  Leaves_Dead: "#7a6a40",
-  // ── Fungi / Swamp ──
-  Mushroom_Cap: "#c0392b",
-  Mushroom_White: "#e8e0d0",
-  Mycelium: "#7a5a70",
-  Peat_Bog: "#4a3820",
-  // ── Zone 4 / Volcanic ──
-  Ash: "#c0b8b0",
-  Ash_Dark: "#888078",
-  Magma: "#d03000",
-  Magma_Rock: "#5a2810",
-  Lava: "#ff4500",
-  Lava_Source: "#ff4500",
-  Scorched_Stone: "#3a2828",
-  Ember: "#d86020",
-  // ── Zone 3 / Arctic ──
-  Tundra: "#8a9088",
-  Permafrost: "#a8b0b8",
-  Lichen: "#8aaa70",
-  // ── Zone 2 / Desert ──
-  Sandstone_Red: "#c87850",
-  Terracotta: "#c07040",
-  Caliche: "#d0b888",
-  Duricrust: "#b89060",
-  // ── Crystals / Ores ──
-  Crystal: "#88ccee",
-  Crystal_Blue: "#4488dd",
-  Crystal_Purple: "#aa44cc",
-  Crystal_Red: "#dd3344",
-  Ore_Coal: "#3a3a3a",
-  Ore_Iron: "#b8916e",
-  Ore_Gold: "#ffd700",
-  Ore_Copper: "#b87333",
-  // ── Fluids ──
-  Water: "#4169e1",
-  Water_Murky: "#2a5a40",
-  Water_Hot: "#4090b0",
-  Fluid_Slime_Red: "#c0392b",
-  Fluid_Slime_Green: "#40a840",
-  // ── Built / Constructed ──
-  Bedrock: "#2a2a2a",
-  Brick: "#8b4513",
-  Stone_Brick: "#7a7a80",
-  Mossy_Stone: "#607060",
-
-  // ── Canonical Soil variants (Soils.json) ──
-  Soil_Dirt_Burnt: "#6b4020",
-  Soil_Dirt_Cold: "#8a7a60",
-  Soil_Dirt_Dry: "#a89060",
-  Soil_Dirt_Poisoned: "#6a7820",
-  Soil_Grass_Burnt: "#7a6030",
-  Soil_Grass_Cold: "#9ab8a0",
-  Soil_Grass_Deep: "#3a7a30",
-  Soil_Grass_Dry: "#8aad42",
-  Soil_Grass_Full: "#5ab835",
-  Soil_Grass_Sunny: "#6ec830",
-  Soil_Grass_Wet: "#3a8c28",
-
-  // ── Canonical Rock variants (Rock.json) ──
-  Rock_Stone_Mossy: "#707868",
-  Rock_Shale: "#78808c",
-  Rock_Quartzite: "#d0c8c0",
+  Rock_Ice: "#c8e8f8",
+  Rock_Ice_Permafrost: "#b0d8f0",
+  Rock_Magma_Cooled: "#4a2020",
+  Rock_Marble: "#e0ddd5",
+  Rock_Marble_Stalactite_Large: "#dddad2",
+  Rock_Marble_Stalactite_Small: "#dddad2",
+  Rock_Peach_Cobble: "#d4a880",
+  Rock_Quartzite: "#d6cec0",
+  Rock_Quartzite_Stalactite_Large: "#d0c8b8",
+  Rock_Quartzite_Stalactite_Small: "#d0c8b8",
+  Rock_Salt: "#f0ece0",
+  Rock_Sandstone: "#d2b48c",
+  Rock_Sandstone_Cobble_Half: "#c8aa82",
   Rock_Sandstone_Red: "#c87850",
-  Rock_Sandstone_White: "#e0d8c0",
-  Rock_Volcanic: "#2a2a38",
-  Rock_Marble: "#e8e4e0",
-  Rock_Calcite: "#d8d0c0",
-  Rock_Aqua: "#80a8b0",
-  Rock_Salt: "#f0ece8",
-  Rock_Bedrock: "#303030",
+  Rock_Sandstone_White: "#e8dfc8",
+  Rock_Shale: "#6a6878",
+  Rock_Slate: "#5c5c6e",
+  Rock_Volcanic: "#3a2828",
+  Rock_Volcanic_Brick_Smooth: "#4a3030",
+  Rock_Volcanic_Cracked_Lava: "#5a2010",
+  Rock_Crystal_Purple_Block: "#8060c0",
+  Rock_Crystal_Purple_Large: "#9070d0",
+  Rock_Crystal_Purple_Medium: "#8868c8",
+  Rock_Crystal_Red: "#c04040",
+  Rock_Crystal_Red_Block: "#c84848",
+  Rock_Crystal_Red_Small: "#c04040",
+  Rock_Crystal_Yellow_Block: "#c8b820",
+  Rock_Lime_Cobble: "#b0c890",
 
-  // ── Canonical Gravel/Pebble variants (Gravel.json) ──
-  Soil_Gravel_Mossy: "#908878",
-  Soil_Gravel_Sand: "#c0b090",
-  Soil_Gravel_Sand_Red: "#b07050",
-  Soil_Gravel_Sand_White: "#d0c8b0",
+  // ── Soil / Earth ──
+  Soil_Ash: "#c0b8a8",
+  Soil_Clay: "#b87333",
+  Soil_Clay_Black: "#2e2820",
+  Soil_Clay_Grey: "#888078",
+  Soil_Clay_Orange: "#c07840",
+  Soil_Clay_Pink: "#d8a898",
+  Soil_Clay_Smooth_Black: "#302820",
+  Soil_Clay_White: "#e0d8c8",
+  Soil_Clay_Yellow: "#c8a840",
+  Soil_Dirt: "#a0724a",
+  Soil_Dirt_Burnt: "#6e4a30",
+  Soil_Dirt_Cold: "#7a6858",
+  Soil_Dirt_Dry: "#b8906a",
+  Soil_Dirt_Poisoned: "#6a7830",
+  Soil_Grass: "#5cb85c",
+  Soil_Grass_Burnt: "#7a6030",
+  Soil_Grass_Cold: "#809870",
+  Soil_Grass_Deep: "#3e8a3e",
+  Soil_Grass_Dry: "#9aad52",
+  Soil_Grass_Full: "#48c048",
+  Soil_Grass_Pathway: "#8a9868",
+  Soil_Grass_Sunny: "#6ec86e",
+  Soil_Gravel: "#a0a0a0",
+  Soil_Gravel_Sand: "#c0b080",
+  Soil_Gravel_Sand_White: "#d8d0b8",
+  Soil_Hive: "#c8a840",
+  Soil_Hive_Brick: "#b89830",
+  Soil_Hive_Corrupted: "#807020",
+  Soil_Hive_Corrupted_Brick: "#706018",
+  Soil_Leaves: "#7a9040",
+  Soil_Mud: "#6b4423",
+  Soil_Mud_Dry: "#8a6840",
+  Soil_Needles: "#8a7050",
+  Soil_Pathway: "#988060",
+  Soil_Peat: "#5a3e28",
   Soil_Pebbles: "#909090",
-  Soil_Pebbles_Frozen: "#a0aab8",
+  Soil_Pebbles_Frozen: "#a0b0c0",
+  Soil_Roots_Poisoned: "#5a7030",
+  Soil_Sand: "#c2b280",
+  Soil_Sand_Ashen: "#c0b8a0",
+  Soil_Sand_White: "#e8dfc8",
+  Soil_Snow: "#e8eef0",
 
-  // ── Canonical Snow variants (Snow.json) ──
-  Soil_Snow: "#e8eef4",
-  Soil_Snow_Half: "#d0d8e0",
+  // ── Plant / Vegetation ──
+  Plant_Barnacles: "#7a8878",
+  Plant_Bramble_Dead_Lavathorn: "#5a3020",
+  Plant_Bramble_Dead_Twisted: "#5a4030",
+  Plant_Bramble_Dry_Twisted: "#7a6040",
+  Plant_Bramble_Winter: "#888888",
+  Plant_Bush: "#4a8a30",
+  Plant_Bush_Arid: "#9a9040",
+  Plant_Bush_Arid_Sharp: "#a09840",
+  Plant_Bush_Bramble: "#506030",
+  Plant_Bush_Dead: "#786848",
+  Plant_Bush_Dead_Tall: "#786848",
+  Plant_Bush_Dead_Twisted: "#706040",
+  Plant_Bush_Green: "#408030",
+  Plant_Bush_Hanging: "#4a9038",
+  Plant_Bush_Jungle: "#388028",
+  Plant_Bush_Lush: "#3a9030",
+  Plant_Bush_Winter_Sharp: "#a0a8a0",
+  Plant_Bush_Winter_Snow: "#d0d8d0",
+  Plant_Coral_Block_Green: "#40b080",
+  Plant_Coral_Bush_White: "#e0d8c0",
+  Plant_Crop_Health2: "#c04848",
+  Plant_Crop_Mushroom_Cap_Red: "#c03028",
+  Plant_Crop_Mushroom_Flatcap_Green: "#408040",
+  Plant_Crop_Mushroom_Glowing_Blue: "#2060c0",
+  Plant_Crop_Mushroom_Glowing_Green: "#40a040",
+  Plant_Crop_Mushroom_Glowing_Purple: "#8040c0",
+  Plant_Crop_Mushroom_Glowing_Red: "#c02020",
+  Plant_Crop_Mushroom_Glowing_Violet: "#6030a0",
+  Plant_Crop_Mushroom_Shelve_White: "#d8d0c8",
+  Plant_Crop_Stamina2: "#4080c0",
+  Plant_Fern: "#4a9040",
+  Plant_Fern_Forest: "#3a8030",
+  Plant_Fern_Jungle: "#308028",
+  Plant_Fern_Tall: "#489038",
+  Plant_Fern_Wet_Big: "#388030",
+  Plant_Fern_Winter: "#788070",
+  Plant_Flower_Bushy_Green: "#409840",
+  Plant_Flower_Bushy_Orange: "#e07830",
+  Plant_Flower_Bushy_Poisoned: "#90a830",
+  Plant_Flower_Common_Blue: "#4060c0",
+  Plant_Flower_Common_Cyan2: "#30a0c0",
+  Plant_Flower_Common_Red2: "#c03030",
+  Plant_Flower_Common_Violet: "#8040a0",
+  Plant_Flower_Common_White2: "#e8e0d8",
+  Plant_Flower_Common_Yellow2: "#e0c020",
+  Plant_Flower_Flax_Blue: "#6080c0",
+  Plant_Flower_Flax_Orange: "#e08030",
+  Plant_Flower_Hemlock: "#e0e8d0",
+  Plant_Flower_Orchid_Purple: "#b060c0",
+  Plant_Flower_Tall_Pink: "#e07898",
+  Plant_Flower_Tall_Purple: "#9050b0",
+  Plant_Flower_Tall_Red: "#c03030",
+  Plant_Flower_Water_Green: "#30a060",
+  Plant_Fruit_Coconut: "#c09850",
+  Plant_Grass_Arid: "#b0a850",
+  Plant_Grass_Arid_Short: "#a8a048",
+  Plant_Grass_Arid_Tall: "#b8b058",
+  Plant_Grass_Dry: "#a0a040",
+  Plant_Grass_Dry_Tall: "#a8a848",
+  Plant_Grass_Gnarled: "#889040",
+  Plant_Grass_Jungle: "#40a030",
+  Plant_Grass_Lush_Short: "#50b040",
+  Plant_Grass_Poisoned_Short: "#7a9830",
+  Plant_Grass_Rocky: "#909870",
+  Plant_Grass_Sharp: "#a0b840",
+  Plant_Grass_Sharp_Tall: "#98b038",
+  Plant_Grass_Sharp_Wild: "#a0a838",
+  Plant_Grass_Wet: "#488040",
+  Plant_Grass_Wet_Tall: "#409838",
+  Plant_Grass_Winter: "#909888",
+  Plant_Grass_Winter_Short: "#888878",
+  Plant_Grass_Winter_Tall: "#989888",
+  Plant_Leaves_Autumn_Floor: "#c07830",
+  Plant_Leaves_Palm_Oasis: "#40a838",
+  Plant_Leaves_Poisoned_Floor: "#889030",
+  Plant_Moss_Block_Blue: "#3060a0",
+  Plant_Moss_Block_Green: "#408040",
+  Plant_Moss_Blue: "#4070a8",
+  Plant_Moss_Green_Dark: "#306030",
+  Plant_Moss_Rug_Blue: "#3868a0",
+  Plant_Moss_Rug_Lime: "#70a030",
+  Plant_Moss_Short_Blue: "#3878b0",
+  Plant_Moss_Short_Green_Dark: "#387038",
+  Plant_Reeds_Arid: "#c0b058",
+  Plant_Reeds_Marsh: "#708040",
+  Plant_Reeds_Water: "#508050",
+  Plant_Reeds_Wet: "#608848",
+  Plant_Reeds_Winter: "#9898a0",
+  Plant_Roots_Cave: "#5a4030",
+  Plant_Seaweed_Dead_Ghostly: "#b0c0b0",
+  Plant_Seaweed_Grass: "#308060",
+  Plant_Seaweed_Grass_Bulbs: "#289058",
+  Plant_Seaweed_Grass_Stack: "#309060",
+  Plant_Seaweed_Grass_Tall: "#288858",
+  Plant_Vine: "#508038",
+  Plant_Vine_Rug: "#489030",
+  Plant_Vine_Thick_Roots: "#486838",
+  Plant_Vine_Thick_Vertical: "#507838",
+  Plant_Vine_Wall: "#508040",
+  Plant_Vine_Wall_Dead: "#786848",
 
-  // ── Canonical Tree Leaves (TreeLeaves.json) ──
-  Plant_Leaves_Oak: "#5a9e28",
-  Plant_Leaves_Birch: "#9ab840",
-  Plant_Leaves_Fir: "#2a6a28",
-  Plant_Leaves_Fir_Snow: "#c8d8e0",
-  Plant_Leaves_Fir_Red: "#8a3020",
-  Plant_Leaves_Autumn: "#c87828",
-  Plant_Leaves_Autumn_Floor: "#a05818",
-  Plant_Leaves_Dead: "#786840",
-  Plant_Leaves_Dry: "#a09040",
-  Plant_Leaves_Jungle: "#38821a",
-  Plant_Leaves_Palm: "#6aaa20",
-  Plant_Leaves_Palm_Arid: "#8a9830",
-  Plant_Leaves_Palm_Oasis: "#50b020",
-  Plant_Leaves_Redwood: "#8a3828",
-  Plant_Leaves_Azure: "#2860c0",
-  Plant_Leaves_Crystal: "#80d8f0",
-  Plant_Leaves_Fire: "#e85020",
-  Plant_Leaves_Burnt: "#4a3020",
-  Plant_Leaves_Snow: "#d0dce8",
-  Plant_Leaves_Petrified: "#988878",
-  Plant_Leaves_Wisteria_Wild: "#9050c0",
-  Plant_Leaves_Windwillow: "#80c860",
-  Plant_Leaves_Stormbark: "#606870",
-  Plant_Leaves_Spiral: "#70a828",
-  Plant_Leaves_Ash: "#708070",
-  Plant_Leaves_Aspen: "#c0a030",
-  Plant_Leaves_Amber: "#c08020",
-  Plant_Leaves_Bamboo: "#88c030",
-  Plant_Leaves_Banyan: "#2e7818",
-  Plant_Leaves_Beech: "#7aaa28",
-  Plant_Leaves_Bottle: "#7ab828",
-  Plant_Leaves_Bramble: "#805028",
-  Plant_Leaves_Camphor: "#508040",
-  Plant_Leaves_Cedar: "#3a7028",
-  Plant_Leaves_Gumboab: "#a89020",
-  Plant_Leaves_Goldentree: "#d0aa00",
-  Plant_Leaves_GhostForest: "#c0d0e0",
-  Plant_Leaves_Fig_Blue: "#4060a0",
-  Plant_Leaves_Maple: "#c84020",
-  Plant_Leaves_Poisoned: "#68901a",
-  Plant_Leaves_Poisoned_Floor: "#5a8015",
+  // ── Rubble ──
+  Rubble_Calcite_Medium: "#d0c8b8",
+  Rubble_Ice: "#b8d8f0",
+  Rubble_Marble: "#d8d5cc",
+  Rubble_Marble_Medium: "#d0cdc4",
+  Rubble_Sandstone: "#c8a878",
+  Rubble_Sandstone_Red: "#b87050",
+  Rubble_Sandstone_Red_Medium: "#b06848",
+  Rubble_Shale: "#686678",
+  Rubble_Slate: "#585870",
+  Rubble_Stone: "#888888",
+  Rubble_Stone_Medium: "#808080",
+  Rubble_Volcanic: "#383028",
 
-  // ── Canonical Ore variants ──
+  // ── Wood ──
+  Wood_Ash_Roots: "#a0a098",
+  Wood_Cedar_Roots: "#7a5840",
+  Wood_Drywood_Planks_Half: "#c0a870",
+  Wood_Drywood_Stairs: "#b8a068",
+  Wood_Fir_Roots: "#6a5038",
+  Wood_Gumboab_Roots: "#8a6840",
+  Wood_Gumboab_Trunk: "#9a7848",
+  Wood_Gumboab_Trunk_Full: "#9a7848",
+  Wood_Jungle_Trunk: "#6a5030",
+  Wood_Jungle_Trunk_Full: "#6a5030",
+  Wood_Maple_Trunk: "#8a6840",
+  Wood_Maple_Trunk_Full: "#8a6840",
+  Wood_Petrified_Trunk: "#807870",
+  Wood_Petrified_Trunk_Full: "#807870",
+  Wood_Redwood_Roots: "#8a4828",
+  Wood_Sticks: "#a08050",
+  Wood_Dry_Roots: "#9a8860",
+
+  // ── Ore ──
+  Ore_Cobalt_Basalt: "#3050a0",
+  Ore_Cobalt_Stone: "#3858b0",
+  Ore_Copper_Basalt: "#c07040",
+  Ore_Copper_Stone: "#b86840",
+  Ore_Gold_Stone: "#d0a820",
+  Ore_Iron_Basalt: "#8a6050",
+  Ore_Iron_Sandstone: "#a07858",
   Ore_Iron_Stone: "#8a7060",
-  Ore_Iron_Basalt: "#707060",
-  Ore_Iron_Shale: "#8a7860",
-  Ore_Iron_Slate: "#707880",
-  Ore_Copper_Stone: "#b06040",
-  Ore_Copper_Sandstone: "#b07840",
-  Ore_Gold_Stone: "#c8a020",
-  Ore_Gold_Basalt: "#c8a030",
-  Ore_Silver_Stone: "#b0b8c0",
-  Ore_Cobalt_Stone: "#4060a0",
-  Ore_Cobalt_Basalt: "#405898",
-  Ore_Mithril_Stone: "#6080c8",
-  Ore_Mithril_Volcanic: "#6878c0",
   Ore_Mithril_Basalt: "#5870b8",
+  Ore_Mithril_Magma: "#6878c0",
+  Ore_Mithril_Stone: "#5060a8",
   Ore_Adamantite_Stone: "#a04080",
-  Ore_Adamantite_Basalt: "#983878",
   Ore_Onyxium_Stone: "#202838",
-  Ore_Onyxium_Volcanic: "#181e30",
+  Ore_Thorium_Sandstone: "#78a030",
   Ore_Thorium_Stone: "#80c040",
-  Ore_Thorium_Basalt: "#78b838",
+
+  // ── Fluid / Water ──
+  Fluid_Lava: "#d04000",
+  Fluid_Slime: "#50a050",
+  Fluid_Water: "#3060a0",
+  Lava_Source: "#e04800",
+  Poison_Source: "#608020",
+  Water_Source: "#2858a0",
+
+  // ── Decorative ──
+  Barrier: "#ff6600",
+  Deco_Bone_Skulls: "#e0d8c0",
+  Deco_Coral_Shell_Sanddollar: "#e0c890",
+  Deco_Coral_Shell_Urchin: "#b08060",
+  Deco_Iron_Chain_Small: "#808880",
+  Deco_fire: "#e06020",
+  DivinePancakeCrumbs: "#e0c880",
+  Furniture_Dungeon_Chest_Epic: "#c09020",
+  Furniture_Scarak_Hive_Lamp: "#d0a820",
+  Furniture_Scarak_Hive_Lantern: "#c8a018",
 };
 
 /** Sorted list of all known Hytale block/material identifiers. */
@@ -432,8 +472,8 @@ export function getMaterialProperties(name: string): MaterialPBRProperties {
   // Keyword match — prefix-aware for canonical names
   if (lower.startsWith("ore_")) return { roughness: 0.4, metalness: 0.7 };
   if (lower.startsWith("plant_leaves_")) return { roughness: 0.75 };
-  if (lower.startsWith("soil_grass_")) return MATERIAL_PROPERTIES.Grass;
-  if (lower.startsWith("soil_dirt_")) return MATERIAL_PROPERTIES.Dirt;
+  if (lower.startsWith("soil_grass_")) return MATERIAL_PROPERTIES.Soil_Grass ?? MATERIAL_PROPERTIES.Soil_Dirt ?? {};
+  if (lower.startsWith("soil_dirt_")) return MATERIAL_PROPERTIES.Soil_Dirt ?? {};
   if (lower.includes("lava") || lower.includes("magma")) return MATERIAL_PROPERTIES.Lava;
   if (lower.includes("obsidian")) return MATERIAL_PROPERTIES.Rock_Obsidian;
   if (lower.includes("crystal")) return MATERIAL_PROPERTIES.Crystal;
@@ -453,9 +493,9 @@ export function getMaterialProperties(name: string): MaterialPBRProperties {
 /* ── Default fallback palette ────────────────────────────────────── */
 
 export const DEFAULT_MATERIAL_PALETTE: VoxelMaterial[] = [
-  { name: "Grass", color: "#5cb85c" },
-  { name: "Dirt", color: "#a0724a" },
-  { name: "Stone", color: "#909090" },
+  { name: "Soil_Grass", color: "#5cb85c" },
+  { name: "Soil_Dirt", color: "#a0724a" },
+  { name: "Rock_Stone", color: "#909090" },
 ];
 
 /* ── Fuzzy material name matching ────────────────────────────────── */
@@ -481,43 +521,46 @@ export function matchMaterialName(name: string): string {
   if (lower.startsWith("ore_iron_")) return HYTALE_MATERIAL_COLORS.Ore_Iron_Stone;
   if (lower.startsWith("ore_copper_")) return HYTALE_MATERIAL_COLORS.Ore_Copper_Stone;
   if (lower.startsWith("ore_gold_")) return HYTALE_MATERIAL_COLORS.Ore_Gold_Stone;
-  if (lower.startsWith("ore_silver_")) return HYTALE_MATERIAL_COLORS.Ore_Silver_Stone;
   if (lower.startsWith("ore_cobalt_")) return HYTALE_MATERIAL_COLORS.Ore_Cobalt_Stone;
   if (lower.startsWith("ore_mithril_")) return HYTALE_MATERIAL_COLORS.Ore_Mithril_Stone;
   if (lower.startsWith("ore_adamantite_")) return HYTALE_MATERIAL_COLORS.Ore_Adamantite_Stone;
   if (lower.startsWith("ore_onyxium_")) return HYTALE_MATERIAL_COLORS.Ore_Onyxium_Stone;
   if (lower.startsWith("ore_thorium_")) return HYTALE_MATERIAL_COLORS.Ore_Thorium_Stone;
-  if (lower.startsWith("plant_leaves_")) return HYTALE_MATERIAL_COLORS.Plant_Leaves_Oak;
+  if (lower.startsWith("plant_grass_")) return HYTALE_MATERIAL_COLORS.Plant_Grass_Sharp;
+  if (lower.startsWith("plant_moss_")) return HYTALE_MATERIAL_COLORS.Plant_Moss_Block_Green;
+  if (lower.startsWith("plant_fern_")) return HYTALE_MATERIAL_COLORS.Plant_Fern;
+  if (lower.startsWith("plant_bush_")) return HYTALE_MATERIAL_COLORS.Plant_Bush;
+  if (lower.startsWith("plant_vine_")) return HYTALE_MATERIAL_COLORS.Plant_Vine;
+  if (lower.startsWith("plant_reeds_")) return HYTALE_MATERIAL_COLORS.Plant_Reeds_Water;
+  if (lower.startsWith("plant_seaweed_")) return HYTALE_MATERIAL_COLORS.Plant_Seaweed_Grass;
+  if (lower.startsWith("plant_flower_")) return HYTALE_MATERIAL_COLORS.Plant_Flower_Common_Yellow2;
+  if (lower.startsWith("plant_crop_mushroom_")) return HYTALE_MATERIAL_COLORS.Plant_Crop_Mushroom_Glowing_Green;
   if (lower.startsWith("soil_grass_")) return HYTALE_MATERIAL_COLORS.Soil_Grass;
   if (lower.startsWith("soil_dirt_")) return HYTALE_MATERIAL_COLORS.Soil_Dirt;
-  if (lower.includes("lava") || lower.includes("magma")) return HYTALE_MATERIAL_COLORS.Lava;
-  if (lower.includes("obsidian")) return HYTALE_MATERIAL_COLORS.Rock_Obsidian;
+  if (lower.startsWith("soil_clay_")) return HYTALE_MATERIAL_COLORS.Soil_Clay;
+  if (lower.startsWith("rubble_")) return HYTALE_MATERIAL_COLORS.Rubble_Stone;
+  if (lower.startsWith("wood_")) return HYTALE_MATERIAL_COLORS.Wood_Maple_Trunk;
+  if (lower.includes("lava") || lower.includes("magma")) return HYTALE_MATERIAL_COLORS.Lava_Source;
   if (lower.includes("stone") || lower.includes("rock")) return HYTALE_MATERIAL_COLORS.Rock_Stone;
   if (lower.includes("basalt")) return HYTALE_MATERIAL_COLORS.Rock_Basalt;
-  if (lower.includes("granite")) return HYTALE_MATERIAL_COLORS.Rock_Granite;
   if (lower.includes("sandstone")) return HYTALE_MATERIAL_COLORS.Rock_Sandstone;
-  if (lower.includes("limestone")) return HYTALE_MATERIAL_COLORS.Rock_Limestone;
-  if (lower.includes("marble")) return HYTALE_MATERIAL_COLORS.Marble;
+  if (lower.includes("marble")) return HYTALE_MATERIAL_COLORS.Rock_Marble;
   if (lower.includes("dirt") || lower.includes("soil")) return HYTALE_MATERIAL_COLORS.Soil_Dirt;
-  if (lower.includes("peat") || lower.includes("bog")) return HYTALE_MATERIAL_COLORS.Peat_Bog;
-  if (lower.includes("grass")) return HYTALE_MATERIAL_COLORS.Grass;
-  if (lower.includes("sand")) return HYTALE_MATERIAL_COLORS.Sand;
-  if (lower.includes("snow") || lower.includes("frost")) return HYTALE_MATERIAL_COLORS.Snow;
-  if (lower.includes("ice")) return HYTALE_MATERIAL_COLORS.Ice;
+  if (lower.includes("grass")) return HYTALE_MATERIAL_COLORS.Soil_Grass;
+  if (lower.includes("sand")) return HYTALE_MATERIAL_COLORS.Soil_Sand;
+  if (lower.includes("snow")) return HYTALE_MATERIAL_COLORS.Soil_Snow;
+  if (lower.includes("ice")) return HYTALE_MATERIAL_COLORS.Rock_Ice;
   if (lower.includes("clay")) return HYTALE_MATERIAL_COLORS.Soil_Clay;
-  if (lower.includes("moss") || lower.includes("lichen")) return HYTALE_MATERIAL_COLORS.Soil_Moss;
+  if (lower.includes("moss")) return HYTALE_MATERIAL_COLORS.Plant_Moss_Block_Green;
   if (lower.includes("mud")) return HYTALE_MATERIAL_COLORS.Soil_Mud;
   if (lower.includes("gravel")) return HYTALE_MATERIAL_COLORS.Soil_Gravel;
-  if (lower.includes("ash")) return HYTALE_MATERIAL_COLORS.Ash;
-  if (lower.includes("crystal")) return HYTALE_MATERIAL_COLORS.Crystal;
-  if (lower.includes("water")) return HYTALE_MATERIAL_COLORS.Water;
-  if (lower.includes("wood") || lower.includes("log") || lower.includes("bark")) return HYTALE_MATERIAL_COLORS.Wood;
-  if (lower.includes("leaf") || lower.includes("leave")) return HYTALE_MATERIAL_COLORS.Leaves;
-  if (lower.includes("mushroom")) return HYTALE_MATERIAL_COLORS.Mushroom_Cap;
-  if (lower.includes("ore")) return HYTALE_MATERIAL_COLORS.Ore_Iron;
-  if (lower.includes("brick")) return HYTALE_MATERIAL_COLORS.Brick;
-  if (lower.includes("tundra") || lower.includes("permafrost")) return HYTALE_MATERIAL_COLORS.Tundra;
-  if (lower.includes("terracotta")) return HYTALE_MATERIAL_COLORS.Terracotta;
+  if (lower.includes("ash")) return HYTALE_MATERIAL_COLORS.Soil_Ash;
+  if (lower.includes("crystal")) return HYTALE_MATERIAL_COLORS.Rock_Crystal_Purple_Block;
+  if (lower.includes("water")) return HYTALE_MATERIAL_COLORS.Water_Source;
+  if (lower.includes("wood") || lower.includes("trunk") || lower.includes("roots")) return HYTALE_MATERIAL_COLORS.Wood_Maple_Trunk;
+  if (lower.includes("mushroom")) return HYTALE_MATERIAL_COLORS.Plant_Crop_Mushroom_Glowing_Green;
+  if (lower.includes("ore")) return HYTALE_MATERIAL_COLORS.Ore_Iron_Stone;
+  if (lower.includes("volcanic")) return HYTALE_MATERIAL_COLORS.Rock_Volcanic;
 
   return "#808080"; // fallback gray
 }
