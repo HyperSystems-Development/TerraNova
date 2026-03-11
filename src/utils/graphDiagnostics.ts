@@ -413,12 +413,19 @@ export function analyzeGraph(
     const issues = validateFields(fields, constraints);
     for (const issue of issues) {
       const isMissingImportName = type === "Imported" && issue.field === "Name";
+      const constraint = constraints[issue.field];
       diagnostics.push({
         nodeId: node.id,
         message: `${type}.${issue.field}: ${issue.message}`,
         severity: issue.severity,
         code: isMissingImportName ? "import-missing-name" : "field-constraint",
         field: issue.field,
+        meta: {
+          currentValue: fields[issue.field],
+          constraintMin: constraint?.min,
+          constraintMax: constraint?.max,
+          constraintRequired: constraint?.required,
+        },
       });
     }
   }

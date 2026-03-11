@@ -2,6 +2,7 @@ use crate::io::asset_pack::{AssetPack, DirectoryEntry};
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use tauri::Manager;
 
 /// Open an asset pack directory and parse all JSON files.
@@ -285,4 +286,51 @@ fn collect_biome_files(
             });
         }
     }
+}
+
+/// Reveal a file or folder in the OS file explorer.
+/// On Windows: opens Explorer with the item selected.
+/// On macOS:   opens Finder with the item selected via `open -R`.
+/// On Linux:   opens the parent directory with xdg-open.
+#[tauri::command]
+pub fn show_in_folder(path: String) -> Result<(), String> {
+    let target = PathBuf::from(&path);
+
+    #[cfg(target_os = "windows")]
+    {
+        // Use explorer /select to highlight the specific file
+        let arg = if target.is_file() {
+            format!("/select,{}", target.display())
+        } else {
+            format!("{}", target.display())
+        };
+        Command::new("explorer")
+            .arg(&arg)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg("-R")
+            .arg(&target)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let dir = if target.is_file() {
+            target.parent().unwrap_or(Path::new("/")).to_path_buf()
+        } else {
+            target
+        };
+        Command::new("xdg-open")
+            .arg(&dir)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
 }

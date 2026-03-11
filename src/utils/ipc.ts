@@ -97,6 +97,10 @@ export async function createBlankProject(targetPath: string): Promise<void> {
   return invoke("create_blank_project", { targetPath });
 }
 
+export async function showInFolder(path: string): Promise<void> {
+  return invoke("show_in_folder", { path });
+}
+
 export async function evaluateDensity(request: EvaluateRequest): Promise<EvaluateResponse> {
   return invoke<EvaluateResponse>("evaluate_density", { request });
 }

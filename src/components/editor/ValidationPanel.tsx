@@ -156,6 +156,20 @@ export function ValidationPanel() {
         const replacement = typeKey ? getLegacyReplacement(typeKey) : null;
         return replacement ? `Replace with ${replacement}` : "Remove node";
       }
+      case "biome-name-missing":
+        return "Set name";
+      case "biome-tint-missing-provider":
+        return "Add default tint";
+      case "biome-tint-missing-ref-name":
+        return "Use Default";
+      case "field-constraint": {
+        const min = diagnostic.meta?.constraintMin;
+        const max = diagnostic.meta?.constraintMax;
+        const required = diagnostic.meta?.constraintRequired;
+        if (required) return "Fill with default";
+        if (typeof min === "number" || typeof max === "number") return "Clamp to range";
+        return null;
+      }
       default:
         return null;
     }
@@ -222,6 +236,59 @@ export function ValidationPanel() {
         setDirty(true);
         commitState("Use default biome environment");
         return;
+      case "biome-name-missing":
+        if (!biomeConfig) return;
+        setBiomeConfig({ ...biomeConfig, Name: "NewBiome" });
+        setDirty(true);
+        commitState("Set biome name to NewBiome");
+        return;
+      case "biome-tint-missing-provider":
+        if (!biomeConfig) return;
+        setBiomeConfig({
+          ...biomeConfig,
+          TintProvider: {
+            Type: "DensityDelimited",
+            ExportAs: "BiomeTint",
+            Delimiters: [
+              { Threshold: 0.33, Tint: { Color: "#5b9e28" } },
+              { Threshold: 0.66, Tint: { Color: "#6ca229" } },
+              { Threshold: 1.0,  Tint: { Color: "#7ea629" } },
+            ],
+          },
+        });
+        setDirty(true);
+        commitState("Add default DensityDelimited tint");
+        return;
+      case "biome-tint-missing-ref-name":
+        if (!biomeConfig) return;
+        setBiomeConfig({ ...biomeConfig, TintProvider: { Type: "Default" } });
+        setDirty(true);
+        commitState("Reset TintProvider to Default");
+        return;
+      case "field-constraint": {
+        if (!diagnostic.nodeId || !diagnostic.field) return;
+        const currentValue = diagnostic.meta?.currentValue;
+        const min = typeof diagnostic.meta?.constraintMin === "number" ? diagnostic.meta.constraintMin : undefined;
+        const max = typeof diagnostic.meta?.constraintMax === "number" ? diagnostic.meta.constraintMax : undefined;
+        const required = diagnostic.meta?.constraintRequired;
+        let fixedValue: unknown;
+        if (required) {
+          // Fill with a sensible default based on the current value type
+          fixedValue = typeof currentValue === "number" ? (min ?? 0) : "";
+        } else if (typeof currentValue === "number") {
+          // Clamp to the constraint boundary
+          let v = currentValue;
+          if (min !== undefined && v < min) v = min;
+          if (max !== undefined && v > max) v = max;
+          fixedValue = v;
+        } else {
+          return;
+        }
+        updateNodeField(diagnostic.nodeId, diagnostic.field, fixedValue);
+        setDirty(true);
+        commitState(`Fix ${diagnostic.field} on ${diagnostic.nodeId}`);
+        return;
+      }
       case "legacy-node": {
         if (!diagnostic.nodeId) return;
         const typeKey = typeof diagnostic.meta?.legacyTypeKey === "string" ? diagnostic.meta.legacyTypeKey : null;
