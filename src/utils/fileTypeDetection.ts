@@ -31,6 +31,17 @@ export function isSettingsFile(content: Record<string, unknown>, filePath: strin
 }
 
 /**
+ * Detect whether a JSON object is a Hytale instance file (.bson).
+ * Checks for WorldGen.Type === "HytaleGenerator" which is unique to instance files.
+ */
+export function isInstanceFile(content: Record<string, unknown>, filePath: string): boolean {
+  const worldGen = content.WorldGen as Record<string, unknown> | undefined;
+  if (worldGen && worldGen.Type === "HytaleGenerator") return true;
+  const pathLower = filePath.toLowerCase();
+  return pathLower.endsWith("instance.bson");
+}
+
+/**
  * Detect Hytale-specific field names in a JSON tree even when $NodeId is absent.
  * Checks recursively for known Hytale field names that differ from internal names.
  */
