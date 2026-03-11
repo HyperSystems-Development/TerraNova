@@ -71,11 +71,32 @@ export function applyBiomeTintBand(
 }
 
 export interface DelimiterValidationIssue {
-  kind: "invalid-range" | "missing-range" | "overlap" | "gap" | "unknown-environment";
+  kind:
+    | "invalid-range"
+    | "missing-range"
+    | "overlap"
+    | "gap"
+    | "missing-environment"
+    | "unknown-environment"
+    | "unsupported-environment-type";
   message: string;
   severity: "error" | "warning";
   delimiterIndex?: number;
 }
+
+type DelimiterEnvironmentProviderType = "Constant" | "Default" | "Imported";
+
+interface DelimiterEnvironmentReference {
+  providerType: DelimiterEnvironmentProviderType;
+  name: string;
+  rawType: string | null;
+}
+
+const DELIMITER_ENVIRONMENT_PROVIDER_TYPES: DelimiterEnvironmentProviderType[] = [
+  "Constant",
+  "Default",
+  "Imported",
+];
 
 interface EnvironmentNameLookup {
   status: "idle" | "loading" | "ready" | "error";
@@ -120,14 +141,101 @@ function readDelimiterRangeMax(delimiter: Record<string, unknown>): number | nul
   );
 }
 
-function readDelimiterEnvironmentName(delimiter: Record<string, unknown>): string {
-  const raw = delimiter.Environment;
-  if (typeof raw === "string") return normalizeEnvironmentName(raw);
-  const rawObject = asRecord(raw);
-  if (!rawObject) return "";
-  if (typeof rawObject.Environment === "string") return normalizeEnvironmentName(rawObject.Environment);
-  if (typeof rawObject.Name === "string") return normalizeEnvironmentName(rawObject.Name);
-  return "";
+function isDelimiterEnvironmentProviderType(
+  value: string,
+): value is DelimiterEnvironmentProviderType {
+  return DELIMITER_ENVIRONMENT_PROVIDER_TYPES.includes(value as DelimiterEnvironmentProviderType);
+}
+
+function readDelimiterEnvironmentReference(
+  delimiter: Record<string, unknown>,
+): DelimiterEnvironmentReference {
+  const rawEnvironment = delimiter.Environment;
+  if (typeof rawEnvironment === "string") {
+    return {
+      providerType: "Constant",
+      name: normalizeEnvironmentName(rawEnvironment),
+      rawType: "Constant",
+    };
+  }
+
+  const rawObject = asRecord(rawEnvironment);
+  if (!rawObject) {
+    return {
+      providerType: "Constant",
+      name: "",
+      rawType: null,
+    };
+  }
+
+  const rawType = typeof rawObject.Type === "string" ? rawObject.Type : null;
+  const providerType = rawType && isDelimiterEnvironmentProviderType(rawType)
+    ? rawType
+    : "Constant";
+
+  if (providerType === "Default") {
+    return {
+      providerType,
+      name: "",
+      rawType,
+    };
+  }
+
+  if (providerType === "Imported") {
+    return {
+      providerType,
+      name: typeof rawObject.Name === "string" ? normalizeEnvironmentName(rawObject.Name) : "",
+      rawType,
+    };
+  }
+
+  const constantName =
+    typeof rawObject.Environment === "string"
+      ? normalizeEnvironmentName(rawObject.Environment)
+      : typeof rawObject.Name === "string"
+        ? normalizeEnvironmentName(rawObject.Name)
+        : "";
+  return {
+    providerType,
+    name: constantName,
+    rawType,
+  };
+}
+
+function writeDelimiterEnvironmentReference(
+  delimiter: Record<string, unknown>,
+  providerType: DelimiterEnvironmentProviderType,
+  rawName: string,
+): Record<string, unknown> {
+  const name = normalizeEnvironmentName(rawName);
+  const existing = asRecord(delimiter.Environment) ? { ...(delimiter.Environment as Record<string, unknown>) } : {};
+  delete existing.Environment;
+  delete existing.Name;
+  delete existing.BiomeId;
+
+  const nextEnvironment: Record<string, unknown> = {
+    ...existing,
+    Type: providerType,
+  };
+
+  if (providerType === "Constant") {
+    nextEnvironment.Environment = name;
+  } else if (providerType === "Imported") {
+    nextEnvironment.Name = name;
+  }
+
+  return {
+    ...delimiter,
+    Environment: nextEnvironment,
+  };
+}
+
+function writeDelimiterEnvironmentType(
+  delimiter: Record<string, unknown>,
+  providerType: DelimiterEnvironmentProviderType,
+): Record<string, unknown> {
+  const reference = readDelimiterEnvironmentReference(delimiter);
+  return writeDelimiterEnvironmentReference(delimiter, providerType, reference.name);
 }
 
 function writeDelimiterRangeValue(
@@ -165,16 +273,12 @@ function writeDelimiterEnvironmentName(
   delimiter: Record<string, unknown>,
   rawEnvironmentName: string,
 ): Record<string, unknown> {
-  const environmentName = normalizeEnvironmentName(rawEnvironmentName);
-  const existing = asRecord(delimiter.Environment) ?? {};
-  return {
-    ...delimiter,
-    Environment: {
-      ...existing,
-      Type: "Constant",
-      Environment: environmentName,
-    },
-  };
+  const reference = readDelimiterEnvironmentReference(delimiter);
+  return writeDelimiterEnvironmentReference(
+    delimiter,
+    reference.providerType,
+    rawEnvironmentName,
+  );
 }
 
 function formatRangeValue(value: number): string {
@@ -194,7 +298,8 @@ export function validateEnvironmentDelimiters(
     const delimiter = delimiters[index];
     const min = readDelimiterRangeMin(delimiter);
     const max = readDelimiterRangeMax(delimiter);
-    const environmentName = readDelimiterEnvironmentName(delimiter);
+    const environmentReference = readDelimiterEnvironmentReference(delimiter);
+    const environmentName = environmentReference.name;
 
     if (min === null || max === null) {
       issues.push({
@@ -214,7 +319,36 @@ export function validateEnvironmentDelimiters(
       ranges.push({ index, min, max });
     }
 
-    if (environmentName && knownNames.size > 0 && !knownNames.has(environmentName.toLowerCase())) {
+    if (
+      environmentReference.rawType &&
+      !isDelimiterEnvironmentProviderType(environmentReference.rawType)
+    ) {
+      issues.push({
+        kind: "unsupported-environment-type",
+        severity: "warning",
+        delimiterIndex: index,
+        message: `Delimiter [${index}] uses unsupported environment provider type "${environmentReference.rawType}".`,
+      });
+    }
+
+    if (
+      environmentReference.providerType !== "Default"
+      && !environmentName
+    ) {
+      issues.push({
+        kind: "missing-environment",
+        severity: "warning",
+        delimiterIndex: index,
+        message: `Delimiter [${index}] is missing an environment reference.`,
+      });
+    }
+
+    if (
+      environmentReference.providerType === "Constant"
+      && environmentName
+      && knownNames.size > 0
+      && !knownNames.has(environmentName.toLowerCase())
+    ) {
       issues.push({
         kind: "unknown-environment",
         severity: "warning",
@@ -1085,9 +1219,10 @@ function EnvironmentDelimitersField({
       </datalist>
 
       <div className="rounded border border-tn-border/80 overflow-hidden">
-        <div className="grid grid-cols-[1fr_1fr_1.4fr_auto] gap-1 bg-tn-panel/50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-tn-text-muted">
+        <div className="grid grid-cols-[1fr_1fr_0.95fr_1.25fr_auto] gap-1 bg-tn-panel/50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-tn-text-muted">
           <span>MinInclusive</span>
           <span>MaxExclusive</span>
+          <span>Type</span>
           <span>Environment</span>
           <span className="text-right">Actions</span>
         </div>
@@ -1095,15 +1230,20 @@ function EnvironmentDelimitersField({
           {delimiters.map((delimiter, index) => {
             const min = readDelimiterRangeMin(delimiter);
             const max = readDelimiterRangeMax(delimiter);
-            const environmentName = readDelimiterEnvironmentName(delimiter);
+            const environmentReference = readDelimiterEnvironmentReference(delimiter);
+            const environmentType = environmentReference.providerType;
+            const environmentName = environmentReference.name;
             const rowIssues = rowIssueMap.get(index) ?? [];
             const hasRowError = rowIssues.some((issue) => issue.severity === "error");
             const hasRowWarning = rowIssues.some((issue) => issue.severity === "warning");
             const hasUnknownEnvironment = rowIssues.some((issue) => issue.kind === "unknown-environment");
+            const hasMissingEnvironment = rowIssues.some((issue) => issue.kind === "missing-environment");
+            const hasUnsupportedType = rowIssues.some((issue) => issue.kind === "unsupported-environment-type");
+            const showEnvironmentNameInput = environmentType !== "Default";
             return (
               <div
                 key={index}
-                className={`grid grid-cols-[1fr_1fr_1.4fr_auto] gap-1 px-2 py-1.5 items-start ${
+                className={`grid grid-cols-[1fr_1fr_0.95fr_1.25fr_auto] gap-1 px-2 py-1.5 items-start ${
                   hasRowError
                     ? "bg-red-500/10"
                     : hasRowWarning
@@ -1143,23 +1283,52 @@ function EnvironmentDelimitersField({
                     hasRowError ? "border-red-400/70" : "border-tn-border"
                   }`}
                 />
-                <input
-                  type="text"
-                  value={environmentName}
-                  list={datalistId}
+                <select
+                  value={environmentType}
                   onChange={(event) => {
-                    const nextDelimiter = writeDelimiterEnvironmentName(delimiter, event.target.value);
+                    const nextDelimiter = writeDelimiterEnvironmentType(
+                      delimiter,
+                      event.target.value as DelimiterEnvironmentProviderType,
+                    );
                     const nextDelimiters = delimiters.map((item, itemIndex) => (
                       itemIndex === index ? nextDelimiter : item
                     ));
                     onChange(nextDelimiters);
                   }}
                   onBlur={onBlur}
-                  placeholder="Env_*"
                   className={`px-1.5 py-1 text-xs bg-tn-bg border rounded ${
-                    hasUnknownEnvironment ? "border-amber-400/70" : "border-tn-border"
+                    hasUnsupportedType ? "border-amber-400/70" : "border-tn-border"
                   }`}
-                />
+                >
+                  <option value="Constant">Constant</option>
+                  <option value="Default">Default</option>
+                  <option value="Imported">Imported</option>
+                </select>
+                {showEnvironmentNameInput ? (
+                  <input
+                    type="text"
+                    value={environmentName}
+                    list={environmentType === "Constant" ? datalistId : undefined}
+                    onChange={(event) => {
+                      const nextDelimiter = writeDelimiterEnvironmentName(delimiter, event.target.value);
+                      const nextDelimiters = delimiters.map((item, itemIndex) => (
+                        itemIndex === index ? nextDelimiter : item
+                      ));
+                      onChange(nextDelimiters);
+                    }}
+                    onBlur={onBlur}
+                    placeholder={environmentType === "Imported" ? "Imported name" : "Env_*"}
+                    className={`px-1.5 py-1 text-xs bg-tn-bg border rounded ${
+                      hasUnknownEnvironment || hasMissingEnvironment
+                        ? "border-amber-400/70"
+                        : "border-tn-border"
+                    }`}
+                  />
+                ) : (
+                  <span className="px-1.5 py-1 text-[10px] text-tn-text-muted border border-tn-border/60 rounded bg-tn-panel/30">
+                    Uses biome default
+                  </span>
+                )}
                 <button
                   className="text-[11px] text-red-400 hover:text-red-300 px-1 py-1 text-right"
                   onClick={() => onRemove(index)}

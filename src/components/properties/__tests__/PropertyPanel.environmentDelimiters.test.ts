@@ -61,4 +61,52 @@ describe("validateEnvironmentDelimiters", () => {
 
     expect(issues.some((issue) => issue.kind === "missing-range")).toBe(true);
   });
+
+  it("does not flag unknown env for Imported refs", () => {
+    const issues = validateEnvironmentDelimiters(
+      [
+        {
+          Range: { MinInclusive: -1, MaxExclusive: 1 },
+          Environment: { Type: "Imported", Name: "SomeEnvProviderRef" },
+        },
+      ],
+      ["Env_Zone1_Surface"],
+    );
+
+    expect(issues.some((issue) => issue.kind === "unknown-environment")).toBe(false);
+    expect(issues.some((issue) => issue.kind === "missing-environment")).toBe(false);
+  });
+
+  it("flags missing environment for non-default refs", () => {
+    const issues = validateEnvironmentDelimiters(
+      [
+        {
+          Range: { MinInclusive: -1, MaxExclusive: 1 },
+          Environment: { Type: "Constant", Environment: "" },
+        },
+        {
+          Range: { MinInclusive: 1, MaxExclusive: 2 },
+          Environment: { Type: "Default" },
+        },
+      ],
+      ["Env_Zone1_Surface"],
+    );
+
+    expect(issues.some((issue) => issue.kind === "missing-environment" && issue.delimiterIndex === 0)).toBe(true);
+    expect(issues.some((issue) => issue.kind === "missing-environment" && issue.delimiterIndex === 1)).toBe(false);
+  });
+
+  it("warns on unsupported environment provider types", () => {
+    const issues = validateEnvironmentDelimiters(
+      [
+        {
+          Range: { MinInclusive: -1, MaxExclusive: 1 },
+          Environment: { Type: "Biome", BiomeId: "zone1/plains" },
+        },
+      ],
+      ["Env_Zone1_Surface"],
+    );
+
+    expect(issues.some((issue) => issue.kind === "unsupported-environment-type")).toBe(true);
+  });
 });
