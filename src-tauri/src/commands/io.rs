@@ -128,11 +128,11 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
     // WorldStructures/MainWorld.json
     let world = serde_json::json!({
         "Type": "NoiseRange",
-        "DefaultBiome": "default_biome",
+        "DefaultBiome": "DefaultBiome",
         "DefaultTransitionDistance": 16,
         "MaxBiomeEdgeDistance": 32,
         "Biomes": [
-            { "Biome": "default_biome", "Min": -1.0, "Max": 1.0 }
+            { "Biome": "DefaultBiome", "Min": -1.0, "Max": 1.0 }
         ],
         "Density": {
             "Type": "SimplexNoise2D",
@@ -152,7 +152,7 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
 
     // Biomes/DefaultBiome.json
     let biome = serde_json::json!({
-        "Name": "default_biome",
+        "Name": "DefaultBiome",
         "Terrain": {
             "Type": "DAOTerrain",
             "Density": { "Type": "Constant", "Value": 0.0 }

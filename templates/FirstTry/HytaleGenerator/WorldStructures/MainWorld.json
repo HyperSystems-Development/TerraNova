@@ -14,12 +14,12 @@
   "$NodeId": "NoiseRangeDensityNode-4edaff52-3f4a-412f-be3d-4dbae50079ed",
   "Biomes": [
     {
-      "Biome": "void_biome",
+      "Biome": "VoidBiome",
       "Max": 1,
       "Min": -1
     }
   ],
-  "DefaultBiome": "void_biome",
+  "DefaultBiome": "VoidBiome",
   "DefaultTransitionDistance": 16,
   "Density": {
     "$NodeId": "SimplexNoise2DDensityNode-9051ac34-a34a-4581-bf28-e03795c9462a",

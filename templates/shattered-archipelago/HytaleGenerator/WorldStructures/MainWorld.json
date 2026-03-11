@@ -1,11 +1,11 @@
 {
   "Type": "NoiseRange",
-  "DefaultBiome": "shattered_archipelago",
+  "DefaultBiome": "ShatteredArchipelagoBiome",
   "DefaultTransitionDistance": 24,
   "MaxBiomeEdgeDistance": 48,
   "Biomes": [
     {
-      "Biome": "shattered_archipelago",
+      "Biome": "ShatteredArchipelagoBiome",
       "Min": -1.0,
       "Max": 1.0
     }
