@@ -25,7 +25,7 @@ import { FIELD_CONSTRAINTS } from "@/schema/constraints";
 import { NODE_TIPS } from "@/schema/nodeTips";
 import { FIELD_DESCRIPTIONS, getShortDescription, getExtendedDescription } from "@/schema/fieldDescriptions";
 import { useLanguage } from "@/languages/useLanguage";
-import { listDirectory, type DirectoryEntryData } from "@/utils/ipc";
+import { listDirectory, readAssetFile, type DirectoryEntryData } from "@/utils/ipc";
 
 const DEFAULT_BIOME_TINT_COLORS = ["#5b9e28", "#6ca229", "#7ea629"] as const;
 
@@ -101,11 +101,18 @@ const DELIMITER_ENVIRONMENT_PROVIDER_TYPES: DelimiterEnvironmentProviderType[] =
 interface EnvironmentNameLookup {
   status: "idle" | "loading" | "ready" | "error";
   names: string[];
+  source: "project-server" | "workspace-schema" | null;
+  typeHints: string[];
+  workspacePath: string | null;
   error: string | null;
 }
 
 const ENVIRONMENT_LOOKUP_CACHE = new Map<string, Promise<string[]>>();
+const WORKSPACE_ENVIRONMENT_HINT_CACHE = new Map<string, Promise<string[]>>();
 const RANGE_EPSILON = 1e-6;
+const WORKSPACE_FILE_NAME = "_Workspace.json";
+const WORKSPACE_SUFFIX = "Client\\NodeEditor\\Workspaces\\HytaleGenerator Java";
+const ROAMING_WORKSPACE_SUFFIX = `AppData\\Roaming\\Hytale\\install\\pre-release\\package\\game\\latest\\${WORKSPACE_SUFFIX}`;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -422,6 +429,91 @@ function inferServerRoot(currentFile: string | null, projectPath: string | null)
   return joinWindowsPath(projectPath, "Server");
 }
 
+function inferUserProfileRoot(path: string | null): string | null {
+  if (!path) return null;
+  const normalized = path.replace(/\//g, "\\");
+  const match = /^[A-Za-z]:\\Users\\[^\\]+/i.exec(normalized);
+  return match ? match[0] : null;
+}
+
+function deriveWorkspacePathFromServerRoot(serverRoot: string): string | null {
+  const gameRoot = getParentPath(serverRoot);
+  if (!gameRoot) return null;
+  return joinWindowsPath(gameRoot, WORKSPACE_SUFFIX);
+}
+
+function buildWorkspaceCandidates(
+  currentFile: string | null,
+  projectPath: string | null,
+  serverRoot: string | null,
+): string[] {
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  const pushCandidate = (candidate: string | null) => {
+    if (!candidate) return;
+    const normalized = candidate.replace(/\//g, "\\").replace(/[\\/]+$/, "");
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push(normalized);
+  };
+
+  pushCandidate(serverRoot ? deriveWorkspacePathFromServerRoot(serverRoot) : null);
+
+  const profileRoot =
+    inferUserProfileRoot(currentFile)
+    ?? inferUserProfileRoot(projectPath);
+  if (profileRoot) {
+    pushCandidate(joinWindowsPath(profileRoot, ROAMING_WORKSPACE_SUFFIX));
+  }
+
+  return candidates;
+}
+
+export function deriveServerRootFromWorkspacePath(workspacePath: string): string | null {
+  if (!workspacePath) return null;
+  const normalized = workspacePath.replace(/\//g, "\\").replace(/[\\/]+$/, "");
+  const lower = normalized.toLowerCase();
+  const marker = `\\${WORKSPACE_SUFFIX.toLowerCase()}`;
+  const markerIndex = lower.lastIndexOf(marker);
+  if (markerIndex >= 0) {
+    return `${normalized.slice(0, markerIndex)}\\Server`;
+  }
+
+  const workspacesDir = getParentPath(normalized);
+  const nodeEditorDir = workspacesDir ? getParentPath(workspacesDir) : null;
+  const clientDir = nodeEditorDir ? getParentPath(nodeEditorDir) : null;
+  const gameRoot = clientDir ? getParentPath(clientDir) : null;
+  return gameRoot ? joinWindowsPath(gameRoot, "Server") : null;
+}
+
+export function extractWorkspaceEnvironmentTypeHints(workspaceDoc: unknown): string[] {
+  const workspace = asRecord(workspaceDoc);
+  if (!workspace) return [];
+  const variants = asRecord(workspace.Variants);
+  if (!variants) return [];
+  const environmentVariants = asRecord(variants["EnvironmentProvider.Variants"]);
+  if (!environmentVariants) return [];
+  const entries = asRecord(environmentVariants.Variants);
+  if (!entries) return [];
+  return Object.keys(entries).sort((a, b) => a.localeCompare(b));
+}
+
+async function loadWorkspaceEnvironmentTypeHints(workspacePath: string): Promise<string[]> {
+  const cacheKey = workspacePath.toLowerCase();
+  const existing = WORKSPACE_ENVIRONMENT_HINT_CACHE.get(cacheKey);
+  if (existing) return existing;
+
+  const pending = readAssetFile(joinWindowsPath(workspacePath, WORKSPACE_FILE_NAME))
+    .then((workspaceDoc) => extractWorkspaceEnvironmentTypeHints(workspaceDoc))
+    .catch((error) => {
+      WORKSPACE_ENVIRONMENT_HINT_CACHE.delete(cacheKey);
+      throw error;
+    });
+  WORKSPACE_ENVIRONMENT_HINT_CACHE.set(cacheKey, pending);
+  return pending;
+}
+
 function collectJsonPaths(entries: DirectoryEntryData[]): string[] {
   const stack = [...entries];
   const jsonPaths: string[] = [];
@@ -475,6 +567,72 @@ async function loadEnvironmentNames(serverRoot: string): Promise<string[]> {
   return pending;
 }
 
+interface ResolvedEnvironmentLookup {
+  names: string[];
+  source: "project-server" | "workspace-schema";
+  typeHints: string[];
+  workspacePath: string | null;
+  warning: string | null;
+}
+
+async function resolveEnvironmentLookup(
+  currentFile: string | null,
+  projectPath: string | null,
+): Promise<ResolvedEnvironmentLookup> {
+  const inferredServerRoot = inferServerRoot(currentFile, projectPath);
+  if (inferredServerRoot) {
+    try {
+      const names = await loadEnvironmentNames(inferredServerRoot);
+      return {
+        names,
+        source: "project-server",
+        typeHints: [],
+        workspacePath: null,
+        warning: null,
+      };
+    } catch {
+      // Fall back to workspace schema/asset paths below.
+    }
+  }
+
+  const workspaceCandidates = buildWorkspaceCandidates(currentFile, projectPath, inferredServerRoot);
+  if (workspaceCandidates.length === 0) {
+    throw new Error("Could not infer Server/Environments or NodeEditor workspace paths.");
+  }
+
+  let lastError: string | null = null;
+  for (const workspacePath of workspaceCandidates) {
+    try {
+      const typeHints = await loadWorkspaceEnvironmentTypeHints(workspacePath);
+      const fallbackServerRoot = deriveServerRootFromWorkspacePath(workspacePath);
+      let names: string[] = [];
+      let warning: string | null = null;
+
+      if (fallbackServerRoot) {
+        try {
+          names = await loadEnvironmentNames(fallbackServerRoot);
+        } catch (error) {
+          warning = `Loaded workspace schema from ${workspacePath}, but Server/Environments lookup failed: ${String(error)}`;
+        }
+      } else {
+        warning = `Loaded workspace schema from ${workspacePath}, but could not derive a Server root.`;
+      }
+
+      return {
+        names,
+        source: "workspace-schema",
+        typeHints,
+        workspacePath,
+        warning,
+      };
+    } catch (error) {
+      lastError = String(error);
+    }
+  }
+
+  throw new Error(lastError ?? "Failed to load workspace schema fallback.");
+}
+
 export function PropertyPanel() {
   const nodes = useEditorStore((s) => s.nodes);
   const edges = useEditorStore((s) => s.edges);
@@ -492,6 +650,9 @@ export function PropertyPanel() {
   const [environmentLookup, setEnvironmentLookup] = useState<EnvironmentNameLookup>({
     status: "idle",
     names: [],
+    source: null,
+    typeHints: [],
+    workspacePath: null,
     error: null,
   });
   const noiseRangeConfig = useEditorStore((s) => s.noiseRangeConfig);
@@ -517,13 +678,14 @@ export function PropertyPanel() {
     || (selectedNodeType === "DensityDelimited" && selectedNodeBiomeField === "EnvironmentProvider");
 
   useEffect(() => {
-    if (!shouldLoadEnvironmentNames) return;
-    const serverRoot = inferServerRoot(currentFile, projectPath);
-    if (!serverRoot) {
+    if (!shouldLoadEnvironmentNames) {
       setEnvironmentLookup({
-        status: "error",
+        status: "idle",
         names: [],
-        error: "Could not infer Server root for environment autocomplete.",
+        source: null,
+        typeHints: [],
+        workspacePath: null,
+        error: null,
       });
       return;
     }
@@ -532,16 +694,22 @@ export function PropertyPanel() {
     setEnvironmentLookup((prev) => ({
       status: "loading",
       names: prev.names,
+      source: prev.source,
+      typeHints: prev.typeHints,
+      workspacePath: prev.workspacePath,
       error: null,
     }));
 
-    void loadEnvironmentNames(serverRoot)
-      .then((names) => {
+    void resolveEnvironmentLookup(currentFile, projectPath)
+      .then((lookup) => {
         if (cancelled) return;
         setEnvironmentLookup({
           status: "ready",
-          names,
-          error: null,
+          names: lookup.names,
+          source: lookup.source,
+          typeHints: lookup.typeHints,
+          workspacePath: lookup.workspacePath,
+          error: lookup.warning,
         });
       })
       .catch((error) => {
@@ -549,6 +717,9 @@ export function PropertyPanel() {
         setEnvironmentLookup({
           status: "error",
           names: [],
+          source: null,
+          typeHints: [],
+          workspacePath: null,
           error: String(error),
         });
       });
@@ -928,6 +1099,9 @@ export function PropertyPanel() {
                 datalistId={datalistId}
                 environmentNames={environmentLookup.names}
                 lookupStatus={environmentLookup.status}
+                lookupSource={environmentLookup.source}
+                typeHints={environmentLookup.typeHints}
+                workspacePath={environmentLookup.workspacePath}
                 lookupError={environmentLookup.error}
                 onChange={(nextDelimiters) => handleContinuousChange("Delimiters", nextDelimiters)}
                 onAdd={() => {
@@ -1170,6 +1344,9 @@ function EnvironmentDelimitersField({
   datalistId,
   environmentNames,
   lookupStatus,
+  lookupSource,
+  typeHints,
+  workspacePath,
   lookupError,
   onChange,
   onAdd,
@@ -1183,6 +1360,9 @@ function EnvironmentDelimitersField({
   datalistId: string;
   environmentNames: string[];
   lookupStatus: "idle" | "loading" | "ready" | "error";
+  lookupSource: "project-server" | "workspace-schema" | null;
+  typeHints: string[];
+  workspacePath: string | null;
   lookupError: string | null;
   onChange: (nextDelimiters: Array<Record<string, unknown>>) => void;
   onAdd: () => void;
@@ -1345,8 +1525,21 @@ function EnvironmentDelimitersField({
       {lookupStatus === "loading" && (
         <p className="text-[10px] text-tn-text-muted">Loading environment names from Server/Environments...</p>
       )}
-      {lookupStatus === "error" && lookupError && (
-        <p className="text-[10px] text-amber-300">{lookupError}</p>
+      {lookupStatus === "ready" && lookupSource === "workspace-schema" && (
+        <p className="text-[10px] text-amber-300">
+          Using NodeEditor workspace fallback
+          {workspacePath ? ` (${workspacePath})` : ""}.
+        </p>
+      )}
+      {lookupStatus === "ready" && typeHints.length > 0 && (
+        <p className="text-[10px] text-tn-text-muted">
+          Workspace type hints: {typeHints.join(", ")}
+        </p>
+      )}
+      {lookupError && (
+        <p className={`text-[10px] ${lookupStatus === "error" ? "text-amber-300" : "text-tn-text-muted"}`}>
+          {lookupError}
+        </p>
       )}
 
       {issues.length > 0 && (

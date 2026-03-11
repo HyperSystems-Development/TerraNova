@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { validateEnvironmentDelimiters } from "../PropertyPanel";
+import {
+  deriveServerRootFromWorkspacePath,
+  extractWorkspaceEnvironmentTypeHints,
+  validateEnvironmentDelimiters,
+} from "../PropertyPanel";
 
 describe("validateEnvironmentDelimiters", () => {
   it("detects invalid ranges and overlaps", () => {
@@ -108,5 +112,29 @@ describe("validateEnvironmentDelimiters", () => {
     );
 
     expect(issues.some((issue) => issue.kind === "unsupported-environment-type")).toBe(true);
+  });
+
+  it("extracts workspace environment type hints", () => {
+    const hints = extractWorkspaceEnvironmentTypeHints({
+      Variants: {
+        "EnvironmentProvider.Variants": {
+          Variants: {
+            DensityDelimited: "DensityDelimited.EnvironmentProvider",
+            Constant: "Constant.EnvironmentProvider",
+          },
+        },
+      },
+    });
+
+    expect(hints).toEqual(["Constant", "DensityDelimited"]);
+  });
+
+  it("derives Server root from workspace path", () => {
+    const serverRoot = deriveServerRootFromWorkspacePath(
+      "C:\\Users\\wolft\\AppData\\Roaming\\Hytale\\install\\pre-release\\package\\game\\latest\\Client\\NodeEditor\\Workspaces\\HytaleGenerator Java",
+    );
+    expect(serverRoot).toBe(
+      "C:\\Users\\wolft\\AppData\\Roaming\\Hytale\\install\\pre-release\\package\\game\\latest\\Server",
+    );
   });
 });
