@@ -483,6 +483,8 @@ export function analyzeGraph(
           issueKind: issue.kind,
           providerType: environmentReference?.providerType ?? null,
           rawType: environmentReference?.rawType ?? null,
+          assetKind: issue.kind === "unknown-environment" ? "environment" : null,
+          importName: issue.kind === "unknown-environment" ? environmentReference?.name ?? null : null,
         },
       });
     }
@@ -641,7 +643,7 @@ export function analyzeBiome(
           biomeSection: "EnvironmentProvider",
           code: "biome-environment-unknown-ref",
           field: "EnvironmentProvider",
-          meta: { environment: ref },
+          meta: { assetKind: "environment", importName: ref, environment: ref },
         });
       }
     }

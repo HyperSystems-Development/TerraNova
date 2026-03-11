@@ -415,7 +415,9 @@ describe("analyzeGraph - environment delimiter diagnostics", () => {
       prop: ["Prop_PineTree"],
     });
 
-    expect(diagnostics.some((d) => d.code === "asset-import-unknown-ref" && d.nodeId === "tint")).toBe(true);
+    const tintDiagnostic = diagnostics.find((d) => d.code === "asset-import-unknown-ref" && d.nodeId === "tint");
+    expect(tintDiagnostic?.meta?.assetKind).toBe("tint");
+    expect(tintDiagnostic?.meta?.importName).toBe("Tint_Forest");
     expect(diagnostics.some((d) => d.code === "asset-import-unknown-ref" && d.nodeId === "material")).toBe(false);
     expect(diagnostics.some((d) => d.code === "asset-import-unknown-ref" && d.nodeId === "prop")).toBe(true);
   });
@@ -512,6 +514,8 @@ describe("analyzeBiome - section targets", () => {
       },
     }, { tint: ["Tint_Meadow"] });
 
-    expect(diagnostics.some((d) => d.code === "biome-tint-unknown-ref")).toBe(true);
+    const tintDiagnostic = diagnostics.find((d) => d.code === "biome-tint-unknown-ref");
+    expect(tintDiagnostic?.meta?.assetKind).toBe("tint");
+    expect(tintDiagnostic?.meta?.importName).toBe("Tint_Forest");
   });
 });

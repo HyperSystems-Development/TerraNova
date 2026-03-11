@@ -1,7 +1,12 @@
 import { listDirectory, readAssetFile, type DirectoryEntryData } from "@/utils/ipc";
 
-const ENVIRONMENT_LOOKUP_CACHE = new Map<string, Promise<string[]>>();
-const PROJECT_ASSET_LOOKUP_CACHE = new Map<string, Promise<string[]>>();
+export interface AssetReferenceCollection {
+  names: string[];
+  pathIndex: Record<string, string[]>;
+}
+
+const ENVIRONMENT_LOOKUP_CACHE = new Map<string, Promise<AssetReferenceCollection>>();
+const PROJECT_ASSET_LOOKUP_CACHE = new Map<string, Promise<AssetReferenceCollection>>();
 const WORKSPACE_ENVIRONMENT_HINT_CACHE = new Map<string, Promise<string[]>>();
 const WORKSPACE_FILE_NAME = "_Workspace.json";
 const WORKSPACE_SUFFIX = "Client\\NodeEditor\\Workspaces\\HytaleGenerator Java";
@@ -30,6 +35,7 @@ export interface AssetValidationBadge {
 
 export interface AssetValidationLookup {
   namesByKind: Record<AssetReferenceKind, string[]>;
+  pathIndexByKind: Partial<Record<AssetReferenceKind, Record<string, string[]>>>;
   sourceByKind: Partial<Record<AssetReferenceKind, AssetValidationLookupSource>>;
   badge: AssetValidationBadge;
 }
@@ -188,8 +194,16 @@ function getFileStem(path: string): string {
   return filename.replace(/\.json$/i, "");
 }
 
-function collectEnvironmentNames(entries: DirectoryEntryData[]): string[] {
+function addPathIndexValue(pathIndex: Record<string, string[]>, key: string, path: string): void {
+  const list = pathIndex[key] ?? [];
+  if (!list.includes(path)) {
+    pathIndex[key] = [...list, path];
+  }
+}
+
+function collectEnvironmentNames(entries: DirectoryEntryData[]): AssetReferenceCollection {
   const names = new Map<string, string>();
+  const pathIndex: Record<string, string[]> = {};
   const paths = collectJsonPaths(entries).sort((a, b) => a.localeCompare(b));
   for (const path of paths) {
     const name = getFileStem(path);
@@ -197,8 +211,12 @@ function collectEnvironmentNames(entries: DirectoryEntryData[]): string[] {
     if (!names.has(key)) {
       names.set(key, name);
     }
+    addPathIndexValue(pathIndex, key, path);
   }
-  return [...names.values()];
+  return {
+    names: [...names.values()],
+    pathIndex,
+  };
 }
 
 function pathContainsCandidate(path: string, candidates: string[]): boolean {
@@ -231,8 +249,9 @@ function collectExportedNames(asset: unknown, names: Map<string, string>): void 
 async function collectAssetReferenceNames(
   entries: DirectoryEntryData[],
   candidates?: string[],
-): Promise<string[]> {
+): Promise<AssetReferenceCollection> {
   const names = new Map<string, string>();
+  const pathIndex: Record<string, string[]> = {};
   const paths = collectJsonPaths(entries)
     .filter((path) => !candidates || pathContainsCandidate(path, candidates))
     .sort((a, b) => a.localeCompare(b));
@@ -243,21 +262,32 @@ async function collectAssetReferenceNames(
     if (!names.has(stemKey)) {
       names.set(stemKey, stem);
     }
+    addPathIndexValue(pathIndex, stemKey, path);
   }
 
   await Promise.all(paths.map(async (path) => {
     try {
       const asset = await readAssetFile(path);
-      collectExportedNames(asset, names);
+      const exportedNames = new Map<string, string>();
+      collectExportedNames(asset, exportedNames);
+      for (const [key, value] of exportedNames) {
+        if (!names.has(key)) {
+          names.set(key, value);
+        }
+        addPathIndexValue(pathIndex, key, path);
+      }
     } catch {
       // Keep validation resilient when a single asset fails to parse.
     }
   }));
 
-  return [...names.values()];
+  return {
+    names: [...names.values()],
+    pathIndex,
+  };
 }
 
-async function loadEnvironmentNames(serverRoot: string): Promise<string[]> {
+async function loadEnvironmentNames(serverRoot: string): Promise<AssetReferenceCollection> {
   const cacheKey = serverRoot.toLowerCase();
   const existing = ENVIRONMENT_LOOKUP_CACHE.get(cacheKey);
   if (existing) return existing;
@@ -275,7 +305,7 @@ async function loadEnvironmentNames(serverRoot: string): Promise<string[]> {
 async function loadProjectAssetNames(
   serverRoot: string,
   kind: Exclude<AssetReferenceKind, "environment">,
-): Promise<string[]> {
+): Promise<AssetReferenceCollection> {
   const cacheKey = `${serverRoot.toLowerCase()}::${kind}`;
   const existing = PROJECT_ASSET_LOOKUP_CACHE.get(cacheKey);
   if (existing) return existing;
@@ -305,6 +335,7 @@ async function loadProjectAssetNames(
 
 export interface ResolvedEnvironmentLookup {
   names: string[];
+  pathIndex: Record<string, string[]>;
   source: "project-server" | "workspace-schema";
   typeHints: string[];
   workspacePath: string | null;
@@ -318,9 +349,10 @@ export async function resolveEnvironmentLookup(
   const inferredServerRoot = inferServerRoot(currentFile, projectPath);
   if (inferredServerRoot) {
     try {
-      const names = await loadEnvironmentNames(inferredServerRoot);
+      const collection = await loadEnvironmentNames(inferredServerRoot);
       return {
-        names,
+        names: collection.names,
+        pathIndex: collection.pathIndex,
         source: "project-server",
         typeHints: [],
         workspacePath: null,
@@ -341,12 +373,12 @@ export async function resolveEnvironmentLookup(
     try {
       const typeHints = await loadWorkspaceEnvironmentTypeHints(workspacePath);
       const fallbackServerRoot = deriveServerRootFromWorkspacePath(workspacePath);
-      let names: string[] = [];
+      let collection: AssetReferenceCollection = { names: [], pathIndex: {} };
       let warning: string | null = null;
 
       if (fallbackServerRoot) {
         try {
-          names = await loadEnvironmentNames(fallbackServerRoot);
+          collection = await loadEnvironmentNames(fallbackServerRoot);
         } catch (error) {
           warning = `Loaded workspace schema from ${workspacePath}, but Server/Environments lookup failed: ${String(error)}`;
         }
@@ -355,7 +387,8 @@ export async function resolveEnvironmentLookup(
       }
 
       return {
-        names,
+        names: collection.names,
+        pathIndex: collection.pathIndex,
         source: "workspace-schema",
         typeHints,
         workspacePath,
@@ -419,6 +452,83 @@ export function buildAssetValidationBadge(
   };
 }
 
+function normalizeReferenceName(name: string): string {
+  return name.trim().toLowerCase().replace(/\.json$/i, "");
+}
+
+function levenshteinDistance(left: string, right: string): number {
+  if (left === right) return 0;
+  if (left.length === 0) return right.length;
+  if (right.length === 0) return left.length;
+
+  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  const current = new Array<number>(right.length + 1).fill(0);
+
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex++) {
+    current[0] = leftIndex;
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex++) {
+      const substitutionCost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+      current[rightIndex] = Math.min(
+        current[rightIndex - 1] + 1,
+        previous[rightIndex] + 1,
+        previous[rightIndex - 1] + substitutionCost,
+      );
+    }
+    for (let index = 0; index < current.length; index++) {
+      previous[index] = current[index];
+    }
+  }
+
+  return previous[right.length];
+}
+
+export function findAssetReferenceCandidates(
+  referenceName: string,
+  kind: AssetReferenceKind,
+  pathIndexByKind: Partial<Record<AssetReferenceKind, Record<string, string[]>>>,
+  limit: number = 3,
+): string[] {
+  const normalizedReference = normalizeReferenceName(referenceName);
+  if (!normalizedReference) return [];
+
+  const pathIndex = pathIndexByKind[kind];
+  if (!pathIndex) return [];
+
+  const exact = pathIndex[normalizedReference];
+  if (exact && exact.length > 0) {
+    return exact.slice(0, limit);
+  }
+
+  const scored = Object.entries(pathIndex)
+    .map(([candidateName, paths]) => {
+      const distance = levenshteinDistance(normalizedReference, candidateName);
+      const containsBonus =
+        candidateName.includes(normalizedReference) || normalizedReference.includes(candidateName)
+          ? 2
+          : 0;
+      const prefixBonus = candidateName.slice(0, 4) === normalizedReference.slice(0, 4) ? 1 : 0;
+      return {
+        paths,
+        score: distance - containsBonus - prefixBonus,
+      };
+    })
+    .sort((left, right) => left.score - right.score);
+
+  const threshold = Math.max(4, Math.floor(normalizedReference.length * 0.45));
+  const results: string[] = [];
+  for (const entry of scored) {
+    if (entry.score > threshold) continue;
+    for (const path of entry.paths) {
+      if (!results.includes(path)) {
+        results.push(path);
+      }
+      if (results.length >= limit) return results;
+    }
+  }
+
+  return results;
+}
+
 export async function resolveAssetValidationLookup(
   currentFile: string | null,
   projectPath: string | null,
@@ -429,11 +539,13 @@ export async function resolveAssetValidationLookup(
     material: [],
     prop: [],
   };
+  const pathIndexByKind: Partial<Record<AssetReferenceKind, Record<string, string[]>>> = {};
   const sourceByKind: Partial<Record<AssetReferenceKind, AssetValidationLookupSource>> = {};
 
   try {
     const environmentLookup = await resolveEnvironmentLookup(currentFile, projectPath);
     namesByKind.environment = environmentLookup.names;
+    pathIndexByKind.environment = environmentLookup.pathIndex;
     sourceByKind.environment = environmentLookup.source;
   } catch {
     // Environment fallback is optional; callers still get built-in validation.
@@ -443,8 +555,9 @@ export async function resolveAssetValidationLookup(
   if (serverRoot) {
     for (const kind of ["tint", "material", "prop"] as const) {
       try {
-        const names = await loadProjectAssetNames(serverRoot, kind);
-        namesByKind[kind] = names;
+        const collection = await loadProjectAssetNames(serverRoot, kind);
+        namesByKind[kind] = collection.names;
+        pathIndexByKind[kind] = collection.pathIndex;
         sourceByKind[kind] = "project-server";
       } catch {
         // Leave this kind unavailable; diagnostics will skip unknown-ref checks.
@@ -454,6 +567,7 @@ export async function resolveAssetValidationLookup(
 
   return {
     namesByKind,
+    pathIndexByKind,
     sourceByKind,
     badge: buildAssetValidationBadge(sourceByKind),
   };

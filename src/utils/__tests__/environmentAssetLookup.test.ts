@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildAssetValidationBadge } from "../environmentAssetLookup";
+import {
+  buildAssetValidationBadge,
+  findAssetReferenceCandidates,
+} from "../environmentAssetLookup";
 
 describe("buildAssetValidationBadge", () => {
   it("reports project assets when validation comes from the pack", () => {
@@ -29,5 +32,20 @@ describe("buildAssetValidationBadge", () => {
 
     expect(badge.mode).toBe("mixed");
     expect(badge.detail?.toLowerCase()).toContain("project assets");
+  });
+
+  it("finds closest candidate asset paths for unknown refs", () => {
+    const candidates = findAssetReferenceCandidates(
+      "Prop_OakTree",
+      "prop",
+      {
+        prop: {
+          "prop_oaktree_large": ["C:\\Pack\\Server\\Prop\\OakTreeLarge.json"],
+          "prop_pinetree": ["C:\\Pack\\Server\\Prop\\PineTree.json"],
+        },
+      },
+    );
+
+    expect(candidates[0]).toBe("C:\\Pack\\Server\\Prop\\OakTreeLarge.json");
   });
 });

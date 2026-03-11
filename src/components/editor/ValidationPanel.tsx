@@ -3,12 +3,14 @@ import { useReactFlow } from "@xyflow/react";
 import { useDiagnosticsStore } from "@/stores/diagnosticsStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
+import { useTauriIO } from "@/hooks/useTauriIO";
 import type { GraphDiagnostic, DiagnosticSeverity } from "@/utils/graphDiagnostics";
 import {
   fillDelimiterGaps,
   normalizeDelimiterRanges,
   resolveDelimiterEnvironmentDefaults,
 } from "@/utils/environmentDelimiters";
+import { findAssetReferenceCandidates } from "@/utils/environmentAssetLookup";
 
 const SEVERITY_ORDER: DiagnosticSeverity[] = ["error", "warning", "info"];
 
@@ -33,6 +35,7 @@ const SEVERITY_LABELS: Record<DiagnosticSeverity, string> = {
 export function ValidationPanel() {
   const diagnostics = useDiagnosticsStore((s) => s.diagnostics);
   const assetValidationBadge = useDiagnosticsStore((s) => s.assetValidationBadge);
+  const assetPathIndexByKind = useDiagnosticsStore((s) => s.assetPathIndexByKind);
   const nodes = useEditorStore((s) => s.nodes);
   const biomeConfig = useEditorStore((s) => s.biomeConfig);
   const setBiomeConfig = useEditorStore((s) => s.setBiomeConfig);
@@ -42,6 +45,7 @@ export function ValidationPanel() {
   const updateNodeField = useEditorStore((s) => s.updateNodeField);
   const commitState = useEditorStore((s) => s.commitState);
   const setDirty = useProjectStore((s) => s.setDirty);
+  const { openFile } = useTauriIO();
   const reactFlow = useReactFlow();
 
   // Group by severity
@@ -108,6 +112,24 @@ export function ValidationPanel() {
   function getDelimiterIndex(diagnostic: GraphDiagnostic): number | null {
     const delimiterIndex = diagnostic.meta?.delimiterIndex;
     return typeof delimiterIndex === "number" ? delimiterIndex : null;
+  }
+
+  function getDiagnosticAssetCandidates(diagnostic: GraphDiagnostic): string[] {
+    const assetKind =
+      diagnostic.meta?.assetKind === "environment"
+      || diagnostic.meta?.assetKind === "tint"
+      || diagnostic.meta?.assetKind === "material"
+      || diagnostic.meta?.assetKind === "prop"
+        ? diagnostic.meta.assetKind
+        : null;
+    const importName = typeof diagnostic.meta?.importName === "string" ? diagnostic.meta.importName : null;
+    if (!assetKind || !importName) return [];
+    return findAssetReferenceCandidates(importName, assetKind, assetPathIndexByKind);
+  }
+
+  function getCandidateLabel(path: string): string {
+    const normalized = path.replace(/\\/g, "/");
+    return normalized.slice(normalized.lastIndexOf("/") + 1);
   }
 
   function getFixLabel(diagnostic: GraphDiagnostic): string | null {
@@ -274,6 +296,24 @@ export function ValidationPanel() {
                       {getDelimiterIndex(d) !== null && <span>{`Delimiter [${getDelimiterIndex(d)}]`}</span>}
                       {d.biomeSection && <span>{`Jump to ${d.biomeSection}`}</span>}
                     </span>
+                    {getDiagnosticAssetCandidates(d).length > 0 && (
+                      <span className="flex flex-wrap gap-1 pt-1">
+                        {getDiagnosticAssetCandidates(d).map((path) => (
+                          <button
+                            key={path}
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void openFile(path);
+                            }}
+                            className="rounded border border-tn-border bg-white/5 px-2 py-0.5 text-[10px] text-tn-text-muted hover:bg-white/10"
+                            title={path}
+                          >
+                            {getCandidateLabel(path)}
+                          </button>
+                        ))}
+                      </span>
+                    )}
                   </span>
                   {getFixLabel(d) && (
                     <button
