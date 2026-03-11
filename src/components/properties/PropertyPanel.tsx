@@ -19,6 +19,7 @@ import { AtmosphereTab } from "./AtmosphereTab";
 import { DebugTab } from "./DebugTab";
 import { PropPlacementGrid } from "./PropPlacementGrid";
 import { POSITION_TYPE_NAMES } from "@/utils/positionEvaluator";
+import { HYTALE_MATERIAL_IDS } from "@/utils/materialResolver";
 import { getCurveEvaluator } from "@/utils/curveEvaluators";
 import { validateField, type ValidationIssue } from "@/schema/validation";
 import { FIELD_CONSTRAINTS } from "@/schema/constraints";
@@ -47,6 +48,9 @@ export {
 } from "@/utils/environmentAssetLookup";
 
 const DEFAULT_BIOME_TINT_COLORS = ["#5b9e28", "#6ca229", "#7ea629"] as const;
+
+/** Field keys whose string value is a Hytale block/material identifier. */
+const MATERIAL_FIELD_KEYS = new Set(["Material", "Solid", "Fluid", "BlockType", "BlockTypes"]);
 
 export function applyBiomeTintBand(
   tintProvider: Record<string, unknown> | undefined,
@@ -617,12 +621,14 @@ export function PropertyPanel() {
           );
         }
         if (typeof value === "string") {
+          const isMaterialField = MATERIAL_FIELD_KEYS.has(key);
           return (
             <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
               <TextField
                 label={fieldLabel}
                 value={value}
                 description={description}
+                suggestions={isMaterialField ? HYTALE_MATERIAL_IDS : undefined}
                 onChange={(v) => handleContinuousChange(key, v)}
                 onBlur={handleBlur}
               />

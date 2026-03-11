@@ -226,6 +226,9 @@ const HYTALE_MATERIAL_COLORS: Record<string, string> = {
   Ore_Thorium_Basalt: "#78b838",
 };
 
+/** Sorted list of all known Hytale block/material identifiers. */
+export const HYTALE_MATERIAL_IDS: readonly string[] = Object.keys(HYTALE_MATERIAL_COLORS).sort();
+
 /* ── PBR material properties ─────────────────────────────────────── */
 
 export interface MaterialPBRProperties {
