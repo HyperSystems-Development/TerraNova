@@ -8,6 +8,7 @@ import { VectorField } from "./VectorField";
 import { RangeField } from "./RangeField";
 import { ToggleField } from "./ToggleField";
 import { TextField } from "./TextField";
+import { MaterialField } from "./MaterialField";
 import { ArrayField } from "./ArrayField";
 import { CurveCanvas } from "./CurveCanvas";
 import { CurvePointList } from "./CurvePointList";
@@ -19,7 +20,6 @@ import { AtmosphereTab } from "./AtmosphereTab";
 import { DebugTab } from "./DebugTab";
 import { PropPlacementGrid } from "./PropPlacementGrid";
 import { POSITION_TYPE_NAMES } from "@/utils/positionEvaluator";
-import { HYTALE_MATERIAL_IDS } from "@/utils/materialResolver";
 import { getCurveEvaluator } from "@/utils/curveEvaluators";
 import { validateField, type ValidationIssue } from "@/schema/validation";
 import { FIELD_CONSTRAINTS } from "@/schema/constraints";
@@ -622,13 +622,25 @@ export function PropertyPanel() {
         }
         if (typeof value === "string") {
           const isMaterialField = MATERIAL_FIELD_KEYS.has(key);
+          if (isMaterialField) {
+            return (
+              <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+                <MaterialField
+                  label={fieldLabel}
+                  value={value}
+                  description={description}
+                  onChange={(v) => handleContinuousChange(key, v)}
+                  onBlur={handleBlur}
+                />
+              </FieldWrapper>
+            );
+          }
           return (
             <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
               <TextField
                 label={fieldLabel}
                 value={value}
                 description={description}
-                suggestions={isMaterialField ? HYTALE_MATERIAL_IDS : undefined}
                 onChange={(v) => handleContinuousChange(key, v)}
                 onBlur={handleBlur}
               />

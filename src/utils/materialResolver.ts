@@ -229,6 +229,31 @@ const HYTALE_MATERIAL_COLORS: Record<string, string> = {
 /** Sorted list of all known Hytale block/material identifiers. */
 export const HYTALE_MATERIAL_IDS: readonly string[] = Object.keys(HYTALE_MATERIAL_COLORS).sort();
 
+/** Returns the hex color for a material ID, or undefined if unknown. */
+export function getMaterialColor(id: string): string | undefined {
+  return HYTALE_MATERIAL_COLORS[id];
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.replace("#", ""), 16);
+  return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
+}
+
+/** Returns the material ID whose color is closest to the given hex color. */
+export function findNearestMaterial(hex: string): string {
+  const [tr, tg, tb] = hexToRgb(hex);
+  let bestId = HYTALE_MATERIAL_IDS[0];
+  let bestDist = Infinity;
+  for (const id of HYTALE_MATERIAL_IDS) {
+    const color = HYTALE_MATERIAL_COLORS[id];
+    if (!color) continue;
+    const [r, g, b] = hexToRgb(color);
+    const dist = (r - tr) ** 2 + (g - tg) ** 2 + (b - tb) ** 2;
+    if (dist < bestDist) { bestDist = dist; bestId = id; }
+  }
+  return bestId;
+}
+
 /* ── PBR material properties ─────────────────────────────────────── */
 
 export interface MaterialPBRProperties {
