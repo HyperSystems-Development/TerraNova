@@ -171,6 +171,43 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
+    // Server/Instances/DefaultInstance/instance.bson
+    let instances_dir = target.join("Server").join("Instances").join("DefaultInstance");
+    fs::create_dir_all(&instances_dir).map_err(|e| e.to_string())?;
+
+    let instance = serde_json::json!({
+        "$Comment": "Default instance for testing world generation",
+        "RequiredPlugins": {},
+        "ChunkStorage": { "Type": "Hytale" },
+        "GameMode": "Creative",
+        "IsPvpEnabled": false,
+        "IsSpawningNPC": true,
+        "GameTime": "0001-01-01T07:00:00Z",
+        "UUID": {
+            "$binary": "AZKxiVAMQfWIS0qBsBfjzQ==",
+            "$type": "04"
+        },
+        "GameplayConfig": "Default",
+        "IsCompassUpdating": true,
+        "IsTicking": true,
+        "IsGameTimePaused": false,
+        "IsObjectiveMarkersEnabled": true,
+        "IsAllNPCFrozen": false,
+        "IsSavingPlayers": true,
+        "WorldGen": {
+            "Type": "HytaleGenerator",
+            "WorldStructure": "MainWorld"
+        },
+        "IsSpawnMarkersEnabled": true,
+        "DeleteOnRemove": false,
+        "Version": 2
+    });
+    fs::write(
+        instances_dir.join("instance.bson"),
+        serde_json::to_string_pretty(&instance).unwrap(),
+    )
+    .map_err(|e| e.to_string())?;
+
     // TerraNova manifest at project root (used for export metadata)
     let dir_name = target
         .file_name()
