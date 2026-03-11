@@ -5,7 +5,7 @@ import { EditorCanvas } from "./EditorCanvas";
 import { BiomeRangeEditor } from "./BiomeRangeEditor";
 import { BiomeSectionTabs } from "./BiomeSectionTabs";
 import { SettingsEditorView } from "./SettingsEditorView";
-import { RawJsonView } from "./RawJsonView";
+import { JsonEditorView } from "./JsonEditorView";
 import { PreviewPanel } from "../preview/PreviewPanel";
 import { ComparisonView } from "../preview/ComparisonView";
 import { DiagnosticsStrip } from "../preview/DiagnosticsStrip";
@@ -149,7 +149,7 @@ export function CenterPanel() {
   }
 
   if (editingContext === "RawJson") {
-    return <RawJsonView />;
+    return <JsonEditorView />;
   }
 
   if (editingContext === "Biome") {
