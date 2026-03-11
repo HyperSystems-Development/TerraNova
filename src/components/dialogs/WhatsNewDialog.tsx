@@ -198,6 +198,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
   if (!open) return null;
 
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       onClick={() => onClose(suppress)}
@@ -329,5 +330,6 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
       </div>
     </div>
     <ChangelogDialog open={showAllVersions} onClose={() => setShowAllVersions(false)} />
+    </>
   );
 }
