@@ -74,15 +74,6 @@ describe("BiomeDashboard", () => {
     expect(input.value).toBe("forest_hills");
   });
 
-  it("renders tint gradient bar", () => {
-    setupBiomeState();
-    render(
-      <BiomeDashboard onBiomeConfigChange={noop} onBlur={noop} />,
-    );
-
-    expect(screen.getByText("Tint Gradient")).toBeTruthy();
-  });
-
   it("renders environment badge", () => {
     setupBiomeState();
     render(

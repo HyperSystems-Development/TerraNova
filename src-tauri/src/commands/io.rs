@@ -201,3 +201,88 @@ pub fn create_from_template(
     crate::io::template::create_from_template(&template_name, &target_path, resource_dir)
         .map_err(|e| e.to_string())
 }
+
+/// Entry representing a single biome JSON file inside a bundled template.
+#[derive(serde::Serialize)]
+pub struct TemplateBiomeEntry {
+    pub template_name: String,
+    pub display_name: String,
+    pub biome_name: String,
+    pub path: String,
+}
+
+/// List all biome JSON files found inside bundled templates.
+#[tauri::command]
+pub fn list_template_biomes(app: tauri::AppHandle) -> Result<Vec<TemplateBiomeEntry>, String> {
+    let resource_dir = app.path().resource_dir().ok();
+    let templates_root = crate::io::template::find_templates_root(resource_dir)
+        .map_err(|e| e.to_string())?;
+
+    let mut entries: Vec<TemplateBiomeEntry> = Vec::new();
+
+    let read_dir = fs::read_dir(&templates_root).map_err(|e| e.to_string())?;
+    for template_entry in read_dir {
+        let template_entry = template_entry.map_err(|e| e.to_string())?;
+        if !template_entry.path().is_dir() {
+            continue;
+        }
+        let template_name = template_entry.file_name().to_string_lossy().to_string();
+        let display_name = template_name
+            .split('-')
+            .map(|w| {
+                let mut c = w.chars();
+                match c.next() {
+                    None => String::new(),
+                    Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        // Walk subdirectories looking for Biomes/**/*.json
+        collect_biome_files(
+            &template_entry.path(),
+            &template_name,
+            &display_name,
+            &mut entries,
+        );
+    }
+
+    entries.sort_by(|a, b| a.template_name.cmp(&b.template_name));
+    Ok(entries)
+}
+
+fn collect_biome_files(
+    dir: &Path,
+    template_name: &str,
+    display_name: &str,
+    out: &mut Vec<TemplateBiomeEntry>,
+) {
+    let Ok(read_dir) = fs::read_dir(dir) else { return };
+    for entry in read_dir.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_biome_files(&path, template_name, display_name, out);
+        } else if path
+            .parent()
+            .and_then(|p| p.file_name())
+            .map(|n| n.eq_ignore_ascii_case("Biomes"))
+            .unwrap_or(false)
+            && path
+                .extension()
+                .map(|e| e.eq_ignore_ascii_case("json"))
+                .unwrap_or(false)
+        {
+            let biome_name = path
+                .file_stem()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_default();
+            out.push(TemplateBiomeEntry {
+                template_name: template_name.to_string(),
+                display_name: display_name.to_string(),
+                biome_name,
+                path: path.to_string_lossy().to_string(),
+            });
+        }
+    }
+}

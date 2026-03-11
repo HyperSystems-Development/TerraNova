@@ -25,6 +25,7 @@ pub fn run() {
             io_commands::copy_file,
             io_commands::list_directory,
             io_commands::create_from_template,
+            io_commands::list_template_biomes,
             io_commands::create_blank_project,
             validate::validate_asset_pack,
             preview::evaluate_density,

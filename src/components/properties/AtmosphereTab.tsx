@@ -2,7 +2,7 @@
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { usePreviewStore } from "@/stores/previewStore";
-import { writeTextFile, listDirectory } from "@/utils/ipc";
+import { writeTextFile, listDirectory, listTemplateBiomes, type TemplateBiomeEntry } from "@/utils/ipc";
 import { jsonToGraph } from "@/utils/jsonToGraph";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import {
@@ -480,8 +480,11 @@ export function AtmosphereTab({
   // â”€â”€ Environment export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Biome browser
   const [biomeBrowserOpen, setBiomeBrowserOpen] = useState(false);
+  const [biomeBrowserTab, setBiomeBrowserTab] = useState<"project" | "templates">("project");
   const [biomeFiles, setBiomeFiles] = useState<{ name: string; path: string }[]>([]);
   const [biomeLoadStatus, setBiomeLoadStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [templateBiomes, setTemplateBiomes] = useState<TemplateBiomeEntry[]>([]);
+  const [templateLoadStatus, setTemplateLoadStatus] = useState<"idle" | "loading" | "error">("idle");
 
   const loadBiomeFiles = useCallback(async () => {
     const serverRoot = inferServerRoot(currentFile, projectPath, weatherInfo.serverRoot);
@@ -510,6 +513,17 @@ export function AtmosphereTab({
       setBiomeLoadStatus("error");
     }
   }, [currentFile, projectPath, weatherInfo.serverRoot]);
+
+  const loadTemplateBiomes = useCallback(async () => {
+    setTemplateLoadStatus("loading");
+    try {
+      const entries = await listTemplateBiomes();
+      setTemplateBiomes(entries);
+      setTemplateLoadStatus("idle");
+    } catch {
+      setTemplateLoadStatus("error");
+    }
+  }, []);
 
   // Environment export
   const [exportName, setExportName] = useState("");
@@ -965,35 +979,91 @@ export function AtmosphereTab({
       <SectionCard label="Biome Browser">
         <button
           onClick={() => {
-            setBiomeBrowserOpen((prev) => !prev);
-            if (!biomeBrowserOpen) void loadBiomeFiles();
+            const next = !biomeBrowserOpen;
+            setBiomeBrowserOpen(next);
+            if (next) {
+              if (biomeBrowserTab === "project") void loadBiomeFiles();
+              else void loadTemplateBiomes();
+            }
           }}
           className="w-full px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-text-muted hover:text-tn-text transition-colors text-left"
         >
-          {biomeBrowserOpen ? "Hide biome list" : "Browse biomes from assets..."}
+          {biomeBrowserOpen ? "Hide biome list" : "Browse biomes..."}
         </button>
 
         {biomeBrowserOpen && (
-          <div className="flex flex-col gap-0.5 mt-1 max-h-48 overflow-y-auto">
-            {biomeLoadStatus === "loading" && (
-              <span className="text-[10px] text-tn-text-muted px-1">Scanning...</span>
-            )}
-            {biomeLoadStatus === "error" && (
-              <span className="text-[10px] text-red-400 px-1">Could not find biomes folder. Open a biome file first.</span>
-            )}
-            {biomeLoadStatus === "idle" && biomeFiles.length === 0 && (
-              <span className="text-[10px] text-tn-text-muted px-1">No biome files found.</span>
-            )}
-            {biomeFiles.map((f) => (
+          <div className="flex flex-col gap-1.5">
+            {/* Tab switcher */}
+            <div className="flex gap-1 rounded border border-tn-border overflow-hidden text-[10px]">
               <button
-                key={f.path}
-                onClick={() => { void openFile(f.path); }}
-                className="text-left px-2 py-0.5 rounded text-[10px] text-tn-text font-mono hover:bg-tn-accent/15 hover:text-tn-accent transition-colors truncate"
-                title={f.path}
+                onClick={() => { setBiomeBrowserTab("project"); void loadBiomeFiles(); }}
+                className={`flex-1 px-2 py-1 transition-colors ${biomeBrowserTab === "project" ? "bg-tn-accent/20 text-tn-accent border-r border-tn-border" : "text-tn-text-muted hover:text-tn-text border-r border-tn-border"}`}
               >
-                {f.name}
+                Project Biomes
               </button>
-            ))}
+              <button
+                onClick={() => { setBiomeBrowserTab("templates"); void loadTemplateBiomes(); }}
+                className={`flex-1 px-2 py-1 transition-colors ${biomeBrowserTab === "templates" ? "bg-tn-accent/20 text-tn-accent" : "text-tn-text-muted hover:text-tn-text"}`}
+              >
+                Hytale Templates
+              </button>
+            </div>
+
+            {/* Project biomes */}
+            {biomeBrowserTab === "project" && (
+              <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
+                {biomeLoadStatus === "loading" && (
+                  <span className="text-[10px] text-tn-text-muted px-1">Scanning...</span>
+                )}
+                {biomeLoadStatus === "error" && (
+                  <span className="text-[10px] text-red-400 px-1">Could not find biomes folder. Open a biome file first.</span>
+                )}
+                {biomeLoadStatus === "idle" && biomeFiles.length === 0 && (
+                  <span className="text-[10px] text-tn-text-muted px-1">No biome files found.</span>
+                )}
+                {biomeFiles.map((f) => (
+                  <button
+                    key={f.path}
+                    onClick={() => { void openFile(f.path); }}
+                    className="text-left px-2 py-0.5 rounded text-[10px] text-tn-text font-mono hover:bg-tn-accent/15 hover:text-tn-accent transition-colors truncate"
+                    title={f.path}
+                  >
+                    {f.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Hytale template biomes */}
+            {biomeBrowserTab === "templates" && (
+              <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
+                {templateLoadStatus === "loading" && (
+                  <span className="text-[10px] text-tn-text-muted px-1">Loading templates...</span>
+                )}
+                {templateLoadStatus === "error" && (
+                  <span className="text-[10px] text-red-400 px-1">Could not load bundled templates.</span>
+                )}
+                {templateLoadStatus === "idle" && templateBiomes.length === 0 && (
+                  <span className="text-[10px] text-tn-text-muted px-1">No template biomes found.</span>
+                )}
+                {templateLoadStatus === "idle" && templateBiomes.length > 0 && (
+                  <p className="text-[10px] text-tn-text-muted/70 px-1 pb-0.5">
+                    Open a Hytale template biome as a reference or starting point.
+                  </p>
+                )}
+                {templateBiomes.map((t) => (
+                  <button
+                    key={t.path}
+                    onClick={() => { void openFile(t.path); }}
+                    className="text-left px-2 py-1 rounded text-[10px] hover:bg-tn-accent/15 hover:text-tn-accent transition-colors truncate group"
+                    title={t.path}
+                  >
+                    <span className="text-tn-text font-mono">{t.biomeName}</span>
+                    <span className="text-tn-text-muted ml-1.5 group-hover:text-tn-accent/60">({t.displayName})</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </SectionCard>
