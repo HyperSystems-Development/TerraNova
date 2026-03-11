@@ -95,7 +95,8 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
       </label>
 
       <div className="flex items-center gap-1.5">
-        {/* Color swatch for current material */}
+        {/* PNG icon and color swatch for current material */}
+        <BlockIcon materialId={value} size={24} className="mr-1" />
         <div
           className="w-5 h-5 shrink-0 rounded border border-tn-border/80"
           style={{ backgroundColor: swatchColor ?? "#444" }}
