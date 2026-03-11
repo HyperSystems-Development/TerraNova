@@ -25,6 +25,7 @@ import { FIELD_CONSTRAINTS } from "@/schema/constraints";
 import { NODE_TIPS } from "@/schema/nodeTips";
 import { FIELD_DESCRIPTIONS, getShortDescription, getExtendedDescription } from "@/schema/fieldDescriptions";
 import { useLanguage } from "@/languages/useLanguage";
+import { listDirectory, type DirectoryEntryData } from "@/utils/ipc";
 
 const DEFAULT_BIOME_TINT_COLORS = ["#5b9e28", "#6ca229", "#7ea629"] as const;
 
@@ -69,6 +70,277 @@ export function applyBiomeTintBand(
   };
 }
 
+export interface DelimiterValidationIssue {
+  kind: "invalid-range" | "missing-range" | "overlap" | "gap" | "unknown-environment";
+  message: string;
+  severity: "error" | "warning";
+  delimiterIndex?: number;
+}
+
+interface EnvironmentNameLookup {
+  status: "idle" | "loading" | "ready" | "error";
+  names: string[];
+  error: string | null;
+}
+
+const ENVIRONMENT_LOOKUP_CACHE = new Map<string, Promise<string[]>>();
+const RANGE_EPSILON = 1e-6;
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return value;
+}
+
+function normalizeEnvironmentName(value: string): string {
+  return value.trim().replace(/\.json$/i, "");
+}
+
+function readDelimiterRangeMin(delimiter: Record<string, unknown>): number | null {
+  const range = asRecord(delimiter.Range);
+  if (!range) return null;
+  return (
+    toFiniteNumber(range.MinInclusive)
+    ?? toFiniteNumber(range.Min)
+    ?? toFiniteNumber(range.From)
+  );
+}
+
+function readDelimiterRangeMax(delimiter: Record<string, unknown>): number | null {
+  const range = asRecord(delimiter.Range);
+  if (!range) return null;
+  return (
+    toFiniteNumber(range.MaxExclusive)
+    ?? toFiniteNumber(range.Max)
+    ?? toFiniteNumber(range.To)
+  );
+}
+
+function readDelimiterEnvironmentName(delimiter: Record<string, unknown>): string {
+  const raw = delimiter.Environment;
+  if (typeof raw === "string") return normalizeEnvironmentName(raw);
+  const rawObject = asRecord(raw);
+  if (!rawObject) return "";
+  if (typeof rawObject.Environment === "string") return normalizeEnvironmentName(rawObject.Environment);
+  if (typeof rawObject.Name === "string") return normalizeEnvironmentName(rawObject.Name);
+  return "";
+}
+
+function writeDelimiterRangeValue(
+  delimiter: Record<string, unknown>,
+  key: "MinInclusive" | "MaxExclusive",
+  rawValue: string,
+): Record<string, unknown> {
+  const parsed =
+    rawValue.trim() === ""
+      ? null
+      : Number.isFinite(Number(rawValue))
+        ? Number(rawValue)
+        : undefined;
+  if (parsed === undefined) return delimiter;
+
+  const existingRange = asRecord(delimiter.Range) ? { ...(delimiter.Range as Record<string, unknown>) } : {};
+  delete existingRange.Min;
+  delete existingRange.Max;
+  delete existingRange.From;
+  delete existingRange.To;
+
+  if (parsed === null) {
+    delete existingRange[key];
+  } else {
+    existingRange[key] = parsed;
+  }
+
+  return {
+    ...delimiter,
+    Range: existingRange,
+  };
+}
+
+function writeDelimiterEnvironmentName(
+  delimiter: Record<string, unknown>,
+  rawEnvironmentName: string,
+): Record<string, unknown> {
+  const environmentName = normalizeEnvironmentName(rawEnvironmentName);
+  const existing = asRecord(delimiter.Environment) ?? {};
+  return {
+    ...delimiter,
+    Environment: {
+      ...existing,
+      Type: "Constant",
+      Environment: environmentName,
+    },
+  };
+}
+
+function formatRangeValue(value: number): string {
+  if (Number.isInteger(value)) return String(value);
+  return value.toFixed(3).replace(/\.?0+$/, "");
+}
+
+export function validateEnvironmentDelimiters(
+  delimiters: Array<Record<string, unknown>>,
+  knownEnvironmentNames: string[],
+): DelimiterValidationIssue[] {
+  const issues: DelimiterValidationIssue[] = [];
+  const knownNames = new Set(knownEnvironmentNames.map((name) => normalizeEnvironmentName(name).toLowerCase()));
+  const ranges: Array<{ index: number; min: number; max: number }> = [];
+
+  for (let index = 0; index < delimiters.length; index++) {
+    const delimiter = delimiters[index];
+    const min = readDelimiterRangeMin(delimiter);
+    const max = readDelimiterRangeMax(delimiter);
+    const environmentName = readDelimiterEnvironmentName(delimiter);
+
+    if (min === null || max === null) {
+      issues.push({
+        kind: "missing-range",
+        severity: "warning",
+        delimiterIndex: index,
+        message: `Delimiter [${index}] is missing MinInclusive or MaxExclusive.`,
+      });
+    } else if (min >= max) {
+      issues.push({
+        kind: "invalid-range",
+        severity: "error",
+        delimiterIndex: index,
+        message: `Delimiter [${index}] has MinInclusive >= MaxExclusive.`,
+      });
+    } else {
+      ranges.push({ index, min, max });
+    }
+
+    if (environmentName && knownNames.size > 0 && !knownNames.has(environmentName.toLowerCase())) {
+      issues.push({
+        kind: "unknown-environment",
+        severity: "warning",
+        delimiterIndex: index,
+        message: `Delimiter [${index}] references unknown environment "${environmentName}".`,
+      });
+    }
+  }
+
+  ranges.sort((a, b) => (a.min === b.min ? a.max - b.max : a.min - b.min));
+  for (let i = 1; i < ranges.length; i++) {
+    const previous = ranges[i - 1];
+    const current = ranges[i];
+
+    if (current.min < previous.max - RANGE_EPSILON) {
+      issues.push({
+        kind: "overlap",
+        severity: "warning",
+        delimiterIndex: current.index,
+        message: `Delimiter [${previous.index}] overlaps [${current.index}] (${formatRangeValue(current.min)} < ${formatRangeValue(previous.max)}).`,
+      });
+    } else if (current.min > previous.max + RANGE_EPSILON) {
+      issues.push({
+        kind: "gap",
+        severity: "warning",
+        delimiterIndex: current.index,
+        message: `Gap in delimiter coverage between ${formatRangeValue(previous.max)} and ${formatRangeValue(current.min)}.`,
+      });
+    }
+  }
+
+  return issues;
+}
+
+function findServerRoot(path: string | null): string | null {
+  if (!path) return null;
+  const normalized = path.replace(/\\/g, "/");
+  const marker = "/server/";
+  const markerIndex = normalized.toLowerCase().lastIndexOf(marker);
+  if (markerIndex >= 0) {
+    return normalized.slice(0, markerIndex + marker.length - 1).replace(/\//g, "\\");
+  }
+  if (normalized.toLowerCase().endsWith("/server")) {
+    return normalized.replace(/\//g, "\\");
+  }
+  return null;
+}
+
+function getParentPath(path: string): string | null {
+  const normalized = path.replace(/\\/g, "/");
+  const index = normalized.lastIndexOf("/");
+  if (index <= 0) return null;
+  return normalized.slice(0, index).replace(/\//g, "\\");
+}
+
+function joinWindowsPath(base: string, child: string): string {
+  return `${base.replace(/[\\/]+$/, "")}\\${child}`;
+}
+
+function inferServerRoot(currentFile: string | null, projectPath: string | null): string | null {
+  const fromCurrentFile = findServerRoot(currentFile);
+  if (fromCurrentFile) return fromCurrentFile;
+
+  const fromProjectPath = findServerRoot(projectPath);
+  if (fromProjectPath) return fromProjectPath;
+
+  if (!projectPath) return null;
+  if (projectPath.toLowerCase().endsWith("\\hytalegenerator")) {
+    return getParentPath(projectPath);
+  }
+  return joinWindowsPath(projectPath, "Server");
+}
+
+function collectJsonPaths(entries: DirectoryEntryData[]): string[] {
+  const stack = [...entries];
+  const jsonPaths: string[] = [];
+  while (stack.length > 0) {
+    const entry = stack.pop();
+    if (!entry) continue;
+    if (entry.is_dir) {
+      if (Array.isArray(entry.children)) {
+        for (const child of entry.children) stack.push(child);
+      }
+      continue;
+    }
+    if (entry.path.toLowerCase().endsWith(".json")) {
+      jsonPaths.push(entry.path);
+    }
+  }
+  return jsonPaths;
+}
+
+function getFileStem(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const filename = normalized.slice(normalized.lastIndexOf("/") + 1);
+  return filename.replace(/\.json$/i, "");
+}
+
+function collectEnvironmentNames(entries: DirectoryEntryData[]): string[] {
+  const names = new Map<string, string>();
+  const paths = collectJsonPaths(entries).sort((a, b) => a.localeCompare(b));
+  for (const path of paths) {
+    const name = getFileStem(path);
+    const key = name.toLowerCase();
+    if (!names.has(key)) {
+      names.set(key, name);
+    }
+  }
+  return [...names.values()];
+}
+
+async function loadEnvironmentNames(serverRoot: string): Promise<string[]> {
+  const cacheKey = serverRoot.toLowerCase();
+  const existing = ENVIRONMENT_LOOKUP_CACHE.get(cacheKey);
+  if (existing) return existing;
+
+  const pending = listDirectory(joinWindowsPath(serverRoot, "Environments"))
+    .then((entries) => collectEnvironmentNames(entries))
+    .catch((error) => {
+      ENVIRONMENT_LOOKUP_CACHE.delete(cacheKey);
+      throw error;
+    });
+  ENVIRONMENT_LOOKUP_CACHE.set(cacheKey, pending);
+  return pending;
+}
+
 export function PropertyPanel() {
   const nodes = useEditorStore((s) => s.nodes);
   const edges = useEditorStore((s) => s.edges);
@@ -76,11 +348,18 @@ export function PropertyPanel() {
   const updateNodeField = useEditorStore((s) => s.updateNodeField);
   const commitState = useEditorStore((s) => s.commitState);
   const setDirty = useProjectStore((s) => s.setDirty);
+  const currentFile = useProjectStore((s) => s.currentFile);
+  const projectPath = useProjectStore((s) => s.projectPath);
   const editingContext = useEditorStore((s) => s.editingContext);
   const { getTypeDisplayName, getFieldDisplayName, getFieldTransform } = useLanguage();
   const helpMode = useUIStore((s) => s.helpMode);
   const toggleHelpMode = useUIStore((s) => s.toggleHelpMode);
   const [expandedField, setExpandedField] = useState<string | null>(null);
+  const [environmentLookup, setEnvironmentLookup] = useState<EnvironmentNameLookup>({
+    status: "idle",
+    names: [],
+    error: null,
+  });
   const noiseRangeConfig = useEditorStore((s) => s.noiseRangeConfig);
   const setNoiseRangeConfig = useEditorStore((s) => s.setNoiseRangeConfig);
   const biomeConfig = useEditorStore((s) => s.biomeConfig);
@@ -93,6 +372,57 @@ export function PropertyPanel() {
   const lastChangedFieldRef = useRef<{ field: string; nodeType: string }>({ field: "", nodeType: "" });
 
   const selectedNode = selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) : null;
+
+  const selectedNodeData = selectedNode?.data as Record<string, unknown> | undefined;
+  const selectedNodeType = typeof selectedNodeData?.type === "string" ? selectedNodeData.type : "";
+  const selectedNodeBiomeField = typeof selectedNodeData?._biomeField === "string"
+    ? selectedNodeData._biomeField
+    : "";
+  const shouldLoadEnvironmentNames =
+    selectedNode?.type === "Environment:DensityDelimited"
+    || (selectedNodeType === "DensityDelimited" && selectedNodeBiomeField === "EnvironmentProvider");
+
+  useEffect(() => {
+    if (!shouldLoadEnvironmentNames) return;
+    const serverRoot = inferServerRoot(currentFile, projectPath);
+    if (!serverRoot) {
+      setEnvironmentLookup({
+        status: "error",
+        names: [],
+        error: "Could not infer Server root for environment autocomplete.",
+      });
+      return;
+    }
+
+    let cancelled = false;
+    setEnvironmentLookup((prev) => ({
+      status: "loading",
+      names: prev.names,
+      error: null,
+    }));
+
+    void loadEnvironmentNames(serverRoot)
+      .then((names) => {
+        if (cancelled) return;
+        setEnvironmentLookup({
+          status: "ready",
+          names,
+          error: null,
+        });
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setEnvironmentLookup({
+          status: "error",
+          names: [],
+          error: String(error),
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [shouldLoadEnvironmentNames, currentFile, projectPath]);
 
   /**
    * Flush any pending history snapshot immediately.
@@ -304,6 +634,9 @@ export function PropertyPanel() {
   const isCurveNode = selectedNode.type?.startsWith("Curve:") ?? false;
   const isManualCurve = selectedNode.type === "Curve:Manual";
   const isPositionNode = (selectedNode.type?.startsWith("Position:") ?? false) || (POSITION_TYPE_NAMES as readonly string[]).includes(typeName);
+  const isEnvironmentDensityDelimitedNode =
+    rfType === "Environment:DensityDelimited"
+    || (typeName === "DensityDelimited" && (data._biomeField as string | undefined) === "EnvironmentProvider");
 
   return (
     <div className="flex flex-col p-3 gap-3">
@@ -442,6 +775,48 @@ export function PropertyPanel() {
                 value={v}
                 description={description}
                 onChange={(v) => handleContinuousChange(key, v)}
+                onBlur={handleBlur}
+              />
+            </FieldWrapper>
+          );
+        }
+        if (Array.isArray(value) && key === "Delimiters" && isEnvironmentDensityDelimitedNode) {
+          const delimiters = value as Array<Record<string, unknown>>;
+          const delimiterIssues = validateEnvironmentDelimiters(delimiters, environmentLookup.names);
+          const datalistId = selectedNodeId ? `env-names-${selectedNodeId}` : "env-names";
+          return (
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+              <EnvironmentDelimitersField
+                label={fieldLabel}
+                description={description}
+                delimiters={delimiters}
+                issues={delimiterIssues}
+                datalistId={datalistId}
+                environmentNames={environmentLookup.names}
+                lookupStatus={environmentLookup.status}
+                lookupError={environmentLookup.error}
+                onChange={(nextDelimiters) => handleContinuousChange("Delimiters", nextDelimiters)}
+                onAdd={() => {
+                  const last = delimiters[delimiters.length - 1];
+                  const lastMax = last ? readDelimiterRangeMax(last) : null;
+                  const nextMin = lastMax ?? 0;
+                  const nextMax = nextMin + 1;
+                  const defaultEnvironment = environmentLookup.names[0] ?? "";
+                  const nextDelimiter: Record<string, unknown> = {
+                    Range: {
+                      MinInclusive: nextMin,
+                      MaxExclusive: nextMax,
+                    },
+                    Environment: {
+                      Type: "Constant",
+                      Environment: defaultEnvironment,
+                    },
+                  };
+                  handleDiscreteChange("Delimiters", [...delimiters, nextDelimiter]);
+                }}
+                onRemove={(index) => {
+                  handleDiscreteChange("Delimiters", delimiters.filter((_, i) => i !== index));
+                }}
                 onBlur={handleBlur}
               />
             </FieldWrapper>
@@ -647,6 +1022,178 @@ function BiomeInspector({
         {tab === "atmosphere" && <AtmosphereTab onBlur={onBlur} onBiomeTintChange={onBiomeTintChange} />}
         {tab === "debug" && <DebugTab />}
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+function EnvironmentDelimitersField({
+  label,
+  description,
+  delimiters,
+  issues,
+  datalistId,
+  environmentNames,
+  lookupStatus,
+  lookupError,
+  onChange,
+  onAdd,
+  onRemove,
+  onBlur,
+}: {
+  label: string;
+  description?: string;
+  delimiters: Array<Record<string, unknown>>;
+  issues: DelimiterValidationIssue[];
+  datalistId: string;
+  environmentNames: string[];
+  lookupStatus: "idle" | "loading" | "ready" | "error";
+  lookupError: string | null;
+  onChange: (nextDelimiters: Array<Record<string, unknown>>) => void;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  onBlur: () => void;
+}) {
+  const rowIssueMap = new Map<number, DelimiterValidationIssue[]>();
+  for (const issue of issues) {
+    if (issue.delimiterIndex === undefined) continue;
+    const existing = rowIssueMap.get(issue.delimiterIndex) ?? [];
+    existing.push(issue);
+    rowIssueMap.set(issue.delimiterIndex, existing);
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="text-xs text-tn-text-muted">{label} ({delimiters.length})</span>
+          {description && <span className="text-[10px] text-tn-text-muted/80">{description}</span>}
+        </div>
+        <button
+          onClick={onAdd}
+          className="text-xs text-tn-accent hover:text-tn-accent/80"
+        >
+          + Add
+        </button>
+      </div>
+
+      <datalist id={datalistId}>
+        {environmentNames.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+
+      <div className="rounded border border-tn-border/80 overflow-hidden">
+        <div className="grid grid-cols-[1fr_1fr_1.4fr_auto] gap-1 bg-tn-panel/50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-tn-text-muted">
+          <span>MinInclusive</span>
+          <span>MaxExclusive</span>
+          <span>Environment</span>
+          <span className="text-right">Actions</span>
+        </div>
+        <div className="flex flex-col divide-y divide-tn-border/60">
+          {delimiters.map((delimiter, index) => {
+            const min = readDelimiterRangeMin(delimiter);
+            const max = readDelimiterRangeMax(delimiter);
+            const environmentName = readDelimiterEnvironmentName(delimiter);
+            const rowIssues = rowIssueMap.get(index) ?? [];
+            const hasRowError = rowIssues.some((issue) => issue.severity === "error");
+            const hasRowWarning = rowIssues.some((issue) => issue.severity === "warning");
+            const hasUnknownEnvironment = rowIssues.some((issue) => issue.kind === "unknown-environment");
+            return (
+              <div
+                key={index}
+                className={`grid grid-cols-[1fr_1fr_1.4fr_auto] gap-1 px-2 py-1.5 items-start ${
+                  hasRowError
+                    ? "bg-red-500/10"
+                    : hasRowWarning
+                      ? "bg-amber-500/5"
+                      : "bg-transparent"
+                }`}
+              >
+                <input
+                  type="number"
+                  step="any"
+                  value={min ?? ""}
+                  onChange={(event) => {
+                    const nextDelimiter = writeDelimiterRangeValue(delimiter, "MinInclusive", event.target.value);
+                    const nextDelimiters = delimiters.map((item, itemIndex) => (
+                      itemIndex === index ? nextDelimiter : item
+                    ));
+                    onChange(nextDelimiters);
+                  }}
+                  onBlur={onBlur}
+                  className={`px-1.5 py-1 text-xs bg-tn-bg border rounded text-right ${
+                    hasRowError ? "border-red-400/70" : "border-tn-border"
+                  }`}
+                />
+                <input
+                  type="number"
+                  step="any"
+                  value={max ?? ""}
+                  onChange={(event) => {
+                    const nextDelimiter = writeDelimiterRangeValue(delimiter, "MaxExclusive", event.target.value);
+                    const nextDelimiters = delimiters.map((item, itemIndex) => (
+                      itemIndex === index ? nextDelimiter : item
+                    ));
+                    onChange(nextDelimiters);
+                  }}
+                  onBlur={onBlur}
+                  className={`px-1.5 py-1 text-xs bg-tn-bg border rounded text-right ${
+                    hasRowError ? "border-red-400/70" : "border-tn-border"
+                  }`}
+                />
+                <input
+                  type="text"
+                  value={environmentName}
+                  list={datalistId}
+                  onChange={(event) => {
+                    const nextDelimiter = writeDelimiterEnvironmentName(delimiter, event.target.value);
+                    const nextDelimiters = delimiters.map((item, itemIndex) => (
+                      itemIndex === index ? nextDelimiter : item
+                    ));
+                    onChange(nextDelimiters);
+                  }}
+                  onBlur={onBlur}
+                  placeholder="Env_*"
+                  className={`px-1.5 py-1 text-xs bg-tn-bg border rounded ${
+                    hasUnknownEnvironment ? "border-amber-400/70" : "border-tn-border"
+                  }`}
+                />
+                <button
+                  className="text-[11px] text-red-400 hover:text-red-300 px-1 py-1 text-right"
+                  onClick={() => onRemove(index)}
+                  title={`Remove delimiter ${index}`}
+                >
+                  Remove
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {lookupStatus === "loading" && (
+        <p className="text-[10px] text-tn-text-muted">Loading environment names from Server/Environments...</p>
+      )}
+      {lookupStatus === "error" && lookupError && (
+        <p className="text-[10px] text-amber-300">{lookupError}</p>
+      )}
+
+      {issues.length > 0 && (
+        <div className="flex flex-col gap-0.5">
+          {issues.map((issue, index) => (
+            <p
+              key={`${issue.kind}-${index}`}
+              className={`text-[10px] ${
+                issue.severity === "error" ? "text-red-400" : "text-amber-300"
+              }`}
+            >
+              {issue.message}
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
