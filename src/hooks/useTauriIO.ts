@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { useProjectStore } from "@/stores/projectStore";
 import { useEditorStore } from "@/stores/editorStore";
@@ -22,6 +22,7 @@ import type { BiomeConfig, BiomeSectionData, SectionHistoryEntry } from "@/store
 import { extractMaterialConfig } from "@/utils/materialResolver";
 import { useUIStore } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { usePreviewStore } from "@/stores/previewStore";
 
 /**
  * Conditionally run autoLayout based on the autoLayoutOnOpen setting.
@@ -492,6 +493,22 @@ export function useTauriIO() {
       const currentFile = useProjectStore.getState().currentFile;
       if (!currentFile) return;
 
+      // JSON view mode: save the raw JSON draft directly to disk
+      const viewMode = usePreviewStore.getState().viewMode;
+      if (viewMode === "json") {
+        const jsonDraft = useEditorStore.getState().jsonViewDraft;
+        if (jsonDraft && currentFile) {
+          try {
+            const parsed = JSON.parse(jsonDraft);
+            await writeAssetFile(currentFile, parsed);
+            setDirty(false);
+          } catch {
+            setLastError("Cannot save: invalid JSON");
+          }
+        }
+        return;
+      }
+
       const { nodes, edges, originalWrapper, biomeRanges, noiseRangeConfig } = useEditorStore.getState();
 
       // NoiseRange files: reassemble the full structure
@@ -701,6 +718,27 @@ export function useTauriIO() {
     },
     [setProjectPath, setDirectoryTree, setLastError],
   );
+
+  // Re-sync graph when leaving JSON view
+  const viewMode = usePreviewStore((s) => s.viewMode);
+  const prevViewModeRef = useRef(viewMode);
+  useEffect(() => {
+    if (prevViewModeRef.current === "json" && viewMode !== "json") {
+      const currentFile = useProjectStore.getState().currentFile;
+      if (currentFile) {
+        // Clear cache so it re-parses from disk
+        const { fileCache } = useEditorStore.getState();
+        const newCache = new Map(fileCache);
+        newCache.delete(currentFile);
+        useEditorStore.setState({ fileCache: newCache });
+        // Re-open the file to rebuild graph state
+        handleOpenFile(currentFile);
+      }
+      // Clear the draft
+      useEditorStore.getState().setJsonViewDraft(null);
+    }
+    prevViewModeRef.current = viewMode;
+  }, [viewMode, handleOpenFile]);
 
   return {
     openAssetPack: handleOpenAssetPack,

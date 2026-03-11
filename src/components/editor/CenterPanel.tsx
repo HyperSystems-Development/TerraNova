@@ -124,6 +124,7 @@ const SplitView = memo(function SplitView() {
 const DensityView = memo(function DensityView() {
   const viewMode = usePreviewStore((s) => s.viewMode);
   const originalWrapper = useEditorStore((s) => s.originalWrapper);
+  const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
 
   return (
     <div className="flex flex-col h-full">
@@ -134,7 +135,7 @@ const DensityView = memo(function DensityView() {
         {viewMode === "preview" && <PreviewPanel />}
         {viewMode === "split" && <SplitView />}
         {viewMode === "compare" && <ComparisonView />}
-        {viewMode === "json" && <JsonEditorView content={originalWrapper} />}
+        {viewMode === "json" && <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />}
       </div>
     </div>
   );
@@ -183,6 +184,7 @@ function defaultEditorHeight(biomeCount: number): number {
 const NoiseRangeView = memo(function NoiseRangeView() {
   const viewMode = usePreviewStore((s) => s.viewMode);
   const originalWrapper = useEditorStore((s) => s.originalWrapper);
+  const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
   const biomeCount = useEditorStore((s) => s.biomeRanges.length);
   const [manualHeight, setManualHeight] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -236,7 +238,7 @@ const NoiseRangeView = memo(function NoiseRangeView() {
       ) : viewMode === "json" ? (
         <div className="flex-1 min-h-0 relative">
           <ViewModeOverlay />
-          <JsonEditorView content={originalWrapper} />
+          <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />
         </div>
       ) : (
         <div ref={containerRef} className="flex-1 min-h-0 flex flex-col relative">
@@ -261,6 +263,7 @@ const NoiseRangeView = memo(function NoiseRangeView() {
 const BiomeView = memo(function BiomeView() {
   const viewMode = usePreviewStore((s) => s.viewMode);
   const originalWrapper = useEditorStore((s) => s.originalWrapper);
+  const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
 
   return (
     <div className="flex flex-col h-full">
@@ -274,7 +277,7 @@ const BiomeView = memo(function BiomeView() {
         {viewMode === "preview" && <PreviewPanel />}
         {viewMode === "split" && <SplitView />}
         {viewMode === "compare" && <ComparisonView />}
-        {viewMode === "json" && <JsonEditorView content={originalWrapper} />}
+        {viewMode === "json" && <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />}
       </div>
     </div>
   );

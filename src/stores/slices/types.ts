@@ -176,6 +176,7 @@ export interface ConfigSliceState {
   originalWrapper: Record<string, unknown> | null;
   editingContext: string | null;
   rawJsonContent: Record<string, unknown> | null;
+  jsonViewDraft: string | null;
 
   setSettingsConfig: (config: SettingsConfig | null) => void;
   setContentFields: (fields: Record<string, number>) => void;
@@ -183,6 +184,7 @@ export interface ConfigSliceState {
   setOriginalWrapper: (wrapper: Record<string, unknown> | null) => void;
   setEditingContext: (context: string | null) => void;
   setRawJsonContent: (content: Record<string, unknown> | null) => void;
+  setJsonViewDraft: (draft: string | null) => void;
 }
 
 // ---------------------------------------------------------------------------

@@ -12,6 +12,7 @@ export const configInitialState = {
   originalWrapper: null as Record<string, unknown> | null,
   editingContext: null as string | null,
   rawJsonContent: null as Record<string, unknown> | null,
+  jsonViewDraft: null as string | null,
 };
 
 // ---------------------------------------------------------------------------
@@ -27,4 +28,5 @@ export const createConfigSlice: SliceCreator<ConfigSliceState> = (set) => ({
   setOriginalWrapper: (wrapper) => set({ originalWrapper: wrapper }),
   setEditingContext: (context) => set({ editingContext: context }),
   setRawJsonContent: (content) => set({ rawJsonContent: content }),
+  setJsonViewDraft: (draft) => set({ jsonViewDraft: draft }),
 });
