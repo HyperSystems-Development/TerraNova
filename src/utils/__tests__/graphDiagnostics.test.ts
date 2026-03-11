@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Node, Edge } from "@xyflow/react";
-import { analyzeGraph } from "../graphDiagnostics";
+import { analyzeBiome, analyzeGraph } from "../graphDiagnostics";
 
 /* ── Helpers ───────────────────────────────────────────────────────── */
 
@@ -282,7 +282,7 @@ describe("analyzeGraph — field constraint violations", () => {
 
 /* ── Rule 9: Output range mismatch hints ───────────────────────────── */
 
-describe("analyzeGraph — output range mismatch hints", () => {
+describe("analyzeGraph - output range mismatch hints", () => {
   it("does NOT hint when noise partially overlaps Clamp range (normal usage)", () => {
     const nodes = [
       makeNode("noise", "SimplexNoise2D", { Scale: 100, Octaves: 4, Lacunarity: 2, Persistence: 0.5 }),
@@ -324,5 +324,194 @@ describe("analyzeGraph — output range mismatch hints", () => {
       (d) => d.severity === "info" && d.message.includes("entirely outside"),
     );
     expect(hints.length).toBe(1);
+  });
+});
+
+describe("analyzeGraph - environment delimiter diagnostics", () => {
+  it("emits structured diagnostics for invalid environment delimiter ranges", () => {
+    const node: Node = {
+      id: "env",
+      type: "Environment:DensityDelimited",
+      position: { x: 0, y: 0 },
+      data: {
+        type: "DensityDelimited",
+        fields: {
+          Delimiters: [
+            {
+              Range: { MinInclusive: -1, MaxExclusive: 0.6 },
+              Environment: { Type: "Constant", Environment: "Env_Zone1_Plains" },
+            },
+            {
+              Range: { MinInclusive: 0.4, MaxExclusive: 0.8 },
+              Environment: { Type: "Constant", Environment: "Env_Zone1_Caves" },
+            },
+            {
+              Range: { MinInclusive: 0.9, MaxExclusive: 0.2 },
+              Environment: { Type: "Constant", Environment: "Env_Zone1" },
+            },
+          ],
+        },
+      },
+    };
+
+    const diagnostics = analyzeGraph([node], []);
+    expect(diagnostics.some((d) => d.code === "env-delimiter-overlap" && d.field === "Delimiters")).toBe(true);
+    expect(diagnostics.some((d) => d.code === "env-delimiter-invalid-range" && d.meta?.delimiterIndex === 2)).toBe(true);
+  });
+
+  it("tags missing imported names as import diagnostics", () => {
+    const nodes = [makeNode("imp", "Imported", {})];
+    const diagnostics = analyzeGraph(nodes, []);
+    expect(diagnostics.some((d) => d.code === "import-missing-name" && d.field === "Name")).toBe(true);
+  });
+
+  it("accepts project environment names when provided", () => {
+    const node: Node = {
+      id: "env",
+      type: "Environment:DensityDelimited",
+      position: { x: 0, y: 0 },
+      data: {
+        type: "DensityDelimited",
+        fields: {
+          Delimiters: [
+            {
+              Range: { MinInclusive: -1, MaxExclusive: 1 },
+              Environment: { Type: "Constant", Environment: "Env_CustomBiome" },
+            },
+          ],
+        },
+      },
+    };
+
+    const diagnostics = analyzeGraph([node], [], { environment: ["Env_CustomBiome"] });
+    expect(diagnostics.some((d) => d.code === "env-delimiter-unknown-environment")).toBe(false);
+  });
+
+  it("validates imported tint, material, and prop refs against known project assets", () => {
+    const nodes: Node[] = [
+      {
+        id: "tint",
+        type: "Tint:Imported",
+        position: { x: 0, y: 0 },
+        data: { type: "Imported", fields: { Name: "Tint_Forest" } },
+      },
+      {
+        id: "material",
+        type: "Material:Imported",
+        position: { x: 0, y: 0 },
+        data: { type: "Imported", fields: { Name: "Mat_Stone" } },
+      },
+      {
+        id: "prop",
+        type: "Prop:Imported",
+        position: { x: 0, y: 0 },
+        data: { type: "Imported", fields: { Name: "Prop_OakTree" } },
+      },
+    ];
+
+    const diagnostics = analyzeGraph(nodes, [], {
+      tint: ["Tint_Meadow"],
+      material: ["Mat_Stone"],
+      prop: ["Prop_PineTree"],
+    });
+
+    expect(diagnostics.some((d) => d.code === "asset-import-unknown-ref" && d.nodeId === "tint")).toBe(true);
+    expect(diagnostics.some((d) => d.code === "asset-import-unknown-ref" && d.nodeId === "material")).toBe(false);
+    expect(diagnostics.some((d) => d.code === "asset-import-unknown-ref" && d.nodeId === "prop")).toBe(true);
+  });
+});
+
+describe("analyzeBiome - section targets", () => {
+  it("targets EnvironmentProvider diagnostics to the environment section", () => {
+    const diagnostics = analyzeBiome({
+      Name: "test_biome",
+      EnvironmentProvider: {
+        Type: "Constant",
+        Environment: "Env_Not_Real",
+      },
+    });
+
+    const environmentError = diagnostics.find((d) => d.message.includes("unknown environment"));
+    expect(environmentError?.biomeSection).toBe("EnvironmentProvider");
+  });
+
+  it("targets TintProvider diagnostics to the tint section", () => {
+    const diagnostics = analyzeBiome({
+      Name: "test_biome",
+      TintProvider: {
+        Type: "Constant",
+        Color: "#12345",
+      },
+    });
+
+    const tintError = diagnostics.find((d) => d.message.includes("invalid color value"));
+    expect(tintError?.biomeSection).toBe("TintProvider");
+  });
+
+  it("targets missing biome name diagnostics to the terrain section", () => {
+    const diagnostics = analyzeBiome({
+      EnvironmentProvider: {
+        Type: "Constant",
+        Environment: "Env_Zone1_Plains",
+      },
+    });
+
+    const nameError = diagnostics.find((d) => d.message.includes("no Name"));
+    expect(nameError?.biomeSection).toBe("Terrain");
+  });
+
+  it("does not warn when EnvironmentProvider is already Default", () => {
+    const diagnostics = analyzeBiome({
+      Name: "test_biome",
+      EnvironmentProvider: { Type: "Default" },
+    });
+
+    expect(diagnostics.some((d) => d.code === "biome-environment-no-constants")).toBe(false);
+  });
+
+  it("accepts project environment names for biome env refs", () => {
+    const diagnostics = analyzeBiome({
+      Name: "test_biome",
+      EnvironmentProvider: {
+        Type: "Constant",
+        Environment: "Env_CustomBiome",
+      },
+    }, { environment: ["Env_CustomBiome"] });
+
+    expect(diagnostics.some((d) => d.code === "biome-environment-unknown-ref")).toBe(false);
+  });
+
+  it("flags missing imported or exported biome environment names distinctly", () => {
+    const importedDiagnostics = analyzeBiome({
+      Name: "test_biome",
+      EnvironmentProvider: {
+        Type: "Imported",
+        Name: "",
+      },
+    });
+    const exportedDiagnostics = analyzeBiome({
+      Name: "test_biome",
+      EnvironmentProvider: {
+        Type: "Exported",
+        Name: "",
+      },
+    });
+
+    expect(importedDiagnostics.some((d) => d.code === "biome-environment-missing-ref-name")).toBe(true);
+    expect(exportedDiagnostics.some((d) => d.code === "biome-environment-missing-ref-name")).toBe(true);
+    expect(importedDiagnostics.some((d) => d.code === "biome-environment-no-constants")).toBe(false);
+    expect(exportedDiagnostics.some((d) => d.code === "biome-environment-no-constants")).toBe(false);
+  });
+
+  it("validates imported tint biome refs against known tint assets", () => {
+    const diagnostics = analyzeBiome({
+      Name: "test_biome",
+      TintProvider: {
+        Type: "Imported",
+        Name: "Tint_Forest",
+      },
+    }, { tint: ["Tint_Meadow"] });
+
+    expect(diagnostics.some((d) => d.code === "biome-tint-unknown-ref")).toBe(true);
   });
 });

@@ -1,5 +1,10 @@
 # Quality of Life Ideas (for future)
 
+## Validation panel polish
+- Biome-level issues in the Issues panel should click into the relevant biome section, not only graph nodes.
+- Add one-click auto-fixes for safe diagnostics like delimiter sorting, missing defaults, and simple ref cleanup.
+- Show section/field targets in validation entries so the navigation intent is obvious.
+
 ## Weather forecast editor
 - UI to visualize and edit hourly weather patterns for each environment.
 - Drag-and-drop timeline for weather types (rain, sun, fog, etc.).

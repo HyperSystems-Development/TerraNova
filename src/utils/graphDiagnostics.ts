@@ -6,6 +6,12 @@ import { validateFields } from "@/schema/validation";
 import { isLegacyTypeKey } from "@/nodes/shared/legacyTypes";
 import { getEvalStatus } from "@/utils/densityEvaluator";
 import { EvalStatus } from "@/schema/types";
+import {
+  cloneDelimiterRecords,
+  readDelimiterEnvironmentReference,
+  validateEnvironmentDelimiters,
+} from "@/utils/environmentDelimiters";
+import type { AssetReferenceKind } from "@/utils/environmentAssetLookup";
 import connectionsData from "@/data/connections.json";
 
 // ── Hytale known environment names (from Server/Environments/) ──────────────
@@ -53,16 +59,41 @@ export const HYTALE_KNOWN_ENVIRONMENTS = new Set([
   "Env_Temple_of_Gaia", "Env_Void",
   // Legacy / alias-style names observed in shipped biome assets
   "Zone1_Overground", "Zone1_Underground", "Zone1_Plains", "Zone3_Overground",
+  // Hytale sentinel used for Default environment provider export
+  "default",
 ]);
 
 const connectionMatrix = connectionsData.connectionMatrix as Record<string, Record<string, number>>;
 
 export type DiagnosticSeverity = "error" | "warning" | "info";
+export type GraphDiagnosticCode =
+  | "field-constraint"
+  | "import-missing-name"
+  | "asset-import-unknown-ref"
+  | "env-delimiter-invalid-range"
+  | "env-delimiter-missing-range"
+  | "env-delimiter-overlap"
+  | "env-delimiter-gap"
+  | "env-delimiter-missing-environment"
+  | "env-delimiter-unknown-environment"
+  | "env-delimiter-unsupported-provider"
+  | "biome-environment-missing-provider"
+  | "biome-environment-unknown-ref"
+  | "biome-environment-no-constants"
+  | "biome-environment-missing-ref-name"
+  | "biome-tint-missing-provider"
+  | "biome-tint-missing-ref-name"
+  | "biome-tint-unknown-ref"
+  | "biome-name-missing";
 
 export interface GraphDiagnostic {
   nodeId: string | null;
   message: string;
   severity: DiagnosticSeverity;
+  biomeSection?: string | null;
+  code?: GraphDiagnosticCode;
+  field?: string | null;
+  meta?: Record<string, unknown>;
 }
 
 const UNSUPPORTED_TYPES = new Set([
@@ -84,6 +115,69 @@ function getNodeFields(node: Node): Record<string, unknown> {
   return (node.data as BaseNodeData).fields ?? {};
 }
 
+type KnownAssetNameMap = Partial<Record<AssetReferenceKind, string[]>>;
+
+function normalizeKnownName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+function buildKnownAssetNameSets(knownAssetNames?: KnownAssetNameMap | null): Record<AssetReferenceKind, Set<string>> {
+  const environmentNames = new Set<string>();
+  for (const name of HYTALE_KNOWN_ENVIRONMENTS) {
+    environmentNames.add(normalizeKnownName(name));
+  }
+
+  const sets: Record<AssetReferenceKind, Set<string>> = {
+    environment: environmentNames,
+    tint: new Set<string>(),
+    material: new Set<string>(),
+    prop: new Set<string>(),
+  };
+
+  if (!knownAssetNames) return sets;
+
+  for (const kind of Object.keys(sets) as AssetReferenceKind[]) {
+    const names = knownAssetNames[kind];
+    if (!names) continue;
+    for (const name of names) {
+      if (typeof name === "string" && name.trim()) {
+        sets[kind].add(normalizeKnownName(name));
+      }
+    }
+  }
+
+  return sets;
+}
+
+function getImportedAssetKind(node: Node): AssetReferenceKind | null {
+  const rfType = node.type ?? "";
+  if (rfType === "Environment:Imported") return "environment";
+  if (rfType === "Tint:Imported") return "tint";
+  if (rfType === "Material:Imported") return "material";
+  if (rfType === "Prop:Imported") return "prop";
+  return null;
+}
+
+function getAssetKindLabel(kind: AssetReferenceKind): string {
+  switch (kind) {
+    case "environment":
+      return "Environment";
+    case "tint":
+      return "Tint";
+    case "material":
+      return "Material";
+    case "prop":
+      return "Prop";
+  }
+}
+
+function isEnvironmentDensityDelimitedNode(node: Node): boolean {
+  const rfType = node.type ?? "";
+  const data = node.data as BaseNodeData;
+  return rfType === "Environment:DensityDelimited"
+    || (data.type === "DensityDelimited" && data._biomeField === "EnvironmentProvider");
+}
+
 /** Extract Min/Max from a nested range object like { Min: -1, Max: 1 } */
 function getRangeValues(obj: unknown): [number, number] | undefined {
   if (obj && typeof obj === "object" && "Min" in (obj as Record<string, unknown>) && "Max" in (obj as Record<string, unknown>)) {
@@ -95,10 +189,15 @@ function getRangeValues(obj: unknown): [number, number] | undefined {
   return undefined;
 }
 
-export function analyzeGraph(nodes: Node[], edges: Edge[]): GraphDiagnostic[] {
+export function analyzeGraph(
+  nodes: Node[],
+  edges: Edge[],
+  knownAssetNames?: KnownAssetNameMap | null,
+): GraphDiagnostic[] {
   if (nodes.length === 0) return [];
 
   const diagnostics: GraphDiagnostic[] = [];
+  const knownAssetSets = buildKnownAssetNameSets(knownAssetNames);
 
   // Build lookup maps
   const incomingByTarget = new Map<string, Set<string>>();
@@ -310,10 +409,81 @@ export function analyzeGraph(nodes: Node[], edges: Edge[]): GraphDiagnostic[] {
     const fields = getNodeFields(node);
     const issues = validateFields(fields, constraints);
     for (const issue of issues) {
+      const isMissingImportName = type === "Imported" && issue.field === "Name";
       diagnostics.push({
         nodeId: node.id,
         message: `${type}.${issue.field}: ${issue.message}`,
         severity: issue.severity,
+        code: isMissingImportName ? "import-missing-name" : "field-constraint",
+        field: issue.field,
+      });
+    }
+  }
+
+  // 8b. Imported asset reference validation
+  for (const node of nodes) {
+    const assetKind = getImportedAssetKind(node);
+    if (!assetKind) continue;
+
+    const fields = getNodeFields(node);
+    const importName = typeof fields.Name === "string" ? fields.Name.trim() : "";
+    const knownNames = knownAssetSets[assetKind];
+
+    if (!importName || knownNames.size === 0) continue;
+    if (knownNames.has(normalizeKnownName(importName))) continue;
+
+    diagnostics.push({
+      nodeId: node.id,
+      message: `${getAssetKindLabel(assetKind)} Imported references unknown asset "${importName}"`,
+      severity: "warning",
+      code: "asset-import-unknown-ref",
+      field: "Name",
+      meta: { assetKind, importName },
+    });
+  }
+
+  // 8c. Environment:DensityDelimited delimiter validation
+  for (const node of nodes) {
+    if (!isEnvironmentDensityDelimitedNode(node)) continue;
+    const fields = getNodeFields(node);
+    const delimiters = Array.isArray(fields.Delimiters)
+      ? cloneDelimiterRecords(fields.Delimiters)
+      : [];
+    const issues = validateEnvironmentDelimiters(delimiters, Array.from(knownAssetSets.environment));
+
+    for (const issue of issues) {
+      const delimiter =
+        issue.delimiterIndex !== undefined && issue.delimiterIndex >= 0 && issue.delimiterIndex < delimiters.length
+          ? delimiters[issue.delimiterIndex]
+          : null;
+      const environmentReference = delimiter ? readDelimiterEnvironmentReference(delimiter) : null;
+      const code =
+        issue.kind === "invalid-range"
+          ? "env-delimiter-invalid-range"
+          : issue.kind === "missing-range"
+            ? "env-delimiter-missing-range"
+            : issue.kind === "overlap"
+              ? "env-delimiter-overlap"
+              : issue.kind === "gap"
+                ? "env-delimiter-gap"
+                : issue.kind === "missing-environment"
+                  ? "env-delimiter-missing-environment"
+                  : issue.kind === "unknown-environment"
+                    ? "env-delimiter-unknown-environment"
+                    : "env-delimiter-unsupported-provider";
+
+      diagnostics.push({
+        nodeId: node.id,
+        message: `Environment:DensityDelimited ${issue.message}`,
+        severity: issue.severity,
+        code,
+        field: "Delimiters",
+        meta: {
+          delimiterIndex: issue.delimiterIndex ?? null,
+          issueKind: issue.kind,
+          providerType: environmentReference?.providerType ?? null,
+          rawType: environmentReference?.rawType ?? null,
+        },
       });
     }
   }
@@ -427,34 +597,67 @@ function collectEnvRefs(node: unknown): string[] {
  * - Missing TintProvider
  * - TintProvider with a single-color only (no gradient)
  */
-export function analyzeBiome(biomeConfig: Record<string, unknown> | null): GraphDiagnostic[] {
+export function analyzeBiome(
+  biomeConfig: Record<string, unknown> | null,
+  knownAssetNames?: KnownAssetNameMap | null,
+): GraphDiagnostic[] {
   if (!biomeConfig) return [];
   const diags: GraphDiagnostic[] = [];
+  const knownAssetSets = buildKnownAssetNameSets(knownAssetNames);
 
   // Check EnvironmentProvider references
   const envProvider = biomeConfig.EnvironmentProvider;
   if (!envProvider) {
     diags.push({
       nodeId: null,
-      message: "Biome has no EnvironmentProvider — worldgen will use the default environment",
+      message: "Biome has no EnvironmentProvider - worldgen will use the default environment",
       severity: "warning",
+      biomeSection: "EnvironmentProvider",
+      code: "biome-environment-missing-provider",
+      field: "EnvironmentProvider",
     });
   } else {
+    const envProviderRecord = envProvider as Record<string, unknown>;
+    const envProviderType = typeof envProviderRecord.Type === "string" ? envProviderRecord.Type : null;
+    const envProviderName = typeof envProviderRecord.Name === "string" ? envProviderRecord.Name.trim() : "";
+    if ((envProviderType === "Imported" || envProviderType === "Exported") && !envProviderName) {
+      diags.push({
+        nodeId: null,
+        message: `EnvironmentProvider ${envProviderType} is missing a Name reference`,
+        severity: "warning",
+        biomeSection: "EnvironmentProvider",
+        code: "biome-environment-missing-ref-name",
+        field: "Name",
+        meta: { providerType: envProviderType },
+      });
+    }
     const refs = collectEnvRefs(envProvider);
     for (const ref of refs) {
-      if (!HYTALE_KNOWN_ENVIRONMENTS.has(ref)) {
+      if (!knownAssetSets.environment.has(normalizeKnownName(ref))) {
         diags.push({
           nodeId: null,
-          message: `EnvironmentProvider references unknown environment "${ref}" — not found in Hytale assets`,
+          message: `EnvironmentProvider references unknown environment "${ref}" - not found in Hytale assets`,
           severity: "error",
+          biomeSection: "EnvironmentProvider",
+          code: "biome-environment-unknown-ref",
+          field: "EnvironmentProvider",
+          meta: { environment: ref },
         });
       }
     }
-    if (refs.length === 0) {
+    if (
+      refs.length === 0
+      && envProviderType !== "Default"
+      && envProviderType !== "Imported"
+      && envProviderType !== "Exported"
+    ) {
       diags.push({
         nodeId: null,
-        message: "EnvironmentProvider has no environment constants — biome will have no environment",
+        message: "EnvironmentProvider has no environment constants - biome will have no environment",
         severity: "warning",
+        biomeSection: "EnvironmentProvider",
+        code: "biome-environment-no-constants",
+        field: "EnvironmentProvider",
       });
     }
   }
@@ -464,17 +667,48 @@ export function analyzeBiome(biomeConfig: Record<string, unknown> | null): Graph
   if (!tintProvider) {
     diags.push({
       nodeId: null,
-      message: "Biome has no TintProvider — grass and foliage will use default color",
+      message: "Biome has no TintProvider - grass and foliage will use default color",
       severity: "info",
+      biomeSection: "TintProvider",
+      code: "biome-tint-missing-provider",
+      field: "TintProvider",
     });
   } else {
     const tp = tintProvider as Record<string, unknown>;
+    const tintProviderType = typeof tp.Type === "string" ? tp.Type : null;
+    const tintProviderName = typeof tp.Name === "string" ? tp.Name.trim() : "";
+    if (tintProviderType === "Imported" && !tintProviderName) {
+      diags.push({
+        nodeId: null,
+        message: "TintProvider Imported is missing a Name reference",
+        severity: "warning",
+        biomeSection: "TintProvider",
+        code: "biome-tint-missing-ref-name",
+        field: "Name",
+      });
+    } else if (
+      tintProviderType === "Imported"
+      && tintProviderName
+      && knownAssetSets.tint.size > 0
+      && !knownAssetSets.tint.has(normalizeKnownName(tintProviderName))
+    ) {
+      diags.push({
+        nodeId: null,
+        message: `TintProvider Imported references unknown tint "${tintProviderName}"`,
+        severity: "warning",
+        biomeSection: "TintProvider",
+        code: "biome-tint-unknown-ref",
+        field: "Name",
+        meta: { assetKind: "tint", importName: tintProviderName },
+      });
+    }
     // A Constant tint with a single color is valid but less interesting than DensityDelimited
     if (tp.Type === "Constant") {
       diags.push({
         nodeId: null,
-        message: "TintProvider is a single Constant color — consider DensityDelimited for noise-varied grass tints",
+        message: "TintProvider is a single Constant color - consider DensityDelimited for noise-varied grass tints",
         severity: "info",
+        biomeSection: "TintProvider",
       });
     }
     // DensityDelimited with no delimiters
@@ -483,8 +717,9 @@ export function analyzeBiome(biomeConfig: Record<string, unknown> | null): Graph
       if (Array.isArray(delimiters) && delimiters.length === 0) {
         diags.push({
           nodeId: null,
-          message: "TintProvider DensityDelimited has no delimiters — will produce no tint variation",
+          message: "TintProvider DensityDelimited has no delimiters - will produce no tint variation",
           severity: "warning",
+          biomeSection: "TintProvider",
         });
       }
     }
@@ -496,8 +731,9 @@ export function analyzeBiome(biomeConfig: Record<string, unknown> | null): Graph
         if (!/^#[0-9a-fA-F]{6}$/.test(o.Color)) {
           diags.push({
             nodeId: null,
-            message: `TintProvider has invalid color value "${o.Color}" — must be a 6-digit hex color`,
+            message: `TintProvider has invalid color value "${o.Color}" - must be a 6-digit hex color`,
             severity: "error",
+            biomeSection: "TintProvider",
           });
         }
       }
@@ -513,8 +749,11 @@ export function analyzeBiome(biomeConfig: Record<string, unknown> | null): Graph
   if (!biomeConfig.Name || typeof biomeConfig.Name !== "string" || !(biomeConfig.Name as string).trim()) {
     diags.push({
       nodeId: null,
-      message: "Biome has no Name — Hytale requires a non-empty Name field",
+      message: "Biome has no Name - Hytale requires a non-empty Name field",
       severity: "error",
+      biomeSection: "Terrain",
+      code: "biome-name-missing",
+      field: "Name",
     });
   }
 

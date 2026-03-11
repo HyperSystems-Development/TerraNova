@@ -25,7 +25,26 @@ import { FIELD_CONSTRAINTS } from "@/schema/constraints";
 import { NODE_TIPS } from "@/schema/nodeTips";
 import { FIELD_DESCRIPTIONS, getShortDescription, getExtendedDescription } from "@/schema/fieldDescriptions";
 import { useLanguage } from "@/languages/useLanguage";
-import { listDirectory, readAssetFile, type DirectoryEntryData } from "@/utils/ipc";
+import {
+  type DelimiterValidationIssue,
+  type DelimiterEnvironmentProviderType,
+  readDelimiterRangeMin,
+  readDelimiterRangeMax,
+  readDelimiterEnvironmentReference,
+  writeDelimiterEnvironmentType,
+  writeDelimiterRangeValue,
+  writeDelimiterEnvironmentName,
+  validateEnvironmentDelimiters,
+} from "@/utils/environmentDelimiters";
+import {
+  resolveEnvironmentLookup,
+} from "@/utils/environmentAssetLookup";
+
+export { validateEnvironmentDelimiters } from "@/utils/environmentDelimiters";
+export {
+  deriveServerRootFromWorkspacePath,
+  extractWorkspaceEnvironmentTypeHints,
+} from "@/utils/environmentAssetLookup";
 
 const DEFAULT_BIOME_TINT_COLORS = ["#5b9e28", "#6ca229", "#7ea629"] as const;
 
@@ -70,28 +89,6 @@ export function applyBiomeTintBand(
   };
 }
 
-export interface DelimiterValidationIssue {
-  kind:
-    | "invalid-range"
-    | "missing-range"
-    | "overlap"
-    | "gap"
-    | "missing-environment"
-    | "unknown-environment"
-    | "unsupported-environment-type";
-  message: string;
-  severity: "error" | "warning";
-  delimiterIndex?: number;
-}
-
-type DelimiterEnvironmentProviderType = "Constant" | "Default" | "Imported";
-
-interface DelimiterEnvironmentReference {
-  providerType: DelimiterEnvironmentProviderType;
-  name: string;
-  rawType: string | null;
-}
-
 interface DelimiterTypeOption {
   value: string;
   label: string;
@@ -104,12 +101,6 @@ interface AdvancedDelimiterTypeDetails {
   guidance: string;
 }
 
-const DELIMITER_ENVIRONMENT_PROVIDER_TYPES: DelimiterEnvironmentProviderType[] = [
-  "Constant",
-  "Default",
-  "Imported",
-];
-
 interface EnvironmentNameLookup {
   status: "idle" | "loading" | "ready" | "error";
   names: string[];
@@ -119,51 +110,16 @@ interface EnvironmentNameLookup {
   error: string | null;
 }
 
-const ENVIRONMENT_LOOKUP_CACHE = new Map<string, Promise<string[]>>();
-const WORKSPACE_ENVIRONMENT_HINT_CACHE = new Map<string, Promise<string[]>>();
-const RANGE_EPSILON = 1e-6;
-const WORKSPACE_FILE_NAME = "_Workspace.json";
-const WORKSPACE_SUFFIX = "Client\\NodeEditor\\Workspaces\\HytaleGenerator Java";
-const ROAMING_WORKSPACE_SUFFIX = `AppData\\Roaming\\Hytale\\install\\pre-release\\package\\game\\latest\\${WORKSPACE_SUFFIX}`;
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function toFiniteNumber(value: unknown): number | null {
-  if (typeof value !== "number" || !Number.isFinite(value)) return null;
-  return value;
-}
-
-function normalizeEnvironmentName(value: string): string {
-  return value.trim().replace(/\.json$/i, "");
-}
-
-function readDelimiterRangeMin(delimiter: Record<string, unknown>): number | null {
-  const range = asRecord(delimiter.Range);
-  if (!range) return null;
-  return (
-    toFiniteNumber(range.MinInclusive)
-    ?? toFiniteNumber(range.Min)
-    ?? toFiniteNumber(range.From)
-  );
-}
-
-function readDelimiterRangeMax(delimiter: Record<string, unknown>): number | null {
-  const range = asRecord(delimiter.Range);
-  if (!range) return null;
-  return (
-    toFiniteNumber(range.MaxExclusive)
-    ?? toFiniteNumber(range.Max)
-    ?? toFiniteNumber(range.To)
-  );
-}
+const DELIMITER_ENVIRONMENT_PROVIDER_TYPES: DelimiterEnvironmentProviderType[] = [
+  "Constant",
+  "Default",
+  "Imported",
+];
 
 function isDelimiterEnvironmentProviderType(
   value: string,
 ): value is DelimiterEnvironmentProviderType {
-  return DELIMITER_ENVIRONMENT_PROVIDER_TYPES.includes(value as DelimiterEnvironmentProviderType);
+  return ["Constant", "Default", "Imported"].includes(value);
 }
 
 function normalizeTypeHint(value: string): string {
@@ -228,485 +184,6 @@ export function getAdvancedDelimiterTypeDetails(type: string): AdvancedDelimiter
     description: "This environment provider type is available in workspace schema but not editable in the inline delimiter table.",
     guidance: "Use the node graph editor for full configuration of this advanced provider.",
   };
-}
-
-function readDelimiterEnvironmentReference(
-  delimiter: Record<string, unknown>,
-): DelimiterEnvironmentReference {
-  const rawEnvironment = delimiter.Environment;
-  if (typeof rawEnvironment === "string") {
-    return {
-      providerType: "Constant",
-      name: normalizeEnvironmentName(rawEnvironment),
-      rawType: "Constant",
-    };
-  }
-
-  const rawObject = asRecord(rawEnvironment);
-  if (!rawObject) {
-    return {
-      providerType: "Constant",
-      name: "",
-      rawType: null,
-    };
-  }
-
-  const rawType = typeof rawObject.Type === "string" ? rawObject.Type : null;
-  const providerType = rawType && isDelimiterEnvironmentProviderType(rawType)
-    ? rawType
-    : "Constant";
-
-  if (providerType === "Default") {
-    return {
-      providerType,
-      name: "",
-      rawType,
-    };
-  }
-
-  if (providerType === "Imported") {
-    return {
-      providerType,
-      name: typeof rawObject.Name === "string" ? normalizeEnvironmentName(rawObject.Name) : "",
-      rawType,
-    };
-  }
-
-  const constantName =
-    typeof rawObject.Environment === "string"
-      ? normalizeEnvironmentName(rawObject.Environment)
-      : typeof rawObject.Name === "string"
-        ? normalizeEnvironmentName(rawObject.Name)
-        : "";
-  return {
-    providerType,
-    name: constantName,
-    rawType,
-  };
-}
-
-function writeDelimiterEnvironmentReference(
-  delimiter: Record<string, unknown>,
-  providerType: DelimiterEnvironmentProviderType,
-  rawName: string,
-): Record<string, unknown> {
-  const name = normalizeEnvironmentName(rawName);
-  const existing = asRecord(delimiter.Environment) ? { ...(delimiter.Environment as Record<string, unknown>) } : {};
-  delete existing.Environment;
-  delete existing.Name;
-  delete existing.BiomeId;
-
-  const nextEnvironment: Record<string, unknown> = {
-    ...existing,
-    Type: providerType,
-  };
-
-  if (providerType === "Constant") {
-    nextEnvironment.Environment = name;
-  } else if (providerType === "Imported") {
-    nextEnvironment.Name = name;
-  }
-
-  return {
-    ...delimiter,
-    Environment: nextEnvironment,
-  };
-}
-
-function writeDelimiterEnvironmentType(
-  delimiter: Record<string, unknown>,
-  providerType: DelimiterEnvironmentProviderType,
-): Record<string, unknown> {
-  const reference = readDelimiterEnvironmentReference(delimiter);
-  return writeDelimiterEnvironmentReference(delimiter, providerType, reference.name);
-}
-
-function writeDelimiterRangeValue(
-  delimiter: Record<string, unknown>,
-  key: "MinInclusive" | "MaxExclusive",
-  rawValue: string,
-): Record<string, unknown> {
-  const parsed =
-    rawValue.trim() === ""
-      ? null
-      : Number.isFinite(Number(rawValue))
-        ? Number(rawValue)
-        : undefined;
-  if (parsed === undefined) return delimiter;
-
-  const existingRange = asRecord(delimiter.Range) ? { ...(delimiter.Range as Record<string, unknown>) } : {};
-  delete existingRange.Min;
-  delete existingRange.Max;
-  delete existingRange.From;
-  delete existingRange.To;
-
-  if (parsed === null) {
-    delete existingRange[key];
-  } else {
-    existingRange[key] = parsed;
-  }
-
-  return {
-    ...delimiter,
-    Range: existingRange,
-  };
-}
-
-function writeDelimiterEnvironmentName(
-  delimiter: Record<string, unknown>,
-  rawEnvironmentName: string,
-): Record<string, unknown> {
-  const reference = readDelimiterEnvironmentReference(delimiter);
-  return writeDelimiterEnvironmentReference(
-    delimiter,
-    reference.providerType,
-    rawEnvironmentName,
-  );
-}
-
-function formatRangeValue(value: number): string {
-  if (Number.isInteger(value)) return String(value);
-  return value.toFixed(3).replace(/\.?0+$/, "");
-}
-
-export function validateEnvironmentDelimiters(
-  delimiters: Array<Record<string, unknown>>,
-  knownEnvironmentNames: string[],
-): DelimiterValidationIssue[] {
-  const issues: DelimiterValidationIssue[] = [];
-  const knownNames = new Set(knownEnvironmentNames.map((name) => normalizeEnvironmentName(name).toLowerCase()));
-  const ranges: Array<{ index: number; min: number; max: number }> = [];
-
-  for (let index = 0; index < delimiters.length; index++) {
-    const delimiter = delimiters[index];
-    const min = readDelimiterRangeMin(delimiter);
-    const max = readDelimiterRangeMax(delimiter);
-    const environmentReference = readDelimiterEnvironmentReference(delimiter);
-    const environmentName = environmentReference.name;
-
-    if (min === null || max === null) {
-      issues.push({
-        kind: "missing-range",
-        severity: "warning",
-        delimiterIndex: index,
-        message: `Delimiter [${index}] is missing MinInclusive or MaxExclusive.`,
-      });
-    } else if (min >= max) {
-      issues.push({
-        kind: "invalid-range",
-        severity: "error",
-        delimiterIndex: index,
-        message: `Delimiter [${index}] has MinInclusive >= MaxExclusive.`,
-      });
-    } else {
-      ranges.push({ index, min, max });
-    }
-
-    if (
-      environmentReference.rawType &&
-      !isDelimiterEnvironmentProviderType(environmentReference.rawType)
-    ) {
-      issues.push({
-        kind: "unsupported-environment-type",
-        severity: "warning",
-        delimiterIndex: index,
-        message: `Delimiter [${index}] uses unsupported environment provider type "${environmentReference.rawType}".`,
-      });
-    }
-
-    if (
-      environmentReference.providerType !== "Default"
-      && !environmentName
-    ) {
-      issues.push({
-        kind: "missing-environment",
-        severity: "warning",
-        delimiterIndex: index,
-        message: `Delimiter [${index}] is missing an environment reference.`,
-      });
-    }
-
-    if (
-      environmentReference.providerType === "Constant"
-      && environmentName
-      && knownNames.size > 0
-      && !knownNames.has(environmentName.toLowerCase())
-    ) {
-      issues.push({
-        kind: "unknown-environment",
-        severity: "warning",
-        delimiterIndex: index,
-        message: `Delimiter [${index}] references unknown environment "${environmentName}".`,
-      });
-    }
-  }
-
-  ranges.sort((a, b) => (a.min === b.min ? a.max - b.max : a.min - b.min));
-  for (let i = 1; i < ranges.length; i++) {
-    const previous = ranges[i - 1];
-    const current = ranges[i];
-
-    if (current.min < previous.max - RANGE_EPSILON) {
-      issues.push({
-        kind: "overlap",
-        severity: "warning",
-        delimiterIndex: current.index,
-        message: `Delimiter [${previous.index}] overlaps [${current.index}] (${formatRangeValue(current.min)} < ${formatRangeValue(previous.max)}).`,
-      });
-    } else if (current.min > previous.max + RANGE_EPSILON) {
-      issues.push({
-        kind: "gap",
-        severity: "warning",
-        delimiterIndex: current.index,
-        message: `Gap in delimiter coverage between ${formatRangeValue(previous.max)} and ${formatRangeValue(current.min)}.`,
-      });
-    }
-  }
-
-  return issues;
-}
-
-function findServerRoot(path: string | null): string | null {
-  if (!path) return null;
-  const normalized = path.replace(/\\/g, "/");
-  const marker = "/server/";
-  const markerIndex = normalized.toLowerCase().lastIndexOf(marker);
-  if (markerIndex >= 0) {
-    return normalized.slice(0, markerIndex + marker.length - 1).replace(/\//g, "\\");
-  }
-  if (normalized.toLowerCase().endsWith("/server")) {
-    return normalized.replace(/\//g, "\\");
-  }
-  return null;
-}
-
-function getParentPath(path: string): string | null {
-  const normalized = path.replace(/\\/g, "/");
-  const index = normalized.lastIndexOf("/");
-  if (index <= 0) return null;
-  return normalized.slice(0, index).replace(/\//g, "\\");
-}
-
-function joinWindowsPath(base: string, child: string): string {
-  return `${base.replace(/[\\/]+$/, "")}\\${child}`;
-}
-
-function inferServerRoot(currentFile: string | null, projectPath: string | null): string | null {
-  const fromCurrentFile = findServerRoot(currentFile);
-  if (fromCurrentFile) return fromCurrentFile;
-
-  const fromProjectPath = findServerRoot(projectPath);
-  if (fromProjectPath) return fromProjectPath;
-
-  if (!projectPath) return null;
-  if (projectPath.toLowerCase().endsWith("\\hytalegenerator")) {
-    return getParentPath(projectPath);
-  }
-  return joinWindowsPath(projectPath, "Server");
-}
-
-function inferUserProfileRoot(path: string | null): string | null {
-  if (!path) return null;
-  const normalized = path.replace(/\//g, "\\");
-  const match = /^[A-Za-z]:\\Users\\[^\\]+/i.exec(normalized);
-  return match ? match[0] : null;
-}
-
-function deriveWorkspacePathFromServerRoot(serverRoot: string): string | null {
-  const gameRoot = getParentPath(serverRoot);
-  if (!gameRoot) return null;
-  return joinWindowsPath(gameRoot, WORKSPACE_SUFFIX);
-}
-
-function buildWorkspaceCandidates(
-  currentFile: string | null,
-  projectPath: string | null,
-  serverRoot: string | null,
-): string[] {
-  const candidates: string[] = [];
-  const seen = new Set<string>();
-  const pushCandidate = (candidate: string | null) => {
-    if (!candidate) return;
-    const normalized = candidate.replace(/\//g, "\\").replace(/[\\/]+$/, "");
-    const key = normalized.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    candidates.push(normalized);
-  };
-
-  pushCandidate(serverRoot ? deriveWorkspacePathFromServerRoot(serverRoot) : null);
-
-  const profileRoot =
-    inferUserProfileRoot(currentFile)
-    ?? inferUserProfileRoot(projectPath);
-  if (profileRoot) {
-    pushCandidate(joinWindowsPath(profileRoot, ROAMING_WORKSPACE_SUFFIX));
-  }
-
-  return candidates;
-}
-
-export function deriveServerRootFromWorkspacePath(workspacePath: string): string | null {
-  if (!workspacePath) return null;
-  const normalized = workspacePath.replace(/\//g, "\\").replace(/[\\/]+$/, "");
-  const lower = normalized.toLowerCase();
-  const marker = `\\${WORKSPACE_SUFFIX.toLowerCase()}`;
-  const markerIndex = lower.lastIndexOf(marker);
-  if (markerIndex >= 0) {
-    return `${normalized.slice(0, markerIndex)}\\Server`;
-  }
-
-  const workspacesDir = getParentPath(normalized);
-  const nodeEditorDir = workspacesDir ? getParentPath(workspacesDir) : null;
-  const clientDir = nodeEditorDir ? getParentPath(nodeEditorDir) : null;
-  const gameRoot = clientDir ? getParentPath(clientDir) : null;
-  return gameRoot ? joinWindowsPath(gameRoot, "Server") : null;
-}
-
-export function extractWorkspaceEnvironmentTypeHints(workspaceDoc: unknown): string[] {
-  const workspace = asRecord(workspaceDoc);
-  if (!workspace) return [];
-  const variants = asRecord(workspace.Variants);
-  if (!variants) return [];
-  const environmentVariants = asRecord(variants["EnvironmentProvider.Variants"]);
-  if (!environmentVariants) return [];
-  const entries = asRecord(environmentVariants.Variants);
-  if (!entries) return [];
-  return Object.keys(entries).sort((a, b) => a.localeCompare(b));
-}
-
-async function loadWorkspaceEnvironmentTypeHints(workspacePath: string): Promise<string[]> {
-  const cacheKey = workspacePath.toLowerCase();
-  const existing = WORKSPACE_ENVIRONMENT_HINT_CACHE.get(cacheKey);
-  if (existing) return existing;
-
-  const pending = readAssetFile(joinWindowsPath(workspacePath, WORKSPACE_FILE_NAME))
-    .then((workspaceDoc) => extractWorkspaceEnvironmentTypeHints(workspaceDoc))
-    .catch((error) => {
-      WORKSPACE_ENVIRONMENT_HINT_CACHE.delete(cacheKey);
-      throw error;
-    });
-  WORKSPACE_ENVIRONMENT_HINT_CACHE.set(cacheKey, pending);
-  return pending;
-}
-
-function collectJsonPaths(entries: DirectoryEntryData[]): string[] {
-  const stack = [...entries];
-  const jsonPaths: string[] = [];
-  while (stack.length > 0) {
-    const entry = stack.pop();
-    if (!entry) continue;
-    if (entry.is_dir) {
-      if (Array.isArray(entry.children)) {
-        for (const child of entry.children) stack.push(child);
-      }
-      continue;
-    }
-    if (entry.path.toLowerCase().endsWith(".json")) {
-      jsonPaths.push(entry.path);
-    }
-  }
-  return jsonPaths;
-}
-
-function getFileStem(path: string): string {
-  const normalized = path.replace(/\\/g, "/");
-  const filename = normalized.slice(normalized.lastIndexOf("/") + 1);
-  return filename.replace(/\.json$/i, "");
-}
-
-function collectEnvironmentNames(entries: DirectoryEntryData[]): string[] {
-  const names = new Map<string, string>();
-  const paths = collectJsonPaths(entries).sort((a, b) => a.localeCompare(b));
-  for (const path of paths) {
-    const name = getFileStem(path);
-    const key = name.toLowerCase();
-    if (!names.has(key)) {
-      names.set(key, name);
-    }
-  }
-  return [...names.values()];
-}
-
-async function loadEnvironmentNames(serverRoot: string): Promise<string[]> {
-  const cacheKey = serverRoot.toLowerCase();
-  const existing = ENVIRONMENT_LOOKUP_CACHE.get(cacheKey);
-  if (existing) return existing;
-
-  const pending = listDirectory(joinWindowsPath(serverRoot, "Environments"))
-    .then((entries) => collectEnvironmentNames(entries))
-    .catch((error) => {
-      ENVIRONMENT_LOOKUP_CACHE.delete(cacheKey);
-      throw error;
-    });
-  ENVIRONMENT_LOOKUP_CACHE.set(cacheKey, pending);
-  return pending;
-}
-
-interface ResolvedEnvironmentLookup {
-  names: string[];
-  source: "project-server" | "workspace-schema";
-  typeHints: string[];
-  workspacePath: string | null;
-  warning: string | null;
-}
-
-async function resolveEnvironmentLookup(
-  currentFile: string | null,
-  projectPath: string | null,
-): Promise<ResolvedEnvironmentLookup> {
-  const inferredServerRoot = inferServerRoot(currentFile, projectPath);
-  if (inferredServerRoot) {
-    try {
-      const names = await loadEnvironmentNames(inferredServerRoot);
-      return {
-        names,
-        source: "project-server",
-        typeHints: [],
-        workspacePath: null,
-        warning: null,
-      };
-    } catch {
-      // Fall back to workspace schema/asset paths below.
-    }
-  }
-
-  const workspaceCandidates = buildWorkspaceCandidates(currentFile, projectPath, inferredServerRoot);
-  if (workspaceCandidates.length === 0) {
-    throw new Error("Could not infer Server/Environments or NodeEditor workspace paths.");
-  }
-
-  let lastError: string | null = null;
-  for (const workspacePath of workspaceCandidates) {
-    try {
-      const typeHints = await loadWorkspaceEnvironmentTypeHints(workspacePath);
-      const fallbackServerRoot = deriveServerRootFromWorkspacePath(workspacePath);
-      let names: string[] = [];
-      let warning: string | null = null;
-
-      if (fallbackServerRoot) {
-        try {
-          names = await loadEnvironmentNames(fallbackServerRoot);
-        } catch (error) {
-          warning = `Loaded workspace schema from ${workspacePath}, but Server/Environments lookup failed: ${String(error)}`;
-        }
-      } else {
-        warning = `Loaded workspace schema from ${workspacePath}, but could not derive a Server root.`;
-      }
-
-      return {
-        names,
-        source: "workspace-schema",
-        typeHints,
-        workspacePath,
-        warning,
-      };
-    } catch (error) {
-      lastError = String(error);
-    }
-  }
-
-  throw new Error(lastError ?? "Failed to load workspace schema fallback.");
 }
 
 export function PropertyPanel() {
