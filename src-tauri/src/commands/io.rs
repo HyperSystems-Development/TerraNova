@@ -228,17 +228,21 @@ pub fn list_template_biomes(app: tauri::AppHandle) -> Result<Vec<TemplateBiomeEn
             continue;
         }
         let template_name = template_entry.file_name().to_string_lossy().to_string();
-        let display_name = template_name
-            .split('-')
-            .map(|w| {
-                let mut c = w.chars();
-                match c.next() {
-                    None => String::new(),
-                    Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-                }
-            })
-            .collect::<Vec<_>>()
-            .join(" ");
+        let display_name = if template_name.eq_ignore_ascii_case("references") {
+            "Hytale Reference Biomes".to_string()
+        } else {
+            template_name
+                .split(|c: char| c == '-' || c == '_')
+                .map(|w| {
+                    let mut c = w.chars();
+                    match c.next() {
+                        None => String::new(),
+                        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
 
         // Walk subdirectories looking for Biomes/**/*.json
         collect_biome_files(
@@ -251,6 +255,11 @@ pub fn list_template_biomes(app: tauri::AppHandle) -> Result<Vec<TemplateBiomeEn
 
     entries.sort_by(|a, b| a.template_name.cmp(&b.template_name));
     Ok(entries)
+}
+
+fn is_biome_folder(name: &std::ffi::OsStr) -> bool {
+    let s = name.to_string_lossy();
+    s.eq_ignore_ascii_case("Biomes") || s.eq_ignore_ascii_case("references")
 }
 
 fn collect_biome_files(
@@ -267,7 +276,7 @@ fn collect_biome_files(
         } else if path
             .parent()
             .and_then(|p| p.file_name())
-            .map(|n| n.eq_ignore_ascii_case("Biomes"))
+            .map(|n| is_biome_folder(n))
             .unwrap_or(false)
             && path
                 .extension()
@@ -298,16 +307,23 @@ pub fn show_in_folder(path: String) -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
-        // Use explorer /select to highlight the specific file
-        let arg = if target.is_file() {
-            format!("/select,{}", target.display())
+        // explorer.exe requires the path to use backslashes and be passed as
+        // two separate arguments: "/select," and then the path itself.
+        // Passing them concatenated as one arg causes Explorer to ignore the
+        // /select flag and just open the folder root.
+        let path_str = target.to_string_lossy().replace('/', "\\");
+        if target.is_file() {
+            Command::new("explorer")
+                .arg("/select,")
+                .arg(&path_str)
+                .spawn()
+                .map_err(|e| e.to_string())?;
         } else {
-            format!("{}", target.display())
-        };
-        Command::new("explorer")
-            .arg(&arg)
-            .spawn()
-            .map_err(|e| e.to_string())?;
+            Command::new("explorer")
+                .arg(&path_str)
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        }
     }
 
     #[cfg(target_os = "macos")]

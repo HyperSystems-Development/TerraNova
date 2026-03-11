@@ -5,6 +5,7 @@ import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { openAssetPack as ipcOpenAssetPack, listDirectory } from "@/utils/ipc";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { NewProjectDialog } from "@/components/dialogs/NewProjectDialog";
+import { WhatsNewDialog, useWhatsNew } from "@/components/dialogs/WhatsNewDialog";
 import { HomeSidebar, type SidebarTab } from "./HomeSidebar";
 import { HomeTab } from "./HomeTab";
 import { TemplatesTab } from "./TemplatesTab";
@@ -16,6 +17,13 @@ export function HomeScreen() {
   const [defaultTemplate, setDefaultTemplate] = useState<string | undefined>();
   const { openAssetPack } = useTauriIO();
   const removeProject = useRecentProjectsStore((s) => s.removeProject);
+  const { shouldShow: showWhatsNew, dismiss: dismissWhatsNew } = useWhatsNew();
+  const [whatsNewOpen, setWhatsNewOpen] = useState(showWhatsNew);
+
+  function handleCloseWhatsNew(suppress: boolean) {
+    dismissWhatsNew(suppress);
+    setWhatsNewOpen(false);
+  }
 
   async function handleOpenRecentProject(path: string) {
     try {
@@ -88,6 +96,7 @@ export function HomeScreen() {
         onClose={() => setShowNewProject(false)}
         defaultTemplate={defaultTemplate}
       />
+      <WhatsNewDialog open={whatsNewOpen} onClose={handleCloseWhatsNew} />
     </div>
   );
 }
