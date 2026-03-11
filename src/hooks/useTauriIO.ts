@@ -11,10 +11,11 @@ import {
   createFromTemplate,
   createBlankProject,
 } from "@/utils/ipc";
+import type { DirectoryEntryData } from "@/utils/ipc";
 import { jsonToGraph } from "@/utils/jsonToGraph";
 import { graphToJson, graphToJsonMulti } from "@/utils/graphToJson";
 import { autoLayout } from "@/utils/autoLayout";
-import { isBiomeFile, isSettingsFile, normalizeImport, normalizeExport, internalToHytaleBiome } from "@/utils/fileTypeDetection";
+import { isBiomeFile, isSettingsFile, isInstanceFile, normalizeImport, normalizeExport, internalToHytaleBiome } from "@/utils/fileTypeDetection";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { loadPersistedHistory } from "@/stores/editorStore";
@@ -358,6 +359,68 @@ export function useTauriIO() {
           if (persistedSettings?.g) {
             useEditorStore.setState({ history: persistedSettings.g.h, historyIndex: persistedSettings.g.i });
           }
+        } else if (content && typeof content === "object" && isInstanceFile(content as Record<string, unknown>, filePath)) {
+          // Instance file — parse into InstanceConfig
+          const raw = content as Record<string, unknown>;
+          const store = useEditorStore.getState();
+          const worldGen = (raw.WorldGen ?? {}) as Record<string, unknown>;
+          const spawnProvider = raw.SpawnProvider as Record<string, unknown> | undefined;
+          const spawnPoint = (spawnProvider?.SpawnPoint ?? {}) as Record<string, unknown>;
+
+          // Discover available WorldStructures from sibling directory
+          let availableWorldStructures: string[] = [];
+          try {
+            const normalized = filePath.replace(/\\/g, "/");
+            const parts = normalized.split("/");
+            const serverIdx = parts.findIndex((p) => p.toLowerCase() === "server");
+            if (serverIdx >= 0) {
+              const wsDir = parts.slice(0, serverIdx + 1).join("/") + "/HytaleGenerator/WorldStructures";
+              try {
+                const wsEntries: DirectoryEntryData[] = await listDirectory(wsDir);
+                availableWorldStructures = wsEntries
+                  .filter((e) => !e.is_dir && e.name.endsWith(".json"))
+                  .map((e) => e.name.replace(/\.json$/, ""));
+              } catch {
+                // WorldStructures dir doesn't exist
+              }
+            }
+          } catch {
+            // Path parsing failed
+          }
+
+          store.setInstanceConfig({
+            comment: (raw.$Comment as string) ?? "",
+            gameMode: (raw.GameMode as string) ?? "Creative",
+            gameplayConfig: (raw.GameplayConfig as string) ?? "Default",
+            worldStructure: (worldGen.WorldStructure as string) ?? "",
+            spawnEnabled: !!spawnProvider,
+            spawnPoint: {
+              X: (spawnPoint.X as number) ?? 0.5,
+              Y: (spawnPoint.Y as number) ?? 80,
+              Z: (spawnPoint.Z as number) ?? 0.5,
+              Pitch: (spawnPoint.Pitch as number) ?? 0,
+              Yaw: (spawnPoint.Yaw as number) ?? 180,
+              Roll: (spawnPoint.Roll as number) ?? 0,
+            },
+            toggles: {
+              IsPvpEnabled: (raw.IsPvpEnabled as boolean) ?? false,
+              IsSpawningNPC: (raw.IsSpawningNPC as boolean) ?? true,
+              IsCompassUpdating: (raw.IsCompassUpdating as boolean) ?? true,
+              IsTicking: (raw.IsTicking as boolean) ?? true,
+              IsGameTimePaused: (raw.IsGameTimePaused as boolean) ?? false,
+              IsObjectiveMarkersEnabled: (raw.IsObjectiveMarkersEnabled as boolean) ?? true,
+              IsAllNPCFrozen: (raw.IsAllNPCFrozen as boolean) ?? false,
+              IsSavingPlayers: (raw.IsSavingPlayers as boolean) ?? true,
+              IsSpawnMarkersEnabled: (raw.IsSpawnMarkersEnabled as boolean) ?? true,
+              DeleteOnRemove: (raw.DeleteOnRemove as boolean) ?? false,
+            },
+            availableWorldStructures,
+          });
+          store.setEditingContext("Instance");
+          store.setOriginalWrapper(raw);
+          setNodes([]);
+          setEdges([]);
+          commitState("Initial");
         } else if (content && typeof content === "object" && isBiomeFile(content as Record<string, unknown>, filePath)) {
           // Biome wrapper file — extract all sections
           const wrapper = content as Record<string, unknown>;
