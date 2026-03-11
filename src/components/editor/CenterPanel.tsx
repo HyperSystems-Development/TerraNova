@@ -6,6 +6,7 @@ import { BiomeRangeEditor } from "./BiomeRangeEditor";
 import { BiomeSectionTabs } from "./BiomeSectionTabs";
 import { SettingsEditorView } from "./SettingsEditorView";
 import { JsonEditorView } from "./JsonEditorView";
+import { InstanceEditorView } from "./InstanceEditorView";
 import { PreviewPanel } from "../preview/PreviewPanel";
 import { ComparisonView } from "../preview/ComparisonView";
 import { DiagnosticsStrip } from "../preview/DiagnosticsStrip";
@@ -150,6 +151,10 @@ export function CenterPanel() {
 
   if (editingContext === "Settings") {
     return <SettingsEditorView />;
+  }
+
+  if (editingContext === "Instance") {
+    return <InstanceEditorView />;
   }
 
   if (editingContext === "RawJson") {
