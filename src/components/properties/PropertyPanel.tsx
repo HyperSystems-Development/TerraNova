@@ -52,6 +52,54 @@ const DEFAULT_BIOME_TINT_COLORS = ["#5b9e28", "#6ca229", "#7ea629"] as const;
 /** Field keys whose string value is a Hytale block/material identifier. */
 const MATERIAL_FIELD_KEYS = new Set(["Material", "Solid", "Fluid", "BlockType", "BlockTypes"]);
 
+/**
+ * Static autocomplete suggestions for non-material string fields.
+ * Values sourced from actual HytaleGenerator biome/assignment JSON files.
+ */
+const FIELD_SUGGESTIONS: Record<string, readonly string[]> = {
+  // Height layer names referenced by ColumnRandom / ColumnLinear nodes
+  BaseHeightName: ["Base", "Bedrock", "Water"],
+  TopBaseHeight:  ["Base", "Bedrock", "Water"],
+  BottomBaseHeight: ["Base", "Bedrock", "Water"],
+
+  // Biome identifiers used in NoiseRange / WorldStructure nodes
+  Biome: [
+    "Basic", "Default_Flat", "Default_Void", "Oceans", "Void", "Void_Buffer", "Void_Buffer_Oasis",
+    "Boreal1_Hedera", "Boreal1_Henges",
+    "Desert1_Oasis", "Desert1_River", "Desert1_Rocky", "Desert1_Shore", "Desert1_Stacks",
+    "Interpolation_A", "Interpolation_B",
+    "Plains1_Deeproot", "Plains1_Gorges", "Plains1_Oak", "Plains1_River", "Plains1_Shore",
+    "Taiga1_Mountains", "Taiga1_Redwood", "Taiga1_River", "Taiga1_Shore",
+    "Volcanic1_Caldera", "Volcanic1_Jungle", "Volcanic1_River", "Volcanic1_Shore",
+  ],
+  DefaultBiome: [
+    "Basic", "Default_Flat", "Default_Void", "Oceans", "Void", "Void_Buffer", "Void_Buffer_Oasis",
+    "Boreal1_Hedera", "Boreal1_Henges",
+    "Desert1_Oasis", "Desert1_River", "Desert1_Rocky", "Desert1_Shore", "Desert1_Stacks",
+    "Plains1_Deeproot", "Plains1_Gorges", "Plains1_Oak", "Plains1_River", "Plains1_Shore",
+    "Taiga1_Mountains", "Taiga1_Redwood", "Taiga1_River", "Taiga1_Shore",
+    "Volcanic1_Caldera", "Volcanic1_Jungle", "Volcanic1_River", "Volcanic1_Shore",
+  ],
+
+  // Environment names used in EnvironmentConstant / delimiter nodes
+  Environment: [
+    "Env_Default_Flat", "Env_Default_Void", "Env_Void", "Env_Zone0",
+    "Env_Zone1_Caves_Forests", "Env_Zone1_Caves_Plains", "Env_Zone1_Forests", "Env_Zone1_Plains", "Env_Zone1_Shores",
+    "Env_Zone2_Caves_Deserts", "Env_Zone2_Deserts", "Env_Zone2_Shores",
+    "Env_Zone3_Caves_Forests", "Env_Zone3_Forests", "Env_Zone3_Glacial_Henges", "Env_Zone3_Shores",
+    "Env_Zone4_Jungles", "Env_Zone4_Shores", "Env_Zone4_Wastes",
+    "Env_Portals_Hedera", "Env_Portals_Oasis",
+    "Zone1_Overground", "Zone1_Plains", "Zone1_Underground", "Zone3_Overground",
+  ],
+
+  // Enum-style fields with a fixed set of values
+  LayerContext:     ["DEPTH_INTO_FLOOR", "DEPTH_INTO_CEILING"],
+  MoldingDirection: ["DOWN", "NONE"],
+  CellType:         ["Distance", "Distance2Div"],
+  Strategy:         ["DART_THROW"],
+  Id:               ["A", "B", "AB"],
+};
+
 export function applyBiomeTintBand(
   tintProvider: Record<string, unknown> | undefined,
   index: number,
@@ -641,6 +689,7 @@ export function PropertyPanel() {
                 label={fieldLabel}
                 value={value}
                 description={description}
+                suggestions={FIELD_SUGGESTIONS[key]}
                 onChange={(v) => handleContinuousChange(key, v)}
                 onBlur={handleBlur}
               />
