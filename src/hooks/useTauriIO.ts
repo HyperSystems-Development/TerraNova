@@ -672,7 +672,7 @@ export function useTauriIO() {
     setLastError(null);
     try {
       const filePath = await save({
-        filters: [{ name: "JSON", extensions: ["json"] }],
+        filters: [{ name: "JSON / BSON", extensions: ["json", "bson"] }],
       });
       if (!filePath) return;
 
