@@ -28,9 +28,26 @@ export function JsonEditorView({ content, onChange }: JsonEditorViewProps) {
   // Track what the editor was initialized with
   const lastExternalText = useRef(jsonText);
 
+  const setRawJsonContent = useEditorStore((s) => s.setRawJsonContent);
+
   // Track onChange in a ref so we don't recreate the editor when it changes
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+
+  const handleChangeRef = useRef((text: string) => {
+    if (onChangeRef.current) {
+      onChangeRef.current(text);
+      return;
+    }
+    // When used as primary editor (RawJson context), parse and update store
+    try {
+      const parsed = JSON.parse(text);
+      setRawJsonContent(parsed);
+      lastExternalText.current = JSON.stringify(parsed, null, 2);
+    } catch {
+      // Don't update store with invalid JSON — CodeMirror's linter shows the error
+    }
+  });
 
   useEffect(() => {
     if (!jsonObj) return;
@@ -51,7 +68,7 @@ export function JsonEditorView({ content, onChange }: JsonEditorViewProps) {
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             useProjectStore.getState().setDirty(true);
-            onChangeRef.current?.(update.state.doc.toString());
+            handleChangeRef.current(update.state.doc.toString());
           }
         }),
         EditorView.theme({

@@ -525,6 +525,16 @@ export function useTauriIO() {
         return;
       }
 
+      // RawJson files — save rawJsonContent directly to disk
+      if (editingContext === "RawJson") {
+        const rawContent = useEditorStore.getState().rawJsonContent;
+        if (rawContent && currentFile) {
+          await writeAssetFile(currentFile, rawContent);
+          setDirty(false);
+        }
+        return;
+      }
+
       // Biome files: reassemble the full structure from sections
       const { biomeConfig, biomeSections, activeBiomeSection } = useEditorStore.getState();
       if (editingContext === "Biome" && originalWrapper && biomeConfig && biomeSections) {
