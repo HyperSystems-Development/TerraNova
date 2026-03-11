@@ -169,6 +169,7 @@ export interface MaterialLayer {
   layerIndex?: number;
   layerType?: string;
   thickness?: number | string;
+  color?: string; // Color override for editor
 }
 
 export const MATERIAL_COLORS: Record<string, string> = {
@@ -254,7 +255,10 @@ export function extractMaterialLayers(
   edges: Edge[],
 ): MaterialLayer[] {
   const roots = findRootNodes(nodes, edges);
-  if (roots.length === 0) return [];
+  if (roots.length === 0) {
+    console.log("extractMaterialLayers: No root nodes found", { nodes, edges });
+    return [];
+  }
 
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
 
@@ -269,15 +273,22 @@ export function extractMaterialLayers(
   }
 
   const layers: MaterialLayer[] = [];
+  console.log("extractMaterialLayers: Roots", roots);
+  console.log("extractMaterialLayers: Node map", nodeById);
+  console.log("extractMaterialLayers: Input edges", inputEdges);
 
   function walkLayer(layerNodeId: string, layerIndex: number, maxDepth?: number) {
     const layerNode = nodeById.get(layerNodeId);
-    if (!layerNode) return;
+    if (!layerNode) {
+      console.log("walkLayer: Layer node not found", { layerNodeId });
+      return;
+    }
 
     const layerType = getNodeType(layerNode);
     const layerData = layerNode.data as Record<string, unknown>;
     const layerFields = (layerData.fields as Record<string, unknown>) ?? {};
     const layerInputs = inputEdges.get(layerNodeId) ?? new Map<string, string>();
+    console.log("walkLayer: Layer node", { layerNodeId, layerType, layerFields, layerInputs });
 
     // Extract thickness info
     let thickness: number | string | undefined;
@@ -335,12 +346,16 @@ export function extractMaterialLayers(
 
   function walk(nodeId: string, role: string, depth?: number, layerIndex?: number, layerType?: string, thickness?: number | string) {
     const node = nodeById.get(nodeId);
-    if (!node) return;
+    if (!node) {
+      console.log("walk: Node not found", { nodeId });
+      return;
+    }
 
     const type = getNodeType(node);
     const data = node.data as Record<string, unknown>;
     const fields = (data.fields as Record<string, unknown>) ?? {};
     const inputs = inputEdges.get(nodeId) ?? new Map<string, string>();
+    console.log("walk: Node", { nodeId, type, fields, inputs, role, depth, layerIndex, layerType, thickness });
 
     if (type === "Constant") {
       layers.push({
@@ -388,6 +403,13 @@ export function extractMaterialLayers(
       const falseSrc = inputs.get("FalseInput");
       if (trueSrc) walk(trueSrc, "True", depth);
       if (falseSrc) walk(falseSrc, "False", depth);
+    } else if (type === "Queue") {
+      // Traverse all input nodes for Queue
+      console.log("walk: Queue node detected, traversing inputs", { nodeId, inputs });
+      for (const [handle, inputNodeId] of inputs.entries()) {
+        console.log("walk: Queue input", { handle, inputNodeId });
+        walk(inputNodeId, `QueueInput(${handle})`, depth);
+      }
     } else {
       // For any other node type, try to follow the generic "Input" edge
       const inputSrc = inputs.get("Input");
@@ -396,6 +418,7 @@ export function extractMaterialLayers(
   }
 
   walk(roots[0].id, "Root");
+  console.log("extractMaterialLayers: Final layers", layers);
   return layers;
 }
 

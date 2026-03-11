@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useRef, useState, useEffect } from "react";
+import { MaterialLegend } from "./MaterialLegend";
 import { usePreviewStore } from "@/stores/previewStore";
 import { usePreviewEvaluation } from "@/hooks/usePreviewEvaluation";
 import { useVoxelEvaluation } from "@/hooks/useVoxelEvaluation";
@@ -23,6 +24,26 @@ function Preview3DFallback() {
 }
 
 export function PreviewPanel() {
+    // MaterialLegend position state (persisted)
+    const [legendPos, setLegendPos] = useState<{ x: number; y: number }>(() => {
+      const saved = localStorage.getItem("tn-materialLegendPos");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+            return parsed;
+          }
+        } catch {}
+      }
+      // Default: top left
+      return { x: 16, y: 16 };
+    });
+    const [legendVisible, setLegendVisible] = useState(true); // debug toggle
+
+    // Persist legend position on change
+    useEffect(() => {
+      localStorage.setItem("tn-materialLegendPos", JSON.stringify(legendPos));
+    }, [legendPos]);
   usePreviewEvaluation();
   useVoxelEvaluation();
   useWorldPreview();
@@ -95,6 +116,8 @@ export function PreviewPanel() {
               </svg>
             </button>
             <PreviewControls canvasRef={canvasRef} />
+            {/* MATERIALS section in Debug sidebar ONLY */}
+              {/* ...existing code... */}
             {mode !== "voxel" && mode !== "world" && <StatisticsPanel />}
           </div>
         )}
@@ -103,6 +126,10 @@ export function PreviewPanel() {
       {/* Main preview area */}
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="flex-1 min-h-0 relative">
+          {/* Material legend — draggable, debug toggle */}
+          {legendVisible && hasData && (
+            null
+          )}
           {anyLoading && (
             <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2 py-1 bg-tn-panel/90 rounded text-xs text-tn-text-muted">
               <span className="inline-block w-3 h-3 border-2 border-tn-accent border-t-transparent rounded-full animate-spin" />

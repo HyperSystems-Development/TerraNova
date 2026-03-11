@@ -1,3 +1,4 @@
+import React from "react";
 import { memo, useEffect, useMemo } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
@@ -112,37 +113,42 @@ const VoxelMeshGroup = memo(function VoxelMeshGroup({
   color2: string;
   color3: string;
 }) {
-  return (
-    <>
-      {meshData.map((data) => {
-        const name = data.materialName ?? "";
-        let tintColor: string | undefined;
-        const baseTint = COOL_TINT_MATERIALS.has(name)
-          ? color1
-          : WARM_TINT_MATERIALS.has(name)
-            ? color3
-            : color2;
-        if (TINTABLE_MATERIALS.has(name)) {
-          // Full tint for grass/leaves, biased by the material's climate flavor.
-          tintColor = baseTint;
-        } else if (SOIL_TINTABLE.has(name)) {
-          // Subtle soil tint: 30% blend toward the selected tint band.
-          tintColor = blendHex("#ffffff", baseTint, 0.3);
-        } else if (SAND_TINTABLE.has(name)) {
-          // Very light sand tint: blend toward warm-mid average to stay natural.
-          tintColor = blendHex("#ffffff", blendHex(color2, color3, 0.5), 0.15);
-        }
-        return (
-          <VoxelMesh
-            key={data.materialIndex}
-            data={data}
-            wireframe={wireframe}
-            tintColor={tintColor}
-          />
-        );
-      })}
-    </>
-  );
+    return (
+      <>
+        {meshData.map((data) => {
+          const name = data.materialName ?? "";
+          let tintColor: string | undefined;
+          // Universal tinting: apply tint to all materials, not just certain types
+          // Use baseTint logic for climate flavor, but allow override for all
+          const baseTint = COOL_TINT_MATERIALS.has(name)
+            ? color1
+            : WARM_TINT_MATERIALS.has(name)
+              ? color3
+              : color2;
+
+          // Apply tinting universally, blending for non-tintable types
+          if (TINTABLE_MATERIALS.has(name)) {
+            tintColor = baseTint;
+          } else if (SOIL_TINTABLE.has(name)) {
+            tintColor = blendHex("#ffffff", baseTint, 0.3);
+          } else if (SAND_TINTABLE.has(name)) {
+            tintColor = blendHex("#ffffff", blendHex(color2, color3, 0.5), 0.15);
+          } else {
+            // For all other materials, apply a subtle universal tint (10% blend)
+            tintColor = blendHex("#ffffff", baseTint, 0.1);
+          }
+
+          return (
+            <VoxelMesh
+              key={data.materialIndex}
+              data={data}
+              wireframe={wireframe}
+              tintColor={tintColor}
+            />
+          );
+        })}
+      </>
+    );
 });
 
 /* ── Canvas ref capture ──────────────────────────────────────────── */
@@ -289,6 +295,23 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
   const enableShadows = useConfigStore((s) => s.enableShadows);
   const gpuPowerPreference = useConfigStore((s) => s.gpuPowerPreference);
 
+  // Draggable legend position (persisted)
+  const [legendPos, setLegendPos] = React.useState<{ x: number; y: number }>(() => {
+    const saved = localStorage.getItem("tn-voxelMaterialLegendPos");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+          return parsed;
+        }
+      } catch {}
+    }
+    return { x: 16, y: 16 };
+  });
+  React.useEffect(() => {
+    localStorage.setItem("tn-voxelMaterialLegendPos", JSON.stringify(legendPos));
+  }, [legendPos]);
+
   return (
     <div className="relative w-full h-full">
       <Canvas
@@ -322,9 +345,32 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
         </div>
       )}
 
-      {/* Material Legend */}
-      {showMaterialLegend && voxelData && voxelData.materials.length > 0 && (
-        <MaterialLegend materials={voxelData.materials} />
+      {/* Material Legend — draggable, persisted position */}
+      {showMaterialLegend && voxelData && voxelData.materials && voxelData.materials.length > 0 && (
+        <div
+          style={{ position: "absolute", left: legendPos.x, top: legendPos.y, zIndex: 20, cursor: "grab", userSelect: "none" }}
+          onMouseDown={e => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const orig = { ...legendPos };
+            const handleMove = (moveEvt: MouseEvent) => {
+              setLegendPos({
+                x: Math.max(0, orig.x + (moveEvt.clientX - startX)),
+                y: Math.max(0, orig.y + (moveEvt.clientY - startY)),
+              });
+            };
+            const handleUp = () => {
+              window.removeEventListener("mousemove", handleMove);
+              window.removeEventListener("mouseup", handleUp);
+            };
+            window.addEventListener("mousemove", handleMove);
+            window.addEventListener("mouseup", handleUp);
+          }}
+        >
+          <MaterialLegend materials={voxelData.materials} />
+        </div>
       )}
     </div>
   );

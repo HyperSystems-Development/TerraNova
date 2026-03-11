@@ -17,7 +17,6 @@ export function MaterialLegend({ materials }: { materials: VoxelMaterial[] }) {
         const metalness = mat.metalness ?? 0;
         const isEmissive = (mat.emissiveIntensity ?? 0) > 0;
         const isMetallic = metalness > 0.3;
-
         return (
           <div key={i} className="flex items-center gap-1.5">
             {/* Color swatch — shows emissive glow ring if emissive */}
