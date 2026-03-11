@@ -715,6 +715,10 @@ export function PropertyPanel() {
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
   const updateNodeField = useEditorStore((s) => s.updateNodeField);
   const commitState = useEditorStore((s) => s.commitState);
+  const setSelectedNodeId = useEditorStore((s) => s.setSelectedNodeId);
+  const switchBiomeSection = useEditorStore((s) => s.switchBiomeSection);
+  const setEditingContext = useEditorStore((s) => s.setEditingContext);
+  const biomeSections = useEditorStore((s) => s.biomeSections);
   const setDirty = useProjectStore((s) => s.setDirty);
   const currentFile = useProjectStore((s) => s.currentFile);
   const projectPath = useProjectStore((s) => s.projectPath);
@@ -804,6 +808,30 @@ export function PropertyPanel() {
       cancelled = true;
     };
   }, [shouldLoadEnvironmentNames, currentFile, projectPath]);
+
+  const canOpenEnvironmentGraph = Boolean(
+    biomeSections?.EnvironmentProvider,
+  );
+
+  const handleOpenEnvironmentGraph = useCallback(() => {
+    if (!canOpenEnvironmentGraph) return;
+
+    if (editingContext !== "Biome") {
+      setEditingContext("Biome");
+    }
+    switchBiomeSection("EnvironmentProvider");
+
+    const outputNodeId = useEditorStore.getState().biomeSections?.EnvironmentProvider?.outputNodeId ?? null;
+    if (outputNodeId) {
+      setSelectedNodeId(outputNodeId);
+    }
+  }, [
+    canOpenEnvironmentGraph,
+    editingContext,
+    setEditingContext,
+    switchBiomeSection,
+    setSelectedNodeId,
+  ]);
 
   /**
    * Flush any pending history snapshot immediately.
@@ -1179,6 +1207,8 @@ export function PropertyPanel() {
                 typeHints={environmentLookup.typeHints}
                 workspacePath={environmentLookup.workspacePath}
                 lookupError={environmentLookup.error}
+                canOpenEnvironmentGraph={canOpenEnvironmentGraph}
+                onOpenEnvironmentGraph={handleOpenEnvironmentGraph}
                 onChange={(nextDelimiters) => handleContinuousChange("Delimiters", nextDelimiters)}
                 onAdd={() => {
                   const last = delimiters[delimiters.length - 1];
@@ -1424,6 +1454,8 @@ function EnvironmentDelimitersField({
   typeHints,
   workspacePath,
   lookupError,
+  canOpenEnvironmentGraph,
+  onOpenEnvironmentGraph,
   onChange,
   onAdd,
   onRemove,
@@ -1440,6 +1472,8 @@ function EnvironmentDelimitersField({
   typeHints: string[];
   workspacePath: string | null;
   lookupError: string | null;
+  canOpenEnvironmentGraph: boolean;
+  onOpenEnvironmentGraph: () => void;
   onChange: (nextDelimiters: Array<Record<string, unknown>>) => void;
   onAdd: () => void;
   onRemove: (index: number) => void;
@@ -1626,9 +1660,25 @@ function EnvironmentDelimitersField({
 
       {advancedSelections.length > 0 && (
         <div className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 flex flex-col gap-1">
-          <span className="text-[10px] uppercase tracking-wide text-amber-200 font-semibold">
-            Advanced Type Details
-          </span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] uppercase tracking-wide text-amber-200 font-semibold">
+              Advanced Type Details
+            </span>
+            <button
+              type="button"
+              onClick={onOpenEnvironmentGraph}
+              disabled={!canOpenEnvironmentGraph}
+              className="px-1.5 py-0.5 text-[10px] rounded border border-amber-300/60 text-amber-100 hover:bg-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Open EnvironmentProvider graph section"
+            >
+              Open in Graph
+            </button>
+          </div>
+          {!canOpenEnvironmentGraph && (
+            <p className="text-[10px] text-amber-200/80">
+              EnvironmentProvider graph section is unavailable in the current context.
+            </p>
+          )}
           {advancedSelections.map((selection) => (
             <div key={`${selection.index}-${selection.type}`} className="text-[10px] leading-snug">
               <span className="text-amber-100 font-medium">
