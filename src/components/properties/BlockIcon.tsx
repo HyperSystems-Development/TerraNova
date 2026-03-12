@@ -1,5 +1,3 @@
-import React from "react";
-
 /**
  * BlockIcon renders a PNG icon for a material/block, if available.
  *

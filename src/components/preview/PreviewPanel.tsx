@@ -1,5 +1,4 @@
 import { lazy, Suspense, useCallback, useRef, useState, useEffect } from "react";
-import { MaterialLegend } from "./MaterialLegend";
 import { usePreviewStore } from "@/stores/previewStore";
 import { usePreviewEvaluation } from "@/hooks/usePreviewEvaluation";
 import { useVoxelEvaluation } from "@/hooks/useVoxelEvaluation";
@@ -24,28 +23,9 @@ function Preview3DFallback() {
 }
 
 export function PreviewPanel() {
-  // MaterialLegend position state (persisted)
-  const [legendPos, setLegendPos] = useState<{ x: number; y: number }>(() => {
-    const saved = localStorage.getItem("tn-materialLegendPos");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (typeof parsed.x === "number" && typeof parsed.y === "number") {
-          return parsed;
-        }
-      } catch {}
-    }
-    // Default: top left
-    return { x: 16, y: 16 };
-  });
   const legendVisible = usePreviewStore((s) => s.showMaterialLegend);
   const setLegendVisible = usePreviewStore((s) => s.setShowMaterialLegend);
-  const showWireframe = usePreviewStore((s) => s.showVoxelWireframe);
   const setShowWireframe = usePreviewStore((s) => s.setShowVoxelWireframe);
-  // Persist legend position on change
-  useEffect(() => {
-    localStorage.setItem("tn-materialLegendPos", JSON.stringify(legendPos));
-  }, [legendPos]);
 
   // Keyboard shortcuts for preview toggles
   useEffect(() => {
@@ -53,12 +33,12 @@ export function PreviewPanel() {
       // Toggle material legend
       if (e.key === "l" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-        setLegendVisible((v: boolean) => !v);
+        setLegendVisible(!usePreviewStore.getState().showMaterialLegend);
       }
       // Toggle wireframe
       if (e.key === "w" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-        setShowWireframe((v: boolean) => !v);
+        setShowWireframe(!usePreviewStore.getState().showVoxelWireframe);
       }
       // Screenshot
       if (e.key === "s" && e.altKey) {
