@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import type { Edge, Node } from "@xyflow/react";
-import { Clock3, Cloud, LineChart, Palette } from "lucide-react";
+import { Clock3, Cloud, Eye, EyeOff, LineChart, Palette, Save, SlidersHorizontal, WandSparkles } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { writeAssetFile } from "@/utils/ipc";
@@ -1493,12 +1493,13 @@ export function WeatherEditorView() {
           <button
             type="button"
             onClick={() => setShowAdvancedControls((value) => !value)}
-            className={`rounded border px-3 py-1 text-[10px] font-medium uppercase tracking-wider transition-colors ${
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
               showAdvancedControls
-                ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
-                : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+                ? "border-tn-accent/70 bg-tn-accent/15 text-tn-accent"
+                : "border-tn-border/70 bg-tn-bg/70 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
             }`}
           >
+            <WandSparkles className="h-3.5 w-3.5" />
             {showAdvancedControls ? "Hide In-Depth Controls" : "In-Depth Controls"}
           </button>
           <button
@@ -1514,31 +1515,37 @@ export function WeatherEditorView() {
               });
             }}
             disabled={!hasWeatherDoc || viewMode === "graph"}
-            className={`rounded border px-3 py-1 text-[10px] font-medium uppercase tracking-wider transition-colors ${
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
               !hasWeatherDoc || viewMode === "graph"
-                ? "cursor-not-allowed border-tn-border/40 text-tn-text-muted/50"
+                ? "cursor-not-allowed border-tn-border/40 bg-tn-bg/50 text-tn-text-muted/50"
                 : showPreview
-                  ? "border-tn-accent/50 bg-tn-accent/10 text-tn-accent"
-                  : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+                  ? "border-tn-accent/70 bg-tn-accent/10 text-tn-accent"
+                  : "border-tn-border/70 bg-tn-bg/70 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
             }`}
           >
+            {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             {showPreview ? "Hide Preview" : "Show Preview"}
           </button>
-          <span className={`text-[10px] ${isDirty ? "text-amber-300" : "text-tn-text-muted"}`}>
+          <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${
+            isDirty
+              ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
+              : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted"
+          }`}>
             {isDirty ? "Unsaved changes" : "Saved"}
           </span>
           <button
             type="button"
             onClick={handleSave}
             disabled={!hasWeatherDoc || !currentFile}
-            className={`rounded border px-3 py-1 text-[11px] transition-colors ${
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
               saveStatus === "saved"
-                ? "border-green-500/50 bg-green-500/10 text-green-300"
+                ? "border-green-500/60 bg-green-500/10 text-green-300"
                 : saveStatus === "error"
-                  ? "border-red-500/50 bg-red-500/10 text-red-300"
-                  : "border-tn-border text-tn-text hover:border-tn-accent hover:text-tn-accent"
+                  ? "border-red-500/60 bg-red-500/10 text-red-300"
+                  : "border-tn-border/70 bg-tn-bg/70 text-tn-text hover:border-tn-accent hover:text-tn-accent"
             } ${!hasWeatherDoc || !currentFile ? "cursor-not-allowed opacity-50" : ""}`}
           >
+            <Save className="h-3.5 w-3.5" />
             {saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Retry Save" : "Save"}
           </button>
         </div>
@@ -1562,13 +1569,18 @@ export function WeatherEditorView() {
           )}
 
           {hasWeatherDoc && (
-            <section className="rounded border border-tn-border/60 bg-tn-surface/35 px-3 py-3">
+            <section className="rounded-lg border border-tn-border/70 bg-tn-surface/45 px-3.5 py-3.5 shadow-sm">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Simple Controls</p>
-                  <p className="mt-1 text-[11px] text-tn-text-muted">
-                    Fast default edits at the current preview hour. Use In-Depth Controls for full keyframe editing.
-                  </p>
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-tn-border/50 bg-tn-bg/70 text-tn-accent">
+                    <SlidersHorizontal className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-tn-text">Simple Controls</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-tn-text-muted">
+                      Fast default edits at the current preview hour. Use In-Depth Controls for full keyframe editing.
+                    </p>
+                  </div>
                 </div>
                 <span className="rounded border border-tn-border/50 bg-tn-bg/60 px-2 py-0.5 text-[10px] font-mono text-tn-text-muted">
                   {previewHour}:00
