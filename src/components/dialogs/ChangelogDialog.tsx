@@ -9,9 +9,13 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
-    version: "0.1.5 QoL 3",
+    version: "0.1.5 QoL 1-3",
     date: "2026-03",
     highlights: [
+      {
+        label: "Hytale-accurate tint band workflow",
+        description: "DensityDelimited tint bands now keep Hytale-accurate ranges, Constant tint typing, and valid default density export behavior.",
+      },
       {
         label: "Weather file editor with a real preview",
         description: "Open files from Server\\Weathers and edit them through a dedicated preview-driven editor instead of falling back to raw JSON.",
@@ -36,8 +40,22 @@ const VERSIONS: VersionEntry[] = [
         label: "Cleaner editor chrome",
         description: "Simple control blocks, collapsible sections, and header actions now use the same stronger icon-forward styling.",
       },
+      {
+        label: "Biome browser and validation QoL",
+        description: "Biome search, richer template entries, material autocomplete, clickable weather paths, and one-click validation fixes stay bundled into the same combined release.",
+      },
     ],
     sections: [
+      {
+        title: "Hytale asset accuracy",
+        items: [
+          "DensityDelimited tint delimiters now preserve real Hytale-style ranges",
+          "Tint.Type: \"Constant\" is written consistently on exported tint delimiters",
+          "Default tint density injection uses the Hytale-aligned SimplexNoise2D setup",
+          "Tint band editor in PropertyPanel supports color, min/max range, and add/remove controls",
+          "Tint export path now generates stable delimiter IDs for edited bands",
+        ],
+      },
       {
         title: "Editors",
         items: [
@@ -65,83 +83,19 @@ const VERSIONS: VersionEntry[] = [
           "Editor regression tests added and TypeScript build kept green",
         ],
       },
-    ],
-  },
-  {
-    version: "0.1.5 QoL 1-2",
-    date: "2026-03",
-    highlights: [
       {
-        label: "Tint band editor - inline in node graph",
-        description: "Select a DensityDelimited TintProvider node in the graph and the property panel now shows editable color bands with range inputs and add/remove controls.",
-      },
-      {
-        label: "Hytale-accurate tint exports",
-        description: "Range, Tint.Type: Constant, and a valid Density node are now written automatically so exports match real Hytale biome JSON.",
-      },
-      {
-        label: "Weather file paths - click to open",
-        description: "Resolved environment and weather file path rows in the Atmosphere tab are clickable and open the file directly in the editor.",
-      },
-      {
-        label: "Biome browser search",
-        description: "Search appears when you have more than 4 biomes and filters the list instantly by name.",
-      },
-      {
-        label: "Biome Browser - Hytale templates",
-        description: "Browse real Hytale reference biomes and template packs from the Atmosphere tab biome browser.",
-      },
-      {
-        label: "Block/material autocomplete",
-        description: "All 193 Hytale material IDs are available as autocomplete suggestions in Material, Solid, Fluid, and BlockType fields.",
-      },
-      {
-        label: "Legacy node auto-fix",
-        description: "74 deprecated V2 types are flagged in the Validation panel and 18 of them can be replaced in one click.",
-      },
-      {
-        label: "Reveal in Explorer",
-        description: "Right-click any Asset Tree file or folder to open it highlighted in Windows Explorer.",
-      },
-    ],
-    sections: [
-      {
-        title: "Hytale asset accuracy",
+        title: "Workflow and diagnostics",
         items: [
-          "DensityDelimited TintProvider delimiters now include Range matching real Hytale biomes",
-          "Tint.Type: \"Constant\" written on every delimiter to match V2 format exactly",
-          "Default Density node (SimplexNoise2D: Seed tints, Scale 100, Octaves 2) injected when missing",
-          "Tint band editor in PropertyPanel with color, min/max range, and add/remove band controls",
           "Clickable env/weather file path rows in Atmosphere tab Weather section",
           "Biome Browser search filter and richer two-line template entries",
-          "Weather section now shows all resolve warnings",
-        ],
-      },
-      {
-        title: "Atmosphere and weather",
-        items: [
-          "Time-of-day animation with scrub and adjustable speed",
-          "Sun angle control (0-360 degrees) with animate support",
+          "Biome Browser with Hytale Templates tab",
+          "Material autocomplete for 193 Hytale material IDs",
+          "Legacy node auto-fix and validation one-click fixes",
           "Environment export to named Env_* JSON file",
-          "Fog near/far distance and color controls",
           "Weather resolution from server assets with metadata panel",
-        ],
-      },
-      {
-        title: "Validation and diagnostics",
-        items: [
-          "Block/material autocomplete for 193 Hytale material IDs",
-          "Legacy node auto-fix for 74 deprecated V2 types, with 18 direct replacements",
-          "Validation one-click fixes for biome name, tint provider, and field constraint errors",
+          "Weather section now shows all resolve warnings",
           "Environment delimiter validation with issue flagging",
           "Asset reference candidate pills on relevant fields",
-        ],
-      },
-      {
-        title: "Editor and UI",
-        items: [
-          "EnvironmentProvider node graph section",
-          "Biome Browser with Hytale Templates tab",
           "Reveal in Explorer from the Asset Tree context menu",
           "Improved 3D preview lighting",
           "HMR fix by extracting utility functions from PropertyPanel to biomeTintUtils.ts",

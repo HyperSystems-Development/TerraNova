@@ -2,52 +2,36 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystemsDev/TerraNova) are documented in this file.
 
-## [0.1.5-qol3] - 2026-03-12
+## [0.1.5-qol1-3] - 2026-03-12
 
 ### Added
 
+- **Hytale-accurate tint workflow** - DensityDelimited tint bands now preserve Hytale-style Range values, keep `Tint.Type: "Constant"`, and inject a valid default density node when missing
 - **Dedicated weather editor** - Weather JSON files now open into a preview-driven editor with save support, sampled track summaries, and collapsible preview drawers instead of a raw JSON fallback
 - **Dedicated environment editor** - Environment JSON files now open into a forecast-focused editor with current-hour controls, hourly weather editing, and direct open actions for linked weather files
 - **Simple Controls and In-Depth Controls** - Weather and environment editors now default to a simpler control layer while keeping the heavier track, tag, and raw-field tools behind an explicit in-depth toggle
 - **Issue log and tips toggles** - Both editors now let you show or hide issue logs and tips from compact detail-panel controls
+- **Biome browser and validation QoL** - Biome search, richer template entries, Hytale template packs, material autocomplete, and one-click validation fixes are all part of the combined QoL release
 
 ### Changed
 
 - **Weather preview layout cleanup** - The 24h atmosphere strip, track preview, sampled values, and asset breakdown are now collapsible drawers so the main scene preview stays visible
 - **Editor section styling** - Simple control cards, collapsible sections, and header action buttons now share one stronger icon-forward visual language
 - **Real asset lookup paths** - Weather and environment asset references resolve directly against `Server\\Weathers` and `Server\\Environments`
+- **Atmosphere workflow navigation** - Clickable environment/weather file paths in the Atmosphere workflow now jump directly into the dedicated editors
 
 ### Fixed
 
 - **Environment inheritance handling** - Environment files that inherit forecasts from a parent are no longer treated like broken files just because they do not define local `WeatherForecasts`
 - **Maximum update depth crash** - Asset graph bridge updates are now guarded so weather/environment graph scaffolding does not loop state back into the store every render
 - **Rendered-more-hooks crash** - Weather and environment editors now keep hook order stable when opening from an empty state into a loaded file
+- **Tint export stability** - Edited tint bands now keep stable delimiter export fields when round-tripping back into Hytale-shaped JSON
 
 ### Tests
 
 - Added regression coverage for `WeatherEditorView`, `EnvironmentEditorView`, and `AssetGraphCanvasBridge`
+- Added tint export coverage for `Range`, `Tint.Type: Constant`, and default density injection
 - `pnpm exec tsc -b --pretty false` passes after the editor polish changes
-
-## [0.1.5-qol2] — 2026-03-12
-
-### Added
-
-- **Hytale-accurate DensityDelimited tint bands** — Range (`MinInclusive`/`MaxExclusive`) with real Hytale thirds (-1 to -0.33, -0.33 to 0.33, 0.33 to 1), `Tint.Type: "Constant"`, and a default `SimplexNoise2D` Density node (Seed: `"tints"`, Scale: 100, Octaves: 2) are now written automatically, matching every observed Hytale V2 biome reference
-- **Clickable weather file paths** — Resolved environment and weather file path rows in the Atmosphere tab Weather section are now clickable; clicking opens the JSON file in the editor
-- **Biome browser search** — Search input appears above the list when more than 4 biomes are present, filtering by biome name in real time
-- **Biome browser richer template entries** — Two-line display: biome `Name` on the first line, `displayName · templateName` on the second
-- **Weather section shows all warnings** — Previously only the first resolve warning was displayed; all are now shown
-- **Weather section env/weather paths** — Resolved environment file path and weather file path are now shown as metadata rows in the Weather panel
-- **Tint band editor in PropertyPanel** — Selecting a `DensityDelimited` TintProvider node in the graph now shows an inline editor: color swatch + hex input per band, `MinInclusive`/`MaxExclusive` range inputs, remove button, "Add band" button
-
-### Fixed
-
-- **Vite Fast Refresh HMR warning** — `applyBiomeTintBand`, `buildDelimiterTypeOptions`, and `getAdvancedDelimiterTypeDetails` extracted from `PropertyPanel.tsx` into `biomeTintUtils.ts`; Vite can now HMR `PropertyPanel` correctly
-- **Default Density Octaves** — `DEFAULT_TINT_DENSITY` corrected from `Octaves: 3` to `Octaves: 2` to match real Hytale biome assets (`Plains1_Oak`, `Boreal1_Hedera`, etc.)
-
-### Tests
-
-- 6 new unit tests in `PropertyPanel.tint.test.ts` covering `Range`, `Tint.Type: Constant`, and default Density injection for `applyBiomeTintBand`
 
 ## [0.1.5] — 2026-02-16
 

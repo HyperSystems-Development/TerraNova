@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { ChangelogDialog } from "./ChangelogDialog";
 
-const CURRENT_VERSION = "0.1.5-qol3";
+const CURRENT_VERSION = "0.1.5-qol1-3";
+const CURRENT_VERSION_LABEL = "0.1.5 QoL 1-3";
 const STORAGE_KEY = "terranova:whats-new-seen";
 const SUPPRESS_KEY = "terranova:whats-new-suppress";
 
@@ -44,6 +45,11 @@ const HIGHLIGHTS: Section[] = [
     title: "What to try",
     items: [
       {
+        label: "Hytale-accurate tint bands",
+        description:
+          "DensityDelimited TintProvider bands now keep real Hytale-style ranges, Tint.Type: Constant, and a valid default density node when needed.",
+      },
+      {
         label: "Weather files in a dedicated editor",
         description:
           "Open a JSON file from Server\\Weathers to get a real scene preview, quick controls, collapsible track summaries, and direct save support instead of a raw JSON fallback.",
@@ -69,6 +75,16 @@ const HIGHLIGHTS: Section[] = [
           "In in-depth mode, both editors expose issue logs and tips behind a compact detail-panel selector instead of keeping those callouts permanently expanded.",
       },
       {
+        label: "Clickable asset file paths",
+        description:
+          "Environment and weather file references in the Atmosphere workflow now open directly in the editor so you can move from biome setup into the dedicated file editors quickly.",
+      },
+      {
+        label: "Biome browser and validation QoL",
+        description:
+          "Biome search, richer template entries, material autocomplete, legacy node fixes, and one-click validation fixes are all still part of this combined QoL pass.",
+      },
+      {
         label: "Cleaner editor chrome",
         description:
           "Section headers, simple control cards, and header actions now share the same stronger styling and icon treatment so the weather and environment editors read more clearly.",
@@ -88,6 +104,27 @@ const HIGHLIGHTS: Section[] = [
 ];
 
 const FULL_CHANGELOG: Section[] = [
+  {
+    title: "Hytale asset accuracy",
+    items: [
+      {
+        label: "DensityDelimited tint Range fields",
+        description: "Tint delimiters now preserve Hytale-accurate Range values and keep Tint.Type set to Constant during export.",
+      },
+      {
+        label: "Default tint density injection",
+        description: "When a DensityDelimited TintProvider is missing Density, TerraNova injects the canonical SimplexNoise2D node with the Hytale-aligned Octaves value.",
+      },
+      {
+        label: "Tint band editing in the property panel",
+        description: "DensityDelimited tint bands can be edited inline with color pickers, range inputs, and add/remove controls.",
+      },
+      {
+        label: "Tint export stability",
+        description: "Delimiter node IDs and related tint export fields are now generated consistently so edited bands round-trip back to Hytale-shaped JSON safely.",
+      },
+    ],
+  },
   {
     title: "Weather and environment editors",
     items: [
@@ -151,6 +188,27 @@ const FULL_CHANGELOG: Section[] = [
       },
     ],
   },
+  {
+    title: "Biome browser, validation, and workflow",
+    items: [
+      {
+        label: "Biome browser search and richer entries",
+        description: "Biome Browser search, richer two-line template entries, and Hytale template packs remain part of the QoL release set.",
+      },
+      {
+        label: "Clickable weather file paths",
+        description: "Resolved environment and weather file path rows in the Atmosphere tab can open the file directly in the editor.",
+      },
+      {
+        label: "Material autocomplete and validation fixes",
+        description: "Material autocomplete, legacy node replacement hints, and one-click validation fixes are included in the combined QoL entry.",
+      },
+      {
+        label: "Environment export and weather resolution",
+        description: "Environment export, weather resolution from server assets, and the expanded weather warning display are all part of this combined release.",
+      },
+    ],
+  },
 ];
 
 interface WhatsNewDialogProps {
@@ -210,7 +268,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
                   {view === "changelog" ? "Full Changelog" : "What's new in TerraNova"}
                 </h2>
                 <p className="text-[11px] text-tn-text-muted mt-0.5">
-                  Quality-of-life update - v{CURRENT_VERSION.replace("qol", "QoL ")}
+                  Quality-of-life update - v{CURRENT_VERSION_LABEL}
                 </p>
               </div>
             </div>
