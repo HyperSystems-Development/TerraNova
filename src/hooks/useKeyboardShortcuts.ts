@@ -105,6 +105,68 @@ export function useKeyboardShortcuts({ onSearchOpen, onQuickAdd }: ShortcutCallb
         return;
       }
 
+      // Select Upstream — toggle: select all ancestors, or collapse back to tips
+      if (matchesKeybinding("selectUpstream", e)) {
+        e.preventDefault();
+        const store = useEditorStore.getState();
+        const currentSelected = new Set(store.nodes.filter((n) => n.selected).map((n) => n.id));
+        if (currentSelected.size === 0) return;
+        // BFS upstream
+        const upstream = new Set<string>();
+        const queue = [...currentSelected];
+        while (queue.length > 0) {
+          const current = queue.shift()!;
+          if (upstream.has(current)) continue;
+          upstream.add(current);
+          for (const edge of store.edges) {
+            if (edge.target === current && !upstream.has(edge.source)) {
+              queue.push(edge.source);
+            }
+          }
+        }
+        if (upstream.size === currentSelected.size && [...upstream].every((id) => currentSelected.has(id))) {
+          // Toggle off: keep only the most-downstream nodes (tips)
+          const tips = new Set([...currentSelected].filter((id) =>
+            !store.edges.some((edge) => edge.source === id && currentSelected.has(edge.target)),
+          ));
+          store.setNodes(store.nodes.map((n) => ({ ...n, selected: tips.has(n.id) })));
+        } else {
+          store.setNodes(store.nodes.map((n) => ({ ...n, selected: upstream.has(n.id) })));
+        }
+        return;
+      }
+
+      // Select Downstream — toggle: select all descendants, or collapse back to roots
+      if (matchesKeybinding("selectDownstream", e)) {
+        e.preventDefault();
+        const store = useEditorStore.getState();
+        const currentSelected = new Set(store.nodes.filter((n) => n.selected).map((n) => n.id));
+        if (currentSelected.size === 0) return;
+        // BFS downstream
+        const downstream = new Set<string>();
+        const queue = [...currentSelected];
+        while (queue.length > 0) {
+          const current = queue.shift()!;
+          if (downstream.has(current)) continue;
+          downstream.add(current);
+          for (const edge of store.edges) {
+            if (edge.source === current && !downstream.has(edge.target)) {
+              queue.push(edge.target);
+            }
+          }
+        }
+        if (downstream.size === currentSelected.size && [...downstream].every((id) => currentSelected.has(id))) {
+          // Toggle off: keep only the most-upstream nodes (roots)
+          const roots = new Set([...currentSelected].filter((id) =>
+            !store.edges.some((edge) => edge.target === id && currentSelected.has(edge.source)),
+          ));
+          store.setNodes(store.nodes.map((n) => ({ ...n, selected: roots.has(n.id) })));
+        } else {
+          store.setNodes(store.nodes.map((n) => ({ ...n, selected: downstream.has(n.id) })));
+        }
+        return;
+      }
+
       // Ctrl+T — wire selected node → Root node
       if (matchesKeybinding("toggleRoot", e)) {
         e.preventDefault();
