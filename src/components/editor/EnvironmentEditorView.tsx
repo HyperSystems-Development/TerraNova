@@ -7,6 +7,8 @@ import { listDirectory, writeAssetFile, type DirectoryEntryData } from "@/utils/
 import type { StructuredGraphNodeData } from "./StructuredAssetGraph";
 import { AssetGraphCanvasBridge } from "./AssetGraphCanvasBridge";
 import { EditorCalloutSection, EditorTipsSection, type EditorCalloutItem } from "./EditorCallouts";
+import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
+import { EditorModeCard } from "./EditorModeCard";
 
 interface WeatherForecastEntry {
   WeatherId: string;
@@ -188,6 +190,11 @@ export function EnvironmentEditorView() {
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
   const [showIssueLog, setShowIssueLog] = useState(true);
   const [showTips, setShowTips] = useState(true);
+  const [showOverviewSection, setShowOverviewSection] = useState(true);
+  const [showTagsSection, setShowTagsSection] = useState(false);
+  const [showForecastSection, setShowForecastSection] = useState(true);
+  const [showExtraSection, setShowExtraSection] = useState(false);
+  const [forecastScope, setForecastScope] = useState<"current" | "daypart" | "all">("current");
 
   useEffect(() => {
     let active = true;
@@ -377,6 +384,15 @@ export function EnvironmentEditorView() {
     "The weather ID inputs are backed by the Server\\Weathers datalist, so prefer selecting existing IDs over typing freehand.",
     "Double-click weather nodes in graph mode to open the referenced weather file immediately.",
   ], []);
+  const displayedForecastHours = useMemo(() => {
+    if (forecastScope === "current") {
+      return [previewHour];
+    }
+    if (forecastScope === "daypart" && selectedDaypart) {
+      return HOURS.filter((hour) => hour >= selectedDaypart.start && hour <= selectedDaypart.end);
+    }
+    return HOURS;
+  }, [forecastScope, previewHour, selectedDaypart]);
 
   const environmentGraph = useMemo(() => {
     const nodes: Array<Node<StructuredGraphNodeData>> = [
@@ -622,151 +638,136 @@ export function EnvironmentEditorView() {
             <section>{standaloneGraphPanel}</section>
           ) : (
             <>
-          <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.95fr)]">
-            <div className={sectionClass(selectedGraphNodeId === "environment-root" || selectedGraphNodeId === "")}>
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Environment Graph</h3>
-                  <p className="mt-1 text-[11px] text-tn-text-muted">
-                    Dayparts, rules, and linked weather files are represented as real graph nodes instead of flat cards.
-                  </p>
-                </div>
-                <div className="rounded border border-tn-border/50 bg-tn-bg/60 px-2 py-1 text-right text-[10px] text-tn-text-muted">
-                  <p>{environmentGraph.nodes.length} nodes</p>
-                  <p>{environmentGraph.edges.length} links</p>
-                </div>
-              </div>
-              <div className="h-[520px]">
-                <AssetGraphCanvasBridge
-                  nodes={environmentGraph.nodes}
-                  edges={environmentGraph.edges}
-                  defaultSelectionId="environment-root"
-                  onNodeDoubleClick={(nodeId) => {
-                    if (!nodeId.startsWith("weather:")) return;
-                    const weatherId = nodeId.slice("weather:".length);
-                    const weatherPath = weatherPathIndex[weatherId.toLowerCase()];
-                    if (weatherPath) {
-                      void openFile(weatherPath);
-                    }
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className={sectionClass(selectedGraphNodeId === "forecasts" || selectedGraphNodeId === "environment-root")}>
-              <div className="mb-3 flex items-center gap-3">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Preview Hour</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={23}
-                  step={1}
-                  value={previewHour}
-                  onChange={(event) => setPreviewHour(Number.parseInt(event.target.value, 10))}
-                  className="flex-1 accent-tn-accent"
-                />
-                <span className="w-12 text-right text-[10px] font-mono text-tn-text-muted">{previewHour}:00</span>
-              </div>
-
-              <div className="mb-3 flex flex-wrap gap-1.5">
-                {quickPreviewHours.map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => setPreviewHour(preset.hour)}
-                    className={`rounded border px-2 py-1 text-[10px] transition-colors ${
-                      previewHour === preset.hour
-                        ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
-                        : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="mb-3 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Panels</span>
-                <button
-                  type="button"
-                  onClick={() => setShowIssueLog((value) => !value)}
-                  className={`rounded border px-2 py-1 text-[10px] transition-colors ${
-                    showIssueLog
-                      ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
-                      : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-                  }`}
-                >
-                  {showIssueLog ? "Hide Issue Log" : "Show Issue Log"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowTips((value) => !value)}
-                  className={`rounded border px-2 py-1 text-[10px] transition-colors ${
-                    showTips
-                      ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
-                      : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-                  }`}
-                >
-                  {showTips ? "Hide Tips" : "Show Tips"}
-                </button>
-              </div>
-
-              {showIssueLog || showTips ? (
-                <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.15fr_0.85fr]" : ""}`}>
-                  {showIssueLog && (
-                    <EditorCalloutSection
-                      title="Issue Log"
-                      items={environmentIssues}
-                      emptyState="No obvious environment file problems were detected in the current forecast model."
+              <section>
+                <div className={sectionClass(selectedGraphNodeId === "forecasts" || selectedGraphNodeId === "environment-root")}>
+                  <div className="mb-3 flex items-center gap-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Preview Hour</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={23}
+                      step={1}
+                      value={previewHour}
+                      onChange={(event) => setPreviewHour(Number.parseInt(event.target.value, 10))}
+                      className="flex-1 accent-tn-accent"
                     />
-                  )}
-                  {showTips && <EditorTipsSection title="Tips" tips={environmentTips} />}
-                </div>
-              ) : (
-                <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
-                  Issue log and tips are hidden.
-                </div>
-              )}
+                    <span className="w-12 text-right text-[10px] font-mono text-tn-text-muted">{previewHour}:00</span>
+                  </div>
 
-              <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Forecast Strip</p>
-                    <p className="mt-1 text-[11px] text-tn-text-muted">
-                      Weather IDs are loaded directly from `Server\\Weathers`, not guessed from HytaleGenerator.
-                    </p>
-                  </div>
-                  <div className="text-right text-[10px] text-tn-text-muted">
-                    {lookupStatus === "ready" && <p>{weatherOptions.length} weather files indexed</p>}
-                    {lookupStatus === "loading" && <p>Loading Server\\Weathers...</p>}
-                    {lookupStatus === "error" && <p className="text-amber-300">{lookupError ?? "Weather lookup failed."}</p>}
-                  </div>
-                </div>
-                <div className="grid grid-cols-12 gap-1 sm:grid-cols-24">
-                  {dominantForecasts.map((forecast, hour) => {
-                    const inSelectedDaypart = selectedDaypart ? hour >= selectedDaypart.start && hour <= selectedDaypart.end : false;
-                    return (
+                  <div className="mb-3 flex flex-wrap gap-1.5">
+                    {quickPreviewHours.map((preset) => (
                       <button
-                        key={`timeline-${hour}`}
+                        key={preset.label}
                         type="button"
-                        onClick={() => setPreviewHour(hour)}
-                        className={`rounded border transition-transform hover:-translate-y-0.5 ${
-                          previewHour === hour || inSelectedDaypart ? "border-tn-accent ring-1 ring-tn-accent/45" : "border-tn-border/50"
+                        onClick={() => setPreviewHour(preset.hour)}
+                        className={`rounded border px-2 py-1 text-[10px] transition-colors ${
+                          previewHour === preset.hour
+                            ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
+                            : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
                         }`}
-                        title={forecast ? `${hour}:00 ${forecast.WeatherId} (${forecast.Weight})` : `${hour}:00 no forecast`}
                       >
-                        <div
-                          className="h-10 rounded-sm"
-                          style={{ backgroundColor: forecast ? hashColor(forecast.WeatherId) : "transparent" }}
-                        />
-                        <p className="py-1 text-center text-[9px] font-mono text-tn-text-muted">{hour}</p>
+                        {preset.label}
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
+                    ))}
+                  </div>
 
-              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Panels</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowIssueLog((value) => !value)}
+                      className={`rounded border px-2 py-1 text-[10px] transition-colors ${
+                        showIssueLog
+                          ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
+                          : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+                      }`}
+                    >
+                      {showIssueLog ? "Hide Issue Log" : "Show Issue Log"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowTips((value) => !value)}
+                      className={`rounded border px-2 py-1 text-[10px] transition-colors ${
+                        showTips
+                          ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
+                          : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+                      }`}
+                    >
+                      {showTips ? "Hide Tips" : "Show Tips"}
+                    </button>
+                  </div>
+
+                  {showIssueLog || showTips ? (
+                    <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.15fr_0.85fr]" : ""}`}>
+                      {showIssueLog && (
+                        <EditorCalloutSection
+                          title="Issue Log"
+                          items={environmentIssues}
+                          emptyState="No obvious environment file problems were detected in the current forecast model."
+                        />
+                      )}
+                      {showTips && <EditorTipsSection title="Tips" tips={environmentTips} />}
+                    </div>
+                  ) : (
+                    <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
+                      Issue log and tips are hidden.
+                    </div>
+                  )}
+
+                  <div className="mb-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+                    <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Forecast Strip</p>
+                          <p className="mt-1 text-[11px] text-tn-text-muted">
+                            Weather IDs are loaded directly from `Server\\Weathers`, not guessed from HytaleGenerator.
+                          </p>
+                        </div>
+                        <div className="text-right text-[10px] text-tn-text-muted">
+                          {lookupStatus === "ready" && <p>{weatherOptions.length} weather files indexed</p>}
+                          {lookupStatus === "loading" && <p>Loading Server\\Weathers...</p>}
+                          {lookupStatus === "error" && <p className="text-amber-300">{lookupError ?? "Weather lookup failed."}</p>}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-12 gap-1 sm:grid-cols-24">
+                        {dominantForecasts.map((forecast, hour) => {
+                          const inSelectedDaypart = selectedDaypart ? hour >= selectedDaypart.start && hour <= selectedDaypart.end : false;
+                          return (
+                            <button
+                              key={`timeline-${hour}`}
+                              type="button"
+                              onClick={() => setPreviewHour(hour)}
+                              className={`rounded border transition-transform hover:-translate-y-0.5 ${
+                                previewHour === hour || inSelectedDaypart ? "border-tn-accent ring-1 ring-tn-accent/45" : "border-tn-border/50"
+                              }`}
+                              title={forecast ? `${hour}:00 ${forecast.WeatherId} (${forecast.Weight})` : `${hour}:00 no forecast`}
+                            >
+                              <div
+                                className="h-10 rounded-sm"
+                                style={{ backgroundColor: forecast ? hashColor(forecast.WeatherId) : "transparent" }}
+                              />
+                              <p className="py-1 text-center text-[9px] font-mono text-tn-text-muted">{hour}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <EditorModeCard
+                      eyebrow="Workspace"
+                      title="Graph mode is separate"
+                      description="The environment canvas stays in its own screen now, so editor mode remains focused on forecast repair and file metadata."
+                      stats={[
+                        `${environmentGraph.nodes.length} graph nodes`,
+                        `${environmentGraph.edges.length} graph links`,
+                        `${uniqueWeatherIds.length} linked weather IDs`,
+                      ]}
+                      actionLabel="Open Graph Mode"
+                      onAction={() => setViewMode("graph")}
+                    />
+                  </div>
+
+                  <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                 <EnvironmentMetricCard label="Parent" value={doc.Parent ?? "None"} />
                 <EnvironmentMetricCard label="Water Tint" value={typeof doc.WaterTint === "string" ? doc.WaterTint : "Unset"} />
                 <EnvironmentMetricCard label="Spawn Density" value={typeof doc.SpawnDensity === "number" ? String(doc.SpawnDensity) : "Unset"} />
@@ -872,8 +873,13 @@ export function EnvironmentEditorView() {
           </section>
 
           <section className="grid gap-3 lg:grid-cols-2">
-            <div className={sectionClass(selectedGraphNodeId === "overview" || selectedGraphNodeId === "rules")}>
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Overview</h3>
+            <CollapsibleEditorSection
+              title="Overview"
+              description="Parent environment and top-level file settings."
+              badge={doc.Parent ?? "No parent"}
+              open={showOverviewSection}
+              onToggle={() => setShowOverviewSection((value) => !value)}
+            >
               <div className="space-y-2">
                 <div>
                   <label className="mb-1 block text-[10px] uppercase tracking-wider text-tn-text-muted">Parent</label>
@@ -990,11 +996,16 @@ export function EnvironmentEditorView() {
                   </button>
                 )}
               </div>
-            </div>
+            </CollapsibleEditorSection>
 
-            <div className={sectionClass(selectedGraphNodeId === "tags")}>
+            <CollapsibleEditorSection
+              title="Tags"
+              description="Optional tag groups for classifying the environment asset."
+              badge={`${tagEntries.length} groups`}
+              open={showTagsSection}
+              onToggle={() => setShowTagsSection((value) => !value)}
+            >
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Tags</h3>
                 <button
                   type="button"
                   onClick={() => updateDoc((previous) => ({
@@ -1064,13 +1075,18 @@ export function EnvironmentEditorView() {
                   </div>
                 ))}
               </div>
-            </div>
+            </CollapsibleEditorSection>
           </section>
 
-          <section className={sectionClass(selectedGraphNodeId === "forecasts" || selectedGraphNodeId.startsWith("daypart:") || selectedGraphNodeId.startsWith("weather:"))}>
+          <CollapsibleEditorSection
+            title="Hourly Forecasts"
+            description="Edit weather IDs and weights without keeping all 24 hour cards expanded at once."
+            badge={`${displayedForecastHours.length}/${HOURS.length} hours`}
+            open={showForecastSection}
+            onToggle={() => setShowForecastSection((value) => !value)}
+          >
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Hourly Forecasts</h3>
                 <p className="mt-1 text-[11px] text-tn-text-muted">
                   Each hour card is an editable forecast node: weather ID, weight, and quick-open into the matching weather file.
                 </p>
@@ -1081,8 +1097,26 @@ export function EnvironmentEditorView() {
                 ))}
               </datalist>
             </div>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="environment-forecast-scope">
+                Scope
+              </label>
+              <select
+                id="environment-forecast-scope"
+                value={forecastScope}
+                onChange={(event) => setForecastScope(event.target.value as "current" | "daypart" | "all")}
+                className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
+              >
+                <option value="current">Current Hour</option>
+                <option value="daypart">Selected Daypart</option>
+                <option value="all">All Hours</option>
+              </select>
+              {forecastScope === "daypart" && !selectedDaypart && (
+                <span className="text-[10px] text-amber-300">Select a daypart card to narrow this view.</span>
+              )}
+            </div>
             <div className="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
-              {HOURS.map((hour) => {
+              {displayedForecastHours.map((hour) => {
                 const entries = readForecastHour(doc, hour);
                 const totalWeight = entries.reduce((sum, entry) => sum + entry.Weight, 0);
                 return (
@@ -1214,11 +1248,16 @@ export function EnvironmentEditorView() {
                 );
               })}
             </div>
-          </section>
+          </CollapsibleEditorSection>
 
           {extraEntries.length > 0 && (
-            <section className={sectionClass(selectedGraphNodeId === "extras")}>
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Additional Fields</h3>
+            <CollapsibleEditorSection
+              title="Additional Fields"
+              description="Raw environment fields that are not yet represented by dedicated controls."
+              badge={`${extraEntries.length} fields`}
+              open={showExtraSection}
+              onToggle={() => setShowExtraSection((value) => !value)}
+            >
               <div className="grid gap-2 md:grid-cols-2">
                 {extraEntries.map(([key, value]) => (
                   <div key={key} className="rounded border border-tn-border/40 bg-tn-bg px-3 py-2">
@@ -1229,7 +1268,7 @@ export function EnvironmentEditorView() {
                   </div>
                 ))}
               </div>
-            </section>
+            </CollapsibleEditorSection>
           )}
             </>
           )}

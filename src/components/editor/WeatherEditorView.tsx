@@ -6,6 +6,8 @@ import { writeAssetFile } from "@/utils/ipc";
 import type { StructuredGraphNodeData } from "./StructuredAssetGraph";
 import { AssetGraphCanvasBridge } from "./AssetGraphCanvasBridge";
 import { EditorCalloutSection, EditorTipsSection, type EditorCalloutItem } from "./EditorCallouts";
+import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
+import { EditorModeCard } from "./EditorModeCard";
 
 interface HourColor {
   Hour: number;
@@ -609,6 +611,11 @@ export function WeatherEditorView() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [showIssueLog, setShowIssueLog] = useState(true);
   const [showTips, setShowTips] = useState(true);
+  const [showFogSection, setShowFogSection] = useState(true);
+  const [showColorSections, setShowColorSections] = useState(true);
+  const [showValueSections, setShowValueSections] = useState(false);
+  const [showCloudSections, setShowCloudSections] = useState(false);
+  const [showExtraSections, setShowExtraSections] = useState(false);
 
   if (!rawJsonContent) {
     return (
@@ -1068,6 +1075,21 @@ export function WeatherEditorView() {
         </div>
       )}
 
+      <div className="mb-3">
+        <EditorModeCard
+          eyebrow="Workspace"
+          title="Graph mode is separate"
+          description="Weather graph mode stays isolated from the editor so the preview and track tools remain easy to scan."
+          stats={[
+            `${weatherGraph.nodes.length} graph nodes`,
+            `${weatherGraph.edges.length} graph links`,
+            `${colorTrackCount + valueTrackCount} total keyframes`,
+          ]}
+          actionLabel="Open Graph Mode"
+          onAction={() => setViewMode("graph")}
+        />
+      </div>
+
       <div
         className="relative h-64 overflow-hidden rounded-xl border border-tn-border/50"
         style={{ background: `linear-gradient(to bottom, ${skyTop}, ${sunlightColor}, ${skyBottom})` }}
@@ -1432,8 +1454,13 @@ export function WeatherEditorView() {
           )}
 
           {Array.isArray(doc.FogDistance) && (
-            <section className={sectionClass(selectedGraphNodeId === "feature:fog-distance")}>
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Fog Distance</p>
+            <CollapsibleEditorSection
+              title="Fog Distance"
+              description="Near and far fog bounds used by the preview volume."
+              badge={Array.isArray(doc.FogDistance) ? `${doc.FogDistance[0]}..${doc.FogDistance[1]}` : undefined}
+              open={showFogSection}
+              onToggle={() => setShowFogSection((value) => !value)}
+            >
               <div className="flex items-center gap-2">
                 <span className="w-10 shrink-0 text-[10px] text-tn-text-muted">Near</span>
                 <input
@@ -1466,16 +1493,16 @@ export function WeatherEditorView() {
                   className="flex-1 rounded border border-tn-border bg-tn-bg px-2 py-1 text-[10px] font-mono text-right text-tn-text"
                 />
               </div>
-            </section>
+            </CollapsibleEditorSection>
           )}
 
-          <section className="space-y-3">
-            <div>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Color Tracks</h3>
-              <p className="mt-1 text-[11px] text-tn-text-muted">
-                The graph nodes above focus these track editors, so the graph and inspector stay in sync.
-              </p>
-            </div>
+          <CollapsibleEditorSection
+            title="Color Tracks"
+            description="Keyframed weather colors. The graph still focuses these editors when nodes are selected."
+            badge={`${COLOR_TRACKS.length} tracks`}
+            open={showColorSections}
+            onToggle={() => setShowColorSections((value) => !value)}
+          >
             <div className="grid gap-3 xl:grid-cols-2">
               {COLOR_TRACKS.map((track) => {
                 const keyframes = (doc[track.key] as HourColor[] | undefined) ?? [];
@@ -1505,15 +1532,15 @@ export function WeatherEditorView() {
                 );
               })}
             </div>
-          </section>
+          </CollapsibleEditorSection>
 
-          <section className="space-y-3">
-            <div>
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Numeric Tracks</h3>
-              <p className="mt-1 text-[11px] text-tn-text-muted">
-                Numeric weather curves stay editable here, but they are also represented as nodes in the new graph.
-              </p>
-            </div>
+          <CollapsibleEditorSection
+            title="Numeric Tracks"
+            description="Scale, damping, and fog curve editors."
+            badge={`${VALUE_TRACKS.length} tracks`}
+            open={showValueSections}
+            onToggle={() => setShowValueSections((value) => !value)}
+          >
             <div className="grid gap-3 xl:grid-cols-2">
               {VALUE_TRACKS.map((track) => {
                 const keyframes = (doc[track.key] as HourValue[] | undefined) ?? [];
@@ -1543,11 +1570,16 @@ export function WeatherEditorView() {
                 );
               })}
             </div>
-          </section>
+          </CollapsibleEditorSection>
 
           {Array.isArray(doc.Clouds) && doc.Clouds.length > 0 && (
-            <section className={sectionClass(selectedGraphNodeId === "feature:clouds")}>
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Cloud Layers</h3>
+            <CollapsibleEditorSection
+              title="Cloud Layers"
+              description="Texture, color, and speed summaries for configured cloud stacks."
+              badge={`${doc.Clouds.length} layers`}
+              open={showCloudSections}
+              onToggle={() => setShowCloudSections((value) => !value)}
+            >
               <div className="space-y-2">
                 {doc.Clouds.map((cloud, index) => {
                   const gradient = Array.isArray(cloud.Colors) && cloud.Colors.length
@@ -1577,12 +1609,17 @@ export function WeatherEditorView() {
                   );
                 })}
               </div>
-            </section>
+            </CollapsibleEditorSection>
           )}
 
           {extraEntries.length > 0 && (
-            <section className={sectionClass(selectedGraphNodeId === "feature:extras")}>
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Additional Fields</h3>
+            <CollapsibleEditorSection
+              title="Additional Fields"
+              description="Raw fields not yet promoted into the first-class editor."
+              badge={`${extraEntries.length} fields`}
+              open={showExtraSections}
+              onToggle={() => setShowExtraSections((value) => !value)}
+            >
               <div className="grid gap-2 md:grid-cols-2">
                 {extraEntries.map(([key, value]) => (
                   <div key={key} className="rounded border border-tn-border/40 bg-tn-bg px-3 py-2">
@@ -1594,7 +1631,7 @@ export function WeatherEditorView() {
                   </div>
                 ))}
               </div>
-            </section>
+            </CollapsibleEditorSection>
           )}
         </div>
       </div>
