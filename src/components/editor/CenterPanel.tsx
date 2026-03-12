@@ -5,7 +5,8 @@ import { EditorCanvas } from "./EditorCanvas";
 import { BiomeRangeEditor } from "./BiomeRangeEditor";
 import { BiomeSectionTabs } from "./BiomeSectionTabs";
 import { SettingsEditorView } from "./SettingsEditorView";
-import { RawJsonView } from "./RawJsonView";
+import { JsonEditorView } from "./JsonEditorView";
+import { InstanceEditorView } from "./InstanceEditorView";
 import { PreviewPanel } from "../preview/PreviewPanel";
 import { ComparisonView } from "../preview/ComparisonView";
 import { DiagnosticsStrip } from "../preview/DiagnosticsStrip";
@@ -15,6 +16,7 @@ const VIEW_MODES: { key: ViewMode; label: string }[] = [
   { key: "preview", label: "Preview" },
   { key: "split", label: "Split" },
   { key: "compare", label: "Compare" },
+  { key: "json", label: "{ }" },
 ];
 
 /** Floating pill overlay for view-mode switching — sits in top-right of canvas area */
@@ -122,6 +124,8 @@ const SplitView = memo(function SplitView() {
 /** Density-context view: canvas/preview with floating view-mode overlay */
 const DensityView = memo(function DensityView() {
   const viewMode = usePreviewStore((s) => s.viewMode);
+  const originalWrapper = useEditorStore((s) => s.originalWrapper);
+  const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
 
   return (
     <div className="flex flex-col h-full">
@@ -132,6 +136,7 @@ const DensityView = memo(function DensityView() {
         {viewMode === "preview" && <PreviewPanel />}
         {viewMode === "split" && <SplitView />}
         {viewMode === "compare" && <ComparisonView />}
+        {viewMode === "json" && <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />}
       </div>
     </div>
   );
@@ -148,8 +153,12 @@ export function CenterPanel() {
     return <SettingsEditorView />;
   }
 
+  if (editingContext === "Instance") {
+    return <InstanceEditorView />;
+  }
+
   if (editingContext === "RawJson") {
-    return <RawJsonView />;
+    return <JsonEditorView />;
   }
 
   if (editingContext === "Biome") {
@@ -179,6 +188,8 @@ function defaultEditorHeight(biomeCount: number): number {
 /** NoiseRange layout with floating view mode overlay */
 const NoiseRangeView = memo(function NoiseRangeView() {
   const viewMode = usePreviewStore((s) => s.viewMode);
+  const originalWrapper = useEditorStore((s) => s.originalWrapper);
+  const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
   const biomeCount = useEditorStore((s) => s.biomeRanges.length);
   const [manualHeight, setManualHeight] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -229,6 +240,11 @@ const NoiseRangeView = memo(function NoiseRangeView() {
           <ViewModeOverlay />
           <ComparisonView />
         </div>
+      ) : viewMode === "json" ? (
+        <div className="flex-1 min-h-0 relative">
+          <ViewModeOverlay />
+          <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />
+        </div>
       ) : (
         <div ref={containerRef} className="flex-1 min-h-0 flex flex-col relative">
           <ViewModeOverlay />
@@ -251,6 +267,8 @@ const NoiseRangeView = memo(function NoiseRangeView() {
 /** Biome layout with section tabs header + floating view mode overlay */
 const BiomeView = memo(function BiomeView() {
   const viewMode = usePreviewStore((s) => s.viewMode);
+  const originalWrapper = useEditorStore((s) => s.originalWrapper);
+  const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
 
   return (
     <div className="flex flex-col h-full">
@@ -264,6 +282,7 @@ const BiomeView = memo(function BiomeView() {
         {viewMode === "preview" && <PreviewPanel />}
         {viewMode === "split" && <SplitView />}
         {viewMode === "compare" && <ComparisonView />}
+        {viewMode === "json" && <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />}
       </div>
     </div>
   );
