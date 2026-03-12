@@ -279,19 +279,55 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
 }
 
-/** Returns the material ID whose color is closest to the given hex color. */
-export function findNearestMaterial(hex: string): string {
-  const [tr, tg, tb] = hexToRgb(hex);
-  let bestId = HYTALE_MATERIAL_IDS[0];
-  let bestDist = Infinity;
-  for (const id of HYTALE_MATERIAL_IDS) {
-    const color = HYTALE_MATERIAL_COLORS[id];
-    if (!color) continue;
-    const [r, g, b] = hexToRgb(color);
-    const dist = (r - tr) ** 2 + (g - tg) ** 2 + (b - tb) ** 2;
-    if (dist < bestDist) { bestDist = dist; bestId = id; }
+/** Convert hex color to LAB for perceptual distance */
+function hexToLab(hex: string): [number, number, number] {
+  // Convert hex to RGB
+  const [r, g, b] = hexToRgb(hex);
+  // Normalize
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  // sRGB to XYZ
+  function srgbToLinear(c: number) {
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
   }
-  return bestId;
+  const rl = srgbToLinear(rn), gl = srgbToLinear(gn), bl = srgbToLinear(bn);
+  const x = rl * 0.4124 + gl * 0.3576 + bl * 0.1805;
+  const y = rl * 0.2126 + gl * 0.7152 + bl * 0.0722;
+  const z = rl * 0.0193 + gl * 0.1192 + bl * 0.9505;
+  // XYZ to LAB
+  function xyzToLab(t: number) {
+    return t > 0.008856 ? Math.pow(t, 1/3) : (7.787 * t) + 16/116;
+  }
+  const xn = x / 0.95047, yn = y / 1.0, zn = z / 1.08883;
+  const l = 116 * xyzToLab(yn) - 16;
+  const a = 500 * (xyzToLab(xn) - xyzToLab(yn));
+  const b_ = 200 * (xyzToLab(yn) - xyzToLab(zn));
+  return [l, a, b_];
+}
+
+/** Perceptual LAB color distance */
+function labDistance(lab1: [number, number, number], lab2: [number, number, number]): number {
+  return Math.sqrt(
+    (lab1[0] - lab2[0]) ** 2 +
+    (lab1[1] - lab2[1]) ** 2 +
+    (lab1[2] - lab2[2]) ** 2
+  );
+}
+
+/** Returns the top N material IDs whose color is closest to the given hex color, optionally filtered by category */
+export function findNearestMaterials(hex: string, category?: string, n = 5): string[] {
+  const targetLab = hexToLab(hex);
+  let ids = HYTALE_MATERIAL_IDS;
+  if (category && category !== "All") {
+    ids = ids.filter(id => id.startsWith(category));
+  }
+  const scored = ids.map(id => {
+    const color = HYTALE_MATERIAL_COLORS[id];
+    if (!color) return { id, dist: Infinity };
+    const lab = hexToLab(color);
+    return { id, dist: labDistance(targetLab, lab) };
+  });
+  scored.sort((a, b) => a.dist - b.dist);
+  return scored.slice(0, n).map(s => s.id);
 }
 
 /* ── PBR material properties ─────────────────────────────────────── */

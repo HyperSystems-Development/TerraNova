@@ -1,6 +1,6 @@
 import { useId, useRef, useState, useEffect } from "react";
 import { FieldTooltip } from "./FieldTooltip";
-import { HYTALE_MATERIAL_IDS, getMaterialColor, findNearestMaterial } from "@/utils/materialResolver";
+import { HYTALE_MATERIAL_IDS, getMaterialColor, findNearestMaterials } from "@/utils/materialResolver";
 import { BlockIcon } from "./BlockIcon";
 
 interface MaterialFieldProps {
@@ -18,13 +18,16 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [category, setCategory] = useState("All");
+  const [palettePreview, setPalettePreview] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  // Keep query in sync when value changes externally
+  // Material categories (prefixes)
+  const MATERIAL_CATEGORIES = ["All", "Rock", "Soil", "Plant", "Wood", "Ore", "Fluid", "Rubble", "Barrier", "Deco", "Furniture"];
+
   useEffect(() => { setQuery(value); }, [value]);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     function onDown(e: MouseEvent) {
@@ -35,9 +38,9 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
   }, [open]);
 
   const filtered = query.trim() === ""
-    ? HYTALE_MATERIAL_IDS.slice(0, MAX_DROPDOWN)
-    : HYTALE_MATERIAL_IDS.filter((id) =>
-        id.toLowerCase().includes(query.toLowerCase())
+    ? HYTALE_MATERIAL_IDS.filter(id => category === "All" || id.startsWith(category)).slice(0, MAX_DROPDOWN)
+    : HYTALE_MATERIAL_IDS.filter(id =>
+        (category === "All" || id.startsWith(category)) && id.toLowerCase().includes(query.toLowerCase())
       ).slice(0, MAX_DROPDOWN);
 
   function commit(id: string) {
@@ -73,7 +76,6 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
     }
   }
 
-  // Scroll active item into view
   useEffect(() => {
     if (!open || !listRef.current) return;
     const el = listRef.current.children[activeIdx] as HTMLElement | undefined;
@@ -81,8 +83,8 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
   }, [activeIdx, open]);
 
   function handleColorPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const nearest = findNearestMaterial(e.target.value);
-    commit(nearest);
+    const preview = findNearestMaterials(e.target.value, category, 5);
+    setPalettePreview(preview);
   }
 
   const swatchColor = getMaterialColor(value);
@@ -111,11 +113,9 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
           onBlur={() => {
-            // Delay so click on dropdown item fires first
             setTimeout(() => {
               if (!containerRef.current?.matches(":focus-within")) {
                 setOpen(false);
-                // If typed value isn't a known material, revert
                 if (!HYTALE_MATERIAL_IDS.includes(query)) setQuery(value);
                 else onBlur?.();
               }
@@ -126,14 +126,26 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
           spellCheck={false}
         />
 
-        {/* Color picker → nearest material */}
-        <label
-          htmlFor={colorPickerId}
-          className="shrink-0 w-7 h-[26px] flex items-center justify-center rounded border border-tn-border bg-tn-bg hover:bg-tn-surface cursor-pointer"
-          title="Pick by color — selects the closest matching Hytale material"
+        {/* Category filter */}
+        <select
+          value={category}
+          onChange={e => setCategory(e.target.value)}
+          className="px-1 py-1 text-xs rounded border border-tn-border bg-tn-bg text-tn-text-muted"
+          style={{ minWidth: 80 }}
         >
-          {/* dropper icon */}
-          <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 text-tn-text-muted" fill="currentColor">
+          {MATERIAL_CATEGORIES.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
+
+
+        {/* Color picker styled as TerraNova panel button */}
+        <button
+          className="shrink-0 w-8 h-8 flex items-center justify-center rounded border border-tn-border bg-tn-panel hover:bg-tn-accent/10 cursor-pointer transition"
+          title="Pick by color — shows closest matching blocks"
+          style={{ position: 'relative', overflow: 'hidden' }}
+        >
+          <svg viewBox="0 0 16 16" className="w-4 h-4 text-tn-text-muted" fill="currentColor">
             <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-1 1a.5.5 0 0 1-.708 0L13 3.707l-9.5 9.5A1.5 1.5 0 0 1 2.44 13.5H1.5a1 1 0 0 1-1-1v-.94a1.5 1.5 0 0 1 .44-1.06l9.5-9.5L9.293 3.854a.5.5 0 0 1 0-.708l1-1a.5.5 0 0 1 .707 0l.146.146z"/>
           </svg>
           <input
@@ -141,11 +153,30 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
             type="color"
             defaultValue={swatchColor ?? "#909090"}
             onChange={handleColorPick}
-            className="sr-only"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             tabIndex={-1}
           />
-        </label>
+        </button>
       </div>
+
+      {/* Palette preview — show top N matches from color picker as horizontal row with names in box */}
+      {palettePreview.length > 0 && (
+        <div className="flex flex-col gap-4 mt-2">
+          <div className="mb-1 text-xs font-semibold text-tn-text-muted">Palette Preview: Closest Materials</div>
+          {palettePreview.map(id => (
+            <button
+              key={id}
+              onClick={() => commit(id)}
+              className="flex flex-row items-center px-4 py-2 rounded border border-tn-border bg-tn-panel hover:bg-tn-accent/10"
+              style={{ minWidth: 120, height: 56 }}
+            >
+              <BlockIcon materialId={id} size={24} />
+              <span className="w-6 h-6 rounded border border-tn-border mx-3" style={{ backgroundColor: getMaterialColor(id) ?? '#444' }} />
+              <span className="text-[14px] truncate text-center" style={{ fontWeight: 500 }}>{id}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Dropdown */}
       {open && filtered.length > 0 && (
@@ -153,7 +184,7 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
           ref={listRef}
           className="absolute z-50 mt-1 w-64 max-h-52 overflow-y-auto bg-tn-panel border border-tn-border rounded shadow-lg text-sm"
           style={{ marginTop: "0px" }}
-          onMouseDown={(e) => e.preventDefault()} // prevent blur before click
+          onMouseDown={e => e.preventDefault()} // prevent blur before click
         >
           {filtered.map((id, i) => {
             const color = getMaterialColor(id);
@@ -166,7 +197,6 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
                   i === activeIdx ? "bg-tn-accent/20" : "hover:bg-white/[0.04]"
                 }`}
               >
-                {/* PNG icon for material, fallback to color swatch if missing */}
                 <BlockIcon materialId={id} size={20} className="mr-1" />
                 <span
                   className="w-3.5 h-3.5 shrink-0 rounded-sm border border-tn-border/60"

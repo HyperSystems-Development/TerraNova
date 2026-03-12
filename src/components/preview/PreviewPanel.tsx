@@ -24,26 +24,51 @@ function Preview3DFallback() {
 }
 
 export function PreviewPanel() {
-    // MaterialLegend position state (persisted)
-    const [legendPos, setLegendPos] = useState<{ x: number; y: number }>(() => {
-      const saved = localStorage.getItem("tn-materialLegendPos");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (typeof parsed.x === "number" && typeof parsed.y === "number") {
-            return parsed;
-          }
-        } catch {}
-      }
-      // Default: top left
-      return { x: 16, y: 16 };
-    });
-    const [legendVisible, setLegendVisible] = useState(true); // debug toggle
+  // MaterialLegend position state (persisted)
+  const [legendPos, setLegendPos] = useState<{ x: number; y: number }>(() => {
+    const saved = localStorage.getItem("tn-materialLegendPos");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.x === "number" && typeof parsed.y === "number") {
+          return parsed;
+        }
+      } catch {}
+    }
+    // Default: top left
+    return { x: 16, y: 16 };
+  });
+  const legendVisible = usePreviewStore((s) => s.showMaterialLegend);
+  const setLegendVisible = usePreviewStore((s) => s.setShowMaterialLegend);
+  const showWireframe = usePreviewStore((s) => s.showVoxelWireframe);
+  const setShowWireframe = usePreviewStore((s) => s.setShowVoxelWireframe);
+  // Persist legend position on change
+  useEffect(() => {
+    localStorage.setItem("tn-materialLegendPos", JSON.stringify(legendPos));
+  }, [legendPos]);
 
-    // Persist legend position on change
-    useEffect(() => {
-      localStorage.setItem("tn-materialLegendPos", JSON.stringify(legendPos));
-    }, [legendPos]);
+  // Keyboard shortcuts for preview toggles
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Toggle material legend
+      if (e.key === "l" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setLegendVisible((v: boolean) => !v);
+      }
+      // Toggle wireframe
+      if (e.key === "w" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setShowWireframe((v: boolean) => !v);
+      }
+      // Screenshot
+      if (e.key === "s" && e.altKey) {
+        e.preventDefault();
+        // TODO: trigger screenshot logic
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [setLegendVisible, setShowWireframe]);
   usePreviewEvaluation();
   useVoxelEvaluation();
   useWorldPreview();
