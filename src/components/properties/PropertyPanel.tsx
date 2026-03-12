@@ -56,6 +56,17 @@ const DEFAULT_TINT_RANGES: Array<{ MinInclusive: number; MaxExclusive: number }>
   { MinInclusive: 0.33, MaxExclusive: 1 },
 ];
 
+// Every real Hytale DensityDelimited TintProvider uses a SimplexNoise2D density
+// node with these parameters (consistent across all observed biomes).
+const DEFAULT_TINT_DENSITY: Record<string, unknown> = {
+  Type: "SimplexNoise2D",
+  Seed: "tints",
+  Scale: 100,
+  Octaves: 3,
+  Persistence: 0.2,
+  Lacunarity: 5,
+};
+
 /** Field keys whose string value is a Hytale block/material identifier. */
 const MATERIAL_FIELD_KEYS = new Set(["Material", "Solid", "Fluid", "BlockType", "BlockTypes"]);
 
@@ -145,9 +156,15 @@ export function applyBiomeTintBand(
   const targetTint = (targetDelimiter.Tint as Record<string, unknown>) ?? {};
   delimiters[index] = { ...targetDelimiter, Tint: { Type: "Constant", ...targetTint, Color: color } };
 
+  const providerType = typeof sourceTintProvider.Type === "string" ? sourceTintProvider.Type : "DensityDelimited";
+  const density = providerType === "DensityDelimited" && !sourceTintProvider.Density
+    ? DEFAULT_TINT_DENSITY
+    : sourceTintProvider.Density;
+
   return {
     ...sourceTintProvider,
-    Type: typeof sourceTintProvider.Type === "string" ? sourceTintProvider.Type : "DensityDelimited",
+    Type: providerType,
+    ...(density !== undefined ? { Density: density } : {}),
     Delimiters: delimiters,
   };
 }

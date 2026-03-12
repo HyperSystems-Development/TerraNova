@@ -260,6 +260,17 @@ const DEFAULT_TINT_RANGES: Array<{ MinInclusive: number; MaxExclusive: number }>
   { MinInclusive: 0.33, MaxExclusive: 1 },
 ];
 
+// Every real Hytale DensityDelimited TintProvider uses a SimplexNoise2D density
+// node with these parameters (consistent across all observed biomes).
+const DEFAULT_TINT_DENSITY: Record<string, unknown> = {
+  Type: "SimplexNoise2D",
+  Seed: "tints",
+  Scale: 100,
+  Octaves: 3,
+  Persistence: 0.2,
+  Lacunarity: 5,
+};
+
 function applyTintBand(
   tintProvider: Record<string, unknown> | undefined,
   index: number,
@@ -297,9 +308,17 @@ function applyTintBand(
   const targetTint = (targetDelimiter.Tint as Record<string, unknown>) ?? {};
   delimiters[index] = { ...targetDelimiter, Tint: { Type: "Constant", ...targetTint, Color: color } };
 
+  const providerType = typeof sourceTintProvider.Type === "string" ? sourceTintProvider.Type : "DensityDelimited";
+  // Inject default Density node when creating a fresh DensityDelimited provider —
+  // all real Hytale biomes use SimplexNoise2D here to spatially vary tint bands.
+  const density = providerType === "DensityDelimited" && !sourceTintProvider.Density
+    ? DEFAULT_TINT_DENSITY
+    : sourceTintProvider.Density;
+
   return {
     ...sourceTintProvider,
-    Type: typeof sourceTintProvider.Type === "string" ? sourceTintProvider.Type : "DensityDelimited",
+    Type: providerType,
+    ...(density !== undefined ? { Density: density } : {}),
     Delimiters: delimiters,
   };
 }
@@ -493,6 +512,7 @@ export function AtmosphereTab({
   // Biome browser
   const [biomeBrowserOpen, setBiomeBrowserOpen] = useState(false);
   const [biomeBrowserTab, setBiomeBrowserTab] = useState<"project" | "templates">("project");
+  const [biomeSearch, setBiomeSearch] = useState("");
   const [biomeFiles, setBiomeFiles] = useState<{ name: string; path: string }[]>([]);
   const [biomeLoadStatus, setBiomeLoadStatus] = useState<"idle" | "loading" | "error">("idle");
   const [templateBiomes, setTemplateBiomes] = useState<TemplateBiomeEntry[]>([]);
@@ -840,6 +860,18 @@ export function AtmosphereTab({
       <SectionCard label="Weather">
         <WeatherInfoRow label="Environment" value={weatherInfo.environmentName ?? "—"} />
         <WeatherInfoRow label="Weather" value={weatherInfo.weatherId ?? "—"} />
+        {weatherInfo.environmentPath && (
+          <WeatherInfoRow
+            label="Env file"
+            value={toServerRelativePath(weatherInfo.environmentPath, weatherInfo.serverRoot)}
+          />
+        )}
+        {weatherInfo.weatherPath && (
+          <WeatherInfoRow
+            label="Weather file"
+            value={toServerRelativePath(weatherInfo.weatherPath, weatherInfo.serverRoot)}
+          />
+        )}
         <div className="flex items-center justify-between text-[10px] text-tn-text-muted">
           <span>{weatherStatusLabel}</span>
           <span className="font-mono">Hour {weatherInfo.hour}:00</span>
@@ -870,14 +902,16 @@ export function AtmosphereTab({
           </button>
         </div>
         {weatherInfo.error && (
-          <p className="text-[10px] text-red-400 font-mono truncate">
+          <p className="text-[10px] text-red-400 font-mono truncate" title={weatherInfo.error}>
             {weatherInfo.error}
           </p>
         )}
         {weatherInfo.warnings.length > 0 && (
-          <p className="text-[10px] text-amber-300 leading-tight">
-            {weatherInfo.warnings[0]}
-          </p>
+          <div className="flex flex-col gap-0.5">
+            {weatherInfo.warnings.map((w, i) => (
+              <p key={i} className="text-[10px] text-amber-300 leading-tight">{w}</p>
+            ))}
+          </div>
         )}
         {/* Time-of-day animation */}
         <div className="flex items-center gap-1.5 pt-1 border-t border-tn-border/60">
@@ -1023,7 +1057,7 @@ export function AtmosphereTab({
 
             {/* Project biomes */}
             {biomeBrowserTab === "project" && (
-              <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
+              <div className="flex flex-col gap-0.5">
                 {biomeLoadStatus === "loading" && (
                   <span className="text-[10px] text-tn-text-muted px-1">Scanning...</span>
                 )}
@@ -1033,16 +1067,30 @@ export function AtmosphereTab({
                 {biomeLoadStatus === "idle" && biomeFiles.length === 0 && (
                   <span className="text-[10px] text-tn-text-muted px-1">No biome files found.</span>
                 )}
-                {biomeFiles.map((f) => (
-                  <button
-                    key={f.path}
-                    onClick={() => { void openFile(f.path); }}
-                    className="text-left px-2 py-0.5 rounded text-[10px] text-tn-text font-mono hover:bg-tn-accent/15 hover:text-tn-accent transition-colors truncate"
-                    title={f.path}
-                  >
-                    {f.name}
-                  </button>
-                ))}
+                {biomeLoadStatus === "idle" && biomeFiles.length > 4 && (
+                  <input
+                    type="text"
+                    placeholder="Filter biomes..."
+                    value={biomeSearch}
+                    onChange={(e) => setBiomeSearch(e.target.value)}
+                    className="text-[10px] bg-tn-bg border border-tn-border rounded px-2 py-0.5 text-tn-text placeholder:text-tn-text-muted/50 focus:border-tn-accent outline-none"
+                  />
+                )}
+                <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto">
+                  {biomeFiles
+                    .filter((f) => !biomeSearch || f.name.toLowerCase().includes(biomeSearch.toLowerCase()))
+                    .map((f) => (
+                      <button
+                        key={f.path}
+                        onClick={() => { void openFile(f.path); }}
+                        className="text-left px-2 py-0.5 rounded text-[10px] text-tn-text font-mono hover:bg-tn-accent/15 hover:text-tn-accent transition-colors truncate"
+                        title={f.path}
+                      >
+                        {f.name}
+                      </button>
+                    ))
+                  }
+                </div>
               </div>
             )}
 
@@ -1058,20 +1106,15 @@ export function AtmosphereTab({
                 {templateLoadStatus === "idle" && templateBiomes.length === 0 && (
                   <span className="text-[10px] text-tn-text-muted px-1">No template biomes found.</span>
                 )}
-                {templateLoadStatus === "idle" && templateBiomes.length > 0 && (
-                  <p className="text-[10px] text-tn-text-muted/70 px-1 pb-0.5">
-                    Open a Hytale template biome as a reference or starting point.
-                  </p>
-                )}
                 {templateBiomes.map((t) => (
                   <button
                     key={t.path}
                     onClick={() => { void openFile(t.path); }}
-                    className="text-left px-2 py-1 rounded text-[10px] hover:bg-tn-accent/15 hover:text-tn-accent transition-colors truncate group"
+                    className="text-left px-2 py-1 rounded text-[10px] hover:bg-tn-accent/15 hover:text-tn-accent transition-colors group"
                     title={t.path}
                   >
-                    <span className="text-tn-text font-mono">{t.biomeName}</span>
-                    <span className="text-tn-text-muted ml-1.5 group-hover:text-tn-accent/60">({t.displayName})</span>
+                    <div className="font-mono text-tn-text group-hover:text-tn-accent truncate">{t.biomeName}</div>
+                    <div className="text-tn-text-muted/70 group-hover:text-tn-accent/60 truncate">{t.displayName} · {t.templateName}</div>
                   </button>
                 ))}
               </div>

@@ -70,3 +70,13 @@
 - Voxel preview shows all materials, with add/remove options.
 - Ensure preview matches node and Hytale asset usage.
 - Compliance checker for worldgen material rules.
+
+## Hytale asset correctness (from real biome analysis)
+- Move non-component exports out of PropertyPanel.tsx into a utility file to fix Vite Fast Refresh HMR warning.
+- TintProvider Density node: allow editing the SimplexNoise2D parameters (Seed, Scale, Octaves, Persistence, Lacunarity) from the AtmosphereTab tint section rather than requiring node graph access.
+- Biome browser: show tint color swatch preview inline for each project biome (read TintProvider.Delimiters colors on load).
+- Biome browser: show which environment the biome resolves to beside each project biome entry.
+- Weather section: show all forecast hour buckets from the environment's WeatherForecasts so users can see the full day/night weather schedule.
+- Weather section: clicking the env file / weather file path rows should open the file in the editor.
+- EnvironmentProvider empty object `{}` — display a clear "uses server default" label in the node graph and AtmosphereTab instead of showing nothing.
+- Export Environment: validate that the sanitized name produces a unique Env_* file (warn if a file with that name already exists).
