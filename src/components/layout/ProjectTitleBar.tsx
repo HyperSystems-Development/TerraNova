@@ -89,7 +89,7 @@ export function ProjectTitleBar({
   const [isMaximized, setIsMaximized] = useState(false);
   const appWindow = getCurrentWindow();
 
-  const { openAssetPack, saveFile, saveFileAs } = useTauriIO();
+  const { openAssetPack, saveFile, saveFileAs, newBiome, newInstance } = useTauriIO();
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
   const reactFlow = useReactFlow();
@@ -157,6 +157,8 @@ export function ProjectTitleBar({
       <div className="flex items-center">
         <MenuDropdown label="File">
           <MenuItem label="New Project..." onClick={onNewProject} shortcut={resolveKeybinding("newProject")} />
+          <MenuItem label="New Biome..." onClick={newBiome} />
+          <MenuItem label="New Instance..." onClick={newInstance} />
           <MenuItem label="Close Project" onClick={onCloseProject} shortcut={resolveKeybinding("closeProject")} />
           <MenuSeparator />
           <MenuItem label="Open Asset Pack..." onClick={openAssetPack} shortcut={resolveKeybinding("openFile")} />

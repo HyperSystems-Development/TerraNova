@@ -824,6 +824,92 @@ export function useTauriIO() {
     [setProjectPath, setDirectoryTree, setLastError],
   );
 
+  const handleNewBiome = useCallback(async () => {
+    setLastError(null);
+    try {
+      const projectPath = useProjectStore.getState().projectPath;
+      if (!projectPath) return;
+      const biomesDir = `${projectPath}/Server/HytaleGenerator/Biomes`;
+      const filePath = await save({
+        defaultPath: `${biomesDir}/NewBiome.json`,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (!filePath) return;
+      const name = filePath.replace(/\\/g, "/").split("/").pop()?.replace(/\.json$/, "") ?? "NewBiome";
+      const biome = {
+        Name: name,
+        Terrain: {
+          Type: "DAOTerrain",
+          Density: { Type: "Constant", Value: 0.0 },
+        },
+        MaterialProvider: {
+          Type: "Constant",
+          Material: "stone",
+        },
+        Props: [],
+        EnvironmentProvider: { Type: "Constant", Environment: "default" },
+        TintProvider: { Type: "Constant", Color: "#7CFC00" },
+      };
+      await writeAssetFile(filePath, biome);
+      // Refresh sidebar tree
+      const entries = await listDirectory(projectPath);
+      setDirectoryTree(entries.map(mapDirEntry));
+      // Open the new file
+      await handleOpenFile(filePath);
+    } catch (err) {
+      setLastError(`Failed to create biome: ${err}`);
+    }
+  }, [setLastError, setDirectoryTree, handleOpenFile]);
+
+  const handleNewInstance = useCallback(async () => {
+    setLastError(null);
+    try {
+      const projectPath = useProjectStore.getState().projectPath;
+      if (!projectPath) return;
+      const instancesDir = `${projectPath}/Server/Instances`;
+      const filePath = await save({
+        defaultPath: `${instancesDir}/instance.bson`,
+        filters: [{ name: "BSON", extensions: ["bson"] }],
+      });
+      if (!filePath) return;
+      const instance = {
+        $Comment: "New instance created by TerraNova",
+        RequiredPlugins: {},
+        ChunkStorage: { Type: "Hytale" },
+        GameMode: "Creative",
+        IsPvpEnabled: false,
+        IsSpawningNPC: true,
+        GameTime: "0001-01-01T07:00:00Z",
+        UUID: {
+          $binary: "AZKxiVAMQfWIS0qBsBfjzQ==",
+          $type: "04",
+        },
+        GameplayConfig: "Default",
+        IsCompassUpdating: true,
+        IsTicking: true,
+        IsGameTimePaused: false,
+        IsObjectiveMarkersEnabled: true,
+        IsAllNPCFrozen: false,
+        IsSavingPlayers: true,
+        WorldGen: {
+          Type: "HytaleGenerator",
+          WorldStructure: "MainWorld",
+        },
+        IsSpawnMarkersEnabled: true,
+        DeleteOnRemove: false,
+        Version: 2,
+      };
+      await writeAssetFile(filePath, instance);
+      // Refresh sidebar tree
+      const entries = await listDirectory(projectPath);
+      setDirectoryTree(entries.map(mapDirEntry));
+      // Open the new file
+      await handleOpenFile(filePath);
+    } catch (err) {
+      setLastError(`Failed to create instance: ${err}`);
+    }
+  }, [setLastError, setDirectoryTree, handleOpenFile]);
+
   // Re-sync graph when leaving JSON view
   const viewMode = usePreviewStore((s) => s.viewMode);
   const prevViewModeRef = useRef(viewMode);
@@ -852,5 +938,7 @@ export function useTauriIO() {
     saveFile: handleSaveFile,
     saveFileAs: handleSaveFileAs,
     createFromTemplate: handleCreateFromTemplate,
+    newBiome: handleNewBiome,
+    newInstance: handleNewInstance,
   };
 }
