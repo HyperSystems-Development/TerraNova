@@ -177,12 +177,12 @@ function SpawnPointSection() {
           </span>
           <button
             onClick={() => setSpawnEnabled(!spawnEnabled)}
-            className={`relative w-8 h-4 rounded-full transition-colors ${
+            className={`relative shrink-0 w-8 h-4 rounded-full transition-colors ${
               spawnEnabled ? "bg-tn-accent" : "bg-tn-border"
             }`}
           >
             <span
-              className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
+              className={`absolute left-0 top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
                 spawnEnabled ? "translate-x-4" : "translate-x-0.5"
               }`}
             />
@@ -243,12 +243,12 @@ function TogglesSection() {
           <label key={key} className="flex items-center gap-2 cursor-pointer">
             <button
               onClick={() => updateToggle(key, !toggles[key])}
-              className={`relative w-8 h-4 rounded-full transition-colors shrink-0 ${
+              className={`relative shrink-0 w-8 h-4 rounded-full transition-colors ${
                 toggles[key] ? "bg-tn-accent" : "bg-tn-border"
               }`}
             >
               <span
-                className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
+                className={`absolute left-0 top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${
                   toggles[key] ? "translate-x-4" : "translate-x-0.5"
                 }`}
               />

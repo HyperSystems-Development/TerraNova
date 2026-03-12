@@ -18,6 +18,7 @@ import { autoLayout } from "@/utils/autoLayout";
 import { isBiomeFile, isSettingsFile, isInstanceFile, normalizeImport, normalizeExport, internalToHytaleBiome } from "@/utils/fileTypeDetection";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
+import { useToastStore } from "@/stores/toastStore";
 import { loadPersistedHistory } from "@/stores/editorStore";
 import type { BiomeConfig, BiomeSectionData, SectionHistoryEntry } from "@/stores/editorStore";
 import { extractMaterialConfig } from "@/utils/materialResolver";
@@ -644,6 +645,7 @@ export function useTauriIO() {
         output.Version = originalWrapper.Version ?? 2;
         await writeAssetFile(currentFile, output);
         setDirty(false);
+        useToastStore.getState().addToast("Instance saved", "success");
         return;
       }
 
