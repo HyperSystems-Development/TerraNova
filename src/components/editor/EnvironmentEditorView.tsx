@@ -186,6 +186,8 @@ export function EnvironmentEditorView() {
   const selectedGraphNodeId = useEditorStore((state) => state.selectedNodeId) ?? "environment-root";
   const setSelectedNodeId = useEditorStore((state) => state.setSelectedNodeId);
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
+  const [showIssueLog, setShowIssueLog] = useState(true);
+  const [showTips, setShowTips] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -683,14 +685,48 @@ export function EnvironmentEditorView() {
                 ))}
               </div>
 
-              <div className="mb-3 grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
-                <EditorCalloutSection
-                  title="Issue Log"
-                  items={environmentIssues}
-                  emptyState="No obvious environment file problems were detected in the current forecast model."
-                />
-                <EditorTipsSection title="Tips" tips={environmentTips} />
+              <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Panels</span>
+                <button
+                  type="button"
+                  onClick={() => setShowIssueLog((value) => !value)}
+                  className={`rounded border px-2 py-1 text-[10px] transition-colors ${
+                    showIssueLog
+                      ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
+                      : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+                  }`}
+                >
+                  {showIssueLog ? "Hide Issue Log" : "Show Issue Log"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowTips((value) => !value)}
+                  className={`rounded border px-2 py-1 text-[10px] transition-colors ${
+                    showTips
+                      ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
+                      : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+                  }`}
+                >
+                  {showTips ? "Hide Tips" : "Show Tips"}
+                </button>
               </div>
+
+              {showIssueLog || showTips ? (
+                <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.15fr_0.85fr]" : ""}`}>
+                  {showIssueLog && (
+                    <EditorCalloutSection
+                      title="Issue Log"
+                      items={environmentIssues}
+                      emptyState="No obvious environment file problems were detected in the current forecast model."
+                    />
+                  )}
+                  {showTips && <EditorTipsSection title="Tips" tips={environmentTips} />}
+                </div>
+              ) : (
+                <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
+                  Issue log and tips are hidden.
+                </div>
+              )}
 
               <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
                 <div className="mb-3 flex items-center justify-between gap-3">
