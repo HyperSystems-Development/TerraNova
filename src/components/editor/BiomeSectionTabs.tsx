@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useEditorStore } from "@/stores/editorStore";
 import { useUIStore } from "@/stores/uiStore";
 import { getSectionSummary } from "@/utils/biomeSectionUtils";
 
+const HIDDEN_SECTION_KEYS = new Set(["EnvironmentProvider", "TintProvider"]);
+
 const TAB_COLORS: Record<string, string> = {
   Terrain: "#5B8DBF",
   MaterialProvider: "#C87D3A",
+  EnvironmentProvider: "#7DB350",
+  TintProvider: "#76A26A",
 };
 
 function getTabColor(key: string): string {
@@ -17,6 +21,8 @@ function getTabColor(key: string): string {
 
 function getTabLabel(key: string): string {
   if (key === "MaterialProvider") return "Materials";
+  if (key === "EnvironmentProvider") return "Atmosphere";
+  if (key === "TintProvider") return "Tint";
   if (key.startsWith("Props[")) {
     const match = /\[(\d+)\]/.exec(key);
     return match ? `Prop ${match[1]}` : key;
@@ -44,6 +50,29 @@ function TabIcon({ sectionKey }: { sectionKey: string }) {
         <path d="M2 10l6 3 6-3" />
         <path d="M2 7l6 3 6-3" />
         <path d="M2 4l6 3 6-3L8 1 2 4z" />
+      </svg>
+    );
+  }
+
+  if (sectionKey === "EnvironmentProvider") {
+    // Sun + horizon line -> atmosphere/environment section
+    return (
+      <svg className={cls} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 11h12" />
+        <path d="M5 9a3 3 0 0 1 6 0" />
+        <path d="M8 3v2" />
+      </svg>
+    );
+  }
+
+  if (sectionKey === "TintProvider") {
+    // Color ramp markers -> tint section
+    return (
+      <svg className={cls} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 10h12" />
+        <circle cx="4" cy="6" r="1.3" fill="currentColor" stroke="none" />
+        <circle cx="8" cy="6" r="1.3" fill="currentColor" stroke="none" />
+        <circle cx="12" cy="6" r="1.3" fill="currentColor" stroke="none" />
       </svg>
     );
   }
@@ -79,7 +108,13 @@ export function BiomeSectionTabs() {
   const [dontAskAgain, setDontAskAgain] = useState(false);
   if (!biomeSections) return null;
 
-  const keys = Object.keys(biomeSections);
+  const keys = Object.keys(biomeSections).filter((key) => !HIDDEN_SECTION_KEYS.has(key));
+
+  useEffect(() => {
+    if (!activeBiomeSection || !HIDDEN_SECTION_KEYS.has(activeBiomeSection)) return;
+    if (keys.length === 0) return;
+    switchBiomeSection(keys[0]);
+  }, [activeBiomeSection, keys, switchBiomeSection]);
 
   const pendingSection = pendingDelete ? biomeSections[pendingDelete] : null;
   const pendingNodeCount = pendingSection?.nodes.length ?? 0;

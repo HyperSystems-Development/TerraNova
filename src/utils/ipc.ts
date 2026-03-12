@@ -82,8 +82,23 @@ export async function createFromTemplate(
   });
 }
 
+export interface TemplateBiomeEntry {
+  templateName: string;
+  displayName: string;
+  biomeName: string;
+  path: string;
+}
+
+export async function listTemplateBiomes(): Promise<TemplateBiomeEntry[]> {
+  return invoke<TemplateBiomeEntry[]>("list_template_biomes");
+}
+
 export async function createBlankProject(targetPath: string): Promise<void> {
   return invoke("create_blank_project", { targetPath });
+}
+
+export async function showInFolder(path: string): Promise<void> {
+  return invoke("show_in_folder", { path });
 }
 
 export async function evaluateDensity(request: EvaluateRequest): Promise<EvaluateResponse> {

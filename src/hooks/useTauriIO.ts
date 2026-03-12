@@ -14,7 +14,16 @@ import type { DirectoryEntryData } from "@/utils/ipc";
 import { jsonToGraph } from "@/utils/jsonToGraph";
 import { graphToJson, graphToJsonMulti } from "@/utils/graphToJson";
 import { autoLayout } from "@/utils/autoLayout";
-import { isBiomeFile, isSettingsFile, isInstanceFile, normalizeImport, normalizeExport, internalToHytaleBiome } from "@/utils/fileTypeDetection";
+import {
+  isBiomeFile,
+  isEnvironmentFile,
+  isInstanceFile,
+  isSettingsFile,
+  isWeatherFile,
+  normalizeImport,
+  normalizeExport,
+  internalToHytaleBiome,
+} from "@/utils/fileTypeDetection";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { useToastStore } from "@/stores/toastStore";
@@ -24,6 +33,7 @@ import { extractMaterialConfig } from "@/utils/materialResolver";
 import { useUIStore } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { usePreviewStore } from "@/stores/previewStore";
+import { resolveBiomeAtmosphere } from "@/utils/resolveBiomeAtmosphere";
 
 /**
  * Conditionally run autoLayout based on the autoLayoutOnOpen setting.
@@ -160,6 +170,88 @@ async function extractBiomeSections(
     }
   }
 
+  // EnvironmentProvider -> graph entire subtree (atmosphere)
+  const environmentProvider = wrapper.EnvironmentProvider;
+  if (
+    environmentProvider &&
+    typeof environmentProvider === "object" &&
+    "Type" in (environmentProvider as Record<string, unknown>)
+  ) {
+    const { nodes, edges } = jsonToGraph(
+      environmentProvider as Record<string, unknown>,
+      0,
+      0,
+      "env",
+      "EnvironmentProvider",
+    );
+    let environmentOutputId: string | null = null;
+    if (nodes.length > 0) {
+      const rootNode = nodes[nodes.length - 1];
+      rootNode.data = {
+        ...(rootNode.data as Record<string, unknown>),
+        _outputNode: true,
+        _biomeField: "EnvironmentProvider",
+      };
+      environmentOutputId = rootNode.id;
+    }
+    const layoutedNodes = await maybeAutoLayout(nodes, edges);
+    const environmentInitial: SectionHistoryEntry = {
+      nodes: layoutedNodes,
+      edges,
+      outputNodeId: environmentOutputId,
+      label: "Initial",
+    };
+    sections["EnvironmentProvider"] = {
+      nodes: layoutedNodes,
+      edges,
+      outputNodeId: environmentOutputId,
+      history: [environmentInitial],
+      historyIndex: 0,
+    };
+    sectionKeys.push("EnvironmentProvider");
+  }
+
+  // TintProvider -> graph entire subtree (biome tint bands)
+  const tintProvider = wrapper.TintProvider;
+  if (
+    tintProvider &&
+    typeof tintProvider === "object" &&
+    "Type" in (tintProvider as Record<string, unknown>)
+  ) {
+    const { nodes, edges } = jsonToGraph(
+      tintProvider as Record<string, unknown>,
+      0,
+      0,
+      "tint",
+      "TintProvider",
+    );
+    let tintOutputId: string | null = null;
+    if (nodes.length > 0) {
+      const rootNode = nodes[nodes.length - 1];
+      rootNode.data = {
+        ...(rootNode.data as Record<string, unknown>),
+        _outputNode: true,
+        _biomeField: "TintProvider",
+      };
+      tintOutputId = rootNode.id;
+    }
+    const layoutedNodes = await maybeAutoLayout(nodes, edges);
+    const tintInitial: SectionHistoryEntry = {
+      nodes: layoutedNodes,
+      edges,
+      outputNodeId: tintOutputId,
+      label: "Initial",
+    };
+    sections["TintProvider"] = {
+      nodes: layoutedNodes,
+      edges,
+      outputNodeId: tintOutputId,
+      history: [tintInitial],
+      historyIndex: 0,
+    };
+    sectionKeys.push("TintProvider");
+  }
+
   // Extract flat config
   const config: BiomeConfig = {
     Name: (wrapper.Name as string) ?? "",
@@ -245,6 +337,17 @@ export function useTauriIO() {
         if (cached) {
           // Override bookmarks with cached biome section (if any)
           useUIStore.getState().reloadBookmarks(filePath, projectPath, cached.activeBiomeSection ?? "");
+          if (cached.editingContext === "Biome" && cached.biomeConfig) {
+            void resolveBiomeAtmosphere({
+              biomeConfig: cached.biomeConfig,
+              biomeFilePath: filePath,
+              projectPath,
+            }).then((resolved) => {
+              usePreviewStore.getState().setAtmosphereSettings(resolved.settings);
+            }).catch(() => {
+              // Keep last preview atmosphere on resolver failure.
+            });
+          }
           setDirty(cached.isDirty);
           return;
         }
@@ -257,6 +360,10 @@ export function useTauriIO() {
           useEditorStore.getState().setEditingContext("Curve");
         } else if (pathLower.includes("/materials/") || pathLower.includes("\\materials\\")) {
           useEditorStore.getState().setEditingContext("MaterialProvider");
+        } else if (pathLower.includes("/server/environments/") || pathLower.includes("\\server\\environments\\")) {
+          useEditorStore.getState().setEditingContext("Environment");
+        } else if (pathLower.includes("/server/weathers/") || pathLower.includes("\\server\\weathers\\")) {
+          useEditorStore.getState().setEditingContext("Weather");
         } else if (pathLower.includes("/patterns/") || pathLower.includes("\\patterns\\")) {
           useEditorStore.getState().setEditingContext("Pattern");
         } else if (pathLower.includes("/positions/") || pathLower.includes("\\positions\\")) {
@@ -279,6 +386,50 @@ export function useTauriIO() {
         const content = (rawContent && typeof rawContent === "object")
           ? normalizeImport(rawContent as Record<string, unknown>)
           : rawContent;
+
+        if (content && typeof content === "object" && isEnvironmentFile(content as Record<string, unknown>, filePath)) {
+          useEditorStore.setState({
+            nodes: [],
+            edges: [],
+            selectedNodeId: null,
+            outputNodeId: null,
+            biomeSections: null,
+            activeBiomeSection: null,
+            biomeConfig: null,
+            biomeRanges: [],
+            noiseRangeConfig: null,
+            settingsConfig: null,
+            materialConfig: null,
+            editingContext: "Environment",
+            rawJsonContent: content as Record<string, unknown>,
+            originalWrapper: content as Record<string, unknown>,
+            history: [{ nodes: [], edges: [], biomeRanges: [], noiseRangeConfig: null, biomeConfig: null, settingsConfig: null, label: "Initial" }],
+            historyIndex: 0,
+          });
+          return;
+        }
+
+        if (content && typeof content === "object" && isWeatherFile(content as Record<string, unknown>, filePath)) {
+          useEditorStore.setState({
+            nodes: [],
+            edges: [],
+            selectedNodeId: null,
+            outputNodeId: null,
+            biomeSections: null,
+            activeBiomeSection: null,
+            biomeConfig: null,
+            biomeRanges: [],
+            noiseRangeConfig: null,
+            settingsConfig: null,
+            materialConfig: null,
+            editingContext: "Weather",
+            rawJsonContent: content as Record<string, unknown>,
+            originalWrapper: content as Record<string, unknown>,
+            history: [{ nodes: [], edges: [], biomeRanges: [], noiseRangeConfig: null, biomeConfig: null, settingsConfig: null, label: "Initial" }],
+            historyIndex: 0,
+          });
+          return;
+        }
 
         // Convert JSON to graph nodes
         if (content && typeof content === "object" && "Type" in (content as Record<string, unknown>)) {
@@ -488,6 +639,16 @@ export function useTauriIO() {
             }
             useEditorStore.setState({ biomeSections: updatedSections });
           }
+
+          void resolveBiomeAtmosphere({
+            biomeConfig: config,
+            biomeFilePath: filePath,
+            projectPath,
+          }).then((resolved) => {
+            usePreviewStore.getState().setAtmosphereSettings(resolved.settings);
+          }).catch(() => {
+            // Keep last preview atmosphere on resolver failure.
+          });
         } else if (content && typeof content === "object") {
           // Non-typed wrapper file (e.g., Biome with nested typed assets)
           // Try to find a typed subtree to edit
@@ -591,7 +752,13 @@ export function useTauriIO() {
       }
 
       // Settings files: flat JSON output (no graph, no Hytale translation)
-      const { settingsConfig, editingContext } = useEditorStore.getState();
+      const { settingsConfig, editingContext, rawJsonContent } = useEditorStore.getState();
+      if ((editingContext === "Weather" || editingContext === "Environment") && rawJsonContent) {
+        await writeAssetFile(currentFile, rawJsonContent);
+        setDirty(false);
+        return;
+      }
+
       if (editingContext === "Settings" && settingsConfig && originalWrapper) {
         const output: Record<string, unknown> = { ...originalWrapper };
         output.CustomConcurrency = settingsConfig.CustomConcurrency;
@@ -731,9 +898,27 @@ export function useTauriIO() {
         }
         output.Props = props;
 
-        // Write flat fields
-        output.EnvironmentProvider = biomeConfig.EnvironmentProvider;
-        output.TintProvider = biomeConfig.TintProvider;
+        // Rebuild EnvironmentProvider from section when present
+        if (updatedSections["EnvironmentProvider"]) {
+          const envJson = graphToJson(
+            updatedSections["EnvironmentProvider"].nodes,
+            updatedSections["EnvironmentProvider"].edges,
+          );
+          output.EnvironmentProvider = envJson ?? biomeConfig.EnvironmentProvider;
+        } else {
+          output.EnvironmentProvider = biomeConfig.EnvironmentProvider;
+        }
+
+        // Rebuild TintProvider from section when present
+        if (updatedSections["TintProvider"]) {
+          const tintJson = graphToJson(
+            updatedSections["TintProvider"].nodes,
+            updatedSections["TintProvider"].edges,
+          );
+          output.TintProvider = tintJson ?? biomeConfig.TintProvider;
+        } else {
+          output.TintProvider = biomeConfig.TintProvider;
+        }
 
         const hytaleOutput = internalToHytaleBiome(output);
         await writeAssetFile(currentFile, hytaleOutput);

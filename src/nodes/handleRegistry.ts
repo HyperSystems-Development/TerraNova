@@ -17,7 +17,7 @@ import {
   directionalityOutput,
 } from "./shared/handles";
 import { getSchemaHandles } from "@/schema/schemaLoader";
-import type { AssetCategory } from "@/schema/types";
+import { AssetCategory } from "@/schema/types";
 import connectionsData from "@/data/connections.json";
 
 const connectionMatrix = connectionsData.connectionMatrix as Record<string, Record<string, number>>;

@@ -1020,10 +1020,17 @@ function transformNodeToInternal(
     }
   }
 
-  // Environment: Constant → Default (reverse of Default → Constant export)
+  // Environment: Constant → Default only for the literal "default" sentinel.
+  // Real Hytale biomes mostly use Constant with named env assets (Env_*), and
+  // those must stay Constant to round-trip without losing references.
   if (hytaleType === "Constant" && category === "environment") {
-    output.Type = "Default";
-    delete processedFields.Environment;
+    const envName = processedFields.Environment;
+    if (typeof envName !== "string" || envName.toLowerCase() === "default") {
+      output.Type = "Default";
+      delete processedFields.Environment;
+    } else {
+      output.Type = "Constant";
+    }
   }
 
   // PositionsCellNoise: flatten ReturnType/DistanceFunction enum objects to strings

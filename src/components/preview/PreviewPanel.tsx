@@ -23,6 +23,32 @@ function Preview3DFallback() {
 }
 
 export function PreviewPanel() {
+  const legendVisible = usePreviewStore((s) => s.showMaterialLegend);
+  const setLegendVisible = usePreviewStore((s) => s.setShowMaterialLegend);
+  const setShowWireframe = usePreviewStore((s) => s.setShowVoxelWireframe);
+
+  // Keyboard shortcuts for preview toggles
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Toggle material legend
+      if (e.key === "l" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setLegendVisible(!usePreviewStore.getState().showMaterialLegend);
+      }
+      // Toggle wireframe
+      if (e.key === "w" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setShowWireframe(!usePreviewStore.getState().showVoxelWireframe);
+      }
+      // Screenshot
+      if (e.key === "s" && e.altKey) {
+        e.preventDefault();
+        // TODO: trigger screenshot logic
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [setLegendVisible, setShowWireframe]);
   usePreviewEvaluation();
   useVoxelEvaluation();
   useWorldPreview();
@@ -95,6 +121,8 @@ export function PreviewPanel() {
               </svg>
             </button>
             <PreviewControls canvasRef={canvasRef} />
+            {/* MATERIALS section in Debug sidebar ONLY */}
+              {/* ...existing code... */}
             {mode !== "voxel" && mode !== "world" && <StatisticsPanel />}
           </div>
         )}
@@ -103,6 +131,10 @@ export function PreviewPanel() {
       {/* Main preview area */}
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="flex-1 min-h-0 relative">
+          {/* Material legend — draggable, debug toggle */}
+          {legendVisible && hasData && (
+            null
+          )}
           {anyLoading && (
             <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5 px-2 py-1 bg-tn-panel/90 rounded text-xs text-tn-text-muted">
               <span className="inline-block w-3 h-3 border-2 border-tn-accent border-t-transparent rounded-full animate-spin" />

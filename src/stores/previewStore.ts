@@ -8,6 +8,30 @@ export type PreviewMode = "2d" | "3d" | "voxel" | "world";
 export type ViewMode = "graph" | "preview" | "split" | "compare" | "json";
 export type SplitDirection = "horizontal" | "vertical";
 
+export interface AtmosphereSettings {
+  skyHorizon: string;
+  skyZenith: string;
+  sunsetColor: string;       // SkySunsetColors daytime
+  sunGlowColor: string;      // SunGlowColors daytime
+  cloudDensity: number;
+  fogColor: string;
+  fogNear: number;           // FogDistance[0] in world units
+  fogFar: number;            // FogDistance[1] in world units
+  ambientColor: string;
+  sunColor: string;
+  waterTint: string;         // WaterTint from env file
+  sunAngle: number;          // Sun elevation angle in degrees (0=horizon, 90=noon)
+}
+
+export interface TintColors {
+  /** Band 1 — low density (cool/shaded) */
+  color1: string;
+  /** Band 2 — mid density */
+  color2: string;
+  /** Band 3 — high density (sunny/warm) */
+  color3: string;
+}
+
 export interface CanvasTransform {
   scale: number;
   offsetX: number;
@@ -50,6 +74,8 @@ interface PreviewState {
   waterPlaneLevel: number;
   showFog3D: boolean;
   showSky3D: boolean;
+  fogDistanceScale: number;
+  fogMinSpan: number;
 
   crossSectionLine: CrossSectionLine | null;
   showCrossSection: boolean;
@@ -145,6 +171,8 @@ interface PreviewState {
   setWaterPlaneLevel: (level: number) => void;
   setShowFog3D: (show: boolean) => void;
   setShowSky3D: (show: boolean) => void;
+  setFogDistanceScale: (scale: number) => void;
+  setFogMinSpan: (span: number) => void;
 
   setCrossSectionLine: (line: CrossSectionLine | null) => void;
   setShowCrossSection: (show: boolean) => void;
@@ -205,6 +233,12 @@ interface PreviewState {
   setSplitDirection: (dir: SplitDirection) => void;
 
   setFidelityScore: (score: number) => void;
+
+  atmosphereSettings: AtmosphereSettings;
+  setAtmosphereSettings: (settings: AtmosphereSettings) => void;
+
+  tintColors: TintColors;
+  setTintColors: (colors: TintColors) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -225,6 +259,8 @@ const PERSIST_MAP: Record<string, string> = {
   waterPlaneLevel: "tn-waterPlaneLevel",
   showFog3D: "tn-showFog3D",
   showSky3D: "tn-showSky3D",
+  fogDistanceScale: "tn-fogDistanceScale",
+  fogMinSpan: "tn-fogMinSpan",
   showCrossSection: "tn-showCrossSection",
   voxelYMin: "tn-voxelYMin",
   voxelYMax: "tn-voxelYMax",
@@ -257,6 +293,8 @@ const PERSIST_MAP: Record<string, string> = {
   compareModeB: "tn-compareModeB",
   linkCameras3D: "tn-linkCameras3D",
   splitDirection: "tn-splitDirection",
+  atmosphereSettings: "tn-atmosphereSettings",
+  tintColors: "tn-tintColors",
 };
 
 function getStored(key: string): string | null {
@@ -291,6 +329,8 @@ function hydratePersistedState() {
     waterPlaneLevel: getStoredFloat("tn-waterPlaneLevel", 0.5),
     showFog3D: getStoredBool("tn-showFog3D", false),
     showSky3D: getStoredBool("tn-showSky3D", true),
+    fogDistanceScale: getStoredFloat("tn-fogDistanceScale", 0.12),
+    fogMinSpan: getStoredFloat("tn-fogMinSpan", 24),
     showCrossSection: getStoredBool("tn-showCrossSection", false),
     voxelYMin: getStoredFloat("tn-voxelYMin", 0),
     voxelYMax: getStoredFloat("tn-voxelYMax", 128),
@@ -323,10 +363,45 @@ function hydratePersistedState() {
     compareModeB: (getStored("tn-compareModeB") as PreviewMode | null) ?? "2d",
     linkCameras3D: getStoredBool("tn-linkCameras3D", true),
     splitDirection: (getStored("tn-splitDirection") as SplitDirection | null) ?? "horizontal",
+    atmosphereSettings: (() => {
+      try {
+        const raw = getStored("tn-atmosphereSettings");
+        if (raw) return { ...DEFAULT_ATMOSPHERE_SETTINGS, ...JSON.parse(raw) } as AtmosphereSettings;
+      } catch { /* ignore */ }
+      return DEFAULT_ATMOSPHERE_SETTINGS;
+    })(),
+    tintColors: (() => {
+      try {
+        const raw = getStored("tn-tintColors");
+        if (raw) return { ...DEFAULT_TINT_COLORS, ...JSON.parse(raw) } as TintColors;
+      } catch { /* ignore */ }
+      return DEFAULT_TINT_COLORS;
+    })(),
   };
 }
 
 const DEFAULT_CANVAS_TRANSFORM: CanvasTransform = { scale: 1, offsetX: 0, offsetY: 0 };
+
+const DEFAULT_ATMOSPHERE_SETTINGS: AtmosphereSettings = {
+  skyHorizon: "#8fd8f8",
+  skyZenith: "#077ddd",
+  sunsetColor: "#ffb951",
+  sunGlowColor: "#ffffff",
+  cloudDensity: 0.3,
+  fogColor: "#8fd8f8",
+  fogNear: -96,
+  fogFar: 1024,
+  ambientColor: "#6080a0",
+  sunColor: "#ffffff",
+  waterTint: "#1983d9",
+  sunAngle: 60,              // Default ~mid-morning
+};
+
+const DEFAULT_TINT_COLORS: TintColors = {
+  color1: "#5b9e28",
+  color2: "#6ca229",
+  color3: "#7ea629",
+};
 
 export const usePreviewStore = create<PreviewState>((originalSet) => {
   // Wrap set() to auto-persist any key in PERSIST_MAP
@@ -339,7 +414,8 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     for (const [key, lsKey] of Object.entries(PERSIST_MAP)) {
       if (key in updates) {
         const val = (updates as Record<string, unknown>)[key];
-        localStorage.setItem(lsKey, String(val ?? ""));
+        const serialized = val !== null && typeof val === "object" ? JSON.stringify(val) : String(val ?? "");
+        localStorage.setItem(lsKey, serialized);
       }
     }
   };
@@ -437,6 +513,8 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setWaterPlaneLevel: (waterPlaneLevel) => persistedSet({ waterPlaneLevel }),
     setShowFog3D: (showFog3D) => persistedSet({ showFog3D }),
     setShowSky3D: (showSky3D) => persistedSet({ showSky3D }),
+    setFogDistanceScale: (fogDistanceScale) => persistedSet({ fogDistanceScale }),
+    setFogMinSpan: (fogMinSpan) => persistedSet({ fogMinSpan }),
     setShowCrossSection: (showCrossSection) => persistedSet({ showCrossSection }),
     setVoxelYMin: (voxelYMin) => persistedSet({ voxelYMin }),
     setVoxelYMax: (voxelYMax) => persistedSet({ voxelYMax }),
@@ -470,5 +548,8 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setLinkCameras3D: (linkCameras3D) => persistedSet({ linkCameras3D }),
 
     setSplitDirection: (splitDirection) => persistedSet({ splitDirection }),
+
+    setAtmosphereSettings: (atmosphereSettings) => persistedSet({ atmosphereSettings }),
+    setTintColors: (tintColors) => persistedSet({ tintColors }),
   };
 });

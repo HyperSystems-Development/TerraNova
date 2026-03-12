@@ -23,6 +23,38 @@ pub fn create_from_template(
     Ok(())
 }
 
+/// Resolve the root `templates/` directory (works in dev and production builds).
+pub fn find_templates_root(
+    resource_dir: Option<std::path::PathBuf>,
+) -> Result<std::path::PathBuf, Box<dyn std::error::Error>> {
+    // 1. Tauri resource directory (production)
+    if let Some(res_dir) = resource_dir {
+        let p = res_dir.join("templates");
+        if p.is_dir() {
+            return Ok(p);
+        }
+    }
+
+    // 2. Development path: <workspace>/templates/
+    let dev_path = std::env::current_dir()?
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join("templates");
+    if dev_path.is_dir() {
+        return Ok(dev_path);
+    }
+
+    // 3. Relative to executable
+    if let Ok(exe_path) = std::env::current_exe() {
+        let p = exe_path.parent().unwrap_or(Path::new(".")).join("templates");
+        if p.is_dir() {
+            return Ok(p);
+        }
+    }
+
+    Err("templates/ directory not found".into())
+}
+
 fn get_template_dir(
     template_name: &str,
     resource_dir: Option<PathBuf>,

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useProjectStore, type DirectoryEntry } from "@/stores/projectStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
+import { showInFolder } from "@/utils/ipc";
 
 /* ── Inline SVG Icons ──────────────────────────────────────────────── */
 
@@ -45,18 +46,74 @@ function FileIcon({ name }: { name: string }) {
 /** Map file names to semantic colors */
 function getFileColor(name: string): string {
   const lower = name.toLowerCase();
-  if (lower.includes("biome")) return "#4E9E8F";           // jade — biome files
+  if (lower.includes("biome")) return "#4E9E8F";                          // jade
   if (lower.includes("density") || lower.includes("terrain")) return "#5B8DBF"; // slate blue
-  if (lower.includes("material")) return "#C87D3A";        // copper
+  if (lower.includes("material")) return "#C87D3A";                        // copper
+  if (lower.includes("worldstructure") || lower.includes("world_structure")) return "#9B7FBF"; // violet
+  if (lower.includes("structure")) return "#9B7FBF";                       // violet
+  if (lower.includes("assignment")) return "#7BAA7B";                      // muted green
+  if (lower.includes("environment") || lower.includes("environ")) return "#7DB08C"; // sage
+  if (lower.includes("prefab")) return "#A09B74";                          // khaki
+  if (lower.includes("instance")) return "#A0825A";                        // tan
   if (lower.includes("settings") || lower.includes("config")) return "#B5A88C"; // warm stone
-  if (lower.includes("world") || lower.includes("structure")) return "#7B8FBF"; // brighter basalt
-  if (lower === "manifest.json") return "#B5A88C";          // warm stone
-  return "#D4C9B5";                                         // default warm
+  if (lower.includes("world")) return "#7B8FBF";                           // basalt
+  if (lower === "manifest.json") return "#B5A88C";                         // warm stone
+  return "#D4C9B5";                                                        // default warm
+}
+
+/* ── Context Menu ──────────────────────────────────────────────────── */
+
+interface ContextMenuState {
+  x: number;
+  y: number;
+  path: string;
+}
+
+function ContextMenu({ menu, onClose }: { menu: ContextMenuState; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [onClose]);
+
+  function handleReveal() {
+    showInFolder(menu.path).catch(() => {});
+    onClose();
+  }
+
+  return (
+    <div
+      ref={ref}
+      className="fixed z-50 min-w-[160px] rounded border border-tn-border bg-tn-surface shadow-lg py-1 text-[13px] text-tn-text"
+      style={{ left: menu.x, top: menu.y }}
+    >
+      <button
+        className="w-full text-left px-3 py-1.5 hover:bg-white/[0.06] transition-colors"
+        onClick={handleReveal}
+      >
+        Reveal in Explorer
+      </button>
+    </div>
+  );
 }
 
 /* ── Tree Node ─────────────────────────────────────────────────────── */
 
-function TreeNode({ entry, depth }: { entry: DirectoryEntry; depth: number }) {
+function TreeNode({
+  entry,
+  depth,
+  onContextMenu,
+}: {
+  entry: DirectoryEntry;
+  depth: number;
+  onContextMenu: (e: React.MouseEvent, path: string) => void;
+}) {
   const [expanded, setExpanded] = useState(depth < 2);
   const { openFile } = useTauriIO();
   const currentFile = useProjectStore((s) => s.currentFile);
@@ -71,6 +128,7 @@ function TreeNode({ entry, depth }: { entry: DirectoryEntry; depth: number }) {
           className="group flex items-center gap-1.5 w-full text-left py-[5px] text-[13px] text-tn-text hover:bg-white/[0.04] transition-colors duration-100"
           style={{ paddingLeft: `${indent}px`, paddingRight: 8 }}
           onClick={() => setExpanded(!expanded)}
+          onContextMenu={(e) => onContextMenu(e, entry.path)}
         >
           {/* Indent guides */}
           {depth > 0 && <IndentGuides depth={depth} />}
@@ -86,7 +144,7 @@ function TreeNode({ entry, depth }: { entry: DirectoryEntry; depth: number }) {
         {expanded && (
           <div className="relative">
             {entry.children?.map((child) => (
-              <TreeNode key={child.path} entry={child} depth={depth + 1} />
+              <TreeNode key={child.path} entry={child} depth={depth + 1} onContextMenu={onContextMenu} />
             ))}
           </div>
         )}
@@ -103,6 +161,7 @@ function TreeNode({ entry, depth }: { entry: DirectoryEntry; depth: number }) {
       }`}
       style={{ paddingLeft: `${indent}px`, paddingRight: 8 }}
       onClick={() => openFile(entry.path)}
+      onContextMenu={(e) => onContextMenu(e, entry.path)}
     >
       {depth > 0 && <IndentGuides depth={depth} />}
       {/* Spacer to align with folders (chevron width) */}
@@ -132,6 +191,12 @@ function IndentGuides({ depth }: { depth: number }) {
 
 export function AssetTree() {
   const directoryTree = useProjectStore((s) => s.directoryTree);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, path: string) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, path });
+  }, []);
 
   if (directoryTree.length === 0) {
     return (
@@ -148,8 +213,11 @@ export function AssetTree() {
   return (
     <div className="flex-1 overflow-y-auto py-1 select-none">
       {directoryTree.map((entry) => (
-        <TreeNode key={entry.path} entry={entry} depth={0} />
+        <TreeNode key={entry.path} entry={entry} depth={0} onContextMenu={handleContextMenu} />
       ))}
+      {contextMenu && (
+        <ContextMenu menu={contextMenu} onClose={() => setContextMenu(null)} />
+      )}
     </div>
   );
 }

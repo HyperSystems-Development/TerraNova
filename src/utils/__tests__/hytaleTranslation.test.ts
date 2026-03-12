@@ -1185,6 +1185,59 @@ describe("EnvironmentProvider and TintProvider transforms", () => {
     expect(env.Environment).toBeUndefined();
   });
 
+  it("imports Constant environment with named Env_* reference unchanged", () => {
+    const { wrapper } = hytaleToInternalBiome({
+      $NodeId: "Biome-123",
+      Name: "test_biome",
+      EnvironmentProvider: {
+        $NodeId: "Constant.EnvironmentProvider-456",
+        Type: "Constant",
+        Environment: "Env_Zone1_Plains",
+        Skip: false,
+      },
+    });
+    const env = wrapper.EnvironmentProvider as Record<string, unknown>;
+    expect(env.Type).toBe("Constant");
+    expect(env.Environment).toBe("Env_Zone1_Plains");
+  });
+
+  it("imports DensityDelimited environment preserving delimiter environment refs", () => {
+    const { wrapper } = hytaleToInternalBiome({
+      $NodeId: "Biome-123",
+      Name: "test_biome",
+      EnvironmentProvider: {
+        $NodeId: "DensityDelimited.EnvironmentProvider-456",
+        Type: "DensityDelimited",
+        Density: {
+          $NodeId: "ConstantDensityNode-1",
+          Type: "Constant",
+          Value: 0.5,
+          Skip: false,
+        },
+        Delimiters: [
+          {
+            $NodeId: "Delimiter.DensityDelimited.EnvironmentProvider-1",
+            Range: { Min: -1, Max: 0 },
+            Environment: {
+              $NodeId: "Constant.EnvironmentProvider-1",
+              Type: "Constant",
+              Environment: "Env_Zone1_Caves_Plains",
+              Skip: false,
+            },
+          },
+        ],
+        Skip: false,
+      },
+    });
+    const env = wrapper.EnvironmentProvider as Record<string, unknown>;
+    expect(env.Type).toBe("DensityDelimited");
+    const delimiters = env.Delimiters as Record<string, unknown>[];
+    const first = delimiters[0];
+    const child = first.Environment as Record<string, unknown>;
+    expect(child.Type).toBe("Constant");
+    expect(child.Environment).toBe("Env_Zone1_Caves_Plains");
+  });
+
   it("passes Constant tint through unchanged on import", () => {
     const { wrapper } = hytaleToInternalBiome({
       $NodeId: "Biome-123",

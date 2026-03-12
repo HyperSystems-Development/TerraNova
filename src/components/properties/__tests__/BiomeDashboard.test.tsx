@@ -59,7 +59,7 @@ function setupBiomeState() {
 describe("BiomeDashboard", () => {
   it("renders null when no biomeConfig", () => {
     const { container } = render(
-      <BiomeDashboard onBiomeConfigChange={noop} onBiomeTintChange={noop} onBlur={noop} />,
+      <BiomeDashboard onBiomeConfigChange={noop} onBlur={noop} />,
     );
     expect(container.firstChild).toBeNull();
   });
@@ -67,26 +67,17 @@ describe("BiomeDashboard", () => {
   it("renders biome name input", () => {
     setupBiomeState();
     render(
-      <BiomeDashboard onBiomeConfigChange={noop} onBiomeTintChange={noop} onBlur={noop} />,
+      <BiomeDashboard onBiomeConfigChange={noop} onBlur={noop} />,
     );
 
     const input = screen.getByLabelText("Biome name") as HTMLInputElement;
     expect(input.value).toBe("forest_hills");
   });
 
-  it("renders tint gradient bar", () => {
-    setupBiomeState();
-    render(
-      <BiomeDashboard onBiomeConfigChange={noop} onBiomeTintChange={noop} onBlur={noop} />,
-    );
-
-    expect(screen.getByText("Tint Gradient")).toBeTruthy();
-  });
-
   it("renders environment badge", () => {
     setupBiomeState();
     render(
-      <BiomeDashboard onBiomeConfigChange={noop} onBiomeTintChange={noop} onBlur={noop} />,
+      <BiomeDashboard onBiomeConfigChange={noop} onBlur={noop} />,
     );
 
     expect(screen.getByText("Default")).toBeTruthy();
@@ -95,7 +86,7 @@ describe("BiomeDashboard", () => {
   it("renders section summary cards with node counts", () => {
     setupBiomeState();
     render(
-      <BiomeDashboard onBiomeConfigChange={noop} onBiomeTintChange={noop} onBlur={noop} />,
+      <BiomeDashboard onBiomeConfigChange={noop} onBlur={noop} />,
     );
 
     expect(screen.getByText("Terrain")).toBeTruthy();
@@ -105,7 +96,7 @@ describe("BiomeDashboard", () => {
   it("renders prop summary table", () => {
     setupBiomeState();
     render(
-      <BiomeDashboard onBiomeConfigChange={noop} onBiomeTintChange={noop} onBlur={noop} />,
+      <BiomeDashboard onBiomeConfigChange={noop} onBlur={noop} />,
     );
 
     expect(screen.getByText("Props Overview")).toBeTruthy();
@@ -122,7 +113,7 @@ describe("BiomeDashboard", () => {
     render(
       <BiomeDashboard
         onBiomeConfigChange={(f, v) => { lastField = f; lastValue = v; }}
-        onBiomeTintChange={noop}
+       
         onBlur={noop}
       />,
     );
@@ -136,7 +127,7 @@ describe("BiomeDashboard", () => {
   it("clicking section card calls switchBiomeSection", () => {
     setupBiomeState();
     render(
-      <BiomeDashboard onBiomeConfigChange={noop} onBiomeTintChange={noop} onBlur={noop} />,
+      <BiomeDashboard onBiomeConfigChange={noop} onBlur={noop} />,
     );
 
     fireEvent.click(screen.getByText("Materials"));

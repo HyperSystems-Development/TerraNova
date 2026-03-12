@@ -6,11 +6,14 @@ import { EditorCanvas } from "./EditorCanvas";
 import { BiomeRangeEditor } from "./BiomeRangeEditor";
 import { BiomeSectionTabs } from "./BiomeSectionTabs";
 import { SettingsEditorView } from "./SettingsEditorView";
+import { WeatherEditorView } from "./WeatherEditorView";
+import { EnvironmentEditorView } from "./EnvironmentEditorView";
 import { JsonEditorView } from "./JsonEditorView";
 import { InstanceEditorView } from "./InstanceEditorView";
 import { PreviewPanel } from "../preview/PreviewPanel";
 import { ComparisonView } from "../preview/ComparisonView";
 import { DiagnosticsStrip } from "../preview/DiagnosticsStrip";
+import { PipelineIndicator } from "./PipelineIndicator";
 
 const SplitView = memo(function SplitView() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,6 +88,7 @@ const DensityView = memo(function DensityView() {
   return (
     <div className="flex flex-col h-full">
       <DiagnosticsStrip />
+      <PipelineIndicator />
       <div className="flex-1 min-h-0 relative">
         <LayoutPresetPicker />
         {viewMode === "graph" && <EditorCanvas />}
@@ -106,6 +110,14 @@ export function CenterPanel() {
 
   if (editingContext === "Settings") {
     return <SettingsEditorView />;
+  }
+
+  if (editingContext === "Weather") {
+    return <WeatherEditorView />;
+  }
+
+  if (editingContext === "Environment") {
+    return <EnvironmentEditorView />;
   }
 
   if (editingContext === "Instance") {
@@ -170,6 +182,7 @@ const NoiseRangeView = memo(function NoiseRangeView() {
   return (
     <div className="flex flex-col h-full">
       <DiagnosticsStrip />
+      <PipelineIndicator />
 
       {viewMode === "preview" ? (
         <div className="flex-1 min-h-0 relative">
@@ -231,6 +244,7 @@ const BiomeView = memo(function BiomeView() {
         <BiomeSectionTabs />
       </div>
       <DiagnosticsStrip />
+      <PipelineIndicator />
       <div className="flex-1 min-h-0 relative">
         <LayoutPresetPicker />
         {viewMode === "graph" && <EditorCanvas />}

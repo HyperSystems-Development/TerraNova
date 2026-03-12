@@ -38,6 +38,35 @@ function setupBiomeSections() {
   });
 }
 
+function setupBiomeSectionsWithDisabledGraphTabs() {
+  useEditorStore.setState({
+    biomeSections: {
+      Terrain: {
+        nodes: [
+          { id: "t1", position: { x: 0, y: 0 }, data: { type: "Clamp", fields: {} } },
+        ],
+        edges: [],
+        history: [], historyIndex: -1,
+      },
+      EnvironmentProvider: {
+        nodes: [
+          { id: "e1", position: { x: 0, y: 0 }, data: { type: "Constant", fields: { Environment: "Env_Zone1" } } },
+        ],
+        edges: [],
+        history: [], historyIndex: -1,
+      },
+      TintProvider: {
+        nodes: [
+          { id: "tp1", position: { x: 0, y: 0 }, data: { type: "Constant", fields: { Color: "#5b9e28" } } },
+        ],
+        edges: [],
+        history: [], historyIndex: -1,
+      },
+    },
+    activeBiomeSection: "EnvironmentProvider",
+  });
+}
+
 describe("BiomeSectionTabs", () => {
   it("renders null when no biomeSections", () => {
     const { container } = render(<BiomeSectionTabs />);
@@ -85,5 +114,14 @@ describe("BiomeSectionTabs", () => {
 
     const terrainBtn = screen.getByText("Terrain").closest("button")!;
     expect(terrainBtn.title).toContain("Clamp");
+  });
+
+  it("hides environment and tint graph tabs and falls back to a visible section", () => {
+    setupBiomeSectionsWithDisabledGraphTabs();
+    render(<BiomeSectionTabs />);
+
+    expect(screen.queryByText("Atmosphere")).toBeNull();
+    expect(screen.queryByText("Tint")).toBeNull();
+    expect(useEditorStore.getState().activeBiomeSection).toBe("Terrain");
   });
 });

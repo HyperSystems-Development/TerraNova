@@ -5,6 +5,20 @@ import { useUpdateStore } from "@/stores/updateStore";
 import { checkForUpdates, downloadAndInstall, restartToUpdate } from "@/utils/updater";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import type { FlowDirection } from "@/constants";
+import { WhatsNewDialog } from "./WhatsNewDialog";
+import { ChangelogDialog } from "./ChangelogDialog";
+
+const WHATS_NEW_SUPPRESS_KEY = "terranova:whats-new-suppress";
+
+function getWhatsNewSuppressed(): boolean {
+  try { return localStorage.getItem(WHATS_NEW_SUPPRESS_KEY) === "true"; } catch { return false; }
+}
+function setWhatsNewSuppressed(value: boolean) {
+  try {
+    if (value) localStorage.setItem(WHATS_NEW_SUPPRESS_KEY, "true");
+    else localStorage.removeItem(WHATS_NEW_SUPPRESS_KEY);
+  } catch { /* ignore */ }
+}
 
 const FLOW_DIRECTIONS: { id: FlowDirection; label: string; description: string }[] = [
   { id: "LR", label: "Left to Right", description: "Inputs on left, output on right (TerraNova default)" },
@@ -31,9 +45,17 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const updateProgress = useUpdateStore((s) => s.progress);
 
   const [appVersion, setAppVersion] = useState("");
+  const [whatsNewSuppressed, setWhatsNewSuppressedState] = useState(getWhatsNewSuppressed);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
   useEffect(() => {
     getVersion().then(setAppVersion);
   }, []);
+
+  function handleToggleWhatsNew(value: boolean) {
+    setWhatsNewSuppressedState(value);
+    setWhatsNewSuppressed(value);
+  }
 
   async function handleBrowseExportPath() {
     const selected = await openDialog({ directory: true, defaultPath: exportPath ?? undefined });
@@ -43,6 +65,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   if (!open) return null;
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
         className="bg-tn-panel border border-tn-border rounded-lg shadow-xl w-[440px] p-5 flex flex-col gap-4"
@@ -129,6 +152,40 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         </div>
 
         <div className="flex flex-col gap-1">
+          <label className="text-xs text-tn-text-muted">Startup</label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleToggleWhatsNew(!whatsNewSuppressed)}
+              className={`flex-1 text-left px-3 py-2 rounded border text-sm ${
+                !whatsNewSuppressed
+                  ? "border-tn-accent bg-tn-accent/10"
+                  : "border-tn-border bg-tn-bg hover:bg-tn-surface"
+              }`}
+            >
+              <span className="font-medium">Show What's New on startup</span>
+              <span className="ml-2 text-[10px] font-medium text-tn-text-muted">
+                {whatsNewSuppressed ? "Off" : "On"}
+              </span>
+              <p className="text-xs text-tn-text-muted mt-0.5">Show the changelog dialog when a new version is first launched</p>
+            </button>
+            <div className="flex flex-col gap-2 self-start">
+              <button
+                onClick={() => setShowWhatsNew(true)}
+                className="px-3 py-2 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface text-sm whitespace-nowrap"
+              >
+                View What's New
+              </button>
+              <button
+                onClick={() => setShowChangelog(true)}
+                className="px-3 py-2 rounded border border-tn-border bg-tn-bg hover:bg-tn-surface text-sm whitespace-nowrap"
+              >
+                Changelogs
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1">
           <label className="text-xs text-tn-text-muted">Updates</label>
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-3 py-2 rounded border border-tn-border bg-tn-bg">
@@ -192,5 +249,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         </div>
       </div>
     </div>
+    <WhatsNewDialog open={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
+    <ChangelogDialog open={showChangelog} onClose={() => setShowChangelog(false)} />
+    </>
   );
 }

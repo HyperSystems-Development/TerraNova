@@ -14,6 +14,8 @@ export function Toast() {
           className={`pointer-events-auto px-4 py-2 rounded shadow-lg text-sm animate-in fade-in slide-in-from-bottom-2 ${
             t.type === "error"
               ? "bg-red-900/90 text-red-100 border border-red-700/50"
+              : t.type === "warning"
+              ? "bg-amber-900/90 text-amber-100 border border-amber-700/50"
               : t.type === "success"
               ? "bg-emerald-900/90 text-emerald-100 border border-emerald-700/50"
               : "bg-tn-panel text-tn-text border border-tn-border"

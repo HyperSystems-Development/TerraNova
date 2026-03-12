@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type ToastType = "error" | "info" | "success";
+export type ToastType = "error" | "warning" | "info" | "success";
 
 interface Toast {
   id: number;

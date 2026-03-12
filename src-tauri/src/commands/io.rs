@@ -2,6 +2,7 @@ use crate::io::asset_pack::{AssetPack, DirectoryEntry};
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use tauri::Manager;
 
 /// Open an asset pack directory and parse all JSON files.
@@ -237,4 +238,152 @@ pub fn create_from_template(
     let resource_dir = app.path().resource_dir().ok();
     crate::io::template::create_from_template(&template_name, &target_path, resource_dir)
         .map_err(|e| e.to_string())
+}
+
+/// Entry representing a single biome JSON file inside a bundled template.
+#[derive(serde::Serialize)]
+pub struct TemplateBiomeEntry {
+    pub template_name: String,
+    pub display_name: String,
+    pub biome_name: String,
+    pub path: String,
+}
+
+/// List all biome JSON files found inside bundled templates.
+#[tauri::command]
+pub fn list_template_biomes(app: tauri::AppHandle) -> Result<Vec<TemplateBiomeEntry>, String> {
+    let resource_dir = app.path().resource_dir().ok();
+    let templates_root = crate::io::template::find_templates_root(resource_dir)
+        .map_err(|e| e.to_string())?;
+
+    let mut entries: Vec<TemplateBiomeEntry> = Vec::new();
+
+    let read_dir = fs::read_dir(&templates_root).map_err(|e| e.to_string())?;
+    for template_entry in read_dir {
+        let template_entry = template_entry.map_err(|e| e.to_string())?;
+        if !template_entry.path().is_dir() {
+            continue;
+        }
+        let template_name = template_entry.file_name().to_string_lossy().to_string();
+        let display_name = if template_name.eq_ignore_ascii_case("references") {
+            "Hytale Reference Biomes".to_string()
+        } else {
+            template_name
+                .split(|c: char| c == '-' || c == '_')
+                .map(|w| {
+                    let mut c = w.chars();
+                    match c.next() {
+                        None => String::new(),
+                        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
+
+        // Walk subdirectories looking for Biomes/**/*.json
+        collect_biome_files(
+            &template_entry.path(),
+            &template_name,
+            &display_name,
+            &mut entries,
+        );
+    }
+
+    entries.sort_by(|a, b| a.template_name.cmp(&b.template_name));
+    Ok(entries)
+}
+
+fn is_biome_folder(name: &std::ffi::OsStr) -> bool {
+    let s = name.to_string_lossy();
+    s.eq_ignore_ascii_case("Biomes") || s.eq_ignore_ascii_case("references")
+}
+
+fn collect_biome_files(
+    dir: &Path,
+    template_name: &str,
+    display_name: &str,
+    out: &mut Vec<TemplateBiomeEntry>,
+) {
+    let Ok(read_dir) = fs::read_dir(dir) else { return };
+    for entry in read_dir.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_biome_files(&path, template_name, display_name, out);
+        } else if path
+            .parent()
+            .and_then(|p| p.file_name())
+            .map(|n| is_biome_folder(n))
+            .unwrap_or(false)
+            && path
+                .extension()
+                .map(|e| e.eq_ignore_ascii_case("json"))
+                .unwrap_or(false)
+        {
+            let biome_name = path
+                .file_stem()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_default();
+            out.push(TemplateBiomeEntry {
+                template_name: template_name.to_string(),
+                display_name: display_name.to_string(),
+                biome_name,
+                path: path.to_string_lossy().to_string(),
+            });
+        }
+    }
+}
+
+/// Reveal a file or folder in the OS file explorer.
+/// On Windows: opens Explorer with the item selected.
+/// On macOS:   opens Finder with the item selected via `open -R`.
+/// On Linux:   opens the parent directory with xdg-open.
+#[tauri::command]
+pub fn show_in_folder(path: String) -> Result<(), String> {
+    let target = PathBuf::from(&path);
+
+    #[cfg(target_os = "windows")]
+    {
+        // explorer.exe requires the path to use backslashes and be passed as
+        // two separate arguments: "/select," and then the path itself.
+        // Passing them concatenated as one arg causes Explorer to ignore the
+        // /select flag and just open the folder root.
+        let path_str = target.to_string_lossy().replace('/', "\\");
+        if target.is_file() {
+            Command::new("explorer")
+                .arg("/select,")
+                .arg(&path_str)
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        } else {
+            Command::new("explorer")
+                .arg(&path_str)
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg("-R")
+            .arg(&target)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let dir = if target.is_file() {
+            target.parent().unwrap_or(Path::new("/")).to_path_buf()
+        } else {
+            target
+        };
+        Command::new("xdg-open")
+            .arg(&dir)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
 }

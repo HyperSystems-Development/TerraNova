@@ -264,7 +264,7 @@ describe("jsonToGraph edge creation (handle audit)", () => {
       Type: "DensityDelimited",
       Density: { Type: "SimplexNoise2D" },
     };
-    const { nodes, edges } = jsonToGraph(json, 0, 0, "g", "EnvironmentProvider");
+    const { edges } = jsonToGraph(json, 0, 0, "g", "EnvironmentProvider");
     expect(edges).toHaveLength(1);
     expect(edges[0].targetHandle).toBe("Density");
   });

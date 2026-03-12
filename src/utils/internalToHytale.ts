@@ -1601,6 +1601,33 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
       continue;
     }
 
+    // DensityDelimited TintProvider Delimiters — inject $NodeId on delimiter, Tint, and Range if missing
+    if (
+      key === "Delimiters" &&
+      hytaleType === "DensityDelimited" &&
+      category === "tint" &&
+      Array.isArray(value)
+    ) {
+      output.Delimiters = (value as Array<Record<string, unknown>>).map((d) => {
+        const tint = (d.Tint as Record<string, unknown>) ?? {};
+        const range = (d.Range as Record<string, unknown>) ?? {};
+        return {
+          ...d,
+          $NodeId: (d.$NodeId as string | undefined) ?? generateNodeId("Delimiter.DensityDelimited.TintProvider"),
+          Tint: {
+            ...tint,
+            Type: "Constant",
+            $NodeId: (tint.$NodeId as string | undefined) ?? generateNodeId("Constant.TintProvider"),
+          },
+          Range: {
+            ...range,
+            $NodeId: (range.$NodeId as string | undefined) ?? generateNodeId("Decimal.Range"),
+          },
+        };
+      });
+      continue;
+    }
+
     // Pass through other values
     output[key] = value;
   }

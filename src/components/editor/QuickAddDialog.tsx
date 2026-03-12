@@ -4,6 +4,8 @@ import { ALL_DEFAULTS, type CategoryDefaultsEntry } from "@/schema/defaults";
 import { SNIPPET_CATALOG, placeSnippet, type SnippetDefinition } from "@/schema/snippets";
 import { AssetCategory, CATEGORY_COLORS } from "@/schema/types";
 import { HANDLE_REGISTRY } from "@/nodes/handleRegistry";
+import { BlockIcon } from "@/components/properties/BlockIcon";
+import { findCompatibleInterjectHandles } from "@/nodes/handleRegistry";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useLanguage } from "@/languages/useLanguage";
@@ -113,6 +115,26 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
     if (!defs) return null;
     const handleDef = defs.find((h) => h.id === handleId);
     if (!handleDef) return null;
+    // Terrain/prop awareness: prioritize block for terrain, plant for prop
+    // Block: MaterialProvider, Density, Pattern, etc.
+    // Plant: Prop, Pattern (with plant material), etc.
+    if (handleDef.category === AssetCategory.MaterialProvider || handleDef.category === AssetCategory.Density) {
+      // Terrain connection: prioritize block node types
+      return new Set([
+        AssetCategory.MaterialProvider,
+        AssetCategory.Density,
+        AssetCategory.Pattern,
+        AssetCategory.BlockMask,
+      ]);
+    }
+    if (handleDef.category === AssetCategory.Prop) {
+      // Prop connection: prioritize plant node types
+      return new Set([
+        AssetCategory.Prop,
+        AssetCategory.Pattern,
+      ]);
+    }
+    // Fallback: use original category
     return new Set([handleDef.category]);
   }, [pendingConnection]);
 
@@ -125,16 +147,29 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
 
     // Connection-aware filtering: only show types with compatible handles
     if (compatibleCategories && pendingConnection) {
-      const needsTarget = pendingConnection.handleType === "source";
+      // Use findCompatibleInterjectHandles to filter node types
+      const { nodeId } = pendingConnection;
+      // Get connected handles for the node being connected
+      const connectedHandles = (() => {
+        const { edges } = useEditorStore.getState();
+        const connected = new Set<string>();
+        for (const e of edges) {
+          if (e.source === nodeId && e.sourceHandle) connected.add(e.sourceHandle);
+          if (e.target === nodeId && e.targetHandle) connected.add(e.targetHandle);
+        }
+        return connected;
+      })();
+
       entries = entries.filter((entry) => {
         const typeKey = resolveNodeTypeKey(entry);
-        const handles = HANDLE_REGISTRY[typeKey];
-        if (!handles) return false;
-        return handles.some(
-          (h) =>
-            h.type === (needsTarget ? "target" : "source") &&
-            compatibleCategories.has(h.category),
+        // Use findCompatibleInterjectHandles to check for at least one compatible handle
+        const compat = findCompatibleInterjectHandles(
+          typeKey,
+          Array.from(compatibleCategories)[0],
+          Array.from(compatibleCategories)[0],
+          connectedHandles,
         );
+        return !!compat;
       });
     }
 
@@ -389,11 +424,27 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
                   }`}
                   onMouseEnter={() => setSelectedIndex(i)}
                   onClick={() => placeNode(entry)}
+                  title={pendingConnection
+                    ? `Suggested: compatible with ${categoryLabel} (${entry.category})`
+                    : undefined}
                 >
-                  <span
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: color }}
-                  />
+                  {/* Show BlockIcon if materialId is available, else fallback to colored dot */}
+                  {entry.category === AssetCategory.MaterialProvider ? (
+                    <BlockIcon
+                      materialId={
+                        entry.defaults && typeof entry.defaults.Material === "string" && entry.defaults.Material.length > 0
+                          ? entry.defaults.Material
+                          : "Soil_Grass"
+                      }
+                      size={20}
+                      className="shrink-0"
+                    />
+                  ) : (
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: color }}
+                    />
+                  )}
                   <span className="flex-1 truncate">{getTypeDisplayName(entry.type)}</span>
                   <span className="text-[10px] text-tn-text-muted">{categoryLabel}</span>
                 </button>

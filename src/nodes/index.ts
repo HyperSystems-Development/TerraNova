@@ -463,6 +463,8 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   // ── Root ────────────────────────────────────────────────────────────
   Root: RootNode,
 
+  // ── Structured asset cards ──────────────────────────────────────────
+
   // ── Fallback ─────────────────────────────────────────────────────────
   default: GenericNode,
 };

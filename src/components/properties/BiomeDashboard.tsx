@@ -1,5 +1,4 @@
 import { useEditorStore } from "@/stores/editorStore";
-import { ColorPickerField } from "./ColorPickerField";
 import {
   getSectionSummary,
   getPropSummaries,
@@ -49,13 +48,11 @@ function SectionIcon({ sectionKey, className }: { sectionKey: string; className?
 
 interface BiomeDashboardProps {
   onBiomeConfigChange: (field: string, value: unknown) => void;
-  onBiomeTintChange: (field: string, value: string) => void;
   onBlur: () => void;
 }
 
 export function BiomeDashboard({
   onBiomeConfigChange,
-  onBiomeTintChange,
   onBlur,
 }: BiomeDashboardProps) {
   const biomeConfig = useEditorStore((s) => s.biomeConfig);
@@ -64,9 +61,6 @@ export function BiomeDashboard({
 
   if (!biomeConfig || !biomeSections) return null;
 
-  const tint = biomeConfig.TintProvider as Record<string, unknown>;
-  const tintFrom = typeof tint.From === "string" ? tint.From : "#000000";
-  const tintTo = typeof tint.To === "string" ? tint.To : "#000000";
   const envType = (biomeConfig.EnvironmentProvider as Record<string, unknown>).Type as string ?? "";
 
   const sectionKeys = Object.keys(biomeSections);
@@ -86,27 +80,6 @@ export function BiomeDashboard({
         className="text-lg font-bold bg-transparent border-b border-tn-border focus:border-tn-accent outline-none pb-1 text-tn-text transition-colors"
         aria-label="Biome name"
       />
-
-      {/* Tint Gradient Bar */}
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs text-tn-text-muted font-medium">Tint Gradient</span>
-        <div
-          className="h-8 w-full rounded border border-tn-border"
-          style={{ background: `linear-gradient(to right, ${tintFrom}, ${tintTo})` }}
-        />
-        <div className="grid grid-cols-2 gap-2">
-          <ColorPickerField
-            label="From"
-            value={tintFrom}
-            onChange={(v) => onBiomeTintChange("From", v)}
-          />
-          <ColorPickerField
-            label="To"
-            value={tintTo}
-            onChange={(v) => onBiomeTintChange("To", v)}
-          />
-        </div>
-      </div>
 
       {/* Environment Badge */}
       <div className="flex items-center gap-2">

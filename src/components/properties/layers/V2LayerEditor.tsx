@@ -2,45 +2,37 @@ import { useCallback, useState } from "react";
 import { useEditorStore } from "@/stores/editorStore";
 import type { MaterialLayer } from "@/utils/biomeSectionUtils";
 import type { ConditionType } from "@/schema/material";
-import { LAYER_CONTEXT_OPTIONS } from "./constants";
 import { ConditionBadge, ConditionEditor } from "./ConditionEditor";
-import { DraggableLayerList } from "./DraggableLayerList";
+import { LAYER_CONTEXT_OPTIONS, LAYER_TYPE_LABELS } from "./constants";
 
-export function V2LayerEditor({
-  sadNodeId,
-  layers,
-  onSelectNode,
-}: {
-  sadNodeId: string;
-  layers: MaterialLayer[];
-  onSelectNode: (id: string) => void;
-}) {
+export function V2LayerEditor(props: { sadNodeId: string; layers: MaterialLayer[]; onSelectNode: (id: string) => void }) {
+  const { sadNodeId, layers, onSelectNode } = props;
+
   const biomeSections = useEditorStore((s) => s.biomeSections);
   const updateNodeField = useEditorStore((s) => s.updateNodeField);
   const addMaterialLayer = useEditorStore((s) => s.addMaterialLayer);
   const removeMaterialLayer = useEditorStore((s) => s.removeMaterialLayer);
-  const reorderMaterialLayers = useEditorStore((s) => s.reorderMaterialLayers);
   const changeMaterialLayerType = useEditorStore((s) => s.changeMaterialLayerType);
 
   const [conditionExpanded, setConditionExpanded] = useState(false);
 
-  // Get SpaceAndDepth node fields
   const section = biomeSections?.MaterialProvider;
   const sadNode = section?.nodes.find((n) => n.id === sadNodeId);
   const sadData = sadNode?.data as Record<string, unknown> | undefined;
   const sadFields = (sadData?.fields as Record<string, unknown>) ?? {};
 
-  const layerContext = (sadFields.LayerContext as string) ?? "DEPTH_INTO_FLOOR";
-  const maxExpectedDepth = (sadFields.MaxExpectedDepth as number) ?? 16;
+  const layerContext = typeof sadFields.LayerContext === "string"
+    ? sadFields.LayerContext
+    : "DEPTH_INTO_FLOOR";
+  const maxExpectedDepth = typeof sadFields.MaxExpectedDepth === "number"
+    ? sadFields.MaxExpectedDepth
+    : 16;
 
-  // Get condition info
   const conditionData = sadFields.Condition as Record<string, unknown> | undefined;
   const conditionType = (conditionData?.Type as ConditionType) ?? "AlwaysTrueCondition";
 
-  // V2 layers (those with layerIndex defined)
   const v2Layers = layers.filter((l) => l.layerIndex != null);
 
-  // Find layer node IDs from edges
   const layerNodeIds = new Map<number, string>();
   if (section) {
     for (const e of section.edges) {
@@ -53,7 +45,7 @@ export function V2LayerEditor({
 
   const handleAddLayer = useCallback(() => {
     addMaterialLayer(sadNodeId, "ConstantThickness");
-  }, [sadNodeId, addMaterialLayer]);
+  }, [addMaterialLayer, sadNodeId]);
 
   const handleRemoveLayer = useCallback((index: number) => {
     removeMaterialLayer(sadNodeId, index);
@@ -65,10 +57,6 @@ export function V2LayerEditor({
       changeMaterialLayerType(nodeId, newType, sadNodeId);
     }
   }, [layerNodeIds, sadNodeId, changeMaterialLayerType]);
-
-  const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
-    reorderMaterialLayers(sadNodeId, fromIndex, toIndex);
-  }, [sadNodeId, reorderMaterialLayers]);
 
   const handleConditionTypeChange = useCallback((newType: ConditionType) => {
     const base: Record<string, unknown> = { Type: newType };
@@ -90,95 +78,146 @@ export function V2LayerEditor({
 
   return (
     <div className="flex flex-col p-3 gap-3">
-      {/* Header */}
       <div className="border-b border-tn-border pb-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Material Layers</h3>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold">Material Layers</h3>
+            <p className="text-xs text-tn-text-muted">
+              {v2Layers.length} layer{v2Layers.length !== 1 ? "s" : ""}
+            </p>
+          </div>
           <button
+            type="button"
             onClick={handleAddLayer}
-            className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded bg-white/5 border border-tn-border text-tn-text hover:bg-white/10 transition-colors"
-            title="Add new layer"
+            className="rounded border border-tn-accent/50 bg-tn-accent/10 px-2 py-1 text-[11px] font-medium text-tn-accent hover:bg-tn-accent/15"
           >
-            <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M8 3v10M3 8h10" />
-            </svg>
             Add
           </button>
         </div>
-        <p className="text-xs text-tn-text-muted mt-0.5">
-          {v2Layers.length} layer{v2Layers.length !== 1 ? "s" : ""}
-        </p>
       </div>
 
-      {/* SpaceAndDepth settings */}
-      <div className="flex flex-col gap-2 p-2 rounded border border-tn-border bg-white/[0.02]">
-        <div className="flex items-center gap-2">
-          <label className="text-[10px] text-tn-text-muted shrink-0 w-16">Context</label>
-          <select
-            value={layerContext}
-            onChange={(e) => updateNodeField(sadNodeId, "LayerContext", e.target.value)}
-            className="flex-1 text-[11px] px-1.5 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text"
-          >
-            {LAYER_CONTEXT_OPTIONS.map((opt) => (
-              <option key={opt} value={opt}>{opt.replace(/_/g, " ")}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-[10px] text-tn-text-muted shrink-0 w-16">Max Depth</label>
-          <input
-            type="number"
-            value={maxExpectedDepth}
-            onChange={(e) => updateNodeField(sadNodeId, "MaxExpectedDepth", parseInt(e.target.value) || 0)}
-            className="flex-1 text-[11px] px-1.5 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text w-16"
-            min={0}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-[10px] text-tn-text-muted shrink-0 w-16">Condition</label>
-          <button
-            onClick={() => setConditionExpanded((v) => !v)}
-            className="flex-1 flex items-center gap-1 text-[11px] px-1.5 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text hover:bg-white/5 transition-colors text-left"
-          >
-            <ConditionBadge type={conditionType} />
-            <svg
-              className={`w-3 h-3 text-tn-text-muted ml-auto transition-transform ${conditionExpanded ? "rotate-180" : ""}`}
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
+      <div className="rounded border border-tn-border bg-white/[0.03] p-2">
+        <div className="grid gap-2 md:grid-cols-2">
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] text-tn-text-muted shrink-0 w-16">Context</label>
+            <select
+              value={layerContext}
+              onChange={(event) => updateNodeField(sadNodeId, "LayerContext", event.target.value)}
+              className="flex-1 text-[11px] px-1.5 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text"
             >
-              <path d="M4 6l4 4 4-4" />
-            </svg>
+              {LAYER_CONTEXT_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option.replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] text-tn-text-muted shrink-0 w-16">Max Depth</label>
+            <input
+              type="number"
+              value={maxExpectedDepth}
+              onChange={(event) => updateNodeField(
+                sadNodeId,
+                "MaxExpectedDepth",
+                Number.parseInt(event.target.value, 10) || 0,
+              )}
+              className="flex-1 text-[11px] px-1.5 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text"
+            />
+          </div>
+        </div>
+
+        <div className="mt-2 flex items-center justify-between gap-2 rounded border border-tn-border/50 bg-tn-bg/40 px-2 py-1.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-wider text-tn-text-muted">Condition</span>
+            <ConditionBadge type={conditionType} />
+          </div>
+          <button
+            type="button"
+            onClick={() => setConditionExpanded((value) => !value)}
+            className="text-[10px] font-medium uppercase tracking-wider text-tn-text-muted hover:text-tn-text"
+          >
+            {conditionExpanded ? "Hide" : "Edit"}
           </button>
         </div>
+
+        {conditionExpanded && (
+          <ConditionEditor
+            conditionType={conditionType}
+            conditionData={conditionData}
+            onTypeChange={handleConditionTypeChange}
+            onFieldChange={handleConditionFieldChange}
+          />
+        )}
       </div>
 
-      {/* Condition editor (expandable) */}
-      {conditionExpanded && (
-        <ConditionEditor
-          conditionType={conditionType}
-          conditionData={conditionData}
-          onTypeChange={handleConditionTypeChange}
-          onFieldChange={handleConditionFieldChange}
-        />
-      )}
-
-      {/* Layer list */}
-      {v2Layers.length === 0 ? (
-        <div className="text-xs text-tn-text-muted text-center py-4">
-          No layers yet. Click "Add" to create one.
-        </div>
-      ) : (
-        <DraggableLayerList
-          layers={v2Layers}
-          onSelectNode={onSelectNode}
-          onRemove={handleRemoveLayer}
-          onChangeType={handleChangeType}
-          onReorder={handleReorder}
-        />
-      )}
+      <div>
+        {v2Layers.length === 0 ? (
+          <div className="text-xs text-tn-text-muted text-center py-4">
+            No layers yet. Click "Add" to create one.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {v2Layers.map((layer, idx) => (
+              <div key={layer.nodeId} className="border border-tn-border rounded p-2 bg-white/[0.03] flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-xs">Layer {layer.layerIndex ?? idx + 1}</span>
+                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded leading-none bg-tn-accent/15 text-tn-accent">
+                    {LAYER_TYPE_LABELS[(layer.layerType as keyof typeof LAYER_TYPE_LABELS) ?? "ConstantThickness"] ?? layer.layerType ?? "Constant"}
+                  </span>
+                  <span className="text-[10px] text-tn-text-muted">t: {layer.thickness ?? "-"}</span>
+                  <button
+                    className="ml-auto px-2 py-0.5 text-xs rounded bg-red-500/10 border border-red-500 text-red-700 hover:bg-red-500/20"
+                    onClick={() => handleRemoveLayer(layer.layerIndex ?? idx)}
+                    title="Remove layer"
+                  >Remove</button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] text-tn-text-muted w-16">Type</label>
+                  <select
+                    value={layer.layerType ?? "ConstantThickness"}
+                    onChange={e => handleChangeType(layer.layerIndex ?? idx, e.target.value)}
+                    className="flex-1 text-[11px] px-1.5 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text"
+                  >
+                    <option value="ConstantThickness">ConstantThickness</option>
+                    <option value="RangeThickness">RangeThickness</option>
+                    <option value="NoiseThickness">NoiseThickness</option>
+                    <option value="WeightedThickness">WeightedThickness</option>
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] text-tn-text-muted w-16">Material</label>
+                  <button
+                    type="button"
+                    onClick={() => onSelectNode(layer.nodeId)}
+                    className="flex-1 rounded border border-tn-border bg-tn-bg px-1.5 py-1 text-left text-[11px] text-tn-text hover:border-tn-accent/50 hover:text-tn-accent"
+                  >
+                    {layer.material}
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] text-tn-text-muted w-16">Thickness</label>
+                  <input
+                    type="text"
+                    value={layer.thickness ?? ""}
+                    onChange={e => updateNodeField(layer.nodeId, "Thickness", e.target.value)}
+                    className="flex-1 text-[11px] px-1.5 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] text-tn-text-muted w-16">Color Override</label>
+                  <input
+                    type="color"
+                    value={layer.color ?? "#808080"}
+                    onChange={e => updateNodeField(layer.nodeId, "Color", e.target.value)}
+                    className="w-8 h-8 border border-tn-border rounded"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

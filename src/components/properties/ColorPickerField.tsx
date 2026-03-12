@@ -5,6 +5,8 @@ interface ColorPickerFieldProps {
 }
 
 export function ColorPickerField({ label, value, onChange }: ColorPickerFieldProps) {
+  const displayValue = value.toUpperCase();
+
   return (
     <div className="flex flex-col gap-1">
       <label className="text-xs text-tn-text-muted">{label}</label>
@@ -13,13 +15,20 @@ export function ColorPickerField({ label, value, onChange }: ColorPickerFieldPro
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-8 h-8 rounded border border-tn-border cursor-pointer"
+          className="h-8 w-10 rounded border border-tn-border bg-transparent cursor-pointer"
+          aria-label={label}
+        />
+        <div
+          className="h-5 w-5 rounded border border-tn-border/80 shrink-0"
+          style={{ backgroundColor: value }}
+          aria-hidden
         />
         <input
           type="text"
-          value={value}
+          value={displayValue}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 px-2 py-1 text-sm bg-tn-bg border border-tn-border rounded font-mono"
+          spellCheck={false}
+          className="flex-1 px-2 py-1 text-xs bg-tn-bg border border-tn-border rounded font-mono tracking-wide"
         />
       </div>
     </div>
