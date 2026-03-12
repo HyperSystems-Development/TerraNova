@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { applyBiomeTintBand } from "../PropertyPanel";
+import { applyBiomeTintBand } from "../biomeTintUtils";
 
 function getDelimiterColor(delimiters: Array<Record<string, unknown>>, index: number): string | undefined {
   const tint = delimiters[index]?.Tint as Record<string, unknown> | undefined;

@@ -8,6 +8,32 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "0.1.5 QoL2",
+    date: "2026-03",
+    sections: [
+      {
+        title: "Hytale asset accuracy",
+        items: [
+          "DensityDelimited TintProvider delimiters now include Range (-1 to 1 in thirds) matching real Hytale biomes",
+          "Tint.Type: \"Constant\" written on every delimiter to match V2 format exactly",
+          "Default Density node (SimplexNoise2D: Seed tints, Scale 100, Octaves 3) injected when missing from DensityDelimited TintProvider",
+          "Clickable env/weather file path rows in Atmosphere tab Weather section open the file in the editor",
+          "Biome Browser search filter — filters by name when more than 4 biomes are listed",
+          "Biome Browser template entries show biome Name + display name/source on two lines",
+          "Weather section now shows all resolve warnings, not just the first",
+          "Weather section shows resolved environment and weather file paths as metadata rows",
+        ],
+      },
+      {
+        title: "Code quality",
+        items: [
+          "applyBiomeTintBand, buildDelimiterTypeOptions, getAdvancedDelimiterTypeDetails extracted to biomeTintUtils.ts — fixes Vite Fast Refresh HMR warning",
+          "6 new unit tests covering Range, Tint.Type, and Density injection in applyBiomeTintBand",
+        ],
+      },
+    ],
+  },
+  {
     version: "0.1.5 QoL1",
     date: "2026-03",
     sections: [

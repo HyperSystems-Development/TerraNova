@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { ChangelogDialog } from "./ChangelogDialog";
 
 // Bump this string whenever you want the dialog to reappear for existing users.
-const CURRENT_VERSION = "0.1.5-qol1";
+const CURRENT_VERSION = "0.1.5-qol2";
 const STORAGE_KEY = "terranova:whats-new-seen";
 const SUPPRESS_KEY = "terranova:whats-new-suppress";
 
@@ -47,6 +47,21 @@ const HIGHLIGHTS: Section[] = [
     title: "What to try",
     items: [
       {
+        label: "Hytale-accurate tint bands",
+        description:
+          "DensityDelimited TintProvider bands now match real Hytale biomes exactly — Range (-1 to 1 in thirds), Tint.Type: Constant, and a default SimplexNoise2D Density node are all written automatically when you edit tint colors.",
+      },
+      {
+        label: "Weather file paths — click to open",
+        description:
+          "In the Atmosphere tab's Weather section, the resolved environment and weather file path rows are now clickable. Click to open the file directly in the editor.",
+      },
+      {
+        label: "Biome browser search",
+        description:
+          "Type in the search box above the Biome Browser list (visible when you have more than 4 biomes) to instantly filter by biome name.",
+      },
+      {
         label: "Biome Browser — Hytale templates",
         description:
           "Open a biome's Atmosphere tab → Biome Browser → 'Hytale Templates'. Browse and open real Hytale reference biomes (Salt Flats, Hive World, The Underworld, etc.) and template packs as a starting point.",
@@ -87,7 +102,48 @@ const HIGHLIGHTS: Section[] = [
 
 const FULL_CHANGELOG: Section[] = [
   {
-    title: "Atmosphere & weather",
+    title: "Hytale asset accuracy (QoL 2)",
+    items: [
+      {
+        label: "DensityDelimited tint Range fields",
+        description: "Each Delimiter in a DensityDelimited TintProvider now includes the correct Range (MinInclusive/MaxExclusive) matching real Hytale biomes — thirds across -1 to 1.",
+      },
+      {
+        label: "Tint.Type: Constant on all delimiters",
+        description: "Every tint delimiter now correctly sets Tint.Type: \"Constant\" in exported biome JSON, matching the Hytale V2 format.",
+      },
+      {
+        label: "Default Density node injected automatically",
+        description: "If a DensityDelimited TintProvider has no Density field, the editor now injects the canonical SimplexNoise2D node (Seed: tints, Scale: 100, Octaves: 3) so exports are always valid.",
+      },
+      {
+        label: "Clickable weather file paths",
+        description: "The resolved environment and weather file path rows in the Atmosphere tab Weather section are now clickable and open the file in the editor.",
+      },
+      {
+        label: "Biome browser search filter",
+        description: "A search input appears above the Biome Browser list when more than 4 biomes are present, letting you filter by biome name instantly.",
+      },
+      {
+        label: "Biome browser richer template entries",
+        description: "Template biome entries now show two lines: the biome Name and a subtitle with the display name and template source.",
+      },
+      {
+        label: "Weather section shows all warnings",
+        description: "Previously only the first warning was shown in the Weather metadata section. All resolve warnings are now listed.",
+      },
+      {
+        label: "Weather section shows env and weather paths",
+        description: "The resolved environment file path and weather file path are now displayed as rows in the Weather metadata panel.",
+      },
+      {
+        label: "HMR fix — utility functions extracted",
+        description: "applyBiomeTintBand, buildDelimiterTypeOptions, and getAdvancedDelimiterTypeDetails moved to biomeTintUtils.ts, fixing the Vite Fast Refresh HMR warning for PropertyPanel.",
+      },
+    ],
+  },
+  {
+    title: "Atmosphere & weather (QoL 1)",
     items: [
       {
         label: "Time-of-day animation",
@@ -112,7 +168,7 @@ const FULL_CHANGELOG: Section[] = [
     ],
   },
   {
-    title: "Validation & diagnostics",
+    title: "Validation & diagnostics (QoL 1)",
     items: [
       {
         label: "Environment delimiter validation",
@@ -137,7 +193,7 @@ const FULL_CHANGELOG: Section[] = [
     ],
   },
   {
-    title: "Editor & UI",
+    title: "Editor & UI (QoL 1)",
     items: [
       {
         label: "Tint provider support",

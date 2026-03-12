@@ -2,6 +2,25 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystemsDev/TerraNova) are documented in this file.
 
+## [0.1.5-qol2] — 2026-03-12
+
+### Added
+
+- **Hytale-accurate DensityDelimited tint bands** — Range (`MinInclusive`/`MaxExclusive`) with real Hytale thirds (-1 to -0.33, -0.33 to 0.33, 0.33 to 1), `Tint.Type: "Constant"`, and a default `SimplexNoise2D` Density node (Seed: `"tints"`, Scale: 100, Octaves: 3) are now written automatically, matching every observed Hytale V2 biome reference
+- **Clickable weather file paths** — Resolved environment and weather file path rows in the Atmosphere tab Weather section are now clickable; clicking opens the JSON file in the editor
+- **Biome browser search** — Search input appears above the list when more than 4 biomes are present, filtering by biome name in real time
+- **Biome browser richer template entries** — Two-line display: biome `Name` on the first line, `displayName · templateName` on the second
+- **Weather section shows all warnings** — Previously only the first resolve warning was displayed; all are now shown
+- **Weather section env/weather paths** — Resolved environment file path and weather file path are now shown as metadata rows in the Weather panel
+
+### Fixed
+
+- **Vite Fast Refresh HMR warning** — `applyBiomeTintBand`, `buildDelimiterTypeOptions`, and `getAdvancedDelimiterTypeDetails` extracted from `PropertyPanel.tsx` into `biomeTintUtils.ts`; Vite can now HMR `PropertyPanel` correctly
+
+### Tests
+
+- 6 new unit tests in `PropertyPanel.tint.test.ts` covering `Range`, `Tint.Type: Constant`, and default Density injection for `applyBiomeTintBand`
+
 ## [0.1.5] — 2026-02-16
 
 ### Added
