@@ -14,7 +14,15 @@ import {
 import { jsonToGraph } from "@/utils/jsonToGraph";
 import { graphToJson, graphToJsonMulti } from "@/utils/graphToJson";
 import { autoLayout } from "@/utils/autoLayout";
-import { isBiomeFile, isSettingsFile, normalizeImport, normalizeExport, internalToHytaleBiome } from "@/utils/fileTypeDetection";
+import {
+  isBiomeFile,
+  isEnvironmentFile,
+  isSettingsFile,
+  isWeatherFile,
+  normalizeImport,
+  normalizeExport,
+  internalToHytaleBiome,
+} from "@/utils/fileTypeDetection";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { loadPersistedHistory } from "@/stores/editorStore";
@@ -351,6 +359,10 @@ export function useTauriIO() {
           useEditorStore.getState().setEditingContext("Curve");
         } else if (pathLower.includes("/materials/") || pathLower.includes("\\materials\\")) {
           useEditorStore.getState().setEditingContext("MaterialProvider");
+        } else if (pathLower.includes("/server/environments/") || pathLower.includes("\\server\\environments\\")) {
+          useEditorStore.getState().setEditingContext("Environment");
+        } else if (pathLower.includes("/server/weathers/") || pathLower.includes("\\server\\weathers\\")) {
+          useEditorStore.getState().setEditingContext("Weather");
         } else if (pathLower.includes("/patterns/") || pathLower.includes("\\patterns\\")) {
           useEditorStore.getState().setEditingContext("Pattern");
         } else if (pathLower.includes("/positions/") || pathLower.includes("\\positions\\")) {
@@ -373,6 +385,50 @@ export function useTauriIO() {
         const content = (rawContent && typeof rawContent === "object")
           ? normalizeImport(rawContent as Record<string, unknown>)
           : rawContent;
+
+        if (content && typeof content === "object" && isEnvironmentFile(content as Record<string, unknown>, filePath)) {
+          useEditorStore.setState({
+            nodes: [],
+            edges: [],
+            selectedNodeId: null,
+            outputNodeId: null,
+            biomeSections: null,
+            activeBiomeSection: null,
+            biomeConfig: null,
+            biomeRanges: [],
+            noiseRangeConfig: null,
+            settingsConfig: null,
+            materialConfig: null,
+            editingContext: "Environment",
+            rawJsonContent: content as Record<string, unknown>,
+            originalWrapper: content as Record<string, unknown>,
+            history: [{ nodes: [], edges: [], biomeRanges: [], noiseRangeConfig: null, biomeConfig: null, settingsConfig: null, label: "Initial" }],
+            historyIndex: 0,
+          });
+          return;
+        }
+
+        if (content && typeof content === "object" && isWeatherFile(content as Record<string, unknown>, filePath)) {
+          useEditorStore.setState({
+            nodes: [],
+            edges: [],
+            selectedNodeId: null,
+            outputNodeId: null,
+            biomeSections: null,
+            activeBiomeSection: null,
+            biomeConfig: null,
+            biomeRanges: [],
+            noiseRangeConfig: null,
+            settingsConfig: null,
+            materialConfig: null,
+            editingContext: "Weather",
+            rawJsonContent: content as Record<string, unknown>,
+            originalWrapper: content as Record<string, unknown>,
+            history: [{ nodes: [], edges: [], biomeRanges: [], noiseRangeConfig: null, biomeConfig: null, settingsConfig: null, label: "Initial" }],
+            historyIndex: 0,
+          });
+          return;
+        }
 
         // Convert JSON to graph nodes
         if (content && typeof content === "object" && "Type" in (content as Record<string, unknown>)) {
@@ -617,7 +673,13 @@ export function useTauriIO() {
       }
 
       // Settings files: flat JSON output (no graph, no Hytale translation)
-      const { settingsConfig, editingContext } = useEditorStore.getState();
+      const { settingsConfig, editingContext, rawJsonContent } = useEditorStore.getState();
+      if ((editingContext === "Weather" || editingContext === "Environment") && rawJsonContent) {
+        await writeAssetFile(currentFile, rawJsonContent);
+        setDirty(false);
+        return;
+      }
+
       if (editingContext === "Settings" && settingsConfig && originalWrapper) {
         const output: Record<string, unknown> = { ...originalWrapper };
         output.CustomConcurrency = settingsConfig.CustomConcurrency;

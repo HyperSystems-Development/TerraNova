@@ -6,6 +6,8 @@ import { BiomeRangeEditor } from "./BiomeRangeEditor";
 import { BiomeSectionTabs } from "./BiomeSectionTabs";
 import { SettingsEditorView } from "./SettingsEditorView";
 import { RawJsonView } from "./RawJsonView";
+import { WeatherEditorView } from "./WeatherEditorView";
+import { EnvironmentEditorView } from "./EnvironmentEditorView";
 import { PreviewPanel } from "../preview/PreviewPanel";
 import { ComparisonView } from "../preview/ComparisonView";
 import { DiagnosticsStrip } from "../preview/DiagnosticsStrip";
@@ -148,6 +150,14 @@ export function CenterPanel() {
 
   if (editingContext === "Settings") {
     return <SettingsEditorView />;
+  }
+
+  if (editingContext === "Weather") {
+    return <WeatherEditorView />;
+  }
+
+  if (editingContext === "Environment") {
+    return <EnvironmentEditorView />;
   }
 
   if (editingContext === "RawJson") {

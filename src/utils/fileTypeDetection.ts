@@ -30,6 +30,33 @@ export function isSettingsFile(content: Record<string, unknown>, filePath: strin
   return matchCount >= 2;
 }
 
+export function isEnvironmentFile(content: Record<string, unknown>, filePath: string): boolean {
+  if ("Type" in content || "Terrain" in content) return false;
+  const pathLower = filePath.toLowerCase();
+  if (pathLower.includes("/server/environments/") || pathLower.includes("\\server\\environments\\")) {
+    return true;
+  }
+  return "WeatherForecasts" in content && ("Parent" in content || "Tags" in content || "WaterTint" in content || "SpawnDensity" in content);
+}
+
+export function isWeatherFile(content: Record<string, unknown>, filePath: string): boolean {
+  if ("Type" in content || "Terrain" in content) return false;
+  const pathLower = filePath.toLowerCase();
+  if (pathLower.includes("/server/weathers/") || pathLower.includes("\\server\\weathers\\")) {
+    return true;
+  }
+  const WEATHER_KEYS = [
+    "SkyTopColors",
+    "SkyBottomColors",
+    "SkySunsetColors",
+    "FogColors",
+    "FogDistance",
+    "Clouds",
+    "SunScales",
+  ];
+  return WEATHER_KEYS.filter((key) => key in content).length >= 2;
+}
+
 /**
  * Detect Hytale-specific field names in a JSON tree even when $NodeId is absent.
  * Checks recursively for known Hytale field names that differ from internal names.
