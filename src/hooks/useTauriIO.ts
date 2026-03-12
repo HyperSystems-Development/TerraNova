@@ -3,7 +3,6 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { useProjectStore } from "@/stores/projectStore";
 import { useEditorStore } from "@/stores/editorStore";
 import {
-  openAssetPack,
   saveAssetPack,
   readAssetFile,
   writeAssetFile,
@@ -199,7 +198,6 @@ export function useTauriIO() {
       if (!selected) return;
 
       const path = typeof selected === "string" ? selected : selected;
-      await openAssetPack(path);
       setProjectPath(path);
 
       const entries = await listDirectory(path);

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import { useProjectStore } from "@/stores/projectStore";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
-import { openAssetPack as ipcOpenAssetPack, listDirectory } from "@/utils/ipc";
+import { listDirectory } from "@/utils/ipc";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { NewProjectDialog } from "@/components/dialogs/NewProjectDialog";
 import { HomeSidebar, type SidebarTab } from "./HomeSidebar";
@@ -19,7 +19,6 @@ export function HomeScreen() {
 
   async function handleOpenRecentProject(path: string) {
     try {
-      await ipcOpenAssetPack(path);
       useProjectStore.getState().setProjectPath(path);
       const entries = await listDirectory(path);
       useProjectStore.getState().setDirectoryTree(entries.map(mapDirEntry));
