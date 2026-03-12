@@ -462,10 +462,9 @@ export function EnvironmentEditorView() {
               No environment file loaded.
             </div>
           )}
-          <>
-              {showPreview ? (
-                <section>
-                  <div ref={previewSectionRef} className={sectionClass(false)}>
+          {showPreview ? (
+            <section>
+              <div ref={previewSectionRef} className={sectionClass(false)}>
                   <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Environment Preview</p>
@@ -513,7 +512,7 @@ export function EnvironmentEditorView() {
                     </select>
                   </div>
 
-                  <div className="mb-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+                  <div className="mb-3">
                     <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
                       <div className="mb-3 flex items-center justify-between gap-3">
                         <div>
@@ -701,13 +700,17 @@ export function EnvironmentEditorView() {
                   )}
                 </>
               ) : null}
-                  </div>
-                </section>
-              ) : (
-                <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-4 py-3 text-[11px] text-tn-text-muted">
-                  Preview hidden. Use <span className="font-medium text-tn-text">Show Preview</span> in the header to bring it back.
+              </div>
+            </section>
+          ) : (
+            <section>
+              <div ref={previewSectionRef} className={sectionClass(false)}>
+                <div className="flex min-h-[120px] items-center justify-center rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-4 py-6 text-center text-[11px] text-tn-text-muted">
+                  Preview hidden. Use <span className="mx-1 font-medium text-tn-text">Show Preview</span> in the header to bring it back without shoving the rest of the editor upward.
                 </div>
-              )}
+              </div>
+            </section>
+          )}
 
           <section className="grid gap-3 lg:grid-cols-2">
             <section className="rounded-lg border border-tn-border/70 bg-tn-surface/45 px-3.5 py-3.5 shadow-sm">
@@ -1241,7 +1244,6 @@ export function EnvironmentEditorView() {
               </div>
             </CollapsibleEditorSection>
           )}
-            </>
         </div>
       </div>
     </div>

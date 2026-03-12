@@ -1331,9 +1331,13 @@ export function WeatherEditorView() {
           {showPreview ? (
             <section>{previewPanel}</section>
           ) : (
-            <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-4 py-3 text-[11px] text-tn-text-muted">
-              Preview hidden. Use <span className="font-medium text-tn-text">Show Preview</span> in the header to bring it back.
-            </div>
+            <section>
+              <div ref={previewSectionRef} className={sectionClass(false)}>
+                <div className="flex min-h-[160px] items-center justify-center rounded-xl border border-dashed border-tn-border/50 bg-tn-surface/20 px-4 py-6 text-center text-[11px] text-tn-text-muted">
+                  Preview hidden. Use <span className="mx-1 font-medium text-tn-text">Show Preview</span> in the header to bring it back without jerking the rest of the editor around.
+                </div>
+              </div>
+            </section>
           )}
 
           {hasWeatherDoc && (
