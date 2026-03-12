@@ -9,8 +9,8 @@ describe("HYTALE_MATERIAL_IDS", () => {
   });
 
   it("includes common Hytale block identifiers", () => {
-    expect(HYTALE_MATERIAL_IDS).toContain("Stone");
-    expect(HYTALE_MATERIAL_IDS).toContain("Dirt");
+    expect(HYTALE_MATERIAL_IDS).toContain("Rock_Stone");
+    expect(HYTALE_MATERIAL_IDS).toContain("Soil_Dirt");
     expect(HYTALE_MATERIAL_IDS).toContain("Soil_Grass");
     expect(HYTALE_MATERIAL_IDS).toContain("Rock_Basalt");
     expect(HYTALE_MATERIAL_IDS).toContain("Ore_Iron_Stone");
