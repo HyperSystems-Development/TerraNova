@@ -2,6 +2,32 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystemsDev/TerraNova) are documented in this file.
 
+## [0.1.5-qol3] - 2026-03-12
+
+### Added
+
+- **Dedicated weather editor** - Weather JSON files now open into a preview-driven editor with save support, sampled track summaries, and collapsible preview drawers instead of a raw JSON fallback
+- **Dedicated environment editor** - Environment JSON files now open into a forecast-focused editor with current-hour controls, hourly weather editing, and direct open actions for linked weather files
+- **Simple Controls and In-Depth Controls** - Weather and environment editors now default to a simpler control layer while keeping the heavier track, tag, and raw-field tools behind an explicit in-depth toggle
+- **Issue log and tips toggles** - Both editors now let you show or hide issue logs and tips from compact detail-panel controls
+
+### Changed
+
+- **Weather preview layout cleanup** - The 24h atmosphere strip, track preview, sampled values, and asset breakdown are now collapsible drawers so the main scene preview stays visible
+- **Editor section styling** - Simple control cards, collapsible sections, and header action buttons now share one stronger icon-forward visual language
+- **Real asset lookup paths** - Weather and environment asset references resolve directly against `Server\\Weathers` and `Server\\Environments`
+
+### Fixed
+
+- **Environment inheritance handling** - Environment files that inherit forecasts from a parent are no longer treated like broken files just because they do not define local `WeatherForecasts`
+- **Maximum update depth crash** - Asset graph bridge updates are now guarded so weather/environment graph scaffolding does not loop state back into the store every render
+- **Rendered-more-hooks crash** - Weather and environment editors now keep hook order stable when opening from an empty state into a loaded file
+
+### Tests
+
+- Added regression coverage for `WeatherEditorView`, `EnvironmentEditorView`, and `AssetGraphCanvasBridge`
+- `pnpm exec tsc -b --pretty false` passes after the editor polish changes
+
 ## [0.1.5-qol2] — 2026-03-12
 
 ### Added
