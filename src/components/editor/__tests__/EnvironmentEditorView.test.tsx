@@ -68,6 +68,9 @@ describe("EnvironmentEditorView", () => {
       expect(listDirectoryMock).toHaveBeenCalled();
     });
 
+    const disabledGraphButtons = screen.getAllByRole("button", { name: "Graph Disabled" });
+    expect(disabledGraphButtons).toHaveLength(1);
+    disabledGraphButtons.forEach((button) => expect((button as HTMLButtonElement).disabled).toBe(true));
     expect(screen.getAllByRole("button", { name: "Add Weather" })).toHaveLength(1);
 
     fireEvent.change(screen.getByLabelText("Scope"), { target: { value: "all" } });

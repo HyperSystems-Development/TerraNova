@@ -8,7 +8,6 @@ import type { StructuredGraphNodeData } from "./StructuredAssetGraph";
 import { AssetGraphCanvasBridge } from "./AssetGraphCanvasBridge";
 import { EditorCalloutSection, EditorTipsSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
-import { EditorModeCard } from "./EditorModeCard";
 
 interface WeatherForecastEntry {
   WeatherId: string;
@@ -188,6 +187,7 @@ export function EnvironmentEditorView() {
   const selectedGraphNodeId = useEditorStore((state) => state.selectedNodeId) ?? "environment-root";
   const setSelectedNodeId = useEditorStore((state) => state.setSelectedNodeId);
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
+  const graphViewDisabled = true;
   const [showIssueLog, setShowIssueLog] = useState(true);
   const [showTips, setShowTips] = useState(true);
   const [showOverviewSection, setShowOverviewSection] = useState(true);
@@ -322,11 +322,17 @@ export function EnvironmentEditorView() {
     }
 
     if (missingHours.length === HOURS.length) {
-      items.push({
-        severity: "error",
-        title: "No hourly forecasts are configured",
-        detail: "Populate WeatherForecasts before relying on this environment file in preview or export.",
-      });
+      items.push(doc.Parent?.trim()
+        ? {
+            severity: "info",
+            title: "No local hourly forecasts on this file",
+            detail: `This environment likely inherits its WeatherForecasts from parent ${doc.Parent}. Real Hytale assets commonly use parent-driven forecast chains.`,
+          }
+        : {
+            severity: "error",
+            title: "No hourly forecasts are configured",
+            detail: "Populate WeatherForecasts before relying on this environment file in preview or export.",
+          });
     } else if (missingHours.length > 0) {
       items.push({
         severity: "warning",
@@ -602,14 +608,20 @@ export function EnvironmentEditorView() {
               <button
                 key={mode}
                 type="button"
-                onClick={() => setViewMode(mode)}
+                onClick={() => {
+                  if (mode === "graph" && graphViewDisabled) return;
+                  setViewMode(mode);
+                }}
+                disabled={mode === "graph" && graphViewDisabled}
                 className={`rounded-md px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider transition-colors ${
                   viewMode === mode
                     ? "bg-tn-accent/20 text-tn-accent"
-                    : "text-tn-text-muted hover:text-tn-text"
+                    : mode === "graph" && graphViewDisabled
+                      ? "cursor-not-allowed text-tn-text-muted/50"
+                      : "text-tn-text-muted hover:text-tn-text"
                 }`}
               >
-                {mode === "editor" ? "Editor" : "Graph"}
+                {mode === "editor" ? "Editor" : "Graph Disabled"}
               </button>
             ))}
           </div>
@@ -753,18 +765,6 @@ export function EnvironmentEditorView() {
                       </div>
                     </div>
 
-                    <EditorModeCard
-                      eyebrow="Workspace"
-                      title="Graph mode is separate"
-                      description="The environment canvas stays in its own screen now, so editor mode remains focused on forecast repair and file metadata."
-                      stats={[
-                        `${environmentGraph.nodes.length} graph nodes`,
-                        `${environmentGraph.edges.length} graph links`,
-                        `${uniqueWeatherIds.length} linked weather IDs`,
-                      ]}
-                      actionLabel="Open Graph Mode"
-                      onAction={() => setViewMode("graph")}
-                    />
                   </div>
 
                   <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
@@ -791,7 +791,11 @@ export function EnvironmentEditorView() {
                 </div>
                 <div className="space-y-2">
                   {activeForecasts.length === 0 && (
-                    <p className="text-[11px] text-tn-text-muted">No weather forecasts configured for this hour.</p>
+                    <p className="text-[11px] text-tn-text-muted">
+                      {doc.Parent?.trim()
+                        ? `No local weather forecasts configured for this hour. This file may inherit forecasts from ${doc.Parent}.`
+                        : "No weather forecasts configured for this hour."}
+                    </p>
                   )}
                   {activeForecasts.map((entry) => {
                     const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];

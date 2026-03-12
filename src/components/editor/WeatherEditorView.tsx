@@ -7,7 +7,6 @@ import type { StructuredGraphNodeData } from "./StructuredAssetGraph";
 import { AssetGraphCanvasBridge } from "./AssetGraphCanvasBridge";
 import { EditorCalloutSection, EditorTipsSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
-import { EditorModeCard } from "./EditorModeCard";
 
 interface HourColor {
   Hour: number;
@@ -608,6 +607,7 @@ export function WeatherEditorView() {
   const [previewHour, setPreviewHour] = useState(12);
   const selectedGraphNodeId = useEditorStore((state) => state.selectedNodeId) ?? "weather-root";
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
+  const graphViewDisabled = true;
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [showIssueLog, setShowIssueLog] = useState(true);
   const [showTips, setShowTips] = useState(true);
@@ -1075,21 +1075,6 @@ export function WeatherEditorView() {
         </div>
       )}
 
-      <div className="mb-3">
-        <EditorModeCard
-          eyebrow="Workspace"
-          title="Graph mode is separate"
-          description="Weather graph mode stays isolated from the editor so the preview and track tools remain easy to scan."
-          stats={[
-            `${weatherGraph.nodes.length} graph nodes`,
-            `${weatherGraph.edges.length} graph links`,
-            `${colorTrackCount + valueTrackCount} total keyframes`,
-          ]}
-          actionLabel="Open Graph Mode"
-          onAction={() => setViewMode("graph")}
-        />
-      </div>
-
       <div
         className="relative h-64 overflow-hidden rounded-xl border border-tn-border/50"
         style={{ background: `linear-gradient(to bottom, ${skyTop}, ${sunlightColor}, ${skyBottom})` }}
@@ -1415,14 +1400,20 @@ export function WeatherEditorView() {
               <button
                 key={mode}
                 type="button"
-                onClick={() => setViewMode(mode)}
+                onClick={() => {
+                  if (mode === "graph" && graphViewDisabled) return;
+                  setViewMode(mode);
+                }}
+                disabled={mode === "graph" && graphViewDisabled}
                 className={`rounded-md px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider transition-colors ${
                   viewMode === mode
                     ? "bg-tn-accent/20 text-tn-accent"
-                    : "text-tn-text-muted hover:text-tn-text"
+                    : mode === "graph" && graphViewDisabled
+                      ? "cursor-not-allowed text-tn-text-muted/50"
+                      : "text-tn-text-muted hover:text-tn-text"
                 }`}
               >
-                {mode === "editor" ? "Editor" : "Graph"}
+                {mode === "editor" ? "Editor" : "Graph Disabled"}
               </button>
             ))}
           </div>

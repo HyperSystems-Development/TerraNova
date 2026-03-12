@@ -14,7 +14,7 @@ describe("WeatherEditorView", () => {
     useProjectStore.getState().reset();
   });
 
-  it("switches between editor and graph modes", () => {
+  it("keeps graph mode disabled and stays in the editor view", () => {
     useEditorStore.setState({
       rawJsonContent: {
         SkyTopColors: [{ Hour: 12, Color: "#224466" }],
@@ -31,14 +31,11 @@ describe("WeatherEditorView", () => {
 
     expect(screen.getByText("24h Atmosphere Strip")).toBeTruthy();
     expect(screen.queryByTestId("asset-graph-canvas")).toBeNull();
+    const disabledGraphButtons = screen.getAllByRole("button", { name: "Graph Disabled" });
+    expect(disabledGraphButtons).toHaveLength(1);
+    disabledGraphButtons.forEach((button) => expect((button as HTMLButtonElement).disabled).toBe(true));
 
-    fireEvent.click(screen.getByRole("button", { name: "Graph" }));
-
-    expect(screen.getByTestId("asset-graph-canvas")).toBeTruthy();
-    expect(screen.getByText("Weather Graph")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "Editor" }));
-
+    fireEvent.click(disabledGraphButtons[0]);
     expect(screen.getByText("24h Atmosphere Strip")).toBeTruthy();
     expect(screen.queryByTestId("asset-graph-canvas")).toBeNull();
   });

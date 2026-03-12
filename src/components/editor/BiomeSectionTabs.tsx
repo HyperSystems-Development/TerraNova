@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useEditorStore } from "@/stores/editorStore";
 import { useUIStore } from "@/stores/uiStore";
 import { getSectionSummary } from "@/utils/biomeSectionUtils";
+
+const HIDDEN_SECTION_KEYS = new Set(["EnvironmentProvider", "TintProvider"]);
 
 const TAB_COLORS: Record<string, string> = {
   Terrain: "#5B8DBF",
@@ -106,7 +108,13 @@ export function BiomeSectionTabs() {
   const [dontAskAgain, setDontAskAgain] = useState(false);
   if (!biomeSections) return null;
 
-  const keys = Object.keys(biomeSections);
+  const keys = Object.keys(biomeSections).filter((key) => !HIDDEN_SECTION_KEYS.has(key));
+
+  useEffect(() => {
+    if (!activeBiomeSection || !HIDDEN_SECTION_KEYS.has(activeBiomeSection)) return;
+    if (keys.length === 0) return;
+    switchBiomeSection(keys[0]);
+  }, [activeBiomeSection, keys, switchBiomeSection]);
 
   const pendingSection = pendingDelete ? biomeSections[pendingDelete] : null;
   const pendingNodeCount = pendingSection?.nodes.length ?? 0;

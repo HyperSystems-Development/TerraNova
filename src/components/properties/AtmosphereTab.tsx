@@ -410,8 +410,10 @@ export function AtmosphereTab({
     void resolveAssetWeather(weatherInfo.hour, false);
   }, [environmentProviderSignature, currentFile, projectPath, resolveAssetWeather, weatherInfo.hour]);
 
-  const canOpenEnvironmentGraph = Boolean(biomeSections?.EnvironmentProvider);
-  const canOpenTintGraph = Boolean(biomeSections?.TintProvider);
+  const environmentGraphDisabled = true;
+  const tintGraphDisabled = true;
+  const canOpenEnvironmentGraph = Boolean(biomeSections?.EnvironmentProvider) && !environmentGraphDisabled;
+  const canOpenTintGraph = Boolean(biomeSections?.TintProvider) && !tintGraphDisabled;
 
   const openBiomeSectionGraph = useCallback((sectionKey: "EnvironmentProvider" | "TintProvider") => {
     const section = useEditorStore.getState().biomeSections?.[sectionKey];
@@ -913,7 +915,7 @@ export function AtmosphereTab({
             disabled={!canOpenEnvironmentGraph}
             className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-accent hover:text-tn-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Open Environment Graph
+            Environment Graph Disabled
           </button>
           <button
             type="button"
@@ -1024,7 +1026,7 @@ export function AtmosphereTab({
             disabled={!canOpenTintGraph}
             className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-accent hover:text-tn-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Open Tint Graph
+            Tint Graph Disabled
           </button>
         </div>
         <div
@@ -1057,7 +1059,7 @@ export function AtmosphereTab({
             </div>
             {tintBandColors.length > 3 && (
               <p className="text-[10px] text-tn-text-muted leading-tight">
-                Quick controls edit the first 3 bands. Open the Tint graph for full delimiter editing.
+                Quick controls edit the first 3 bands. Tint graph editing is disabled for now.
               </p>
             )}
           </>
@@ -1069,7 +1071,7 @@ export function AtmosphereTab({
               onChange={(v) => handleTintChange("constant", v)}
             />
             <p className="text-[10px] text-tn-text-muted leading-tight">
-              This biome uses a Constant TintProvider. Open the Tint graph if you want to replace it with a multi-band provider.
+              This biome uses a Constant TintProvider. Multi-band graph editing is disabled for now.
             </p>
           </>
         )}
