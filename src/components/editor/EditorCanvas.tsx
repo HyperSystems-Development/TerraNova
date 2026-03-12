@@ -58,6 +58,11 @@ const PREFIX_TO_CATEGORY: Record<string, AssetCategory> = {
 };
 
 function getNodeColor(node: Node): string {
+  const nodeData = (node.data as Record<string, unknown> | undefined) ?? {};
+  if (node.type === "structuredAssetCard" && typeof nodeData.accent === "string") {
+    return nodeData.accent;
+  }
+
   const type = node.type ?? "";
   for (const [prefix, cat] of Object.entries(PREFIX_TO_CATEGORY)) {
     if (type.startsWith(prefix)) {
@@ -101,7 +106,19 @@ interface ContextMenuState {
 // Component
 // ---------------------------------------------------------------------------
 
-export function EditorCanvas() {
+interface EditorCanvasProps {
+  mode?: "full" | "inspect";
+  showRootDock?: boolean;
+  onNodeDoubleClick?: (node: Node) => void;
+}
+
+export function EditorCanvas({
+  mode = "full",
+  showRootDock,
+  onNodeDoubleClick,
+}: EditorCanvasProps = {}) {
+  const inspectMode = mode === "inspect";
+  const shouldShowRootDock = showRootDock ?? !inspectMode;
   const [searchOpen, setSearchOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddPos, setQuickAddPos] = useState({ x: 0, y: 0 });
@@ -250,6 +267,7 @@ export function EditorCanvas() {
 
   // Register keyboard shortcuts
   useKeyboardShortcuts({
+    disabled: inspectMode,
     onSearchOpen: () => setSearchOpen(true),
     onQuickAdd: () => {
       // Open at current cursor position (tracked via mousemove on wrapper)
@@ -351,6 +369,7 @@ export function EditorCanvas() {
   // ── Pointer-based drop handler (replaces HTML5 drag-and-drop) ───────
   const handleMouseUp = useCallback(
     (e: React.MouseEvent) => {
+      if (inspectMode) return;
       const { isDragging, dragData, endDrag } = useDragStore.getState();
       if (!isDragging || !dragData) return;
 
@@ -382,7 +401,7 @@ export function EditorCanvas() {
       useProjectStore.getState().setDirty(true);
       endDrag();
     },
-    [reactFlowInstance, getInterjectResult, clearInterject],
+    [inspectMode, reactFlowInstance, getInterjectResult, clearInterject],
   );
 
   // ── Edge hover handlers (30ms debounce) ─────────────────────────────
@@ -549,6 +568,7 @@ export function EditorCanvas() {
       onMouseUp={handleMouseUp}
       onMouseMove={(e) => {
         mousePosRef.current = { x: e.clientX, y: e.clientY };
+        if (inspectMode) return;
         // Palette drag → check for interjection target
         const { isDragging, dragData } = useDragStore.getState();
         if (isDragging && dragData) {
@@ -556,33 +576,36 @@ export function EditorCanvas() {
           checkPaletteDrag(flowPos, dragData.nodeType);
         }
       }}
-      onPointerDownCapture={knifePointerDownCapture}
-      onPointerMoveCapture={knifePointerMoveCapture}
-      onPointerUpCapture={knifePointerUpCapture}
+      onPointerDownCapture={inspectMode ? undefined : knifePointerDownCapture}
+      onPointerMoveCapture={inspectMode ? undefined : knifePointerMoveCapture}
+      onPointerUpCapture={inspectMode ? undefined : knifePointerUpCapture}
     >
       <ReactFlow
         nodes={resolvedNodes}
         edges={styledEdges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={handleConnect}
-        isValidConnection={isValidConnection}
+        onNodesChange={inspectMode ? undefined : onNodesChange}
+        onEdgesChange={inspectMode ? undefined : onEdgesChange}
+        onConnect={inspectMode ? undefined : handleConnect}
+        isValidConnection={inspectMode ? undefined : isValidConnection}
         nodeTypes={nodeTypes}
         onEdgeClick={handleEdgeClick}
         onEdgeMouseEnter={handleEdgeMouseEnter}
         onEdgeMouseLeave={handleEdgeMouseLeave}
-        onNodeDrag={interjectOnNodeDrag}
-        onNodeDragStop={interjectOnNodeDragStop}
+        onNodeDrag={inspectMode ? undefined : interjectOnNodeDrag}
+        onNodeDragStop={inspectMode ? undefined : interjectOnNodeDragStop}
         onNodeClick={handleNodeClick}
+        onNodeDoubleClick={(_, node) => onNodeDoubleClick?.(node)}
         onPaneClick={handlePaneClick}
-        onPaneContextMenu={handlePaneContextMenu}
-        onNodeContextMenu={handleNodeContextMenu}
-        onSelectionContextMenu={handleSelectionContextMenu}
-        onConnectStart={handleConnectStart}
-        onConnectEnd={handleConnectEnd}
+        onPaneContextMenu={inspectMode ? undefined : handlePaneContextMenu}
+        onNodeContextMenu={inspectMode ? undefined : handleNodeContextMenu}
+        onSelectionContextMenu={inspectMode ? undefined : handleSelectionContextMenu}
+        onConnectStart={inspectMode ? undefined : handleConnectStart}
+        onConnectEnd={inspectMode ? undefined : handleConnectEnd}
         fitView
-        deleteKeyCode={["Backspace", "Delete"]}
+        deleteKeyCode={inspectMode ? null : ["Backspace", "Delete"]}
         multiSelectionKeyCode="Shift"
+        nodesDraggable={!inspectMode}
+        nodesConnectable={!inspectMode}
         // ── Snap-to-grid ──────────────────────────────────────────────
         snapToGrid={snapToGrid}
         snapGrid={snapGridValue}
@@ -626,27 +649,29 @@ export function EditorCanvas() {
       </ReactFlow>
 
       {/* Knife tool cut line overlay */}
-      <KnifeOverlay {...knifeOverlayProps} />
+      {!inspectMode && <KnifeOverlay {...knifeOverlayProps} />}
 
       {/* Root dock — right-edge output target */}
-      <RootDock />
+      {shouldShowRootDock && <RootDock />}
 
       {/* Node search dialog (Ctrl+F) */}
-      <NodeSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+      {!inspectMode && <NodeSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />}
 
       {/* Quick-add dialog (Tab / Shift+A / connection drop) */}
-      <QuickAddDialog
-        open={quickAddOpen}
-        position={quickAddPos}
-        pendingConnection={pendingConnection}
-        onClose={() => {
-          setQuickAddOpen(false);
-          setPendingConnection(null);
-        }}
-      />
+      {!inspectMode && (
+        <QuickAddDialog
+          open={quickAddOpen}
+          position={quickAddPos}
+          pendingConnection={pendingConnection}
+          onClose={() => {
+            setQuickAddOpen(false);
+            setPendingConnection(null);
+          }}
+        />
+      )}
 
       {/* Canvas context menu */}
-      {contextMenu?.type === "canvas" && (
+      {!inspectMode && contextMenu?.type === "canvas" && (
         <CanvasContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
@@ -660,7 +685,7 @@ export function EditorCanvas() {
       )}
 
       {/* Node context menu */}
-      {contextMenu?.type === "node" && contextMenu.nodeId && (
+      {!inspectMode && contextMenu?.type === "node" && contextMenu.nodeId && (
         <NodeContextMenu
           x={contextMenu.x}
           y={contextMenu.y}

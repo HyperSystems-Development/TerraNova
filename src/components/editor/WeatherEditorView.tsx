@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { Edge, Node } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { writeAssetFile } from "@/utils/ipc";
+import type { StructuredGraphNodeData } from "./StructuredAssetGraph";
+import { AssetGraphCanvasBridge } from "./AssetGraphCanvasBridge";
+import { EditorCalloutSection, EditorTipsSection, type EditorCalloutItem } from "./EditorCallouts";
 
 interface HourColor {
   Hour: number;
@@ -193,24 +197,89 @@ function normalizeHour(value: number): number {
   return clamp(Math.round(value), 0, 23);
 }
 
+function sectionClass(isFocused: boolean): string {
+  return `rounded border p-3 transition-colors ${
+    isFocused
+      ? "border-tn-accent/70 bg-tn-accent/10 shadow-[0_0_0_1px_rgba(100,180,255,0.18)]"
+      : "border-tn-border/60 bg-tn-surface/40"
+  }`;
+}
+
+function formatTrackValue(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function buildTrackGradient(keyframes: HourColor[]): string {
+  return keyframes.length
+    ? HOURS.map((hour) => `${interpolateColor(keyframes, hour)} ${(hour / 23) * 100}%`).join(", ")
+    : "transparent";
+}
+
+function readTextureLabel(value: string | undefined): string {
+  if (!value) {
+    return "Not configured";
+  }
+  const parts = value.split(/[\\/]/).filter(Boolean);
+  return parts[parts.length - 1] ?? value;
+}
+
+function describeDaypart(hour: number): { label: string; description: string; accent: string } {
+  if (hour <= 4) {
+    return { label: "Deep Night", description: "Stars and moon dominate the sky gradient.", accent: "#334155" };
+  }
+  if (hour <= 6) {
+    return { label: "Dawn", description: "Sunrise ramp and fog colors start to warm up.", accent: "#fb7185" };
+  }
+  if (hour <= 11) {
+    return { label: "Morning", description: "Sky tracks brighten while fog begins to lift.", accent: "#fbbf24" };
+  }
+  if (hour <= 15) {
+    return { label: "Midday", description: "Maximum light, flatter fog and strongest sky contrast.", accent: "#38bdf8" };
+  }
+  if (hour <= 18) {
+    return { label: "Afternoon", description: "Sun starts to fall and warm tones begin to return.", accent: "#f59e0b" };
+  }
+  if (hour <= 20) {
+    return { label: "Dusk", description: "Sunset and fog tracks become the dominant mood.", accent: "#f97316" };
+  }
+  return { label: "Nightfall", description: "Scene transitions back into moonlight and star visibility.", accent: "#6366f1" };
+}
+
+function findDuplicateHours(entries: Array<{ Hour: number }>): number[] {
+  const counts = new Map<number, number>();
+  for (const entry of entries) {
+    counts.set(entry.Hour, (counts.get(entry.Hour) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([hour]) => hour)
+    .sort((left, right) => left - right);
+}
+
+function nodeGridPosition(index: number, baseX: number, baseY: number, columns: number = 2) {
+  return {
+    x: baseX + ((index % columns) * 300),
+    y: baseY + (Math.floor(index / columns) * 122),
+  };
+}
+
 interface ColorTrackCardProps {
   label: string;
   keyframes: HourColor[];
   onChange: (index: number, next: HourColor) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
+  isFocused?: boolean;
 }
 
-function ColorTrackCard({ label, keyframes, onChange, onRemove, onAdd }: ColorTrackCardProps) {
+function ColorTrackCard({ label, keyframes, onChange, onRemove, onAdd, isFocused = false }: ColorTrackCardProps) {
   const entries = keyframes
     .map((entry, index) => ({ entry, index }))
     .sort((left, right) => left.entry.Hour - right.entry.Hour);
-  const gradient = keyframes.length
-    ? HOURS.map((hour) => `${interpolateColor(keyframes, hour)} ${(hour / 23) * 100}%`).join(", ")
-    : "transparent";
+  const gradient = buildTrackGradient(keyframes);
 
   return (
-    <div className="rounded border border-tn-border/60 bg-tn-surface/40">
+    <div className={sectionClass(isFocused)}>
       <div className="border-b border-tn-border/40 px-3 py-2">
         <div className="flex items-center gap-2">
           <div
@@ -305,9 +374,10 @@ interface ValueTrackCardProps {
   onChange: (index: number, next: HourValue) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
+  isFocused?: boolean;
 }
 
-function ValueTrackCard({ label, keyframes, onChange, onRemove, onAdd }: ValueTrackCardProps) {
+function ValueTrackCard({ label, keyframes, onChange, onRemove, onAdd, isFocused = false }: ValueTrackCardProps) {
   const entries = keyframes
     .map((entry, index) => ({ entry, index }))
     .sort((left, right) => left.entry.Hour - right.entry.Hour);
@@ -317,7 +387,7 @@ function ValueTrackCard({ label, keyframes, onChange, onRemove, onAdd }: ValueTr
   const span = Math.max(1, maxValue - minValue);
 
   return (
-    <div className="rounded border border-tn-border/60 bg-tn-surface/40">
+    <div className={sectionClass(isFocused)}>
       <div className="border-b border-tn-border/40 px-3 py-2">
         <div className="flex items-center gap-2">
           <div className="flex h-8 flex-1 items-end gap-px rounded border border-tn-border/40 bg-tn-bg px-1 py-1">
@@ -386,6 +456,147 @@ function ValueTrackCard({ label, keyframes, onChange, onRemove, onAdd }: ValueTr
   );
 }
 
+function PreviewSwatchCard({ label, color, detail }: { label: string; color: string; detail: string }) {
+  return (
+    <div className="rounded border border-tn-border/50 bg-tn-bg/80 px-3 py-2">
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-4 shrink-0 rounded border border-white/15" style={{ backgroundColor: color }} />
+        <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">{label}</p>
+      </div>
+      <p className="mt-1 text-[11px] font-medium text-tn-text">{detail}</p>
+    </div>
+  );
+}
+
+function PreviewValueCard({ label, value, detail }: { label: string; value: string; detail: string }) {
+  return (
+    <div className="rounded border border-tn-border/50 bg-tn-bg/80 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">{label}</p>
+      <p className="mt-1 text-[13px] font-semibold text-tn-text">{value}</p>
+      <p className="mt-1 text-[10px] text-tn-text-muted">{detail}</p>
+    </div>
+  );
+}
+
+function PreviewInsightCard({
+  label,
+  title,
+  detail,
+  accent,
+}: {
+  label: string;
+  title: string;
+  detail: string;
+  accent: string;
+}) {
+  return (
+    <div className="rounded border border-tn-border/50 bg-tn-bg/80 px-3 py-3">
+      <div className="flex items-center gap-2">
+        <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: accent }} />
+        <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">{label}</p>
+      </div>
+      <p className="mt-1.5 text-[13px] font-semibold text-tn-text">{title}</p>
+      <p className="mt-1 text-[10px] leading-relaxed text-tn-text-muted">{detail}</p>
+    </div>
+  );
+}
+
+function ColorTimelineRow({
+  label,
+  keyframes,
+  currentHour,
+  onSelectHour,
+}: {
+  label: string;
+  keyframes: HourColor[];
+  currentHour: number;
+  onSelectHour: (hour: number) => void;
+}) {
+  return (
+    <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-2">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-medium text-tn-text">{label}</span>
+        <div className="flex items-center gap-2 text-[10px] text-tn-text-muted">
+          <span>{keyframes.length} keys</span>
+          <span className="font-mono">{interpolateColor(keyframes, currentHour)}</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-12 gap-1 sm:grid-cols-24">
+        {HOURS.map((hour) => (
+          <button
+            key={`${label}-${hour}`}
+            type="button"
+            onClick={() => onSelectHour(hour)}
+            className={`rounded border transition-transform hover:-translate-y-0.5 ${
+              currentHour === hour ? "border-tn-accent ring-1 ring-tn-accent/50" : "border-tn-border/40"
+            }`}
+            title={`${label} at ${hour}:00`}
+          >
+            <div
+              className="h-6 rounded-sm"
+              style={{ backgroundColor: interpolateColor(keyframes, hour) }}
+            />
+            <p className="py-0.5 text-center text-[9px] font-mono text-tn-text-muted">{hour}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ValueTimelineRow({
+  label,
+  keyframes,
+  currentHour,
+  onSelectHour,
+}: {
+  label: string;
+  keyframes: HourValue[];
+  currentHour: number;
+  onSelectHour: (hour: number) => void;
+}) {
+  const samples = HOURS.map((hour) => interpolateValue(keyframes, hour));
+  const minValue = samples.length ? Math.min(...samples) : 0;
+  const maxValue = samples.length ? Math.max(...samples) : 0;
+  const span = Math.max(1, maxValue - minValue);
+
+  return (
+    <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-2">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-[11px] font-medium text-tn-text">{label}</span>
+        <div className="flex items-center gap-2 text-[10px] text-tn-text-muted">
+          <span>{keyframes.length} keys</span>
+          <span className="font-mono">{formatTrackValue(interpolateValue(keyframes, currentHour))}</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-12 items-end gap-1 sm:grid-cols-24">
+        {samples.map((sample, hour) => {
+          const normalized = ((sample - minValue) / span) * 100;
+          return (
+            <button
+              key={`${label}-${hour}`}
+              type="button"
+              onClick={() => onSelectHour(hour)}
+              className={`rounded border px-0.5 pt-1 transition-transform hover:-translate-y-0.5 ${
+                currentHour === hour ? "border-tn-accent ring-1 ring-tn-accent/50" : "border-tn-border/40"
+              }`}
+              title={`${label} at ${hour}:00 = ${formatTrackValue(sample)}`}
+            >
+              <div className="flex h-10 items-end">
+                <div
+                  className="w-full rounded-sm bg-tn-accent/70"
+                  style={{ height: `${Math.max(12, normalized || 0)}%` }}
+                />
+              </div>
+              <p className="py-0.5 text-center text-[9px] font-mono text-tn-text-muted">{hour}</p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function WeatherEditorView() {
   const rawJsonContent = useEditorStore((state) => state.rawJsonContent) as WeatherDoc | null;
   const setRawJsonContent = useEditorStore((state) => state.setRawJsonContent);
@@ -393,6 +604,8 @@ export function WeatherEditorView() {
   const isDirty = useProjectStore((state) => state.isDirty);
   const setDirty = useProjectStore((state) => state.setDirty);
   const [previewHour, setPreviewHour] = useState(12);
+  const selectedGraphNodeId = useEditorStore((state) => state.selectedNodeId) ?? "weather-root";
+  const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
 
   if (!rawJsonContent) {
@@ -435,9 +648,701 @@ export function WeatherEditorView() {
 
   const skyTop = interpolateColor((doc.SkyTopColors as HourColor[] | undefined) ?? [], previewHour) || "#28405a";
   const skyBottom = interpolateColor((doc.SkyBottomColors as HourColor[] | undefined) ?? [], previewHour) || "#0f172a";
+  const sunsetColor = interpolateColor((doc.SkySunsetColors as HourColor[] | undefined) ?? [], previewHour) || "#fb923c";
   const fogColor = interpolateColor((doc.FogColors as HourColor[] | undefined) ?? [], previewHour) || "#223142";
   const sunColor = interpolateColor((doc.SunColors as HourColor[] | undefined) ?? [], previewHour) || "#fbbf24";
+  const moonColor = interpolateColor((doc.MoonColors as HourColor[] | undefined) ?? [], previewHour) || "#cbd5f5";
+  const moonGlowColor = interpolateColor((doc.MoonGlowColors as HourColor[] | undefined) ?? [], previewHour) || "#94a3b8";
+  const waterTint = interpolateColor((doc.WaterTints as HourColor[] | undefined) ?? [], previewHour) || "#2563eb";
+  const screenFx = interpolateColor((doc.ScreenEffectColors as HourColor[] | undefined) ?? [], previewHour) || "#64748b";
+  const sunlightColor = interpolateColor((doc.SunlightColors as HourColor[] | undefined) ?? [], previewHour) || "#fde68a";
+  const sunScale = interpolateValue((doc.SunScales as HourValue[] | undefined) ?? [], previewHour) || 0;
+  const moonScale = interpolateValue((doc.MoonScales as HourValue[] | undefined) ?? [], previewHour) || 0;
+  const fogDensity = interpolateValue((doc.FogDensities as HourValue[] | undefined) ?? [], previewHour) || 0;
+  const fogHeightFalloff = interpolateValue((doc.FogHeightFalloffs as HourValue[] | undefined) ?? [], previewHour) || 0;
+  const sunlightDamping = interpolateValue((doc.SunlightDampingMultipliers as HourValue[] | undefined) ?? [], previewHour) || 0;
   const extraEntries = Object.entries(doc).filter(([key]) => !KNOWN_KEYS.has(key));
+  const cloudLayers = Array.isArray(doc.Clouds) ? doc.Clouds : [];
+  const moons = Array.isArray(doc.Moons) ? doc.Moons : [];
+  const daypart = describeDaypart(previewHour);
+  const fogNear = Array.isArray(doc.FogDistance) && typeof doc.FogDistance[0] === "number" ? doc.FogDistance[0] : null;
+  const fogFar = Array.isArray(doc.FogDistance) && typeof doc.FogDistance[1] === "number" ? doc.FogDistance[1] : null;
+  const fogSpread = fogNear !== null && fogFar !== null ? fogFar - fogNear : null;
+  const totalCloudColorKeys = cloudLayers.reduce((sum, layer) => sum + ((layer.Colors ?? []).length), 0);
+  const totalCloudSpeedKeys = cloudLayers.reduce((sum, layer) => sum + ((layer.Speeds ?? []).length), 0);
+  const starTexture = typeof doc.Stars === "string" ? doc.Stars : null;
+  const primaryMoonTexture = moons.find((moon) => typeof moon.Texture === "string")?.Texture;
+  const particleSummary = doc.Particle === undefined ? "No particle system" : describeValue(doc.Particle);
+  const tagSummary = isRecord(doc.Tags)
+    ? Object.entries(doc.Tags)
+      .slice(0, 2)
+      .map(([key, values]) => `${key}: ${Array.isArray(values) ? values.join(", ") : describeValue(values)}`)
+      .join(" | ")
+    : "No tags";
+  const nightFactor = previewHour <= 5 ? 1 - (previewHour / 6) : previewHour >= 18 ? (previewHour - 18) / 5 : 0;
+  const daylightProgress = clamp((previewHour - 6) / 12, 0, 1);
+  const sunVisible = previewHour >= 5 && previewHour <= 20;
+  const moonVisible = previewHour <= 7 || previewHour >= 17;
+  const sunX = 8 + (daylightProgress * 74);
+  const sunY = 58 - (Math.sin(daylightProgress * Math.PI) * 42);
+  const moonProgress = previewHour <= 7 ? (previewHour + 6) / 13 : (previewHour - 17) / 7;
+  const moonX = 8 + (clamp(moonProgress, 0, 1) * 74);
+  const moonY = 58 - (Math.sin(clamp(moonProgress, 0, 1) * Math.PI) * 34);
+  const colorTrackCount = COLOR_TRACKS.reduce((sum, track) => sum + (((doc[track.key] as HourColor[] | undefined) ?? []).length), 0);
+  const valueTrackCount = VALUE_TRACKS.reduce((sum, track) => sum + (((doc[track.key] as HourValue[] | undefined) ?? []).length), 0);
+  const quickPreviewHours = [
+    { label: "Midnight", hour: 0 },
+    { label: "Dawn", hour: 6 },
+    { label: "Noon", hour: 12 },
+    { label: "Dusk", hour: 18 },
+  ] as const;
+
+  const weatherIssues = useMemo<EditorCalloutItem[]>(() => {
+    const items: EditorCalloutItem[] = [];
+    const essentialMissing = [
+      { key: "SkyTopColors", label: "Sky Top" },
+      { key: "SkyBottomColors", label: "Sky Bottom" },
+      { key: "FogColors", label: "Fog" },
+      { key: "SunColors", label: "Sun" },
+    ].filter(({ key }) => (((doc[key] as HourColor[] | undefined) ?? []).length === 0));
+
+    if (essentialMissing.length > 0) {
+      items.push({
+        severity: "warning",
+        title: "Core color tracks are missing",
+        detail: `${essentialMissing.map((track) => track.label).join(", ")} will fall back to default preview colors until they are populated.`,
+      });
+    }
+
+    if (!Array.isArray(doc.FogDistance) || doc.FogDistance.length < 2) {
+      items.push({
+        severity: "warning",
+        title: "Fog distance is not configured",
+        detail: "Set near/far fog bounds so the preview volume matches the real weather file.",
+      });
+    } else if ((doc.FogDistance[1] ?? 0) <= (doc.FogDistance[0] ?? 0)) {
+      items.push({
+        severity: "error",
+        title: "Fog distance range is inverted",
+        detail: `Far (${doc.FogDistance[1]}) should be greater than near (${doc.FogDistance[0]}).`,
+      });
+    }
+
+    const duplicateTrackWarnings = [
+      ...COLOR_TRACKS.flatMap((track) => {
+        const duplicates = findDuplicateHours((doc[track.key] as HourColor[] | undefined) ?? []);
+        return duplicates.length > 0 ? [`${track.label} @ ${duplicates.join(", ")}`] : [];
+      }),
+      ...VALUE_TRACKS.flatMap((track) => {
+        const duplicates = findDuplicateHours((doc[track.key] as HourValue[] | undefined) ?? []);
+        return duplicates.length > 0 ? [`${track.label} @ ${duplicates.join(", ")}`] : [];
+      }),
+      ...cloudLayers.flatMap((layer, index) => {
+        const colorDupes = findDuplicateHours(layer.Colors ?? []);
+        const speedDupes = findDuplicateHours(layer.Speeds ?? []);
+        const label = `Cloud ${index + 1}`;
+        return [
+          ...(colorDupes.length > 0 ? [`${label} colors @ ${colorDupes.join(", ")}`] : []),
+          ...(speedDupes.length > 0 ? [`${label} speeds @ ${speedDupes.join(", ")}`] : []),
+        ];
+      }),
+    ];
+
+    if (duplicateTrackWarnings.length > 0) {
+      items.push({
+        severity: "warning",
+        title: "Duplicate hour keys detected",
+        detail: duplicateTrackWarnings.slice(0, 4).join(" | "),
+      });
+    }
+
+    if (!starTexture && moons.length === 0) {
+      items.push({
+        severity: "info",
+        title: "No celestial assets configured",
+        detail: "This file has neither a star texture nor moon entries, so the night preview will stay visually sparse.",
+      });
+    }
+
+    if (cloudLayers.length === 0) {
+      items.push({
+        severity: "info",
+        title: "No cloud layers present",
+        detail: "The sky preview is currently driven only by color tracks and celestial settings.",
+      });
+    }
+
+    if (extraEntries.length > 0) {
+      items.push({
+        severity: "info",
+        title: "Additional weather fields detected",
+        detail: `${extraEntries.length} fields are present outside the first-class editor model. Check the metadata card for raw values.`,
+      });
+    }
+
+    return items;
+  }, [cloudLayers, doc, extraEntries.length, moons.length, starTexture]);
+
+  const weatherTips = useMemo(() => [
+    "Use the preset hour buttons or the 24h strips to jump quickly between midnight, dawn, noon, and dusk.",
+    "Graph mode mirrors track structure; editor mode is where you tune keyframes and see the richer scene preview.",
+    "Duplicate hour keys are worth cleaning up before export because they make interpolation ambiguous.",
+    "Cloud layer speed and color keys affect the hero preview immediately, so it is a good fast sanity check before saving.",
+  ], []);
+
+  const weatherGraph = useMemo(() => {
+    const nodes: Array<Node<StructuredGraphNodeData>> = [
+      {
+        id: "weather-root",
+        position: { x: 0, y: 520 },
+        data: {
+          label: "Weather File",
+          subtitle: currentFile?.split(/[/\\]/).pop() ?? "Untitled",
+          accent: skyTop,
+          stats: [
+            `${COLOR_TRACKS.length} color tracks, ${colorTrackCount} keyframes`,
+            `${VALUE_TRACKS.length} numeric tracks, ${valueTrackCount} keyframes`,
+            `${cloudLayers.length} cloud layers, ${moons.length} moon entries`,
+          ],
+          badges: ["Weather", "Graph"],
+        },
+      },
+      {
+        id: "group:colors",
+        position: { x: 300, y: 180 },
+        data: {
+          label: "Color Tracks",
+          subtitle: "Sky, fog, celestial, FX, and water palettes.",
+          accent: sunsetColor,
+          stats: [`Sampled at ${previewHour}:00`, `${COLOR_TRACKS.length} editable tracks`],
+          badges: ["Palette"],
+        },
+      },
+      {
+        id: "group:values",
+        position: { x: 300, y: 900 },
+        data: {
+          label: "Numeric Tracks",
+          subtitle: "Scale, damping, and fog density curves.",
+          accent: "#38bdf8",
+          stats: [`Sampled at ${previewHour}:00`, `${VALUE_TRACKS.length} editable tracks`],
+          badges: ["Curves"],
+        },
+      },
+      {
+        id: "group:features",
+        position: { x: 300, y: 1260 },
+        data: {
+          label: "Feature Nodes",
+          subtitle: "Fog bounds, clouds, moons, stars, and extras.",
+          accent: "#a78bfa",
+          stats: [`Fog distance ${Array.isArray(doc.FogDistance) ? `${doc.FogDistance[0]} to ${doc.FogDistance[1]}` : "not set"}`],
+          badges: ["Meta"],
+        },
+      },
+    ];
+
+    const edges: Edge[] = [
+      { id: "edge-root-colors", source: "weather-root", target: "group:colors" },
+      { id: "edge-root-values", source: "weather-root", target: "group:values" },
+      { id: "edge-root-features", source: "weather-root", target: "group:features" },
+    ];
+
+    COLOR_TRACKS.forEach((track, index) => {
+      const keyframes = (doc[track.key] as HourColor[] | undefined) ?? [];
+      nodes.push({
+        id: `color:${track.key}`,
+        position: nodeGridPosition(index, 620, 0),
+        data: {
+          label: track.label,
+          subtitle: track.key,
+          accent: interpolateColor(keyframes, previewHour),
+          stats: [
+            `${keyframes.length} keyframe${keyframes.length === 1 ? "" : "s"}`,
+            `${previewHour}:00 -> ${interpolateColor(keyframes, previewHour)}`,
+          ],
+          badges: keyframes.length > 0 ? [`${keyframes[0]?.Hour ?? 0}:00`, `${keyframes[keyframes.length - 1]?.Hour ?? 0}:00`] : ["Empty"],
+        },
+      });
+      edges.push({ id: `edge-color-${track.key}`, source: "group:colors", target: `color:${track.key}` });
+    });
+
+    VALUE_TRACKS.forEach((track, index) => {
+      const keyframes = (doc[track.key] as HourValue[] | undefined) ?? [];
+      nodes.push({
+        id: `value:${track.key}`,
+        position: nodeGridPosition(index, 620, 720),
+        data: {
+          label: track.label,
+          subtitle: track.key,
+          accent: "#38bdf8",
+          stats: [
+            `${keyframes.length} keyframe${keyframes.length === 1 ? "" : "s"}`,
+            `${previewHour}:00 -> ${formatTrackValue(interpolateValue(keyframes, previewHour))}`,
+          ],
+          badges: keyframes.length > 0 ? [`min ${formatTrackValue(Math.min(...keyframes.map((entry) => entry.Value)))}`, `max ${formatTrackValue(Math.max(...keyframes.map((entry) => entry.Value)))}`] : ["Empty"],
+        },
+      });
+      edges.push({ id: `edge-value-${track.key}`, source: "group:values", target: `value:${track.key}` });
+    });
+
+    const featureNodes: Array<Node<StructuredGraphNodeData>> = [
+      {
+        id: "feature:fog-distance",
+        position: nodeGridPosition(0, 620, 1160),
+        data: {
+          label: "Fog Distance",
+          subtitle: "Near/far plane for the weather volume.",
+          accent: fogColor,
+          stats: [Array.isArray(doc.FogDistance) ? `${doc.FogDistance[0]} to ${doc.FogDistance[1]}` : "Not configured"],
+          badges: ["Fog"],
+        },
+      },
+      {
+        id: "feature:clouds",
+        position: nodeGridPosition(1, 620, 1160),
+        data: {
+          label: "Cloud Layers",
+          subtitle: "Layer textures with color and speed tracks.",
+          accent: cloudLayers[0]?.Colors?.length ? interpolateColor(cloudLayers[0].Colors ?? [], previewHour) : "#64748b",
+          stats: [
+            `${cloudLayers.length} layer${cloudLayers.length === 1 ? "" : "s"}`,
+            `${cloudLayers.reduce((sum, layer) => sum + ((layer.Colors ?? []).length), 0)} color keys`,
+          ],
+          badges: ["Clouds"],
+        },
+      },
+      {
+        id: "feature:moons",
+        position: nodeGridPosition(2, 620, 1160),
+        data: {
+          label: "Moons and Stars",
+          subtitle: typeof doc.Stars === "string" ? doc.Stars : "No star texture",
+          accent: moonGlowColor,
+          stats: [
+            `${moons.length} moon cycle entr${moons.length === 1 ? "y" : "ies"}`,
+            typeof doc.Stars === "string" ? "Stars texture configured" : "Stars texture missing",
+          ],
+          badges: ["Celestial"],
+        },
+      },
+      {
+        id: "feature:extras",
+        position: nodeGridPosition(3, 620, 1160),
+        data: {
+          label: "Additional Fields",
+          subtitle: "Fields not yet modeled as first-class weather tracks.",
+          accent: "#f97316",
+          stats: [`${extraEntries.length} extra entr${extraEntries.length === 1 ? "y" : "ies"}`],
+          badges: extraEntries.length > 0 ? extraEntries.slice(0, 2).map(([key]) => key) : ["None"],
+        },
+      },
+    ];
+
+    for (const node of featureNodes) {
+      nodes.push(node);
+      edges.push({ id: `edge-${node.id}`, source: "group:features", target: node.id });
+    }
+
+    return { nodes, edges };
+  }, [
+    cloudLayers,
+    colorTrackCount,
+    currentFile,
+    doc,
+    extraEntries,
+    fogColor,
+    moons.length,
+    moonGlowColor,
+    previewHour,
+    skyTop,
+    sunsetColor,
+    valueTrackCount,
+  ]);
+
+  const graphPanel = (
+    <div className={sectionClass(selectedGraphNodeId === "weather-root" || selectedGraphNodeId === "")}>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Weather Graph</h3>
+          <p className="mt-1 text-[11px] text-tn-text-muted">
+            Track nodes mirror the weather editor structure. Click a node to focus the matching editor block.
+          </p>
+        </div>
+        <div className="rounded border border-tn-border/50 bg-tn-bg/60 px-2 py-1 text-right text-[10px] text-tn-text-muted">
+          <p>{weatherGraph.nodes.length} nodes</p>
+          <p>{weatherGraph.edges.length} links</p>
+        </div>
+      </div>
+      <div className="h-[78vh] min-h-[680px]">
+        <AssetGraphCanvasBridge
+          nodes={weatherGraph.nodes}
+          edges={weatherGraph.edges}
+          defaultSelectionId="weather-root"
+        />
+      </div>
+    </div>
+  );
+
+  const previewPanel = (
+    <div className={sectionClass(selectedGraphNodeId === "weather-root")}>
+      <div className="mb-3 flex items-center gap-3">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Preview Hour</span>
+        <input
+          type="range"
+          min={0}
+          max={23}
+          step={1}
+          value={previewHour}
+          onChange={(event) => setPreviewHour(Number.parseInt(event.target.value, 10))}
+          className="flex-1 accent-tn-accent"
+        />
+        <span className="w-12 text-right text-[10px] font-mono text-tn-text-muted">{previewHour}:00</span>
+        <span
+          className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
+          style={{ borderColor: `${daypart.accent}66`, color: daypart.accent, backgroundColor: `${daypart.accent}14` }}
+        >
+          {daypart.label}
+        </span>
+      </div>
+
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {quickPreviewHours.map((preset) => (
+          <button
+            key={preset.label}
+            type="button"
+            onClick={() => setPreviewHour(preset.hour)}
+            className={`rounded border px-2 py-1 text-[10px] transition-colors ${
+              previewHour === preset.hour
+                ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
+                : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+            }`}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mb-3 grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
+        <EditorCalloutSection
+          title="Issue Log"
+          items={weatherIssues}
+          emptyState="No obvious weather file problems were detected in the current preview model."
+        />
+        <EditorTipsSection title="Tips" tips={weatherTips} />
+      </div>
+
+      <div
+        className="relative h-64 overflow-hidden rounded-xl border border-tn-border/50"
+        style={{ background: `linear-gradient(to bottom, ${skyTop}, ${sunlightColor}, ${skyBottom})` }}
+      >
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{ background: `radial-gradient(circle at 50% 72%, ${sunsetColor}66 0%, transparent 48%)` }}
+        />
+
+        <div className="absolute inset-0 opacity-80">
+          {Array.from({ length: 24 }).map((_, index) => (
+            <div
+              key={`star-${index}`}
+              className="absolute h-1 w-1 rounded-full bg-white/85"
+              style={{
+                left: `${(index * 17) % 92}%`,
+                top: `${(index * 11) % 55}%`,
+                opacity: nightFactor,
+                transform: `scale(${0.7 + (((index * 13) % 10) / 10)})`,
+              }}
+            />
+          ))}
+        </div>
+
+        {cloudLayers.slice(0, 3).map((layer, index) => {
+          const color = interpolateColor(layer.Colors ?? [], previewHour);
+          const speed = interpolateValue(layer.Speeds ?? [], previewHour);
+          return (
+            <div
+              key={`${layer.Texture ?? "cloud"}-${index}`}
+              className="absolute left-0 right-0 rounded-full blur-[2px]"
+              style={{
+                top: `${16 + (index * 13)}%`,
+                height: `${18 - (index * 2)}%`,
+                background: `linear-gradient(to right, transparent, ${color}cc, ${color}66, transparent)`,
+                transform: `translateX(${(speed * 4) % 24}px)`,
+              }}
+            />
+          );
+        })}
+
+        {sunVisible && (
+          <div
+            className="absolute h-12 w-12 rounded-full shadow-[0_0_36px_rgba(255,220,120,0.65)]"
+            style={{
+              left: `${sunX}%`,
+              top: `${sunY}%`,
+              backgroundColor: sunColor,
+              transform: `translate(-50%, -50%) scale(${Math.max(0.75, sunScale || 1)})`,
+            }}
+          />
+        )}
+
+        {moonVisible && (
+          <div
+            className="absolute h-9 w-9 rounded-full border border-white/20 shadow-[0_0_28px_rgba(180,200,255,0.45)]"
+            style={{
+              left: `${moonX}%`,
+              top: `${moonY}%`,
+              background: `radial-gradient(circle at 35% 35%, #ffffff, ${moonColor})`,
+              boxShadow: `0 0 26px ${moonGlowColor}66`,
+              transform: `translate(-50%, -50%) scale(${Math.max(0.75, moonScale || 1)})`,
+            }}
+          />
+        )}
+
+        <div
+          className="absolute inset-x-0 bottom-0 h-24"
+          style={{ background: `linear-gradient(to top, ${fogColor}dd, transparent)` }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(to bottom, transparent 38%, ${screenFx}22 100%)`,
+            opacity: clamp(0.18 + (fogDensity * 0.2), 0.14, 0.48),
+          }}
+        />
+        <div
+          className="absolute inset-x-0 bottom-0 h-8 border-t border-white/10"
+          style={{ backgroundColor: `${waterTint}aa` }}
+        />
+
+        <div className="absolute left-3 top-3 rounded bg-black/35 px-2 py-1 text-[10px] text-white/80">
+          Layered preview sampled from the actual weather tracks.
+        </div>
+        <div className="absolute bottom-3 right-3 rounded bg-black/40 px-3 py-2 text-right text-[10px] text-white/80">
+          <p className="font-semibold">{daypart.label}</p>
+          <p>Fog {fogNear ?? "?"} to {fogFar ?? "?"}</p>
+          <p>Clouds {cloudLayers.length} layers</p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        <PreviewInsightCard
+          label="Daypart"
+          title={daypart.label}
+          detail={daypart.description}
+          accent={daypart.accent}
+        />
+        <PreviewInsightCard
+          label="Celestial"
+          title={sunVisible ? "Sun in frame" : moonVisible ? "Moon in frame" : "No body visible"}
+          detail={`Sun scale ${formatTrackValue(sunScale)} | Moon scale ${formatTrackValue(moonScale)} | Stars ${starTexture ? "configured" : "missing"}`}
+          accent={sunVisible ? sunColor : moonColor}
+        />
+        <PreviewInsightCard
+          label="Fog Volume"
+          title={fogSpread !== null ? `${formatTrackValue(fogSpread)} span` : "Not configured"}
+          detail={`Near ${fogNear ?? "?"} | Far ${fogFar ?? "?"} | Density ${formatTrackValue(fogDensity)} | Falloff ${formatTrackValue(fogHeightFalloff)}`}
+          accent={fogColor}
+        />
+        <PreviewInsightCard
+          label="Asset Stack"
+          title={`${cloudLayers.length} cloud layer${cloudLayers.length === 1 ? "" : "s"}`}
+          detail={`Stars ${readTextureLabel(starTexture ?? undefined)} | Moon ${readTextureLabel(primaryMoonTexture)} | Particle ${particleSummary}`}
+          accent={cloudLayers[0]?.Colors?.length ? interpolateColor(cloudLayers[0].Colors ?? [], previewHour) : "#64748b"}
+        />
+      </div>
+
+      <div className="mt-3">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">24h Atmosphere Strip</p>
+        <div className="grid grid-cols-12 gap-1 sm:grid-cols-24">
+          {HOURS.map((hour) => (
+            <button
+              key={`hour-strip-${hour}`}
+              type="button"
+              onClick={() => setPreviewHour(hour)}
+              className={`group rounded border transition-transform hover:-translate-y-0.5 ${
+                previewHour === hour ? "border-tn-accent ring-1 ring-tn-accent/50" : "border-tn-border/50"
+              }`}
+              title={`${hour}:00`}
+            >
+              <div
+                className="h-10 rounded-sm"
+                style={{
+                  background: `linear-gradient(to bottom, ${interpolateColor((doc.SkyTopColors as HourColor[] | undefined) ?? [], hour)}, ${interpolateColor((doc.SkyBottomColors as HourColor[] | undefined) ?? [], hour)})`,
+                }}
+              />
+              <p className="py-1 text-center text-[9px] font-mono text-tn-text-muted">{hour}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-3 xl:grid-cols-2">
+        <div className="space-y-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Color Track Preview</p>
+            <p className="mt-1 text-[11px] text-tn-text-muted">
+              These rows are sampled directly from the color tracks. Click any hour to retime the preview.
+            </p>
+          </div>
+          <ColorTimelineRow
+            label="Sky Top"
+            keyframes={(doc.SkyTopColors as HourColor[] | undefined) ?? []}
+            currentHour={previewHour}
+            onSelectHour={setPreviewHour}
+          />
+          <ColorTimelineRow
+            label="Sky Bottom"
+            keyframes={(doc.SkyBottomColors as HourColor[] | undefined) ?? []}
+            currentHour={previewHour}
+            onSelectHour={setPreviewHour}
+          />
+          <ColorTimelineRow
+            label="Sunset"
+            keyframes={(doc.SkySunsetColors as HourColor[] | undefined) ?? []}
+            currentHour={previewHour}
+            onSelectHour={setPreviewHour}
+          />
+          <ColorTimelineRow
+            label="Fog"
+            keyframes={(doc.FogColors as HourColor[] | undefined) ?? []}
+            currentHour={previewHour}
+            onSelectHour={setPreviewHour}
+          />
+          <ColorTimelineRow
+            label="Water"
+            keyframes={(doc.WaterTints as HourColor[] | undefined) ?? []}
+            currentHour={previewHour}
+            onSelectHour={setPreviewHour}
+          />
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Numeric Track Preview</p>
+            <p className="mt-1 text-[11px] text-tn-text-muted">
+              Curve sampling is shown here without leaving the editor. The selected hour stays synchronized with the scene card.
+            </p>
+          </div>
+          <ValueTimelineRow
+            label="Sun Scale"
+            keyframes={(doc.SunScales as HourValue[] | undefined) ?? []}
+            currentHour={previewHour}
+            onSelectHour={setPreviewHour}
+          />
+          <ValueTimelineRow
+            label="Moon Scale"
+            keyframes={(doc.MoonScales as HourValue[] | undefined) ?? []}
+            currentHour={previewHour}
+            onSelectHour={setPreviewHour}
+          />
+          <ValueTimelineRow
+            label="Fog Density"
+            keyframes={(doc.FogDensities as HourValue[] | undefined) ?? []}
+            currentHour={previewHour}
+            onSelectHour={setPreviewHour}
+          />
+          <ValueTimelineRow
+            label="Fog Falloff"
+            keyframes={(doc.FogHeightFalloffs as HourValue[] | undefined) ?? []}
+            currentHour={previewHour}
+            onSelectHour={setPreviewHour}
+          />
+          <ValueTimelineRow
+            label="Light Damping"
+            keyframes={(doc.SunlightDampingMultipliers as HourValue[] | undefined) ?? []}
+            currentHour={previewHour}
+            onSelectHour={setPreviewHour}
+          />
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        <PreviewSwatchCard label="Sky Top" color={skyTop} detail={skyTop} />
+        <PreviewSwatchCard label="Sky Bottom" color={skyBottom} detail={skyBottom} />
+        <PreviewSwatchCard label="Fog" color={fogColor} detail={fogColor} />
+        <PreviewSwatchCard label="Sunlight" color={sunlightColor} detail={sunlightColor} />
+        <PreviewSwatchCard label="Screen FX" color={screenFx} detail={screenFx} />
+        <PreviewSwatchCard label="Water Tint" color={waterTint} detail={waterTint} />
+        <PreviewValueCard label="Fog Density" value={formatTrackValue(fogDensity)} detail="Interpolated at the selected hour." />
+        <PreviewValueCard label="Fog Falloff" value={formatTrackValue(fogHeightFalloff)} detail="Height fade sampled from the curve." />
+        <PreviewValueCard label="Light Damping" value={formatTrackValue(sunlightDamping)} detail="Scene damping multiplier at this hour." />
+      </div>
+
+      <div className="mt-3 grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Cloud and Celestial Breakdown</p>
+              <p className="mt-1 text-[11px] text-tn-text-muted">
+                Asset-level preview details inferred from the weather file itself.
+              </p>
+            </div>
+            <span className="text-[10px] font-mono text-tn-text-muted">{tagSummary}</span>
+          </div>
+          <div className="mt-3 grid gap-2 lg:grid-cols-2">
+            {cloudLayers.slice(0, 4).map((layer, index) => {
+              const gradient = Array.isArray(layer.Colors) && layer.Colors.length
+                ? buildTrackGradient(layer.Colors ?? [])
+                : "";
+              const speed = interpolateValue(layer.Speeds ?? [], previewHour);
+              return (
+                <div key={`${layer.Texture ?? "cloud"}-${index}`} className="rounded border border-tn-border/40 bg-tn-surface/40 p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-[11px] font-medium text-tn-text">Cloud Layer {index + 1}</p>
+                      <p className="text-[10px] text-tn-text-muted">{readTextureLabel(layer.Texture)}</p>
+                    </div>
+                    <span className="text-[10px] font-mono text-tn-text-muted">{formatTrackValue(speed)} speed</span>
+                  </div>
+                  {gradient && (
+                    <div
+                      className="mt-2 h-3 rounded border border-tn-border/40"
+                      style={{ background: `linear-gradient(to right, ${gradient})` }}
+                    />
+                  )}
+                  <p className="mt-2 text-[10px] text-tn-text-muted">
+                    {Array.isArray(layer.Colors) ? layer.Colors.length : 0} color keys | {Array.isArray(layer.Speeds) ? layer.Speeds.length : 0} speed keys
+                  </p>
+                </div>
+              );
+            })}
+            {cloudLayers.length === 0 && (
+              <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/20 p-3 text-[11px] text-tn-text-muted">
+                No cloud layers are configured in this weather file.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Assets and Metadata</p>
+          <div className="mt-3 space-y-2 text-[11px] text-tn-text">
+            <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Stars</p>
+              <p className="mt-1">{readTextureLabel(starTexture ?? undefined)}</p>
+            </div>
+            <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Moon Cycle</p>
+              <p className="mt-1">{moons.length} entries</p>
+              <p className="mt-1 text-[10px] text-tn-text-muted">{readTextureLabel(primaryMoonTexture)}</p>
+            </div>
+            <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Tags</p>
+              <p className="mt-1 text-[10px] leading-relaxed text-tn-text-muted">{tagSummary}</p>
+            </div>
+            <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Unmodeled Fields</p>
+              <p className="mt-1">{extraEntries.length} extra field{extraEntries.length === 1 ? "" : "s"}</p>
+            </div>
+            <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
+              <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Cloud Keys</p>
+              <p className="mt-1">{totalCloudColorKeys} color keys | {totalCloudSpeedKeys} speed keys</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex h-full flex-col bg-tn-bg">
@@ -447,6 +1352,22 @@ export function WeatherEditorView() {
           <p className="mt-0.5 text-[10px] text-tn-text-muted">{currentFile?.split(/[/\\]/).pop() ?? "Untitled"}</p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-lg border border-tn-border/60 bg-tn-bg/70 p-0.5">
+            {(["editor", "graph"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setViewMode(mode)}
+                className={`rounded-md px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider transition-colors ${
+                  viewMode === mode
+                    ? "bg-tn-accent/20 text-tn-accent"
+                    : "text-tn-text-muted hover:text-tn-text"
+                }`}
+              >
+                {mode === "editor" ? "Editor" : "Graph"}
+              </button>
+            ))}
+          </div>
           <span className={`text-[10px] ${isDirty ? "text-amber-300" : "text-tn-text-muted"}`}>
             {isDirty ? "Unsaved changes" : "Saved"}
           </span>
@@ -468,60 +1389,14 @@ export function WeatherEditorView() {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="space-y-4 px-4 py-4">
-          <section className="rounded border border-tn-border/60 bg-tn-surface/40 p-3">
-            <div className="mb-2 flex items-center gap-3">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Preview Hour</span>
-              <input
-                type="range"
-                min={0}
-                max={23}
-                step={1}
-                value={previewHour}
-                onChange={(event) => setPreviewHour(Number.parseInt(event.target.value, 10))}
-                className="flex-1 accent-tn-accent"
-              />
-              <span className="w-12 text-right text-[10px] font-mono text-tn-text-muted">{previewHour}:00</span>
-            </div>
-            <div
-              className="relative h-24 overflow-hidden rounded border border-tn-border/50"
-              style={{ background: `linear-gradient(to bottom, ${skyTop}, ${skyBottom})` }}
-            >
-              <div
-                className="absolute inset-x-0 bottom-0 h-10"
-                style={{ background: `linear-gradient(to bottom, transparent, ${fogColor}88)` }}
-              />
-              <div
-                className="absolute right-6 top-4 h-8 w-8 rounded-full shadow-[0_0_24px_rgba(255,255,255,0.35)]"
-                style={{ backgroundColor: sunColor }}
-              />
-              <div className="absolute left-3 top-3 rounded bg-black/20 px-2 py-1 text-[10px] text-white/80">
-                Visual preview for the selected hour
-              </div>
-            </div>
-            <div className="mt-3 grid gap-2 md:grid-cols-4">
-              <div className="rounded border border-tn-border/40 bg-tn-bg px-2 py-1.5">
-                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Stars</p>
-                <p className="mt-0.5 truncate text-[11px] text-tn-text">{typeof doc.Stars === "string" ? doc.Stars : "None"}</p>
-              </div>
-              <div className="rounded border border-tn-border/40 bg-tn-bg px-2 py-1.5">
-                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Cloud Layers</p>
-                <p className="mt-0.5 text-[11px] text-tn-text">{Array.isArray(doc.Clouds) ? doc.Clouds.length : 0}</p>
-              </div>
-              <div className="rounded border border-tn-border/40 bg-tn-bg px-2 py-1.5">
-                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Moon Entries</p>
-                <p className="mt-0.5 text-[11px] text-tn-text">{Array.isArray(doc.Moons) ? doc.Moons.length : 0}</p>
-              </div>
-              <div className="rounded border border-tn-border/40 bg-tn-bg px-2 py-1.5">
-                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Fog Distance</p>
-                <p className="mt-0.5 text-[11px] text-tn-text">
-                  {Array.isArray(doc.FogDistance) ? `${doc.FogDistance[0]} to ${doc.FogDistance[1]}` : "None"}
-                </p>
-              </div>
-            </div>
-          </section>
+          {viewMode === "graph" ? (
+            <section>{graphPanel}</section>
+          ) : (
+            <section>{previewPanel}</section>
+          )}
 
           {Array.isArray(doc.FogDistance) && (
-            <section className="rounded border border-tn-border/60 bg-tn-surface/40 p-3">
+            <section className={sectionClass(selectedGraphNodeId === "feature:fog-distance")}>
               <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Fog Distance</p>
               <div className="flex items-center gap-2">
                 <span className="w-10 shrink-0 text-[10px] text-tn-text-muted">Near</span>
@@ -562,7 +1437,7 @@ export function WeatherEditorView() {
             <div>
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Color Tracks</h3>
               <p className="mt-1 text-[11px] text-tn-text-muted">
-                These track views give weather files a graph-like editor instead of a raw JSON fallback.
+                The graph nodes above focus these track editors, so the graph and inspector stay in sync.
               </p>
             </div>
             <div className="grid gap-3 xl:grid-cols-2">
@@ -573,6 +1448,7 @@ export function WeatherEditorView() {
                     key={track.key}
                     label={track.label}
                     keyframes={keyframes}
+                    isFocused={selectedGraphNodeId === `color:${track.key}`}
                     onChange={(index, next) => {
                       updateColorTrack(track.key, keyframes.map((entry, entryIndex) => (
                         entryIndex === index ? next : entry
@@ -599,7 +1475,7 @@ export function WeatherEditorView() {
             <div>
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Numeric Tracks</h3>
               <p className="mt-1 text-[11px] text-tn-text-muted">
-                Scale and fog curves are plotted as compact bar graphs with inline keyframe editing.
+                Numeric weather curves stay editable here, but they are also represented as nodes in the new graph.
               </p>
             </div>
             <div className="grid gap-3 xl:grid-cols-2">
@@ -610,6 +1486,7 @@ export function WeatherEditorView() {
                     key={track.key}
                     label={track.label}
                     keyframes={keyframes}
+                    isFocused={selectedGraphNodeId === `value:${track.key}`}
                     onChange={(index, next) => {
                       updateValueTrack(track.key, keyframes.map((entry, entryIndex) => (
                         entryIndex === index ? next : entry
@@ -633,13 +1510,14 @@ export function WeatherEditorView() {
           </section>
 
           {Array.isArray(doc.Clouds) && doc.Clouds.length > 0 && (
-            <section className="rounded border border-tn-border/60 bg-tn-surface/40 p-3">
+            <section className={sectionClass(selectedGraphNodeId === "feature:clouds")}>
               <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Cloud Layers</h3>
               <div className="space-y-2">
                 {doc.Clouds.map((cloud, index) => {
                   const gradient = Array.isArray(cloud.Colors) && cloud.Colors.length
                     ? HOURS.map((hour) => `${interpolateColor(cloud.Colors ?? [], hour)} ${(hour / 23) * 100}%`).join(", ")
                     : "";
+                  const speed = interpolateValue(cloud.Speeds ?? [], previewHour);
                   return (
                     <div key={`${cloud.Texture ?? "cloud"}-${index}`} className="rounded border border-tn-border/40 bg-tn-bg px-3 py-2">
                       <div className="flex items-center justify-between gap-3">
@@ -650,6 +1528,7 @@ export function WeatherEditorView() {
                         <div className="text-right text-[10px] text-tn-text-muted">
                           <p>{Array.isArray(cloud.Colors) ? cloud.Colors.length : 0} color keys</p>
                           <p>{Array.isArray(cloud.Speeds) ? cloud.Speeds.length : 0} speed keys</p>
+                          <p>Speed now {formatTrackValue(speed)}</p>
                         </div>
                       </div>
                       {gradient && (
@@ -666,7 +1545,7 @@ export function WeatherEditorView() {
           )}
 
           {extraEntries.length > 0 && (
-            <section className="rounded border border-tn-border/60 bg-tn-surface/40 p-3">
+            <section className={sectionClass(selectedGraphNodeId === "feature:extras")}>
               <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Additional Fields</h3>
               <div className="grid gap-2 md:grid-cols-2">
                 {extraEntries.map(([key, value]) => (

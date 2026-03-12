@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { Edge, Node } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import { listDirectory, writeAssetFile, type DirectoryEntryData } from "@/utils/ipc";
+import type { StructuredGraphNodeData } from "./StructuredAssetGraph";
+import { AssetGraphCanvasBridge } from "./AssetGraphCanvasBridge";
+import { EditorCalloutSection, EditorTipsSection, type EditorCalloutItem } from "./EditorCallouts";
 
 interface WeatherForecastEntry {
   WeatherId: string;
@@ -21,6 +25,15 @@ interface EnvironmentDoc extends Record<string, unknown> {
 }
 
 const HOURS = Array.from({ length: 24 }, (_, index) => index);
+
+const DAYPARTS = [
+  { id: "night", label: "Night", start: 0, end: 3, accent: "#2563eb" },
+  { id: "dawn", label: "Dawn", start: 4, end: 7, accent: "#f97316" },
+  { id: "morning", label: "Morning", start: 8, end: 11, accent: "#22c55e" },
+  { id: "afternoon", label: "Afternoon", start: 12, end: 15, accent: "#facc15" },
+  { id: "evening", label: "Evening", start: 16, end: 19, accent: "#a855f7" },
+  { id: "late", label: "Late", start: 20, end: 23, accent: "#0f172a" },
+] as const;
 
 function joinWindowsPath(base: string, child: string): string {
   return `${base.replace(/[\\/]+$/, "")}\\${child}`;
@@ -76,6 +89,59 @@ function hashColor(seed: string): string {
   return `hsl(${hue} 55% 48%)`;
 }
 
+function sectionClass(isFocused: boolean): string {
+  return `rounded border p-3 transition-colors ${
+    isFocused
+      ? "border-tn-accent/70 bg-tn-accent/10 shadow-[0_0_0_1px_rgba(100,180,255,0.18)]"
+      : "border-tn-border/60 bg-tn-surface/40"
+  }`;
+}
+
+function nodeGridPosition(index: number, baseX: number, baseY: number, columns: number = 2) {
+  return {
+    x: baseX + ((index % columns) * 290),
+    y: baseY + (Math.floor(index / columns) * 128),
+  };
+}
+
+function summarizeDaypart(doc: EnvironmentDoc, start: number, end: number) {
+  const weatherWeights = new Map<string, number>();
+  let totalEntries = 0;
+
+  for (let hour = start; hour <= end; hour += 1) {
+    for (const entry of readForecastHour(doc, hour)) {
+      totalEntries += 1;
+      weatherWeights.set(entry.WeatherId, (weatherWeights.get(entry.WeatherId) ?? 0) + entry.Weight);
+    }
+  }
+
+  const sortedWeather = [...weatherWeights.entries()].sort((left, right) => right[1] - left[1]);
+  return {
+    totalEntries,
+    sortedWeather,
+    dominantWeatherId: sortedWeather[0]?.[0] ?? null,
+    uniqueWeatherCount: sortedWeather.length,
+  };
+}
+
+function collectWeatherUsage(doc: EnvironmentDoc) {
+  const usage = new Map<string, { hours: number[]; totalWeight: number; appearances: number }>();
+
+  for (const hour of HOURS) {
+    for (const entry of readForecastHour(doc, hour)) {
+      const current = usage.get(entry.WeatherId) ?? { hours: [], totalWeight: 0, appearances: 0 };
+      if (!current.hours.includes(hour)) {
+        current.hours.push(hour);
+      }
+      current.totalWeight += entry.Weight;
+      current.appearances += 1;
+      usage.set(entry.WeatherId, current);
+    }
+  }
+
+  return usage;
+}
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === "string");
 }
@@ -93,6 +159,16 @@ function readForecastHour(doc: EnvironmentDoc, hour: number): WeatherForecastEnt
   return Array.isArray(entries) ? entries : [];
 }
 
+function EnvironmentMetricCard({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return (
+    <div className="rounded border border-tn-border/50 bg-tn-bg/80 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">{label}</p>
+      <p className="mt-1 text-[13px] font-semibold text-tn-text">{value}</p>
+      {detail && <p className="mt-1 text-[10px] text-tn-text-muted">{detail}</p>}
+    </div>
+  );
+}
+
 export function EnvironmentEditorView() {
   const rawJsonContent = useEditorStore((state) => state.rawJsonContent) as EnvironmentDoc | null;
   const setRawJsonContent = useEditorStore((state) => state.setRawJsonContent);
@@ -106,6 +182,10 @@ export function EnvironmentEditorView() {
   const [weatherPathIndex, setWeatherPathIndex] = useState<Record<string, string>>({});
   const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [lookupError, setLookupError] = useState<string | null>(null);
+  const [previewHour, setPreviewHour] = useState(12);
+  const selectedGraphNodeId = useEditorStore((state) => state.selectedNodeId) ?? "environment-root";
+  const setSelectedNodeId = useEditorStore((state) => state.setSelectedNodeId);
+  const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
 
   useEffect(() => {
     let active = true;
@@ -192,6 +272,304 @@ export function EnvironmentEditorView() {
   const extraEntries = Object.entries(doc).filter(([key]) => (
     !["Parent", "Tags", "WeatherForecasts", "WaterTint", "SpawnDensity", "BlockModificationAllowed", "$Comment"].includes(key)
   ));
+  const activeForecasts = [...readForecastHour(doc, previewHour)].sort((left, right) => right.Weight - left.Weight);
+  const selectedWeatherId = selectedGraphNodeId.startsWith("weather:") ? selectedGraphNodeId.slice("weather:".length) : null;
+  const selectedDaypart = DAYPARTS.find((daypart) => selectedGraphNodeId === `daypart:${daypart.id}`) ?? null;
+  const uniqueWeatherUsage = collectWeatherUsage(doc);
+  const uniqueWeatherIds = [...uniqueWeatherUsage.keys()].sort((left, right) => left.localeCompare(right));
+  const daypartSummaries = DAYPARTS.map((daypart) => ({
+    ...daypart,
+    ...summarizeDaypart(doc, daypart.start, daypart.end),
+  }));
+  const quickPreviewHours = [
+    { label: "Night", hour: 0 },
+    { label: "Morning", hour: 8 },
+    { label: "Afternoon", hour: 12 },
+    { label: "Evening", hour: 18 },
+  ] as const;
+
+  useEffect(() => {
+    if (selectedDaypart) {
+      setPreviewHour(selectedDaypart.start);
+    }
+  }, [selectedDaypart]);
+
+  const environmentIssues = useMemo<EditorCalloutItem[]>(() => {
+    const items: EditorCalloutItem[] = [];
+    const missingHours = HOURS.filter((hour) => readForecastHour(doc, hour).length === 0);
+    const unresolvedWeatherIds = lookupStatus === "ready"
+      ? uniqueWeatherIds.filter((weatherId) => !weatherPathIndex[weatherId.toLowerCase()])
+      : [];
+    const nonPositiveWeights = HOURS.flatMap((hour) => readForecastHour(doc, hour)
+      .filter((entry) => entry.Weight <= 0)
+      .map((entry) => `${hour}:00 ${entry.WeatherId || "(blank id)"}`));
+
+    if (!doc.Parent?.trim()) {
+      items.push({
+        severity: "warning",
+        title: "Parent environment is missing",
+        detail: "Most environment files should inherit from a base Env_* parent so shared settings are not duplicated.",
+      });
+    }
+
+    if (missingHours.length === HOURS.length) {
+      items.push({
+        severity: "error",
+        title: "No hourly forecasts are configured",
+        detail: "Populate WeatherForecasts before relying on this environment file in preview or export.",
+      });
+    } else if (missingHours.length > 0) {
+      items.push({
+        severity: "warning",
+        title: "Some forecast hours are empty",
+        detail: `${missingHours.length} of 24 hours have no weather entries. First gaps: ${missingHours.slice(0, 6).join(", ")}.`,
+      });
+    }
+
+    if (unresolvedWeatherIds.length > 0) {
+      items.push({
+        severity: "warning",
+        title: "Some weather IDs do not resolve to files",
+        detail: unresolvedWeatherIds.slice(0, 6).join(", "),
+      });
+    }
+
+    if (nonPositiveWeights.length > 0) {
+      items.push({
+        severity: "warning",
+        title: "Non-positive forecast weights found",
+        detail: nonPositiveWeights.slice(0, 5).join(" | "),
+      });
+    }
+
+    if (lookupStatus === "error") {
+      items.push({
+        severity: "error",
+        title: "Weather directory lookup failed",
+        detail: lookupError ?? "Could not read Server\\Weathers for forecast validation.",
+      });
+    }
+
+    if (tagEntries.length === 0) {
+      items.push({
+        severity: "info",
+        title: "No environment tags defined",
+        detail: "Tags are optional, but adding them makes the file easier to classify alongside real Hytale assets.",
+      });
+    }
+
+    if (extraEntries.length > 0) {
+      items.push({
+        severity: "info",
+        title: "Additional environment fields detected",
+        detail: `${extraEntries.length} fields exist outside the first-class editor surface. Review the raw section before shipping.`,
+      });
+    }
+
+    return items;
+  }, [doc, extraEntries.length, lookupError, lookupStatus, tagEntries.length, uniqueWeatherIds, weatherPathIndex]);
+
+  const environmentTips = useMemo(() => [
+    "Use the daypart cards to jump the preview to a time range and highlight the matching forecast cluster.",
+    "Graph mode is best for understanding file structure; editor mode is where you repair weights and missing hours.",
+    "The weather ID inputs are backed by the Server\\Weathers datalist, so prefer selecting existing IDs over typing freehand.",
+    "Double-click weather nodes in graph mode to open the referenced weather file immediately.",
+  ], []);
+
+  const environmentGraph = useMemo(() => {
+    const nodes: Array<Node<StructuredGraphNodeData>> = [
+      {
+        id: "environment-root",
+        position: { x: 0, y: 360 },
+        data: {
+          label: "Environment File",
+          subtitle: currentFile?.split(/[/\\]/).pop() ?? "Untitled",
+          accent: typeof doc.WaterTint === "string" ? doc.WaterTint : "#38bdf8",
+          stats: [
+            `${uniqueWeatherIds.length} unique weather reference${uniqueWeatherIds.length === 1 ? "" : "s"}`,
+            `${tagEntries.length} tag group${tagEntries.length === 1 ? "" : "s"}`,
+            `${extraEntries.length} extra field${extraEntries.length === 1 ? "" : "s"}`,
+          ],
+          badges: ["Environment", "Graph"],
+        },
+      },
+      {
+        id: "overview",
+        position: { x: 300, y: 40 },
+        data: {
+          label: "Overview",
+          subtitle: doc.Parent ?? "No parent environment",
+          accent: "#38bdf8",
+          stats: [
+            typeof doc.WaterTint === "string" ? `Water tint ${doc.WaterTint}` : "No water tint",
+            typeof doc.SpawnDensity === "number" ? `Spawn density ${doc.SpawnDensity}` : "Spawn density not set",
+          ],
+          badges: ["Parent"],
+        },
+      },
+      {
+        id: "rules",
+        position: { x: 300, y: 210 },
+        data: {
+          label: "Rules",
+          subtitle: "Spawn density and block modification flags.",
+          accent: "#22c55e",
+          stats: [
+            typeof doc.SpawnDensity === "number" ? `Spawn density ${doc.SpawnDensity}` : "No spawn density",
+            typeof doc.BlockModificationAllowed === "boolean"
+              ? `Block modification ${doc.BlockModificationAllowed ? "allowed" : "blocked"}`
+              : "Block modification unset",
+          ],
+          badges: ["Flags"],
+        },
+      },
+      {
+        id: "tags",
+        position: { x: 300, y: 380 },
+        data: {
+          label: "Tags",
+          subtitle: `${tagEntries.length} tag group${tagEntries.length === 1 ? "" : "s"}`,
+          accent: "#a855f7",
+          stats: tagEntries.slice(0, 3).map(([key, values]) => `${key}: ${values.length}`),
+          badges: tagEntries.slice(0, 3).map(([key]) => key),
+        },
+      },
+      {
+        id: "forecasts",
+        position: { x: 300, y: 560 },
+        data: {
+          label: "Forecast Timeline",
+          subtitle: "24 hourly weather buckets resolved from Server\\Weathers.",
+          accent: "#f97316",
+          stats: [
+            `${dominantForecasts.filter(Boolean).length} hours with dominant weather`,
+            `${weatherOptions.length} indexed weather files`,
+          ],
+          badges: ["Timeline"],
+        },
+      },
+    ];
+
+    const edges: Edge[] = [
+      { id: "edge-root-overview", source: "environment-root", target: "overview" },
+      { id: "edge-root-rules", source: "environment-root", target: "rules" },
+      { id: "edge-root-tags", source: "environment-root", target: "tags" },
+      { id: "edge-root-forecasts", source: "environment-root", target: "forecasts" },
+    ];
+
+    daypartSummaries.forEach((daypart, index) => {
+      nodes.push({
+        id: `daypart:${daypart.id}`,
+        position: nodeGridPosition(index, 640, 0),
+        data: {
+          label: daypart.label,
+          subtitle: `${daypart.start}:00 - ${daypart.end}:00`,
+          accent: daypart.accent,
+          stats: [
+            `${daypart.uniqueWeatherCount} unique weather${daypart.uniqueWeatherCount === 1 ? "" : "s"}`,
+            daypart.dominantWeatherId ? `Dominant ${daypart.dominantWeatherId}` : "No forecast data",
+          ],
+          badges: daypart.sortedWeather.slice(0, 2).map(([weatherId]) => weatherId),
+        },
+      });
+      edges.push({ id: `edge-daypart-${daypart.id}`, source: "forecasts", target: `daypart:${daypart.id}` });
+    });
+
+    uniqueWeatherIds.forEach((weatherId, index) => {
+      const usage = uniqueWeatherUsage.get(weatherId);
+      nodes.push({
+        id: `weather:${weatherId}`,
+        position: nodeGridPosition(index, 980, 520),
+        data: {
+          label: weatherId,
+          subtitle: weatherPathIndex[weatherId.toLowerCase()] ? "Resolved file link" : "Missing file link",
+          accent: hashColor(weatherId),
+          stats: [
+            `${usage?.hours.length ?? 0} hour${(usage?.hours.length ?? 0) === 1 ? "" : "s"} used`,
+            `Total weight ${usage?.totalWeight ?? 0}`,
+          ],
+          badges: usage?.hours.slice(0, 3).map((hour) => `${hour}:00`) ?? [],
+        },
+      });
+    });
+
+    for (const daypart of daypartSummaries) {
+      for (const [weatherId] of daypart.sortedWeather) {
+        edges.push({
+          id: `edge-${daypart.id}-${weatherId}`,
+          source: `daypart:${daypart.id}`,
+          target: `weather:${weatherId}`,
+        });
+      }
+    }
+
+    if (extraEntries.length > 0) {
+      nodes.push({
+        id: "extras",
+        position: { x: 300, y: 730 },
+        data: {
+          label: "Additional Fields",
+          subtitle: "Fields outside the first-class environment editor.",
+          accent: "#ef4444",
+          stats: [`${extraEntries.length} extra field${extraEntries.length === 1 ? "" : "s"}`],
+          badges: extraEntries.slice(0, 2).map(([key]) => key),
+        },
+      });
+      edges.push({ id: "edge-root-extras", source: "environment-root", target: "extras" });
+    }
+
+    return { nodes, edges };
+  }, [
+    currentFile,
+    daypartSummaries,
+    doc.BlockModificationAllowed,
+    doc.Parent,
+    doc.SpawnDensity,
+    doc.WaterTint,
+    dominantForecasts,
+    extraEntries,
+    tagEntries,
+    uniqueWeatherIds,
+    uniqueWeatherUsage,
+    weatherOptions.length,
+    weatherPathIndex,
+  ]);
+
+  const standaloneGraphPanel = (
+    <div className={sectionClass(selectedGraphNodeId === "environment-root" || selectedGraphNodeId === "")}>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Environment Graph</h3>
+          <p className="mt-1 text-[11px] text-tn-text-muted">
+            This is TerraNova&apos;s environment asset graph for forecasts and file structure. The true Hytale-native graph is the
+            biome `EnvironmentProvider` graph, not the environment JSON file itself.
+          </p>
+        </div>
+        <div className="rounded border border-tn-border/50 bg-tn-bg/60 px-2 py-1 text-right text-[10px] text-tn-text-muted">
+          <p>{environmentGraph.nodes.length} nodes</p>
+          <p>{environmentGraph.edges.length} links</p>
+        </div>
+      </div>
+      <div className="mb-3 rounded border border-tn-border/40 bg-tn-bg/60 px-3 py-2 text-[11px] text-tn-text-muted">
+        Double-click any `weather:*` node to open the referenced file from `Server\\Weathers`.
+      </div>
+      <div className="h-[78vh] min-h-[680px]">
+        <AssetGraphCanvasBridge
+          nodes={environmentGraph.nodes}
+          edges={environmentGraph.edges}
+          defaultSelectionId="environment-root"
+          onNodeDoubleClick={(nodeId) => {
+            if (!nodeId.startsWith("weather:")) return;
+            const weatherId = nodeId.slice("weather:".length);
+            const weatherPath = weatherPathIndex[weatherId.toLowerCase()];
+            if (weatherPath) {
+              void openFile(weatherPath);
+            }
+          }}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex h-full flex-col bg-tn-bg">
@@ -201,6 +579,22 @@ export function EnvironmentEditorView() {
           <p className="mt-0.5 text-[10px] text-tn-text-muted">{currentFile?.split(/[/\\]/).pop() ?? "Untitled"}</p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-lg border border-tn-border/60 bg-tn-bg/70 p-0.5">
+            {(["editor", "graph"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setViewMode(mode)}
+                className={`rounded-md px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider transition-colors ${
+                  viewMode === mode
+                    ? "bg-tn-accent/20 text-tn-accent"
+                    : "text-tn-text-muted hover:text-tn-text"
+                }`}
+              >
+                {mode === "editor" ? "Editor" : "Graph"}
+              </button>
+            ))}
+          </div>
           <span className={`text-[10px] ${isDirty ? "text-amber-300" : "text-tn-text-muted"}`}>
             {isDirty ? "Unsaved changes" : "Saved"}
           </span>
@@ -222,36 +616,227 @@ export function EnvironmentEditorView() {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="space-y-4 px-4 py-4">
-          <section className="rounded border border-tn-border/60 bg-tn-surface/40 p-3">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Weather Timeline</h3>
-                <p className="mt-1 text-[11px] text-tn-text-muted">
-                  Weather IDs are loaded directly from `Server\\Weathers`, not guessed from HytaleGenerator.
-                </p>
+          {viewMode === "graph" ? (
+            <section>{standaloneGraphPanel}</section>
+          ) : (
+            <>
+          <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.95fr)]">
+            <div className={sectionClass(selectedGraphNodeId === "environment-root" || selectedGraphNodeId === "")}>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Environment Graph</h3>
+                  <p className="mt-1 text-[11px] text-tn-text-muted">
+                    Dayparts, rules, and linked weather files are represented as real graph nodes instead of flat cards.
+                  </p>
+                </div>
+                <div className="rounded border border-tn-border/50 bg-tn-bg/60 px-2 py-1 text-right text-[10px] text-tn-text-muted">
+                  <p>{environmentGraph.nodes.length} nodes</p>
+                  <p>{environmentGraph.edges.length} links</p>
+                </div>
               </div>
-              <div className="text-right text-[10px] text-tn-text-muted">
-                {lookupStatus === "ready" && <p>{weatherOptions.length} weather files indexed</p>}
-                {lookupStatus === "loading" && <p>Loading Server\\Weathers...</p>}
-                {lookupStatus === "error" && <p className="text-amber-300">{lookupError ?? "Weather lookup failed."}</p>}
+              <div className="h-[520px]">
+                <AssetGraphCanvasBridge
+                  nodes={environmentGraph.nodes}
+                  edges={environmentGraph.edges}
+                  defaultSelectionId="environment-root"
+                  onNodeDoubleClick={(nodeId) => {
+                    if (!nodeId.startsWith("weather:")) return;
+                    const weatherId = nodeId.slice("weather:".length);
+                    const weatherPath = weatherPathIndex[weatherId.toLowerCase()];
+                    if (weatherPath) {
+                      void openFile(weatherPath);
+                    }
+                  }}
+                />
               </div>
             </div>
-            <div className="flex gap-1 overflow-x-auto pb-1">
-              {dominantForecasts.map((forecast, hour) => (
-                <div key={`timeline-${hour}`} className="min-w-0 flex-1">
-                  <div
-                    className="h-10 rounded border border-tn-border/50"
-                    style={{ backgroundColor: forecast ? hashColor(forecast.WeatherId) : "transparent" }}
-                    title={forecast ? `${hour}:00 ${forecast.WeatherId} (${forecast.Weight})` : `${hour}:00 no forecast`}
-                  />
-                  <p className="mt-1 text-center text-[9px] font-mono text-tn-text-muted">{hour}</p>
+
+            <div className={sectionClass(selectedGraphNodeId === "forecasts" || selectedGraphNodeId === "environment-root")}>
+              <div className="mb-3 flex items-center gap-3">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Preview Hour</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={23}
+                  step={1}
+                  value={previewHour}
+                  onChange={(event) => setPreviewHour(Number.parseInt(event.target.value, 10))}
+                  className="flex-1 accent-tn-accent"
+                />
+                <span className="w-12 text-right text-[10px] font-mono text-tn-text-muted">{previewHour}:00</span>
+              </div>
+
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {quickPreviewHours.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setPreviewHour(preset.hour)}
+                    className={`rounded border px-2 py-1 text-[10px] transition-colors ${
+                      previewHour === preset.hour
+                        ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
+                        : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mb-3 grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
+                <EditorCalloutSection
+                  title="Issue Log"
+                  items={environmentIssues}
+                  emptyState="No obvious environment file problems were detected in the current forecast model."
+                />
+                <EditorTipsSection title="Tips" tips={environmentTips} />
+              </div>
+
+              <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Forecast Strip</p>
+                    <p className="mt-1 text-[11px] text-tn-text-muted">
+                      Weather IDs are loaded directly from `Server\\Weathers`, not guessed from HytaleGenerator.
+                    </p>
+                  </div>
+                  <div className="text-right text-[10px] text-tn-text-muted">
+                    {lookupStatus === "ready" && <p>{weatherOptions.length} weather files indexed</p>}
+                    {lookupStatus === "loading" && <p>Loading Server\\Weathers...</p>}
+                    {lookupStatus === "error" && <p className="text-amber-300">{lookupError ?? "Weather lookup failed."}</p>}
+                  </div>
                 </div>
-              ))}
+                <div className="grid grid-cols-12 gap-1 sm:grid-cols-24">
+                  {dominantForecasts.map((forecast, hour) => {
+                    const inSelectedDaypart = selectedDaypart ? hour >= selectedDaypart.start && hour <= selectedDaypart.end : false;
+                    return (
+                      <button
+                        key={`timeline-${hour}`}
+                        type="button"
+                        onClick={() => setPreviewHour(hour)}
+                        className={`rounded border transition-transform hover:-translate-y-0.5 ${
+                          previewHour === hour || inSelectedDaypart ? "border-tn-accent ring-1 ring-tn-accent/45" : "border-tn-border/50"
+                        }`}
+                        title={forecast ? `${hour}:00 ${forecast.WeatherId} (${forecast.Weight})` : `${hour}:00 no forecast`}
+                      >
+                        <div
+                          className="h-10 rounded-sm"
+                          style={{ backgroundColor: forecast ? hashColor(forecast.WeatherId) : "transparent" }}
+                        />
+                        <p className="py-1 text-center text-[9px] font-mono text-tn-text-muted">{hour}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                <EnvironmentMetricCard label="Parent" value={doc.Parent ?? "None"} />
+                <EnvironmentMetricCard label="Water Tint" value={typeof doc.WaterTint === "string" ? doc.WaterTint : "Unset"} />
+                <EnvironmentMetricCard label="Spawn Density" value={typeof doc.SpawnDensity === "number" ? String(doc.SpawnDensity) : "Unset"} />
+                <EnvironmentMetricCard
+                  label="Block Mod"
+                  value={typeof doc.BlockModificationAllowed === "boolean" ? (doc.BlockModificationAllowed ? "Allowed" : "Blocked") : "Unset"}
+                />
+                <EnvironmentMetricCard label="Tag Groups" value={String(tagEntries.length)} detail={tagEntries.slice(0, 2).map(([key]) => key).join(", ") || "No tags"} />
+                <EnvironmentMetricCard label="Unique Weathers" value={String(uniqueWeatherIds.length)} detail={selectedWeatherId ?? "No weather node selected"} />
+              </div>
+
+              <div className="mt-3 rounded border border-tn-border/50 bg-tn-bg/70 p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Active Forecasts</p>
+                    <p className="mt-1 text-[11px] text-tn-text-muted">
+                      Weighted weather entries for {previewHour}:00.
+                    </p>
+                  </div>
+                  <p className="text-[10px] text-tn-text-muted">{activeForecasts.length} entries</p>
+                </div>
+                <div className="space-y-2">
+                  {activeForecasts.length === 0 && (
+                    <p className="text-[11px] text-tn-text-muted">No weather forecasts configured for this hour.</p>
+                  )}
+                  {activeForecasts.map((entry) => {
+                    const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];
+                    const isFocused = selectedWeatherId === entry.WeatherId;
+                    const maxWeight = activeForecasts[0]?.Weight ?? 1;
+                    return (
+                      <div
+                        key={`${previewHour}-${entry.WeatherId}`}
+                        className={`rounded border px-3 py-2 ${isFocused ? "border-tn-accent/70 bg-tn-accent/10" : "border-tn-border/40 bg-tn-bg/70"}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: hashColor(entry.WeatherId) }} />
+                              <p className="truncate text-[11px] font-medium text-tn-text">{entry.WeatherId}</p>
+                            </div>
+                            <div className="mt-2 h-2 rounded-full bg-black/20">
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${Math.max(8, (entry.Weight / Math.max(1, maxWeight)) * 100)}%`,
+                                  backgroundColor: hashColor(entry.WeatherId),
+                                }}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className="text-[10px] font-mono text-tn-text-muted">{entry.Weight}</span>
+                            <button
+                              type="button"
+                              onClick={() => weatherPath && openFile(weatherPath)}
+                              disabled={!weatherPath}
+                              className={`rounded border px-2 py-1 text-[10px] transition-colors ${
+                                weatherPath
+                                  ? "border-tn-border text-tn-text-muted hover:border-tn-accent hover:text-tn-accent"
+                                  : "cursor-not-allowed border-tn-border/40 text-tn-text-muted/50"
+                              }`}
+                            >
+                              Open
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {daypartSummaries.map((daypart) => (
+                  <button
+                    key={daypart.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedNodeId(`daypart:${daypart.id}`);
+                      setPreviewHour(daypart.start);
+                    }}
+                    className={`rounded border px-3 py-2 text-left transition-colors ${
+                      selectedGraphNodeId === `daypart:${daypart.id}`
+                        ? "border-tn-accent/70 bg-tn-accent/10"
+                        : "border-tn-border/50 bg-tn-bg/70 hover:border-tn-accent/40"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: daypart.accent }} />
+                      <p className="text-[11px] font-medium text-tn-text">{daypart.label}</p>
+                    </div>
+                    <p className="mt-1 text-[10px] text-tn-text-muted">{daypart.start}:00 - {daypart.end}:00</p>
+                    <p className="mt-2 text-[11px] text-tn-text">
+                      {daypart.dominantWeatherId ?? "No dominant weather"}
+                    </p>
+                    <p className="mt-1 text-[10px] text-tn-text-muted">
+                      {daypart.uniqueWeatherCount} unique weather, {daypart.totalEntries} entries
+                    </p>
+                  </button>
+                ))}
+              </div>
             </div>
           </section>
 
           <section className="grid gap-3 lg:grid-cols-2">
-            <div className="rounded border border-tn-border/60 bg-tn-surface/40 p-3">
+            <div className={sectionClass(selectedGraphNodeId === "overview" || selectedGraphNodeId === "rules")}>
               <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Overview</h3>
               <div className="space-y-2">
                 <div>
@@ -371,7 +956,7 @@ export function EnvironmentEditorView() {
               </div>
             </div>
 
-            <div className="rounded border border-tn-border/60 bg-tn-surface/40 p-3">
+            <div className={sectionClass(selectedGraphNodeId === "tags")}>
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Tags</h3>
                 <button
@@ -446,7 +1031,7 @@ export function EnvironmentEditorView() {
             </div>
           </section>
 
-          <section className="rounded border border-tn-border/60 bg-tn-surface/40 p-3">
+          <section className={sectionClass(selectedGraphNodeId === "forecasts" || selectedGraphNodeId.startsWith("daypart:") || selectedGraphNodeId.startsWith("weather:"))}>
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Hourly Forecasts</h3>
@@ -465,7 +1050,14 @@ export function EnvironmentEditorView() {
                 const entries = readForecastHour(doc, hour);
                 const totalWeight = entries.reduce((sum, entry) => sum + entry.Weight, 0);
                 return (
-                  <div key={`forecast-${hour}`} className="rounded border border-tn-border/40 bg-tn-bg p-3">
+                  <div
+                    key={`forecast-${hour}`}
+                    className={`rounded border p-3 ${
+                      (selectedDaypart && hour >= selectedDaypart.start && hour <= selectedDaypart.end) || (selectedWeatherId && entries.some((entry) => entry.WeatherId === selectedWeatherId))
+                        ? "border-tn-accent/70 bg-tn-accent/10"
+                        : "border-tn-border/40 bg-tn-bg"
+                    }`}
+                  >
                     <div className="mb-2 flex items-center justify-between">
                       <div>
                         <p className="text-[11px] font-medium text-tn-text">{hour}:00</p>
@@ -500,7 +1092,14 @@ export function EnvironmentEditorView() {
                       {entries.map((entry, index) => {
                         const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];
                         return (
-                          <div key={`${hour}-${index}-${entry.WeatherId}`} className="rounded border border-tn-border/40 bg-tn-surface px-2 py-2">
+                          <div
+                            key={`${hour}-${index}-${entry.WeatherId}`}
+                            className={`rounded border px-2 py-2 ${
+                              selectedWeatherId === entry.WeatherId
+                                ? "border-tn-accent/70 bg-tn-accent/10"
+                                : "border-tn-border/40 bg-tn-surface"
+                            }`}
+                          >
                             <div className="flex items-start gap-2">
                               <div
                                 className="mt-1 h-3 w-3 shrink-0 rounded-full"
@@ -582,7 +1181,7 @@ export function EnvironmentEditorView() {
           </section>
 
           {extraEntries.length > 0 && (
-            <section className="rounded border border-tn-border/60 bg-tn-surface/40 p-3">
+            <section className={sectionClass(selectedGraphNodeId === "extras")}>
               <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Additional Fields</h3>
               <div className="grid gap-2 md:grid-cols-2">
                 {extraEntries.map(([key, value]) => (
@@ -595,6 +1194,8 @@ export function EnvironmentEditorView() {
                 ))}
               </div>
             </section>
+          )}
+            </>
           )}
         </div>
       </div>

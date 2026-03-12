@@ -5,6 +5,7 @@ import { matchesKeybinding } from "@/config/keybindings";
 interface ShortcutCallbacks {
   onSearchOpen: () => void;
   onQuickAdd: () => void;
+  disabled?: boolean;
 }
 
 /**
@@ -12,10 +13,12 @@ interface ShortcutCallbacks {
  * File/Edit shortcuts (Ctrl+S, Ctrl+Z, etc.) are handled in Toolbar.tsx.
  * This hook handles canvas-specific shortcuts.
  */
-export function useKeyboardShortcuts({ onSearchOpen, onQuickAdd }: ShortcutCallbacks) {
+export function useKeyboardShortcuts({ onSearchOpen, onQuickAdd, disabled = false }: ShortcutCallbacks) {
   const redo = useEditorStore((s) => s.redo);
 
   useEffect(() => {
+    if (disabled) return;
+
     function handleKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
 
@@ -163,5 +166,5 @@ export function useKeyboardShortcuts({ onSearchOpen, onQuickAdd }: ShortcutCallb
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [redo, onSearchOpen, onQuickAdd]);
+  }, [disabled, redo, onSearchOpen, onQuickAdd]);
 }
