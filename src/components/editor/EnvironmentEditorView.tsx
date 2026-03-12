@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Edge, Node } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
@@ -179,6 +179,7 @@ export function EnvironmentEditorView() {
   const setDirty = useProjectStore((state) => state.setDirty);
   const { openFile } = useTauriIO();
   const hasEnvironmentDoc = rawJsonContent !== null;
+  const previewSectionRef = useRef<HTMLDivElement | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [weatherOptions, setWeatherOptions] = useState<Array<{ id: string; path: string }>>([]);
   const [weatherPathIndex, setWeatherPathIndex] = useState<Record<string, string>>({});
@@ -189,6 +190,7 @@ export function EnvironmentEditorView() {
   const setSelectedNodeId = useEditorStore((state) => state.setSelectedNodeId);
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
   const graphViewDisabled = true;
+  const [showPreview, setShowPreview] = useState(true);
   const [showIssueLog, setShowIssueLog] = useState(true);
   const [showTips, setShowTips] = useState(true);
   const [showAdvancedControls, setShowAdvancedControls] = useState(false);
@@ -633,6 +635,29 @@ export function EnvironmentEditorView() {
           >
             {showAdvancedControls ? "Hide Advanced Controls" : "Advanced Controls"}
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (showPreview) {
+                setShowPreview(false);
+                return;
+              }
+              setShowPreview(true);
+              window.requestAnimationFrame(() => {
+                previewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              });
+            }}
+            disabled={!hasEnvironmentDoc || viewMode === "graph"}
+            className={`rounded border px-3 py-1 text-[10px] font-medium uppercase tracking-wider transition-colors ${
+              !hasEnvironmentDoc || viewMode === "graph"
+                ? "cursor-not-allowed border-tn-border/40 text-tn-text-muted/50"
+                : showPreview
+                  ? "border-tn-accent/50 bg-tn-accent/10 text-tn-accent"
+                  : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+            }`}
+          >
+            {showPreview ? "Hide Preview" : "Show Preview"}
+          </button>
           <span className={`text-[10px] ${isDirty ? "text-amber-300" : "text-tn-text-muted"}`}>
             {isDirty ? "Unsaved changes" : "Saved"}
           </span>
@@ -664,8 +689,9 @@ export function EnvironmentEditorView() {
             <section>{standaloneGraphPanel}</section>
           ) : (
             <>
-              <section>
-                <div className={sectionClass(selectedGraphNodeId === "forecasts" || selectedGraphNodeId === "environment-root")}>
+              {showPreview ? (
+                <section>
+                  <div ref={previewSectionRef} className={sectionClass(selectedGraphNodeId === "forecasts" || selectedGraphNodeId === "environment-root")}>
                   <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Environment Preview</p>
@@ -712,48 +738,6 @@ export function EnvironmentEditorView() {
                       ))}
                     </select>
                   </div>
-
-                  {showAdvancedControls ? (
-                    <>
-                      <div className="mb-3 flex flex-wrap items-center gap-2">
-                        <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="environment-detail-panels">
-                          Detail Panels
-                        </label>
-                        <select
-                          id="environment-detail-panels"
-                          value={detailPanelMode}
-                          onChange={(event) => {
-                            const nextMode = event.target.value;
-                            setShowIssueLog(nextMode === "both" || nextMode === "issues");
-                            setShowTips(nextMode === "both" || nextMode === "tips");
-                          }}
-                          className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
-                        >
-                          <option value="both">Issue log + tips</option>
-                          <option value="issues">Issue log only</option>
-                          <option value="tips">Tips only</option>
-                          <option value="none">Hide both</option>
-                        </select>
-                      </div>
-
-                      {showIssueLog || showTips ? (
-                        <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.15fr_0.85fr]" : ""}`}>
-                          {showIssueLog && (
-                            <EditorCalloutSection
-                              title="Issue Log"
-                              items={environmentIssues}
-                              emptyState="No obvious environment file problems were detected in the current forecast model."
-                            />
-                          )}
-                          {showTips && <EditorTipsSection title="Tips" tips={environmentTips} />}
-                        </div>
-                      ) : (
-                        <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
-                          Issue log and tips are hidden.
-                        </div>
-                      )}
-                    </>
-                  ) : null}
 
                   <div className="mb-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
                     <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
@@ -902,8 +886,55 @@ export function EnvironmentEditorView() {
                   </button>
                 ))}
               </div>
-            </div>
-          </section>
+
+              {showAdvancedControls ? (
+                <>
+                  <div className="mt-3 mb-3 flex flex-wrap items-center gap-2">
+                    <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="environment-detail-panels">
+                      Detail Panels
+                    </label>
+                    <select
+                      id="environment-detail-panels"
+                      value={detailPanelMode}
+                      onChange={(event) => {
+                        const nextMode = event.target.value;
+                        setShowIssueLog(nextMode === "both" || nextMode === "issues");
+                        setShowTips(nextMode === "both" || nextMode === "tips");
+                      }}
+                      className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
+                    >
+                      <option value="both">Issue log + tips</option>
+                      <option value="issues">Issue log only</option>
+                      <option value="tips">Tips only</option>
+                      <option value="none">Hide both</option>
+                    </select>
+                  </div>
+
+                  {showIssueLog || showTips ? (
+                    <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.15fr_0.85fr]" : ""}`}>
+                      {showIssueLog && (
+                        <EditorCalloutSection
+                          title="Issue Log"
+                          items={environmentIssues}
+                          emptyState="No obvious environment file problems were detected in the current forecast model."
+                        />
+                      )}
+                      {showTips && <EditorTipsSection title="Tips" tips={environmentTips} />}
+                    </div>
+                  ) : (
+                    <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
+                      Issue log and tips are hidden.
+                    </div>
+                  )}
+                </>
+              ) : null}
+                  </div>
+                </section>
+              ) : (
+                <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-4 py-3 text-[11px] text-tn-text-muted">
+                  Preview hidden. Use <span className="font-medium text-tn-text">Show Preview</span> in the header to bring it back.
+                </div>
+              )}
 
           <section className="grid gap-3 lg:grid-cols-2">
             <CollapsibleEditorSection

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Edge, Node } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
@@ -605,11 +605,13 @@ export function WeatherEditorView() {
   const isDirty = useProjectStore((state) => state.isDirty);
   const setDirty = useProjectStore((state) => state.setDirty);
   const hasWeatherDoc = rawJsonContent !== null;
+  const previewSectionRef = useRef<HTMLDivElement | null>(null);
   const [previewHour, setPreviewHour] = useState(12);
   const selectedGraphNodeId = useEditorStore((state) => state.selectedNodeId) ?? "weather-root";
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
   const graphViewDisabled = true;
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [showPreview, setShowPreview] = useState(true);
   const [showIssueLog, setShowIssueLog] = useState(true);
   const [showTips, setShowTips] = useState(true);
   const [showAdvancedControls, setShowAdvancedControls] = useState(false);
@@ -991,7 +993,7 @@ export function WeatherEditorView() {
   );
 
   const previewPanel = (
-    <div className={sectionClass(selectedGraphNodeId === "weather-root")}>
+    <div ref={previewSectionRef} className={sectionClass(selectedGraphNodeId === "weather-root")}>
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Scene Preview</p>
@@ -1042,48 +1044,6 @@ export function WeatherEditorView() {
           ))}
         </select>
       </div>
-
-      {showAdvancedControls ? (
-        <>
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="weather-detail-panels">
-              Detail Panels
-            </label>
-            <select
-              id="weather-detail-panels"
-              value={detailPanelMode}
-              onChange={(event) => {
-                const nextMode = event.target.value;
-                setShowIssueLog(nextMode === "both" || nextMode === "issues");
-                setShowTips(nextMode === "both" || nextMode === "tips");
-              }}
-              className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
-            >
-              <option value="both">Issue log + tips</option>
-              <option value="issues">Issue log only</option>
-              <option value="tips">Tips only</option>
-              <option value="none">Hide both</option>
-            </select>
-          </div>
-
-          {showIssueLog || showTips ? (
-            <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.2fr_0.8fr]" : ""}`}>
-              {showIssueLog && (
-                <EditorCalloutSection
-                  title="Issue Log"
-                  items={weatherIssues}
-                  emptyState="No obvious weather file problems were detected in the current preview model."
-                />
-              )}
-              {showTips && <EditorTipsSection title="Tips" tips={weatherTips} />}
-            </div>
-          ) : (
-            <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
-              Issue log and tips are hidden.
-            </div>
-          )}
-        </>
-      ) : null}
 
       <div
         className="relative h-64 overflow-hidden rounded-xl border border-tn-border/50"
@@ -1203,6 +1163,48 @@ export function WeatherEditorView() {
           accent={cloudLayers[0]?.Colors?.length ? interpolateColor(cloudLayers[0].Colors ?? [], previewHour) : "#64748b"}
         />
       </div>
+
+      {showAdvancedControls ? (
+        <>
+          <div className="mt-3 mb-3 flex flex-wrap items-center gap-2">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="weather-detail-panels">
+              Detail Panels
+            </label>
+            <select
+              id="weather-detail-panels"
+              value={detailPanelMode}
+              onChange={(event) => {
+                const nextMode = event.target.value;
+                setShowIssueLog(nextMode === "both" || nextMode === "issues");
+                setShowTips(nextMode === "both" || nextMode === "tips");
+              }}
+              className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
+            >
+              <option value="both">Issue log + tips</option>
+              <option value="issues">Issue log only</option>
+              <option value="tips">Tips only</option>
+              <option value="none">Hide both</option>
+            </select>
+          </div>
+
+          {showIssueLog || showTips ? (
+            <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.2fr_0.8fr]" : ""}`}>
+              {showIssueLog && (
+                <EditorCalloutSection
+                  title="Issue Log"
+                  items={weatherIssues}
+                  emptyState="No obvious weather file problems were detected in the current preview model."
+                />
+              )}
+              {showTips && <EditorTipsSection title="Tips" tips={weatherTips} />}
+            </div>
+          ) : (
+            <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
+              Issue log and tips are hidden.
+            </div>
+          )}
+        </>
+      ) : null}
 
       <div className="mt-3">
         <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">24h Atmosphere Strip</p>
@@ -1438,6 +1440,29 @@ export function WeatherEditorView() {
           >
             {showAdvancedControls ? "Hide Advanced Controls" : "Advanced Controls"}
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (showPreview) {
+                setShowPreview(false);
+                return;
+              }
+              setShowPreview(true);
+              window.requestAnimationFrame(() => {
+                previewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              });
+            }}
+            disabled={!hasWeatherDoc || viewMode === "graph"}
+            className={`rounded border px-3 py-1 text-[10px] font-medium uppercase tracking-wider transition-colors ${
+              !hasWeatherDoc || viewMode === "graph"
+                ? "cursor-not-allowed border-tn-border/40 text-tn-text-muted/50"
+                : showPreview
+                  ? "border-tn-accent/50 bg-tn-accent/10 text-tn-accent"
+                  : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+            }`}
+          >
+            {showPreview ? "Hide Preview" : "Show Preview"}
+          </button>
           <span className={`text-[10px] ${isDirty ? "text-amber-300" : "text-tn-text-muted"}`}>
             {isDirty ? "Unsaved changes" : "Saved"}
           </span>
@@ -1467,8 +1492,12 @@ export function WeatherEditorView() {
           )}
           {viewMode === "graph" ? (
             <section>{graphPanel}</section>
-          ) : (
+          ) : showPreview ? (
             <section>{previewPanel}</section>
+          ) : (
+            <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-4 py-3 text-[11px] text-tn-text-muted">
+              Preview hidden. Use <span className="font-medium text-tn-text">Show Preview</span> in the header to bring it back.
+            </div>
           )}
 
           {Array.isArray(doc.FogDistance) && (
