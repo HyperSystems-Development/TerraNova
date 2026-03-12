@@ -604,6 +604,7 @@ export function WeatherEditorView() {
   const currentFile = useProjectStore((state) => state.currentFile);
   const isDirty = useProjectStore((state) => state.isDirty);
   const setDirty = useProjectStore((state) => state.setDirty);
+  const hasWeatherDoc = rawJsonContent !== null;
   const [previewHour, setPreviewHour] = useState(12);
   const selectedGraphNodeId = useEditorStore((state) => state.selectedNodeId) ?? "weather-root";
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
@@ -611,23 +612,17 @@ export function WeatherEditorView() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [showIssueLog, setShowIssueLog] = useState(true);
   const [showTips, setShowTips] = useState(true);
+  const [showAdvancedControls, setShowAdvancedControls] = useState(false);
   const [showFogSection, setShowFogSection] = useState(true);
   const [showColorSections, setShowColorSections] = useState(true);
   const [showValueSections, setShowValueSections] = useState(false);
   const [showCloudSections, setShowCloudSections] = useState(false);
   const [showExtraSections, setShowExtraSections] = useState(false);
 
-  if (!rawJsonContent) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-tn-text-muted">
-        No weather file loaded.
-      </div>
-    );
-  }
-
-  const doc = rawJsonContent;
+  const doc = rawJsonContent ?? ({} as WeatherDoc);
 
   const updateDoc = (updater: (previous: WeatherDoc) => WeatherDoc) => {
+    if (!rawJsonContent) return;
     const next = updater(structuredClone(doc));
     setRawJsonContent(next);
     setDirty(true);
@@ -645,7 +640,7 @@ export function WeatherEditorView() {
   };
 
   const handleSave = async () => {
-    if (!currentFile) return;
+    if (!currentFile || !rawJsonContent) return;
     try {
       await writeAssetFile(currentFile, doc);
       setDirty(false);
@@ -705,6 +700,8 @@ export function WeatherEditorView() {
     { label: "Noon", hour: 12 },
     { label: "Dusk", hour: 18 },
   ] as const;
+  const quickPreviewPresetValue = quickPreviewHours.find((preset) => preset.hour === previewHour)?.hour.toString() ?? "custom";
+  const detailPanelMode = showIssueLog ? (showTips ? "both" : "issues") : (showTips ? "tips" : "none");
 
   const weatherIssues = useMemo<EditorCalloutItem[]>(() => {
     const items: EditorCalloutItem[] = [];
@@ -995,18 +992,13 @@ export function WeatherEditorView() {
 
   const previewPanel = (
     <div className={sectionClass(selectedGraphNodeId === "weather-root")}>
-      <div className="mb-3 flex items-center gap-3">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Preview Hour</span>
-        <input
-          type="range"
-          min={0}
-          max={23}
-          step={1}
-          value={previewHour}
-          onChange={(event) => setPreviewHour(Number.parseInt(event.target.value, 10))}
-          className="flex-1 accent-tn-accent"
-        />
-        <span className="w-12 text-right text-[10px] font-mono text-tn-text-muted">{previewHour}:00</span>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Scene Preview</p>
+          <p className="mt-1 text-[11px] text-tn-text-muted">
+            Live atmosphere preview sampled from the current weather tracks.
+          </p>
+        </div>
         <span
           className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
           style={{ borderColor: `${daypart.accent}66`, color: daypart.accent, backgroundColor: `${daypart.accent}14` }}
@@ -1015,65 +1007,83 @@ export function WeatherEditorView() {
         </span>
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {quickPreviewHours.map((preset) => (
-          <button
-            key={preset.label}
-            type="button"
-            onClick={() => setPreviewHour(preset.hour)}
-            className={`rounded border px-2 py-1 text-[10px] transition-colors ${
-              previewHour === preset.hour
-                ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
-                : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-            }`}
-          >
-            {preset.label}
-          </button>
-        ))}
+      <div className="mb-3 flex flex-wrap items-center gap-3 rounded border border-tn-border/40 bg-tn-bg/40 px-3 py-2">
+        <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="weather-preview-hour">
+          Preview Hour
+        </label>
+        <input
+          id="weather-preview-hour"
+          type="range"
+          min={0}
+          max={23}
+          step={1}
+          value={previewHour}
+          onChange={(event) => setPreviewHour(Number.parseInt(event.target.value, 10))}
+          className="min-w-[180px] flex-1 accent-tn-accent"
+        />
+        <span className="w-12 text-right text-[10px] font-mono text-tn-text-muted">{previewHour}:00</span>
+        <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="weather-preview-jump">
+          Jump To
+        </label>
+        <select
+          id="weather-preview-jump"
+          value={quickPreviewPresetValue}
+          onChange={(event) => {
+            if (event.target.value === "custom") return;
+            setPreviewHour(Number.parseInt(event.target.value, 10));
+          }}
+          className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
+        >
+          <option value="custom">Manual slider</option>
+          {quickPreviewHours.map((preset) => (
+            <option key={preset.label} value={preset.hour}>
+              {preset.label} ({preset.hour}:00)
+            </option>
+          ))}
+        </select>
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-1.5">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Panels</span>
-        <button
-          type="button"
-          onClick={() => setShowIssueLog((value) => !value)}
-          className={`rounded border px-2 py-1 text-[10px] transition-colors ${
-            showIssueLog
-              ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
-              : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-          }`}
-        >
-          {showIssueLog ? "Hide Issue Log" : "Show Issue Log"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowTips((value) => !value)}
-          className={`rounded border px-2 py-1 text-[10px] transition-colors ${
-            showTips
-              ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
-              : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-          }`}
-        >
-          {showTips ? "Hide Tips" : "Show Tips"}
-        </button>
-      </div>
+      {showAdvancedControls ? (
+        <>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="weather-detail-panels">
+              Detail Panels
+            </label>
+            <select
+              id="weather-detail-panels"
+              value={detailPanelMode}
+              onChange={(event) => {
+                const nextMode = event.target.value;
+                setShowIssueLog(nextMode === "both" || nextMode === "issues");
+                setShowTips(nextMode === "both" || nextMode === "tips");
+              }}
+              className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
+            >
+              <option value="both">Issue log + tips</option>
+              <option value="issues">Issue log only</option>
+              <option value="tips">Tips only</option>
+              <option value="none">Hide both</option>
+            </select>
+          </div>
 
-      {showIssueLog || showTips ? (
-        <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.2fr_0.8fr]" : ""}`}>
-          {showIssueLog && (
-            <EditorCalloutSection
-              title="Issue Log"
-              items={weatherIssues}
-              emptyState="No obvious weather file problems were detected in the current preview model."
-            />
+          {showIssueLog || showTips ? (
+            <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.2fr_0.8fr]" : ""}`}>
+              {showIssueLog && (
+                <EditorCalloutSection
+                  title="Issue Log"
+                  items={weatherIssues}
+                  emptyState="No obvious weather file problems were detected in the current preview model."
+                />
+              )}
+              {showTips && <EditorTipsSection title="Tips" tips={weatherTips} />}
+            </div>
+          ) : (
+            <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
+              Issue log and tips are hidden.
+            </div>
           )}
-          {showTips && <EditorTipsSection title="Tips" tips={weatherTips} />}
-        </div>
-      ) : (
-        <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
-          Issue log and tips are hidden.
-        </div>
-      )}
+        </>
+      ) : null}
 
       <div
         className="relative h-64 overflow-hidden rounded-xl border border-tn-border/50"
@@ -1417,19 +1427,31 @@ export function WeatherEditorView() {
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={() => setShowAdvancedControls((value) => !value)}
+            className={`rounded border px-3 py-1 text-[10px] font-medium uppercase tracking-wider transition-colors ${
+              showAdvancedControls
+                ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
+                : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+            }`}
+          >
+            {showAdvancedControls ? "Hide Advanced Controls" : "Advanced Controls"}
+          </button>
           <span className={`text-[10px] ${isDirty ? "text-amber-300" : "text-tn-text-muted"}`}>
             {isDirty ? "Unsaved changes" : "Saved"}
           </span>
           <button
             type="button"
             onClick={handleSave}
+            disabled={!hasWeatherDoc || !currentFile}
             className={`rounded border px-3 py-1 text-[11px] transition-colors ${
               saveStatus === "saved"
                 ? "border-green-500/50 bg-green-500/10 text-green-300"
                 : saveStatus === "error"
                   ? "border-red-500/50 bg-red-500/10 text-red-300"
                   : "border-tn-border text-tn-text hover:border-tn-accent hover:text-tn-accent"
-            }`}
+            } ${!hasWeatherDoc || !currentFile ? "cursor-not-allowed opacity-50" : ""}`}
           >
             {saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Retry Save" : "Save"}
           </button>
@@ -1438,6 +1460,11 @@ export function WeatherEditorView() {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="space-y-4 px-4 py-4">
+          {!hasWeatherDoc && (
+            <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-4 py-6 text-center text-sm text-tn-text-muted">
+              No weather file loaded.
+            </div>
+          )}
           {viewMode === "graph" ? (
             <section>{graphPanel}</section>
           ) : (
@@ -1525,104 +1552,108 @@ export function WeatherEditorView() {
             </div>
           </CollapsibleEditorSection>
 
-          <CollapsibleEditorSection
-            title="Numeric Tracks"
-            description="Scale, damping, and fog curve editors."
-            badge={`${VALUE_TRACKS.length} tracks`}
-            open={showValueSections}
-            onToggle={() => setShowValueSections((value) => !value)}
-          >
-            <div className="grid gap-3 xl:grid-cols-2">
-              {VALUE_TRACKS.map((track) => {
-                const keyframes = (doc[track.key] as HourValue[] | undefined) ?? [];
-                return (
-                  <ValueTrackCard
-                    key={track.key}
-                    label={track.label}
-                    keyframes={keyframes}
-                    isFocused={selectedGraphNodeId === `value:${track.key}`}
-                    onChange={(index, next) => {
-                      updateValueTrack(track.key, keyframes.map((entry, entryIndex) => (
-                        entryIndex === index ? next : entry
-                      )));
-                    }}
-                    onRemove={(index) => {
-                      updateValueTrack(track.key, keyframes.filter((_, entryIndex) => entryIndex !== index));
-                    }}
-                    onAdd={() => {
-                      const usedHours = new Set(keyframes.map((entry) => entry.Hour));
-                      const nextHour = HOURS.find((hour) => !usedHours.has(hour)) ?? 12;
-                      updateValueTrack(track.key, [
-                        ...keyframes,
-                        { Hour: nextHour, Value: interpolateValue(keyframes, nextHour) },
-                      ]);
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </CollapsibleEditorSection>
+          {showAdvancedControls && (
+            <>
+              <CollapsibleEditorSection
+                title="Numeric Tracks"
+                description="Scale, damping, and fog curve editors."
+                badge={`${VALUE_TRACKS.length} tracks`}
+                open={showValueSections}
+                onToggle={() => setShowValueSections((value) => !value)}
+              >
+                <div className="grid gap-3 xl:grid-cols-2">
+                  {VALUE_TRACKS.map((track) => {
+                    const keyframes = (doc[track.key] as HourValue[] | undefined) ?? [];
+                    return (
+                      <ValueTrackCard
+                        key={track.key}
+                        label={track.label}
+                        keyframes={keyframes}
+                        isFocused={selectedGraphNodeId === `value:${track.key}`}
+                        onChange={(index, next) => {
+                          updateValueTrack(track.key, keyframes.map((entry, entryIndex) => (
+                            entryIndex === index ? next : entry
+                          )));
+                        }}
+                        onRemove={(index) => {
+                          updateValueTrack(track.key, keyframes.filter((_, entryIndex) => entryIndex !== index));
+                        }}
+                        onAdd={() => {
+                          const usedHours = new Set(keyframes.map((entry) => entry.Hour));
+                          const nextHour = HOURS.find((hour) => !usedHours.has(hour)) ?? 12;
+                          updateValueTrack(track.key, [
+                            ...keyframes,
+                            { Hour: nextHour, Value: interpolateValue(keyframes, nextHour) },
+                          ]);
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </CollapsibleEditorSection>
 
-          {Array.isArray(doc.Clouds) && doc.Clouds.length > 0 && (
-            <CollapsibleEditorSection
-              title="Cloud Layers"
-              description="Texture, color, and speed summaries for configured cloud stacks."
-              badge={`${doc.Clouds.length} layers`}
-              open={showCloudSections}
-              onToggle={() => setShowCloudSections((value) => !value)}
-            >
-              <div className="space-y-2">
-                {doc.Clouds.map((cloud, index) => {
-                  const gradient = Array.isArray(cloud.Colors) && cloud.Colors.length
-                    ? HOURS.map((hour) => `${interpolateColor(cloud.Colors ?? [], hour)} ${(hour / 23) * 100}%`).join(", ")
-                    : "";
-                  const speed = interpolateValue(cloud.Speeds ?? [], previewHour);
-                  return (
-                    <div key={`${cloud.Texture ?? "cloud"}-${index}`} className="rounded border border-tn-border/40 bg-tn-bg px-3 py-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] font-medium text-tn-text">Layer {index + 1}</p>
-                          <p className="text-[10px] text-tn-text-muted">{cloud.Texture ?? "No texture"}</p>
+              {Array.isArray(doc.Clouds) && doc.Clouds.length > 0 && (
+                <CollapsibleEditorSection
+                  title="Cloud Layers"
+                  description="Texture, color, and speed summaries for configured cloud stacks."
+                  badge={`${doc.Clouds.length} layers`}
+                  open={showCloudSections}
+                  onToggle={() => setShowCloudSections((value) => !value)}
+                >
+                  <div className="space-y-2">
+                    {doc.Clouds.map((cloud, index) => {
+                      const gradient = Array.isArray(cloud.Colors) && cloud.Colors.length
+                        ? HOURS.map((hour) => `${interpolateColor(cloud.Colors ?? [], hour)} ${(hour / 23) * 100}%`).join(", ")
+                        : "";
+                      const speed = interpolateValue(cloud.Speeds ?? [], previewHour);
+                      return (
+                        <div key={`${cloud.Texture ?? "cloud"}-${index}`} className="rounded border border-tn-border/40 bg-tn-bg px-3 py-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-[11px] font-medium text-tn-text">Layer {index + 1}</p>
+                              <p className="text-[10px] text-tn-text-muted">{cloud.Texture ?? "No texture"}</p>
+                            </div>
+                            <div className="text-right text-[10px] text-tn-text-muted">
+                              <p>{Array.isArray(cloud.Colors) ? cloud.Colors.length : 0} color keys</p>
+                              <p>{Array.isArray(cloud.Speeds) ? cloud.Speeds.length : 0} speed keys</p>
+                              <p>Speed now {formatTrackValue(speed)}</p>
+                            </div>
+                          </div>
+                          {gradient && (
+                            <div
+                              className="mt-2 h-3 rounded border border-tn-border/40"
+                              style={{ background: `linear-gradient(to right, ${gradient})` }}
+                            />
+                          )}
                         </div>
-                        <div className="text-right text-[10px] text-tn-text-muted">
-                          <p>{Array.isArray(cloud.Colors) ? cloud.Colors.length : 0} color keys</p>
-                          <p>{Array.isArray(cloud.Speeds) ? cloud.Speeds.length : 0} speed keys</p>
-                          <p>Speed now {formatTrackValue(speed)}</p>
-                        </div>
-                      </div>
-                      {gradient && (
-                        <div
-                          className="mt-2 h-3 rounded border border-tn-border/40"
-                          style={{ background: `linear-gradient(to right, ${gradient})` }}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CollapsibleEditorSection>
-          )}
-
-          {extraEntries.length > 0 && (
-            <CollapsibleEditorSection
-              title="Additional Fields"
-              description="Raw fields not yet promoted into the first-class editor."
-              badge={`${extraEntries.length} fields`}
-              open={showExtraSections}
-              onToggle={() => setShowExtraSections((value) => !value)}
-            >
-              <div className="grid gap-2 md:grid-cols-2">
-                {extraEntries.map(([key, value]) => (
-                  <div key={key} className="rounded border border-tn-border/40 bg-tn-bg px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">{key}</p>
-                    <p className="mt-1 text-[11px] text-tn-text">{describeValue(value)}</p>
-                    <pre className="mt-2 overflow-auto rounded bg-black/10 p-2 text-[10px] text-tn-text-muted">
-                      {JSON.stringify(value, null, 2)}
-                    </pre>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-            </CollapsibleEditorSection>
+                </CollapsibleEditorSection>
+              )}
+
+              {extraEntries.length > 0 && (
+                <CollapsibleEditorSection
+                  title="Additional Fields"
+                  description="Raw fields not yet promoted into the first-class editor."
+                  badge={`${extraEntries.length} fields`}
+                  open={showExtraSections}
+                  onToggle={() => setShowExtraSections((value) => !value)}
+                >
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {extraEntries.map(([key, value]) => (
+                      <div key={key} className="rounded border border-tn-border/40 bg-tn-bg px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">{key}</p>
+                        <p className="mt-1 text-[11px] text-tn-text">{describeValue(value)}</p>
+                        <pre className="mt-2 overflow-auto rounded bg-black/10 p-2 text-[10px] text-tn-text-muted">
+                          {JSON.stringify(value, null, 2)}
+                        </pre>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleEditorSection>
+              )}
+            </>
           )}
         </div>
       </div>

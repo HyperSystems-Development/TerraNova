@@ -178,6 +178,7 @@ export function EnvironmentEditorView() {
   const isDirty = useProjectStore((state) => state.isDirty);
   const setDirty = useProjectStore((state) => state.setDirty);
   const { openFile } = useTauriIO();
+  const hasEnvironmentDoc = rawJsonContent !== null;
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [weatherOptions, setWeatherOptions] = useState<Array<{ id: string; path: string }>>([]);
   const [weatherPathIndex, setWeatherPathIndex] = useState<Record<string, string>>({});
@@ -190,6 +191,7 @@ export function EnvironmentEditorView() {
   const graphViewDisabled = true;
   const [showIssueLog, setShowIssueLog] = useState(true);
   const [showTips, setShowTips] = useState(true);
+  const [showAdvancedControls, setShowAdvancedControls] = useState(false);
   const [showOverviewSection, setShowOverviewSection] = useState(true);
   const [showTagsSection, setShowTagsSection] = useState(false);
   const [showForecastSection, setShowForecastSection] = useState(true);
@@ -240,17 +242,10 @@ export function EnvironmentEditorView() {
     };
   }, [currentFile, projectPath]);
 
-  if (!rawJsonContent) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-tn-text-muted">
-        No environment file loaded.
-      </div>
-    );
-  }
-
-  const doc = rawJsonContent;
+  const doc = rawJsonContent ?? ({} as EnvironmentDoc);
 
   const updateDoc = (updater: (previous: EnvironmentDoc) => EnvironmentDoc) => {
+    if (!rawJsonContent) return;
     const next = updater(structuredClone(doc));
     setRawJsonContent(next);
     setDirty(true);
@@ -260,7 +255,7 @@ export function EnvironmentEditorView() {
   };
 
   const handleSave = async () => {
-    if (!currentFile) return;
+    if (!currentFile || !rawJsonContent) return;
     try {
       await writeAssetFile(currentFile, doc);
       setDirty(false);
@@ -296,6 +291,8 @@ export function EnvironmentEditorView() {
     { label: "Afternoon", hour: 12 },
     { label: "Evening", hour: 18 },
   ] as const;
+  const quickPreviewPresetValue = quickPreviewHours.find((preset) => preset.hour === previewHour)?.hour.toString() ?? "custom";
+  const detailPanelMode = showIssueLog ? (showTips ? "both" : "issues") : (showTips ? "tips" : "none");
 
   useEffect(() => {
     if (selectedDaypart) {
@@ -625,19 +622,31 @@ export function EnvironmentEditorView() {
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={() => setShowAdvancedControls((value) => !value)}
+            className={`rounded border px-3 py-1 text-[10px] font-medium uppercase tracking-wider transition-colors ${
+              showAdvancedControls
+                ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
+                : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+            }`}
+          >
+            {showAdvancedControls ? "Hide Advanced Controls" : "Advanced Controls"}
+          </button>
           <span className={`text-[10px] ${isDirty ? "text-amber-300" : "text-tn-text-muted"}`}>
             {isDirty ? "Unsaved changes" : "Saved"}
           </span>
           <button
             type="button"
             onClick={handleSave}
+            disabled={!hasEnvironmentDoc || !currentFile}
             className={`rounded border px-3 py-1 text-[11px] transition-colors ${
               saveStatus === "saved"
                 ? "border-green-500/50 bg-green-500/10 text-green-300"
                 : saveStatus === "error"
                   ? "border-red-500/50 bg-red-500/10 text-red-300"
                   : "border-tn-border text-tn-text hover:border-tn-accent hover:text-tn-accent"
-            }`}
+            } ${!hasEnvironmentDoc || !currentFile ? "cursor-not-allowed opacity-50" : ""}`}
           >
             {saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Retry Save" : "Save"}
           </button>
@@ -646,85 +655,105 @@ export function EnvironmentEditorView() {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="space-y-4 px-4 py-4">
+          {!hasEnvironmentDoc && (
+            <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-4 py-6 text-center text-sm text-tn-text-muted">
+              No environment file loaded.
+            </div>
+          )}
           {viewMode === "graph" ? (
             <section>{standaloneGraphPanel}</section>
           ) : (
             <>
               <section>
                 <div className={sectionClass(selectedGraphNodeId === "forecasts" || selectedGraphNodeId === "environment-root")}>
-                  <div className="mb-3 flex items-center gap-3">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Preview Hour</span>
+                  <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Environment Preview</p>
+                      <p className="mt-1 text-[11px] text-tn-text-muted">
+                        Forecast strip, active weather weights, and daypart summaries for the selected hour.
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-tn-border/50 bg-tn-bg/60 px-2 py-0.5 text-[10px] font-mono text-tn-text-muted">
+                      {previewHour}:00
+                    </span>
+                  </div>
+
+                  <div className="mb-3 flex flex-wrap items-center gap-3 rounded border border-tn-border/40 bg-tn-bg/40 px-3 py-2">
+                    <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="environment-preview-hour">
+                      Preview Hour
+                    </label>
                     <input
+                      id="environment-preview-hour"
                       type="range"
                       min={0}
                       max={23}
                       step={1}
                       value={previewHour}
                       onChange={(event) => setPreviewHour(Number.parseInt(event.target.value, 10))}
-                      className="flex-1 accent-tn-accent"
+                      className="min-w-[180px] flex-1 accent-tn-accent"
                     />
-                    <span className="w-12 text-right text-[10px] font-mono text-tn-text-muted">{previewHour}:00</span>
-                  </div>
-
-                  <div className="mb-3 flex flex-wrap gap-1.5">
-                    {quickPreviewHours.map((preset) => (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => setPreviewHour(preset.hour)}
-                        className={`rounded border px-2 py-1 text-[10px] transition-colors ${
-                          previewHour === preset.hour
-                            ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
-                            : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-                        }`}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="mb-3 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Panels</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowIssueLog((value) => !value)}
-                      className={`rounded border px-2 py-1 text-[10px] transition-colors ${
-                        showIssueLog
-                          ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
-                          : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-                      }`}
+                    <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="environment-preview-jump">
+                      Jump To
+                    </label>
+                    <select
+                      id="environment-preview-jump"
+                      value={quickPreviewPresetValue}
+                      onChange={(event) => {
+                        if (event.target.value === "custom") return;
+                        setPreviewHour(Number.parseInt(event.target.value, 10));
+                      }}
+                      className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
                     >
-                      {showIssueLog ? "Hide Issue Log" : "Show Issue Log"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowTips((value) => !value)}
-                      className={`rounded border px-2 py-1 text-[10px] transition-colors ${
-                        showTips
-                          ? "border-tn-accent bg-tn-accent/15 text-tn-accent"
-                          : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-                      }`}
-                    >
-                      {showTips ? "Hide Tips" : "Show Tips"}
-                    </button>
+                      <option value="custom">Manual slider</option>
+                      {quickPreviewHours.map((preset) => (
+                        <option key={preset.label} value={preset.hour}>
+                          {preset.label} ({preset.hour}:00)
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  {showIssueLog || showTips ? (
-                    <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.15fr_0.85fr]" : ""}`}>
-                      {showIssueLog && (
-                        <EditorCalloutSection
-                          title="Issue Log"
-                          items={environmentIssues}
-                          emptyState="No obvious environment file problems were detected in the current forecast model."
-                        />
+                  {showAdvancedControls ? (
+                    <>
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="environment-detail-panels">
+                          Detail Panels
+                        </label>
+                        <select
+                          id="environment-detail-panels"
+                          value={detailPanelMode}
+                          onChange={(event) => {
+                            const nextMode = event.target.value;
+                            setShowIssueLog(nextMode === "both" || nextMode === "issues");
+                            setShowTips(nextMode === "both" || nextMode === "tips");
+                          }}
+                          className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
+                        >
+                          <option value="both">Issue log + tips</option>
+                          <option value="issues">Issue log only</option>
+                          <option value="tips">Tips only</option>
+                          <option value="none">Hide both</option>
+                        </select>
+                      </div>
+
+                      {showIssueLog || showTips ? (
+                        <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.15fr_0.85fr]" : ""}`}>
+                          {showIssueLog && (
+                            <EditorCalloutSection
+                              title="Issue Log"
+                              items={environmentIssues}
+                              emptyState="No obvious environment file problems were detected in the current forecast model."
+                            />
+                          )}
+                          {showTips && <EditorTipsSection title="Tips" tips={environmentTips} />}
+                        </div>
+                      ) : (
+                        <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
+                          Issue log and tips are hidden.
+                        </div>
                       )}
-                      {showTips && <EditorTipsSection title="Tips" tips={environmentTips} />}
-                    </div>
-                  ) : (
-                    <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
-                      Issue log and tips are hidden.
-                    </div>
-                  )}
+                    </>
+                  ) : null}
 
                   <div className="mb-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
                     <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
@@ -1002,84 +1031,86 @@ export function EnvironmentEditorView() {
               </div>
             </CollapsibleEditorSection>
 
-            <CollapsibleEditorSection
-              title="Tags"
-              description="Optional tag groups for classifying the environment asset."
-              badge={`${tagEntries.length} groups`}
-              open={showTagsSection}
-              onToggle={() => setShowTagsSection((value) => !value)}
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => updateDoc((previous) => ({
-                    ...previous,
-                    Tags: {
-                      ...(previous.Tags ?? {}),
-                      NewGroup: [],
-                    },
-                  }))}
-                  className="rounded border border-tn-accent/40 px-2 py-1 text-[10px] text-tn-accent transition-colors hover:bg-tn-accent/10"
-                >
-                  Add Tag Group
-                </button>
-              </div>
-              <div className="space-y-2">
-                {tagEntries.length === 0 && (
-                  <p className="text-[11px] text-tn-text-muted">No tag groups on this environment file.</p>
-                )}
-                {tagEntries.map(([group, values], index) => (
-                  <div key={`${group}-${index}`} className="rounded border border-tn-border/40 bg-tn-bg p-2">
-                    <div className="mb-2 flex items-center gap-2">
+            {showAdvancedControls && (
+              <CollapsibleEditorSection
+                title="Tags"
+                description="Optional tag groups for classifying the environment asset."
+                badge={`${tagEntries.length} groups`}
+                open={showTagsSection}
+                onToggle={() => setShowTagsSection((value) => !value)}
+              >
+                <div className="mb-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => updateDoc((previous) => ({
+                      ...previous,
+                      Tags: {
+                        ...(previous.Tags ?? {}),
+                        NewGroup: [],
+                      },
+                    }))}
+                    className="rounded border border-tn-accent/40 px-2 py-1 text-[10px] text-tn-accent transition-colors hover:bg-tn-accent/10"
+                  >
+                    Add Tag Group
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {tagEntries.length === 0 && (
+                    <p className="text-[11px] text-tn-text-muted">No tag groups on this environment file.</p>
+                  )}
+                  {tagEntries.map(([group, values], index) => (
+                    <div key={`${group}-${index}`} className="rounded border border-tn-border/40 bg-tn-bg p-2">
+                      <div className="mb-2 flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={group}
+                          onChange={(event) => updateDoc((previous) => {
+                            const nextTags: Record<string, string[]> = {};
+                            for (const [entryKey, entryValues] of Object.entries(previous.Tags ?? {})) {
+                              if (entryKey === group) {
+                                nextTags[event.target.value || "NewGroup"] = isStringArray(entryValues) ? entryValues : [];
+                              } else {
+                                nextTags[entryKey] = isStringArray(entryValues) ? entryValues : [];
+                              }
+                            }
+                            return { ...previous, Tags: nextTags };
+                          })}
+                          className="min-w-0 flex-1 rounded border border-tn-border bg-tn-surface px-2 py-1 text-[11px] text-tn-text"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateDoc((previous) => {
+                            const nextTags: Record<string, string[]> = {};
+                            for (const [entryKey, entryValues] of Object.entries(previous.Tags ?? {})) {
+                              if (entryKey !== group) {
+                                nextTags[entryKey] = isStringArray(entryValues) ? entryValues : [];
+                              }
+                            }
+                            return { ...previous, Tags: nextTags };
+                          })}
+                          className="rounded border border-tn-border/60 px-2 py-1 text-[10px] text-tn-text-muted transition-colors hover:border-red-500/50 hover:text-red-400"
+                        >
+                          Remove
+                        </button>
+                      </div>
                       <input
                         type="text"
-                        value={group}
-                        onChange={(event) => updateDoc((previous) => {
-                          const nextTags: Record<string, string[]> = {};
-                          for (const [entryKey, entryValues] of Object.entries(previous.Tags ?? {})) {
-                            if (entryKey === group) {
-                              nextTags[event.target.value || "NewGroup"] = isStringArray(entryValues) ? entryValues : [];
-                            } else {
-                              nextTags[entryKey] = isStringArray(entryValues) ? entryValues : [];
-                            }
-                          }
-                          return { ...previous, Tags: nextTags };
-                        })}
-                        className="min-w-0 flex-1 rounded border border-tn-border bg-tn-surface px-2 py-1 text-[11px] text-tn-text"
+                        value={Array.isArray(values) ? values.join(", ") : ""}
+                        onChange={(event) => updateDoc((previous) => ({
+                          ...previous,
+                          Tags: {
+                            ...(previous.Tags ?? {}),
+                            [group]: sanitizeTagValues(event.target.value),
+                          },
+                        }))}
+                        className="w-full rounded border border-tn-border bg-tn-surface px-2 py-1 text-[11px] text-tn-text"
+                        placeholder="Plains, Surface, Warm"
                       />
-                      <button
-                        type="button"
-                        onClick={() => updateDoc((previous) => {
-                          const nextTags: Record<string, string[]> = {};
-                          for (const [entryKey, entryValues] of Object.entries(previous.Tags ?? {})) {
-                            if (entryKey !== group) {
-                              nextTags[entryKey] = isStringArray(entryValues) ? entryValues : [];
-                            }
-                          }
-                          return { ...previous, Tags: nextTags };
-                        })}
-                        className="rounded border border-tn-border/60 px-2 py-1 text-[10px] text-tn-text-muted transition-colors hover:border-red-500/50 hover:text-red-400"
-                      >
-                        Remove
-                      </button>
                     </div>
-                    <input
-                      type="text"
-                      value={Array.isArray(values) ? values.join(", ") : ""}
-                      onChange={(event) => updateDoc((previous) => ({
-                        ...previous,
-                        Tags: {
-                          ...(previous.Tags ?? {}),
-                          [group]: sanitizeTagValues(event.target.value),
-                        },
-                      }))}
-                      className="w-full rounded border border-tn-border bg-tn-surface px-2 py-1 text-[11px] text-tn-text"
-                      placeholder="Plains, Surface, Warm"
-                    />
-                  </div>
-                ))}
-              </div>
-            </CollapsibleEditorSection>
+                  ))}
+                </div>
+              </CollapsibleEditorSection>
+            )}
           </section>
 
           <CollapsibleEditorSection
@@ -1254,7 +1285,7 @@ export function EnvironmentEditorView() {
             </div>
           </CollapsibleEditorSection>
 
-          {extraEntries.length > 0 && (
+          {showAdvancedControls && extraEntries.length > 0 && (
             <CollapsibleEditorSection
               title="Additional Fields"
               description="Raw environment fields that are not yet represented by dedicated controls."

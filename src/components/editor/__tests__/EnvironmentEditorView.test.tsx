@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { EnvironmentEditorView } from "../EnvironmentEditorView";
@@ -76,8 +76,36 @@ describe("EnvironmentEditorView", () => {
     fireEvent.change(screen.getByLabelText("Scope"), { target: { value: "all" } });
     expect(screen.getAllByRole("button", { name: "Add Weather" })).toHaveLength(24);
 
-    fireEvent.click(screen.getAllByRole("button", { name: /Morning/i })[1]);
+    fireEvent.click(screen.getByText("8:00 - 11:00").closest("button") as HTMLButtonElement);
     fireEvent.change(screen.getByLabelText("Scope"), { target: { value: "daypart" } });
     expect(screen.getAllByRole("button", { name: "Add Weather" })).toHaveLength(4);
+  });
+
+  it("can transition from no file to a loaded environment document without changing hook order", async () => {
+    useProjectStore.setState({
+      currentFile: "C:\\Pack\\Server\\Environments\\Zone1\\Env_Zone1.json",
+      projectPath: "C:\\Pack",
+    });
+
+    render(<EnvironmentEditorView />);
+
+    expect(screen.getByText("No environment file loaded.")).toBeTruthy();
+
+    await waitFor(() => {
+      expect(listDirectoryMock).toHaveBeenCalled();
+    });
+
+    await act(async () => {
+      useEditorStore.setState({
+        rawJsonContent: {
+          Parent: "Env_Zone1",
+          WeatherForecasts: {
+            "12": [{ WeatherId: "Zone1_Sunny", Weight: 1 }],
+          },
+        },
+      });
+    });
+
+    expect(screen.getByText("Forecast Strip")).toBeTruthy();
   });
 });
