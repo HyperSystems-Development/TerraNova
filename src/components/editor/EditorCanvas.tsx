@@ -58,11 +58,6 @@ const PREFIX_TO_CATEGORY: Record<string, AssetCategory> = {
 };
 
 function getNodeColor(node: Node): string {
-  const nodeData = (node.data as Record<string, unknown> | undefined) ?? {};
-  if (node.type === "structuredAssetCard" && typeof nodeData.accent === "string") {
-    return nodeData.accent;
-  }
-
   const type = node.type ?? "";
   for (const [prefix, cat] of Object.entries(PREFIX_TO_CATEGORY)) {
     if (type.startsWith(prefix)) {

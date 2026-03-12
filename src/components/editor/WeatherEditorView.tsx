@@ -1,11 +1,8 @@
 import { useMemo, useRef, useState } from "react";
-import type { Edge, Node } from "@xyflow/react";
 import { Clock3, Cloud, Eye, EyeOff, LineChart, Palette, Save, SlidersHorizontal, WandSparkles } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { writeAssetFile } from "@/utils/ipc";
-import type { StructuredGraphNodeData } from "./StructuredAssetGraph";
-import { AssetGraphCanvasBridge } from "./AssetGraphCanvasBridge";
 import { EditorCalloutSection, EditorTipsSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
 
@@ -274,13 +271,6 @@ function findDuplicateHours(entries: Array<{ Hour: number }>): number[] {
     .filter(([, count]) => count > 1)
     .map(([hour]) => hour)
     .sort((left, right) => left - right);
-}
-
-function nodeGridPosition(index: number, baseX: number, baseY: number, columns: number = 2) {
-  return {
-    x: baseX + ((index % columns) * 300),
-    y: baseY + (Math.floor(index / columns) * 122),
-  };
 }
 
 interface ColorTrackCardProps {
@@ -626,9 +616,6 @@ export function WeatherEditorView() {
   const hasWeatherDoc = rawJsonContent !== null;
   const previewSectionRef = useRef<HTMLDivElement | null>(null);
   const [previewHour, setPreviewHour] = useState(12);
-  const selectedGraphNodeId = useEditorStore((state) => state.selectedNodeId) ?? "weather-root";
-  const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
-  const graphViewDisabled = true;
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [showPreview, setShowPreview] = useState(true);
   const [showIssueLog, setShowIssueLog] = useState(true);
@@ -819,207 +806,12 @@ export function WeatherEditorView() {
 
   const weatherTips = useMemo(() => [
     "Use the preset hour buttons or the 24h strips to jump quickly between midnight, dawn, noon, and dusk.",
-    "Graph mode mirrors track structure; editor mode is where you tune keyframes and see the richer scene preview.",
     "Duplicate hour keys are worth cleaning up before export because they make interpolation ambiguous.",
     "Cloud layer speed and color keys affect the hero preview immediately, so it is a good fast sanity check before saving.",
   ], []);
 
-  const weatherGraph = useMemo(() => {
-    const nodes: Array<Node<StructuredGraphNodeData>> = [
-      {
-        id: "weather-root",
-        position: { x: 0, y: 520 },
-        data: {
-          label: "Weather File",
-          subtitle: currentFile?.split(/[/\\]/).pop() ?? "Untitled",
-          accent: skyTop,
-          stats: [
-            `${COLOR_TRACKS.length} color tracks, ${colorTrackCount} keyframes`,
-            `${VALUE_TRACKS.length} numeric tracks, ${valueTrackCount} keyframes`,
-            `${cloudLayers.length} cloud layers, ${moons.length} moon entries`,
-          ],
-          badges: ["Weather", "Graph"],
-        },
-      },
-      {
-        id: "group:colors",
-        position: { x: 300, y: 180 },
-        data: {
-          label: "Color Tracks",
-          subtitle: "Sky, fog, celestial, FX, and water palettes.",
-          accent: sunsetColor,
-          stats: [`Sampled at ${previewHour}:00`, `${COLOR_TRACKS.length} editable tracks`],
-          badges: ["Palette"],
-        },
-      },
-      {
-        id: "group:values",
-        position: { x: 300, y: 900 },
-        data: {
-          label: "Numeric Tracks",
-          subtitle: "Scale, damping, and fog density curves.",
-          accent: "#38bdf8",
-          stats: [`Sampled at ${previewHour}:00`, `${VALUE_TRACKS.length} editable tracks`],
-          badges: ["Curves"],
-        },
-      },
-      {
-        id: "group:features",
-        position: { x: 300, y: 1260 },
-        data: {
-          label: "Feature Nodes",
-          subtitle: "Fog bounds, clouds, moons, stars, and extras.",
-          accent: "#a78bfa",
-          stats: [`Fog distance ${Array.isArray(doc.FogDistance) ? `${doc.FogDistance[0]} to ${doc.FogDistance[1]}` : "not set"}`],
-          badges: ["Meta"],
-        },
-      },
-    ];
-
-    const edges: Edge[] = [
-      { id: "edge-root-colors", source: "weather-root", target: "group:colors" },
-      { id: "edge-root-values", source: "weather-root", target: "group:values" },
-      { id: "edge-root-features", source: "weather-root", target: "group:features" },
-    ];
-
-    COLOR_TRACKS.forEach((track, index) => {
-      const keyframes = (doc[track.key] as HourColor[] | undefined) ?? [];
-      nodes.push({
-        id: `color:${track.key}`,
-        position: nodeGridPosition(index, 620, 0),
-        data: {
-          label: track.label,
-          subtitle: track.key,
-          accent: interpolateColor(keyframes, previewHour),
-          stats: [
-            `${keyframes.length} keyframe${keyframes.length === 1 ? "" : "s"}`,
-            `${previewHour}:00 -> ${interpolateColor(keyframes, previewHour)}`,
-          ],
-          badges: keyframes.length > 0 ? [`${keyframes[0]?.Hour ?? 0}:00`, `${keyframes[keyframes.length - 1]?.Hour ?? 0}:00`] : ["Empty"],
-        },
-      });
-      edges.push({ id: `edge-color-${track.key}`, source: "group:colors", target: `color:${track.key}` });
-    });
-
-    VALUE_TRACKS.forEach((track, index) => {
-      const keyframes = (doc[track.key] as HourValue[] | undefined) ?? [];
-      nodes.push({
-        id: `value:${track.key}`,
-        position: nodeGridPosition(index, 620, 720),
-        data: {
-          label: track.label,
-          subtitle: track.key,
-          accent: "#38bdf8",
-          stats: [
-            `${keyframes.length} keyframe${keyframes.length === 1 ? "" : "s"}`,
-            `${previewHour}:00 -> ${formatTrackValue(interpolateValue(keyframes, previewHour))}`,
-          ],
-          badges: keyframes.length > 0 ? [`min ${formatTrackValue(Math.min(...keyframes.map((entry) => entry.Value)))}`, `max ${formatTrackValue(Math.max(...keyframes.map((entry) => entry.Value)))}`] : ["Empty"],
-        },
-      });
-      edges.push({ id: `edge-value-${track.key}`, source: "group:values", target: `value:${track.key}` });
-    });
-
-    const featureNodes: Array<Node<StructuredGraphNodeData>> = [
-      {
-        id: "feature:fog-distance",
-        position: nodeGridPosition(0, 620, 1160),
-        data: {
-          label: "Fog Distance",
-          subtitle: "Near/far plane for the weather volume.",
-          accent: fogColor,
-          stats: [Array.isArray(doc.FogDistance) ? `${doc.FogDistance[0]} to ${doc.FogDistance[1]}` : "Not configured"],
-          badges: ["Fog"],
-        },
-      },
-      {
-        id: "feature:clouds",
-        position: nodeGridPosition(1, 620, 1160),
-        data: {
-          label: "Cloud Layers",
-          subtitle: "Layer textures with color and speed tracks.",
-          accent: cloudLayers[0]?.Colors?.length ? interpolateColor(cloudLayers[0].Colors ?? [], previewHour) : "#64748b",
-          stats: [
-            `${cloudLayers.length} layer${cloudLayers.length === 1 ? "" : "s"}`,
-            `${cloudLayers.reduce((sum, layer) => sum + ((layer.Colors ?? []).length), 0)} color keys`,
-          ],
-          badges: ["Clouds"],
-        },
-      },
-      {
-        id: "feature:moons",
-        position: nodeGridPosition(2, 620, 1160),
-        data: {
-          label: "Moons and Stars",
-          subtitle: typeof doc.Stars === "string" ? doc.Stars : "No star texture",
-          accent: moonGlowColor,
-          stats: [
-            `${moons.length} moon cycle entr${moons.length === 1 ? "y" : "ies"}`,
-            typeof doc.Stars === "string" ? "Stars texture configured" : "Stars texture missing",
-          ],
-          badges: ["Celestial"],
-        },
-      },
-      {
-        id: "feature:extras",
-        position: nodeGridPosition(3, 620, 1160),
-        data: {
-          label: "Additional Fields",
-          subtitle: "Fields not yet modeled as first-class weather tracks.",
-          accent: "#f97316",
-          stats: [`${extraEntries.length} extra entr${extraEntries.length === 1 ? "y" : "ies"}`],
-          badges: extraEntries.length > 0 ? extraEntries.slice(0, 2).map(([key]) => key) : ["None"],
-        },
-      },
-    ];
-
-    for (const node of featureNodes) {
-      nodes.push(node);
-      edges.push({ id: `edge-${node.id}`, source: "group:features", target: node.id });
-    }
-
-    return { nodes, edges };
-  }, [
-    cloudLayers,
-    colorTrackCount,
-    currentFile,
-    doc,
-    extraEntries,
-    fogColor,
-    moons.length,
-    moonGlowColor,
-    previewHour,
-    skyTop,
-    sunsetColor,
-    valueTrackCount,
-  ]);
-
-  const graphPanel = (
-    <div className={sectionClass(selectedGraphNodeId === "weather-root" || selectedGraphNodeId === "")}>
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Weather Graph</h3>
-          <p className="mt-1 text-[11px] text-tn-text-muted">
-            Track nodes mirror the weather editor structure. Click a node to focus the matching editor block.
-          </p>
-        </div>
-        <div className="rounded border border-tn-border/50 bg-tn-bg/60 px-2 py-1 text-right text-[10px] text-tn-text-muted">
-          <p>{weatherGraph.nodes.length} nodes</p>
-          <p>{weatherGraph.edges.length} links</p>
-        </div>
-      </div>
-      <div className="h-[78vh] min-h-[680px]">
-        <AssetGraphCanvasBridge
-          nodes={weatherGraph.nodes}
-          edges={weatherGraph.edges}
-          defaultSelectionId="weather-root"
-        />
-      </div>
-    </div>
-  );
-
   const previewPanel = (
-    <div ref={previewSectionRef} className={sectionClass(selectedGraphNodeId === "weather-root")}>
+    <div ref={previewSectionRef} className={sectionClass(false)}>
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Scene Preview</p>
@@ -1468,28 +1260,6 @@ export function WeatherEditorView() {
           <p className="mt-0.5 text-[10px] text-tn-text-muted">{currentFile?.split(/[/\\]/).pop() ?? "Untitled"}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-lg border border-tn-border/60 bg-tn-bg/70 p-0.5">
-            {(["editor", "graph"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => {
-                  if (mode === "graph" && graphViewDisabled) return;
-                  setViewMode(mode);
-                }}
-                disabled={mode === "graph" && graphViewDisabled}
-                className={`rounded-md px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider transition-colors ${
-                  viewMode === mode
-                    ? "bg-tn-accent/20 text-tn-accent"
-                    : mode === "graph" && graphViewDisabled
-                      ? "cursor-not-allowed text-tn-text-muted/50"
-                      : "text-tn-text-muted hover:text-tn-text"
-                }`}
-              >
-                {mode === "editor" ? "Editor" : "Graph Disabled"}
-              </button>
-            ))}
-          </div>
           <button
             type="button"
             onClick={() => setShowAdvancedControls((value) => !value)}
@@ -1514,9 +1284,9 @@ export function WeatherEditorView() {
                 previewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
               });
             }}
-            disabled={!hasWeatherDoc || viewMode === "graph"}
+            disabled={!hasWeatherDoc}
             className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
-              !hasWeatherDoc || viewMode === "graph"
+              !hasWeatherDoc
                 ? "cursor-not-allowed border-tn-border/40 bg-tn-bg/50 text-tn-text-muted/50"
                 : showPreview
                   ? "border-tn-accent/70 bg-tn-accent/10 text-tn-accent"
@@ -1558,9 +1328,7 @@ export function WeatherEditorView() {
               No weather file loaded.
             </div>
           )}
-          {viewMode === "graph" ? (
-            <section>{graphPanel}</section>
-          ) : showPreview ? (
+          {showPreview ? (
             <section>{previewPanel}</section>
           ) : (
             <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-4 py-3 text-[11px] text-tn-text-muted">
@@ -1748,7 +1516,7 @@ export function WeatherEditorView() {
                       key={track.key}
                       label={track.label}
                       keyframes={keyframes}
-                      isFocused={selectedGraphNodeId === `color:${track.key}`}
+                      isFocused={false}
                       onChange={(index, next) => {
                         updateColorTrack(track.key, keyframes.map((entry, entryIndex) => (
                           entryIndex === index ? next : entry
@@ -1789,7 +1557,7 @@ export function WeatherEditorView() {
                         key={track.key}
                         label={track.label}
                         keyframes={keyframes}
-                        isFocused={selectedGraphNodeId === `value:${track.key}`}
+                        isFocused={false}
                         onChange={(index, next) => {
                           updateValueTrack(track.key, keyframes.map((entry, entryIndex) => (
                             entryIndex === index ? next : entry

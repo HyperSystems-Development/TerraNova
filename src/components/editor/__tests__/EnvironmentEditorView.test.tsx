@@ -25,10 +25,6 @@ vi.mock("@/utils/ipc", async () => {
   };
 });
 
-vi.mock("../AssetGraphCanvasBridge", () => ({
-  AssetGraphCanvasBridge: () => <div data-testid="asset-graph-canvas" />,
-}));
-
 describe("EnvironmentEditorView", () => {
   beforeEach(() => {
     useEditorStore.getState().reset();
@@ -68,9 +64,7 @@ describe("EnvironmentEditorView", () => {
       expect(listDirectoryMock).toHaveBeenCalled();
     });
 
-    const disabledGraphButtons = screen.getAllByRole("button", { name: "Graph Disabled" });
-    expect(disabledGraphButtons).toHaveLength(1);
-    disabledGraphButtons.forEach((button) => expect((button as HTMLButtonElement).disabled).toBe(true));
+    expect(screen.queryByRole("button", { name: "Graph Disabled" })).toBeNull();
     expect(screen.getAllByRole("button", { name: "Add Weather" })).toHaveLength(1);
 
     fireEvent.change(screen.getByLabelText("Scope"), { target: { value: "all" } });

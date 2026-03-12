@@ -139,7 +139,6 @@ import { RootNode } from "./RootNode";
 
 // ── Fallback ───────────────────────────────────────────────────────────
 import { GenericNode } from "./GenericNode";
-import { StructuredAssetCardNode } from "./StructuredAssetCardNode";
 
 /**
  * Central node type registry.
@@ -465,7 +464,6 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   Root: RootNode,
 
   // ── Structured asset cards ──────────────────────────────────────────
-  structuredAssetCard: StructuredAssetCardNode,
 
   // ── Fallback ─────────────────────────────────────────────────────────
   default: GenericNode,

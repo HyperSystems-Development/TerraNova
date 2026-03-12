@@ -1,6 +1,5 @@
 import type { HandleDef } from "./shared/handles";
 import {
-  categoryOutput,
   densityInput, densityOutput,
   curveInput, curveOutput,
   materialInput, materialOutput,
@@ -28,7 +27,6 @@ const connectionMatrix = connectionsData.connectionMatrix as Record<string, Reco
  * Used by isValidConnection to enforce type-safe wiring.
  */
 export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
-  structuredAssetCard: [categoryOutput("output", "Output", AssetCategory.Framework)],
   // ── Density ────────────────────────────────────────────────────────────
 
   // Noise generators (output only)
