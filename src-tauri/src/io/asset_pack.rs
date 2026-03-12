@@ -69,7 +69,7 @@ impl AssetPack {
 
             if path.is_dir() {
                 Self::scan_dir(root, &path, assets)?;
-            } else if path.extension().is_some_and(|ext| ext == "json") {
+            } else if path.extension().is_some_and(|ext| ext == "json" || ext == "bson") {
                 let content = fs::read_to_string(&path)?;
                 let value: Value = serde_json::from_str(&content)?;
                 let relative = path

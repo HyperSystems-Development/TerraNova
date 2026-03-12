@@ -129,11 +129,11 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
     // WorldStructures/MainWorld.json
     let world = serde_json::json!({
         "Type": "NoiseRange",
-        "DefaultBiome": "default_biome",
+        "DefaultBiome": "DefaultBiome",
         "DefaultTransitionDistance": 16,
         "MaxBiomeEdgeDistance": 32,
         "Biomes": [
-            { "Biome": "default_biome", "Min": -1.0, "Max": 1.0 }
+            { "Biome": "DefaultBiome", "Min": -1.0, "Max": 1.0 }
         ],
         "Density": {
             "Type": "SimplexNoise2D",
@@ -153,7 +153,7 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
 
     // Biomes/DefaultBiome.json
     let biome = serde_json::json!({
-        "Name": "default_biome",
+        "Name": "DefaultBiome",
         "Terrain": {
             "Type": "DAOTerrain",
             "Density": { "Type": "Constant", "Value": 0.0 }
@@ -169,6 +169,43 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
     fs::write(
         gen.join("Biomes/DefaultBiome.json"),
         serde_json::to_string_pretty(&biome).unwrap(),
+    )
+    .map_err(|e| e.to_string())?;
+
+    // Server/Instances/DefaultInstance/instance.bson
+    let instances_dir = target.join("Server").join("Instances").join("DefaultInstance");
+    fs::create_dir_all(&instances_dir).map_err(|e| e.to_string())?;
+
+    let instance = serde_json::json!({
+        "$Comment": "Default instance for testing world generation",
+        "RequiredPlugins": {},
+        "ChunkStorage": { "Type": "Hytale" },
+        "GameMode": "Creative",
+        "IsPvpEnabled": false,
+        "IsSpawningNPC": true,
+        "GameTime": "0001-01-01T07:00:00Z",
+        "UUID": {
+            "$binary": "AZKxiVAMQfWIS0qBsBfjzQ==",
+            "$type": "04"
+        },
+        "GameplayConfig": "Default",
+        "IsCompassUpdating": true,
+        "IsTicking": true,
+        "IsGameTimePaused": false,
+        "IsObjectiveMarkersEnabled": true,
+        "IsAllNPCFrozen": false,
+        "IsSavingPlayers": true,
+        "WorldGen": {
+            "Type": "HytaleGenerator",
+            "WorldStructure": "MainWorld"
+        },
+        "IsSpawnMarkersEnabled": true,
+        "DeleteOnRemove": false,
+        "Version": 2
+    });
+    fs::write(
+        instances_dir.join("instance.bson"),
+        serde_json::to_string_pretty(&instance).unwrap(),
     )
     .map_err(|e| e.to_string())?;
 

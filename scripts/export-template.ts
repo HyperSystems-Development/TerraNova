@@ -3,7 +3,7 @@
  * Usage: npx tsx scripts/export-template.ts <template-name> <output-dir>
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync, readdirSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "fs";
 import { join } from "path";
 import { internalToHytaleBiome, transformNode } from "../src/utils/internalToHytale.js";
 
@@ -37,7 +37,6 @@ const mainWorldPath = join(templateDir, "HytaleGenerator/WorldStructures/MainWor
 
 // Find biome files
 const biomesDir = join(templateDir, "HytaleGenerator/Biomes");
-const { readdirSync } = await import("fs");
 const biomeFiles = readdirSync(biomesDir).filter((f: string) => f.endsWith(".json"));
 
 // Create output directories
@@ -66,26 +65,15 @@ const worldStructureFile = `${worldStructureName}.json`;
 writeFileSync(join(outWorlds, worldStructureFile), JSON.stringify(mainWorld, null, 2));
 console.log(`  ${worldStructureFile} (density translated)`);
 
-// 3. Biome files — full translation (use Name field verbatim as filename for Hytale biome ID resolution)
-// Hytale resolves biomes by filename, so the filename must exactly match the Name field.
+// 3. Biome files — full translation.
+// Hytale resolves biomes by filename (not internal Name field), so keep original filenames.
+// WorldStructure DefaultBiome/Biome references must match the filename (sans .json).
 for (const biomeFile of biomeFiles) {
   const biomePath = join(biomesDir, biomeFile);
   const biomeData = JSON.parse(readFileSync(biomePath, "utf8"));
   const exported = internalToHytaleBiome(biomeData);
-  const outputName = biomeData.Name
-    ? `${biomeData.Name}.json`
-    : biomeFile;
-  // Delete any existing file with the same name (case-insensitive) to handle macOS FS
-  if (existsSync(outBiomes)) {
-    const existingFiles = readdirSync(outBiomes);
-    for (const existing of existingFiles) {
-      if (existing.toLowerCase() === outputName.toLowerCase() && existing !== outputName) {
-        unlinkSync(join(outBiomes, existing));
-      }
-    }
-  }
-  writeFileSync(join(outBiomes, outputName), JSON.stringify(exported, null, 2));
-  console.log(`  ${outputName} (full biome translation)`);
+  writeFileSync(join(outBiomes, biomeFile), JSON.stringify(exported, null, 2));
+  console.log(`  ${biomeFile} (full biome translation)`);
 }
 
 console.log(`\nExport complete → ${outGen}`);

@@ -2,6 +2,7 @@ import { ContextMenuOverlay, ContextMenuItem, ContextMenuSeparator } from "./Con
 import { useEditorStore } from "@/stores/editorStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { resolveKeybinding } from "@/config/keybindings";
 import type { Node, Edge } from "@xyflow/react";
 
 interface NodeContextMenuProps {
@@ -119,21 +120,37 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
       <ContextMenuSeparator />
       <ContextMenuItem
         label="Select Upstream"
+        shortcut={resolveKeybinding("selectUpstream")}
         onClick={() => {
           const upstream = getUpstreamNodeIds(selectedIds, store.edges);
-          store.setNodes(
-            store.nodes.map((n) => ({ ...n, selected: upstream.has(n.id) })),
-          );
+          const currentSelected = new Set(store.nodes.filter((n) => n.selected).map((n) => n.id));
+          if (upstream.size === currentSelected.size && [...upstream].every((id) => currentSelected.has(id))) {
+            // Toggle off: keep only the most-downstream nodes (tips) in the selection
+            const tips = new Set([...currentSelected].filter((id) =>
+              !store.edges.some((e) => e.source === id && currentSelected.has(e.target)),
+            ));
+            store.setNodes(store.nodes.map((n) => ({ ...n, selected: tips.has(n.id) })));
+          } else {
+            store.setNodes(store.nodes.map((n) => ({ ...n, selected: upstream.has(n.id) })));
+          }
           onClose();
         }}
       />
       <ContextMenuItem
         label="Select Downstream"
+        shortcut={resolveKeybinding("selectDownstream")}
         onClick={() => {
           const downstream = getDownstreamNodeIds(selectedIds, store.edges);
-          store.setNodes(
-            store.nodes.map((n) => ({ ...n, selected: downstream.has(n.id) })),
-          );
+          const currentSelected = new Set(store.nodes.filter((n) => n.selected).map((n) => n.id));
+          if (downstream.size === currentSelected.size && [...downstream].every((id) => currentSelected.has(id))) {
+            // Toggle off: keep only the most-upstream nodes (roots) in the selection
+            const roots = new Set([...currentSelected].filter((id) =>
+              !store.edges.some((e) => e.target === id && currentSelected.has(e.source)),
+            ));
+            store.setNodes(store.nodes.map((n) => ({ ...n, selected: roots.has(n.id) })));
+          } else {
+            store.setNodes(store.nodes.map((n) => ({ ...n, selected: downstream.has(n.id) })));
+          }
           onClose();
         }}
       />

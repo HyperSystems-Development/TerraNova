@@ -1,62 +1,19 @@
 import { memo, useCallback, useRef, useState } from "react";
 import { useEditorStore } from "@/stores/editorStore";
-import { usePreviewStore, type ViewMode } from "@/stores/previewStore";
+import { usePreviewStore } from "@/stores/previewStore";
+import { LayoutPresetPicker } from "./LayoutPresetPicker";
 import { EditorCanvas } from "./EditorCanvas";
 import { BiomeRangeEditor } from "./BiomeRangeEditor";
 import { BiomeSectionTabs } from "./BiomeSectionTabs";
 import { SettingsEditorView } from "./SettingsEditorView";
-import { RawJsonView } from "./RawJsonView";
 import { WeatherEditorView } from "./WeatherEditorView";
 import { EnvironmentEditorView } from "./EnvironmentEditorView";
+import { JsonEditorView } from "./JsonEditorView";
+import { InstanceEditorView } from "./InstanceEditorView";
 import { PreviewPanel } from "../preview/PreviewPanel";
 import { ComparisonView } from "../preview/ComparisonView";
 import { DiagnosticsStrip } from "../preview/DiagnosticsStrip";
 import { PipelineIndicator } from "./PipelineIndicator";
-
-const VIEW_MODES: { key: ViewMode; label: string }[] = [
-  { key: "graph", label: "Graph" },
-  { key: "preview", label: "Preview" },
-  { key: "split", label: "Split" },
-  { key: "compare", label: "Compare" },
-];
-
-/** Floating pill overlay for view-mode switching — sits in top-right of canvas area */
-const ViewModeOverlay = memo(function ViewModeOverlay() {
-  const viewMode = usePreviewStore((s) => s.viewMode);
-  const setViewMode = usePreviewStore((s) => s.setViewMode);
-  const splitDirection = usePreviewStore((s) => s.splitDirection);
-  const setSplitDirection = usePreviewStore((s) => s.setSplitDirection);
-
-  return (
-    <div className="absolute top-2 right-2 z-20 flex items-center gap-0.5 bg-tn-surface/80 backdrop-blur-sm border border-tn-border/60 rounded-lg shadow-lg px-1 py-0.5">
-      {VIEW_MODES.map(({ key, label }) => {
-        const isActive = key === viewMode;
-        return (
-          <button
-            key={key}
-            onClick={() => setViewMode(key)}
-            className={`px-2 py-0.5 text-[11px] font-medium rounded transition-colors ${
-              isActive
-                ? "bg-tn-accent/20 text-tn-accent"
-                : "text-tn-text-muted hover:text-tn-text hover:bg-white/5"
-            }`}
-          >
-            {label}
-          </button>
-        );
-      })}
-      {viewMode === "split" && (
-        <button
-          onClick={() => setSplitDirection(splitDirection === "horizontal" ? "vertical" : "horizontal")}
-          className="px-1.5 py-0.5 text-[11px] font-medium rounded transition-colors text-tn-text-muted hover:text-tn-text hover:bg-white/5 ml-0.5 border-l border-tn-border/40 pl-1.5"
-          title={`Split: ${splitDirection === "horizontal" ? "Horizontal" : "Vertical"} (V)`}
-        >
-          {splitDirection === "horizontal" ? "H" : "V"}
-        </button>
-      )}
-    </div>
-  );
-});
 
 const SplitView = memo(function SplitView() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -125,17 +82,20 @@ const SplitView = memo(function SplitView() {
 /** Density-context view: canvas/preview with floating view-mode overlay */
 const DensityView = memo(function DensityView() {
   const viewMode = usePreviewStore((s) => s.viewMode);
+  const originalWrapper = useEditorStore((s) => s.originalWrapper);
+  const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
 
   return (
     <div className="flex flex-col h-full">
       <DiagnosticsStrip />
       <PipelineIndicator />
       <div className="flex-1 min-h-0 relative">
-        <ViewModeOverlay />
+        <LayoutPresetPicker />
         {viewMode === "graph" && <EditorCanvas />}
         {viewMode === "preview" && <PreviewPanel />}
         {viewMode === "split" && <SplitView />}
         {viewMode === "compare" && <ComparisonView />}
+        {viewMode === "json" && <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />}
       </div>
     </div>
   );
@@ -160,8 +120,12 @@ export function CenterPanel() {
     return <EnvironmentEditorView />;
   }
 
+  if (editingContext === "Instance") {
+    return <InstanceEditorView />;
+  }
+
   if (editingContext === "RawJson") {
-    return <RawJsonView />;
+    return <JsonEditorView />;
   }
 
   if (editingContext === "Biome") {
@@ -191,6 +155,8 @@ function defaultEditorHeight(biomeCount: number): number {
 /** NoiseRange layout with floating view mode overlay */
 const NoiseRangeView = memo(function NoiseRangeView() {
   const viewMode = usePreviewStore((s) => s.viewMode);
+  const originalWrapper = useEditorStore((s) => s.originalWrapper);
+  const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
   const biomeCount = useEditorStore((s) => s.biomeRanges.length);
   const [manualHeight, setManualHeight] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -220,12 +186,12 @@ const NoiseRangeView = memo(function NoiseRangeView() {
 
       {viewMode === "preview" ? (
         <div className="flex-1 min-h-0 relative">
-          <ViewModeOverlay />
+          <LayoutPresetPicker />
           <PreviewPanel />
         </div>
       ) : viewMode === "split" ? (
         <div ref={containerRef} className="flex-1 min-h-0 flex flex-col relative">
-          <ViewModeOverlay />
+          <LayoutPresetPicker />
           <div className="shrink-0" style={{ height: editorHeight }}>
             <BiomeRangeEditor />
           </div>
@@ -239,12 +205,17 @@ const NoiseRangeView = memo(function NoiseRangeView() {
         </div>
       ) : viewMode === "compare" ? (
         <div className="flex-1 min-h-0 relative">
-          <ViewModeOverlay />
+          <LayoutPresetPicker />
           <ComparisonView />
+        </div>
+      ) : viewMode === "json" ? (
+        <div className="flex-1 min-h-0 relative">
+          <LayoutPresetPicker />
+          <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />
         </div>
       ) : (
         <div ref={containerRef} className="flex-1 min-h-0 flex flex-col relative">
-          <ViewModeOverlay />
+          <LayoutPresetPicker />
           <div className="shrink-0" style={{ height: editorHeight }}>
             <BiomeRangeEditor />
           </div>
@@ -264,6 +235,8 @@ const NoiseRangeView = memo(function NoiseRangeView() {
 /** Biome layout with section tabs header + floating view mode overlay */
 const BiomeView = memo(function BiomeView() {
   const viewMode = usePreviewStore((s) => s.viewMode);
+  const originalWrapper = useEditorStore((s) => s.originalWrapper);
+  const setJsonViewDraft = useEditorStore((s) => s.setJsonViewDraft);
 
   return (
     <div className="flex flex-col h-full">
@@ -273,11 +246,12 @@ const BiomeView = memo(function BiomeView() {
       <DiagnosticsStrip />
       <PipelineIndicator />
       <div className="flex-1 min-h-0 relative">
-        <ViewModeOverlay />
+        <LayoutPresetPicker />
         {viewMode === "graph" && <EditorCanvas />}
         {viewMode === "preview" && <PreviewPanel />}
         {viewMode === "split" && <SplitView />}
         {viewMode === "compare" && <ComparisonView />}
+        {viewMode === "json" && <JsonEditorView content={originalWrapper} onChange={setJsonViewDraft} />}
       </div>
     </div>
   );

@@ -34,6 +34,17 @@ export interface SettingsConfig {
   StatsCheckpoints: number[];
 }
 
+export interface InstanceConfig {
+  comment: string;
+  gameMode: string;
+  gameplayConfig: string;
+  worldStructure: string;
+  spawnEnabled: boolean;
+  spawnPoint: { X: number; Y: number; Z: number; Pitch: number; Yaw: number; Roll: number };
+  toggles: Record<string, boolean>;
+  availableWorldStructures: string[];
+}
+
 export interface SectionHistoryEntry {
   nodes: Node[];
   edges: Edge[];
@@ -66,6 +77,7 @@ export interface FileGraphCache {
   noiseRangeConfig: NoiseRangeConfig | null;
   biomeConfig: BiomeConfig | null;
   settingsConfig: SettingsConfig | null;
+  instanceConfig: InstanceConfig | null;
   materialConfig: BiomeMaterialConfig | null;
   biomeSections: Record<string, BiomeSectionData> | null;
   activeBiomeSection: string | null;
@@ -171,18 +183,22 @@ export interface ClipboardSliceState {
 
 export interface ConfigSliceState {
   settingsConfig: SettingsConfig | null;
+  instanceConfig: InstanceConfig | null;
   contentFields: Record<string, number>;
   materialConfig: BiomeMaterialConfig | null;
   originalWrapper: Record<string, unknown> | null;
   editingContext: string | null;
   rawJsonContent: Record<string, unknown> | null;
+  jsonViewDraft: string | null;
 
   setSettingsConfig: (config: SettingsConfig | null) => void;
+  setInstanceConfig: (config: InstanceConfig | null) => void;
   setContentFields: (fields: Record<string, number>) => void;
   setMaterialConfig: (config: BiomeMaterialConfig | null) => void;
   setOriginalWrapper: (wrapper: Record<string, unknown> | null) => void;
   setEditingContext: (context: string | null) => void;
   setRawJsonContent: (content: Record<string, unknown> | null) => void;
+  setJsonViewDraft: (draft: string | null) => void;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,9 +1,8 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { useProjectStore } from "@/stores/projectStore";
 import { useEditorStore } from "@/stores/editorStore";
 import {
-  openAssetPack,
   saveAssetPack,
   readAssetFile,
   writeAssetFile,
@@ -11,12 +10,14 @@ import {
   createFromTemplate,
   createBlankProject,
 } from "@/utils/ipc";
+import type { DirectoryEntryData } from "@/utils/ipc";
 import { jsonToGraph } from "@/utils/jsonToGraph";
 import { graphToJson, graphToJsonMulti } from "@/utils/graphToJson";
 import { autoLayout } from "@/utils/autoLayout";
 import {
   isBiomeFile,
   isEnvironmentFile,
+  isInstanceFile,
   isSettingsFile,
   isWeatherFile,
   normalizeImport,
@@ -25,6 +26,7 @@ import {
 } from "@/utils/fileTypeDetection";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
+import { useToastStore } from "@/stores/toastStore";
 import { loadPersistedHistory } from "@/stores/editorStore";
 import type { BiomeConfig, BiomeSectionData, SectionHistoryEntry } from "@/stores/editorStore";
 import { extractMaterialConfig } from "@/utils/materialResolver";
@@ -288,7 +290,6 @@ export function useTauriIO() {
       if (!selected) return;
 
       const path = typeof selected === "string" ? selected : selected;
-      await openAssetPack(path);
       setProjectPath(path);
 
       const entries = await listDirectory(path);
@@ -508,6 +509,68 @@ export function useTauriIO() {
           if (persistedSettings?.g) {
             useEditorStore.setState({ history: persistedSettings.g.h, historyIndex: persistedSettings.g.i });
           }
+        } else if (content && typeof content === "object" && isInstanceFile(content as Record<string, unknown>, filePath)) {
+          // Instance file — parse into InstanceConfig
+          const raw = content as Record<string, unknown>;
+          const store = useEditorStore.getState();
+          const worldGen = (raw.WorldGen ?? {}) as Record<string, unknown>;
+          const spawnProvider = raw.SpawnProvider as Record<string, unknown> | undefined;
+          const spawnPoint = (spawnProvider?.SpawnPoint ?? {}) as Record<string, unknown>;
+
+          // Discover available WorldStructures from sibling directory
+          let availableWorldStructures: string[] = [];
+          try {
+            const normalized = filePath.replace(/\\/g, "/");
+            const parts = normalized.split("/");
+            const serverIdx = parts.findIndex((p) => p.toLowerCase() === "server");
+            if (serverIdx >= 0) {
+              const wsDir = parts.slice(0, serverIdx + 1).join("/") + "/HytaleGenerator/WorldStructures";
+              try {
+                const wsEntries: DirectoryEntryData[] = await listDirectory(wsDir);
+                availableWorldStructures = wsEntries
+                  .filter((e) => !e.is_dir && e.name.endsWith(".json"))
+                  .map((e) => e.name.replace(/\.json$/, ""));
+              } catch {
+                // WorldStructures dir doesn't exist
+              }
+            }
+          } catch {
+            // Path parsing failed
+          }
+
+          store.setInstanceConfig({
+            comment: (raw.$Comment as string) ?? "",
+            gameMode: (raw.GameMode as string) ?? "Creative",
+            gameplayConfig: (raw.GameplayConfig as string) ?? "Default",
+            worldStructure: (worldGen.WorldStructure as string) ?? "",
+            spawnEnabled: !!spawnProvider,
+            spawnPoint: {
+              X: (spawnPoint.X as number) ?? 0.5,
+              Y: (spawnPoint.Y as number) ?? 80,
+              Z: (spawnPoint.Z as number) ?? 0.5,
+              Pitch: (spawnPoint.Pitch as number) ?? 0,
+              Yaw: (spawnPoint.Yaw as number) ?? 180,
+              Roll: (spawnPoint.Roll as number) ?? 0,
+            },
+            toggles: {
+              IsPvpEnabled: (raw.IsPvpEnabled as boolean) ?? false,
+              IsSpawningNPC: (raw.IsSpawningNPC as boolean) ?? true,
+              IsCompassUpdating: (raw.IsCompassUpdating as boolean) ?? true,
+              IsTicking: (raw.IsTicking as boolean) ?? true,
+              IsGameTimePaused: (raw.IsGameTimePaused as boolean) ?? false,
+              IsObjectiveMarkersEnabled: (raw.IsObjectiveMarkersEnabled as boolean) ?? true,
+              IsAllNPCFrozen: (raw.IsAllNPCFrozen as boolean) ?? false,
+              IsSavingPlayers: (raw.IsSavingPlayers as boolean) ?? true,
+              IsSpawnMarkersEnabled: (raw.IsSpawnMarkersEnabled as boolean) ?? true,
+              DeleteOnRemove: (raw.DeleteOnRemove as boolean) ?? false,
+            },
+            availableWorldStructures,
+          });
+          store.setEditingContext("Instance");
+          store.setOriginalWrapper(raw);
+          setNodes([]);
+          setEdges([]);
+          commitState("Initial");
         } else if (content && typeof content === "object" && isBiomeFile(content as Record<string, unknown>, filePath)) {
           // Biome wrapper file — extract all sections
           const wrapper = content as Record<string, unknown>;
@@ -653,6 +716,22 @@ export function useTauriIO() {
       const currentFile = useProjectStore.getState().currentFile;
       if (!currentFile) return;
 
+      // JSON view mode: save the raw JSON draft directly to disk
+      const viewMode = usePreviewStore.getState().viewMode;
+      if (viewMode === "json") {
+        const jsonDraft = useEditorStore.getState().jsonViewDraft;
+        if (jsonDraft && currentFile) {
+          try {
+            const parsed = JSON.parse(jsonDraft);
+            await writeAssetFile(currentFile, parsed);
+            setDirty(false);
+          } catch {
+            setLastError("Cannot save: invalid JSON");
+          }
+        }
+        return;
+      }
+
       const { nodes, edges, originalWrapper, biomeRanges, noiseRangeConfig } = useEditorStore.getState();
 
       // NoiseRange files: reassemble the full structure
@@ -689,6 +768,59 @@ export function useTauriIO() {
         output.StatsCheckpoints = settingsConfig.StatsCheckpoints;
         await writeAssetFile(currentFile, output);
         setDirty(false);
+        return;
+      }
+
+      // Instance files: reassemble from InstanceConfig
+      const { instanceConfig } = useEditorStore.getState();
+      if (editingContext === "Instance" && instanceConfig && originalWrapper) {
+        const output: Record<string, unknown> = { ...originalWrapper };
+        output.$Comment = instanceConfig.comment;
+        output.RequiredPlugins = originalWrapper.RequiredPlugins ?? {};
+        output.ChunkStorage = originalWrapper.ChunkStorage ?? { Type: "Hytale" };
+        output.GameMode = instanceConfig.gameMode;
+        output.IsPvpEnabled = instanceConfig.toggles.IsPvpEnabled;
+        output.IsSpawningNPC = instanceConfig.toggles.IsSpawningNPC;
+        output.GameTime = originalWrapper.GameTime ?? "0001-01-01T07:00:00Z";
+        output.UUID = originalWrapper.UUID ?? {
+          $binary: "AZKxiVAMQfWIS0qBsBfjzQ==",
+          $type: "04",
+        };
+        output.GameplayConfig = instanceConfig.gameplayConfig;
+        output.IsCompassUpdating = instanceConfig.toggles.IsCompassUpdating;
+        output.IsTicking = instanceConfig.toggles.IsTicking;
+        output.IsGameTimePaused = instanceConfig.toggles.IsGameTimePaused;
+        output.IsObjectiveMarkersEnabled = instanceConfig.toggles.IsObjectiveMarkersEnabled;
+        output.IsAllNPCFrozen = instanceConfig.toggles.IsAllNPCFrozen;
+        output.IsSavingPlayers = instanceConfig.toggles.IsSavingPlayers;
+        output.WorldGen = {
+          Type: "HytaleGenerator",
+          WorldStructure: instanceConfig.worldStructure,
+        };
+        if (instanceConfig.spawnEnabled) {
+          output.SpawnProvider = {
+            Id: "Global",
+            SpawnPoint: { ...instanceConfig.spawnPoint },
+          };
+        } else {
+          delete output.SpawnProvider;
+        }
+        output.IsSpawnMarkersEnabled = instanceConfig.toggles.IsSpawnMarkersEnabled;
+        output.DeleteOnRemove = instanceConfig.toggles.DeleteOnRemove;
+        output.Version = originalWrapper.Version ?? 2;
+        await writeAssetFile(currentFile, output);
+        setDirty(false);
+        useToastStore.getState().addToast("Instance saved", "success");
+        return;
+      }
+
+      // RawJson files — save rawJsonContent directly to disk
+      if (editingContext === "RawJson") {
+        const rawContent = useEditorStore.getState().rawJsonContent;
+        if (rawContent && currentFile) {
+          await writeAssetFile(currentFile, rawContent);
+          setDirty(false);
+        }
         return;
       }
 
@@ -830,7 +962,7 @@ export function useTauriIO() {
     setLastError(null);
     try {
       const filePath = await save({
-        filters: [{ name: "JSON", extensions: ["json"] }],
+        filters: [{ name: "JSON / BSON", extensions: ["json", "bson"] }],
       });
       if (!filePath) return;
 
@@ -877,6 +1009,113 @@ export function useTauriIO() {
     [setProjectPath, setDirectoryTree, setLastError],
   );
 
+  const handleNewBiome = useCallback(async () => {
+    setLastError(null);
+    try {
+      const projectPath = useProjectStore.getState().projectPath;
+      if (!projectPath) return;
+      const biomesDir = `${projectPath}/Server/HytaleGenerator/Biomes`;
+      const filePath = await save({
+        defaultPath: `${biomesDir}/NewBiome.json`,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (!filePath) return;
+      const name = filePath.replace(/\\/g, "/").split("/").pop()?.replace(/\.json$/, "") ?? "NewBiome";
+      const biome = {
+        Name: name,
+        Terrain: {
+          Type: "DAOTerrain",
+          Density: { Type: "Constant", Value: 0.0 },
+        },
+        MaterialProvider: {
+          Type: "Constant",
+          Material: "stone",
+        },
+        Props: [],
+        EnvironmentProvider: { Type: "Constant", Environment: "default" },
+        TintProvider: { Type: "Constant", Color: "#7CFC00" },
+      };
+      await writeAssetFile(filePath, biome);
+      // Refresh sidebar tree
+      const entries = await listDirectory(projectPath);
+      setDirectoryTree(entries.map(mapDirEntry));
+      // Open the new file
+      await handleOpenFile(filePath);
+    } catch (err) {
+      setLastError(`Failed to create biome: ${err}`);
+    }
+  }, [setLastError, setDirectoryTree, handleOpenFile]);
+
+  const handleNewInstance = useCallback(async () => {
+    setLastError(null);
+    try {
+      const projectPath = useProjectStore.getState().projectPath;
+      if (!projectPath) return;
+      const instancesDir = `${projectPath}/Server/Instances`;
+      const filePath = await save({
+        defaultPath: `${instancesDir}/instance.bson`,
+        filters: [{ name: "BSON", extensions: ["bson"] }],
+      });
+      if (!filePath) return;
+      const instance = {
+        $Comment: "New instance created by TerraNova",
+        RequiredPlugins: {},
+        ChunkStorage: { Type: "Hytale" },
+        GameMode: "Creative",
+        IsPvpEnabled: false,
+        IsSpawningNPC: true,
+        GameTime: "0001-01-01T07:00:00Z",
+        UUID: {
+          $binary: "AZKxiVAMQfWIS0qBsBfjzQ==",
+          $type: "04",
+        },
+        GameplayConfig: "Default",
+        IsCompassUpdating: true,
+        IsTicking: true,
+        IsGameTimePaused: false,
+        IsObjectiveMarkersEnabled: true,
+        IsAllNPCFrozen: false,
+        IsSavingPlayers: true,
+        WorldGen: {
+          Type: "HytaleGenerator",
+          WorldStructure: "MainWorld",
+        },
+        IsSpawnMarkersEnabled: true,
+        DeleteOnRemove: false,
+        Version: 2,
+      };
+      await writeAssetFile(filePath, instance);
+      // Refresh sidebar tree
+      const entries = await listDirectory(projectPath);
+      setDirectoryTree(entries.map(mapDirEntry));
+      // Open the new file
+      await handleOpenFile(filePath);
+    } catch (err) {
+      setLastError(`Failed to create instance: ${err}`);
+    }
+  }, [setLastError, setDirectoryTree, handleOpenFile]);
+
+  // Re-sync graph when leaving JSON view
+  const viewMode = usePreviewStore((s) => s.viewMode);
+  const prevViewModeRef = useRef(viewMode);
+  useEffect(() => {
+    if (prevViewModeRef.current === "json" && viewMode !== "json") {
+      const currentFile = useProjectStore.getState().currentFile;
+      if (currentFile) {
+        // Clear cache so it re-parses from disk
+        const { fileCache } = useEditorStore.getState();
+        const newCache = new Map(fileCache);
+        newCache.delete(currentFile);
+        useEditorStore.setState({ fileCache: newCache });
+        // Re-open the file to rebuild graph state
+        handleOpenFile(currentFile);
+      }
+      // Clear the draft
+      useEditorStore.getState().setJsonViewDraft(null);
+    }
+    prevViewModeRef.current = viewMode;
+  }, [viewMode, handleOpenFile]);
+
   return {
     openAssetPack: handleOpenAssetPack,
     saveAssetPack: handleSaveAssetPack,
@@ -884,5 +1123,7 @@ export function useTauriIO() {
     saveFile: handleSaveFile,
     saveFileAs: handleSaveFileAs,
     createFromTemplate: handleCreateFromTemplate,
+    newBiome: handleNewBiome,
+    newInstance: handleNewInstance,
   };
 }

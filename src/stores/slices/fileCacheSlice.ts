@@ -23,7 +23,7 @@ export const createFileCacheSlice: SliceCreator<FileCacheSliceState> = (set, get
 
   cacheCurrentFile: (filePath: string, isDirty: boolean) => {
     const state = get();
-    const { nodes, edges, biomeRanges, noiseRangeConfig, biomeConfig, settingsConfig, materialConfig, biomeSections, activeBiomeSection, editingContext, originalWrapper, rawJsonContent, outputNodeId, history, historyIndex, fileCache } = state;
+    const { nodes, edges, biomeRanges, noiseRangeConfig, biomeConfig, settingsConfig, instanceConfig, materialConfig, biomeSections, activeBiomeSection, editingContext, originalWrapper, rawJsonContent, outputNodeId, history, historyIndex, fileCache } = state;
 
     // Snapshot active section's current state into biomeSections before caching
     let sectionsToCache = biomeSections;
@@ -47,6 +47,7 @@ export const createFileCacheSlice: SliceCreator<FileCacheSliceState> = (set, get
       noiseRangeConfig: structuredClone(noiseRangeConfig),
       biomeConfig: structuredClone(biomeConfig),
       settingsConfig: structuredClone(settingsConfig),
+      instanceConfig: structuredClone(instanceConfig),
       materialConfig: structuredClone(materialConfig),
       biomeSections: sectionsToCache ? structuredClone(sectionsToCache) : null,
       activeBiomeSection,
@@ -77,6 +78,7 @@ export const createFileCacheSlice: SliceCreator<FileCacheSliceState> = (set, get
       noiseRangeConfig: cached.noiseRangeConfig,
       biomeConfig: cached.biomeConfig,
       settingsConfig: cached.settingsConfig,
+      instanceConfig: cached.instanceConfig,
       materialConfig: cached.materialConfig,
       biomeSections: cached.biomeSections,
       activeBiomeSection: cached.activeBiomeSection,

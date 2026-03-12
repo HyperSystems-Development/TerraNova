@@ -5,7 +5,7 @@ import type { EvaluatedPosition } from "@/utils/positionEvaluator";
 import { useConfigStore } from "@/stores/configStore";
 
 export type PreviewMode = "2d" | "3d" | "voxel" | "world";
-export type ViewMode = "graph" | "preview" | "split" | "compare";
+export type ViewMode = "graph" | "preview" | "split" | "compare" | "json";
 export type SplitDirection = "horizontal" | "vertical";
 
 export interface AtmosphereSettings {

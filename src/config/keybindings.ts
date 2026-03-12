@@ -18,6 +18,8 @@ export const KEYBINDINGS: KeybindingDef[] = [
   { id: "search",             defaultKey: "Ctrl+F",         label: "Search Nodes",               category: "Canvas" },
   { id: "selectAll",          defaultKey: "Ctrl+A",         label: "Select All",                 category: "Canvas" },
   { id: "toggleRoot",         defaultKey: "Ctrl+T",         label: "Toggle Root",                category: "Canvas" },
+  { id: "selectUpstream",     defaultKey: "Ctrl+PageUp",    label: "Select Upstream",            category: "Canvas" },
+  { id: "selectDownstream",   defaultKey: "Ctrl+PageDown",  label: "Select Downstream",          category: "Canvas" },
 
   // ── Edit ────────────────────────────────────────────────────
   { id: "undo",               defaultKey: "Ctrl+Z",         label: "Undo",                       category: "Edit" },

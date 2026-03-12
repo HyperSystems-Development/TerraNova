@@ -1,11 +1,11 @@
 {
   "Type": "NoiseRange",
-  "DefaultBiome": "void_biome",
+  "DefaultBiome": "VoidBiome",
   "DefaultTransitionDistance": 16,
   "MaxBiomeEdgeDistance": 32,
   "Biomes": [
     {
-      "Biome": "void_biome",
+      "Biome": "VoidBiome",
       "Min": -1.0,
       "Max": 1.0
     }

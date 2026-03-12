@@ -474,11 +474,25 @@ export async function exportAssetPack(): Promise<void> {
       // Skip TerraNova's internal manifest — we generate a Hytale-format one
       if (relativePath === "/manifest.json") continue;
 
-      // Normalize: strip leading /HytaleGenerator if present so we can re-wrap consistently
-      const stripped = relativePath.replace(/^\/HytaleGenerator/, "");
-
-      // Hytale expects: ModName/Server/HytaleGenerator/<asset files>
-      const destPath = `${modRoot}/Server/HytaleGenerator${stripped}`;
+      // Route files to the correct level in the Hytale mod structure:
+      //   Server/HytaleGenerator/... → modRoot/Server/HytaleGenerator/...
+      //   Server/...               → modRoot/Server/...  (Environments, Prefabs, etc.)
+      //   HytaleGenerator/...      → modRoot/Server/HytaleGenerator/...  (template shorthand)
+      //   other files              → modRoot/Server/HytaleGenerator/...  (if projectPath IS HytaleGenerator)
+      let destPath: string;
+      if (relativePath.match(/^\/Server\/HytaleGenerator(\/|$)/)) {
+        // File is under Server/HytaleGenerator — preserve full path
+        destPath = `${modRoot}${relativePath}`;
+      } else if (relativePath.match(/^\/Server(\/|$)/)) {
+        // File is under Server/ but outside HytaleGenerator (Environments, Prefabs, etc.)
+        destPath = `${modRoot}${relativePath}`;
+      } else if (relativePath.match(/^\/HytaleGenerator(\/|$)/)) {
+        // Template shorthand: HytaleGenerator/ without Server/ wrapper
+        destPath = `${modRoot}/Server${relativePath}`;
+      } else {
+        // projectPath is HytaleGenerator itself — files are Biomes/, WorldStructures/, etc.
+        destPath = `${modRoot}/Server/HytaleGenerator${relativePath}`;
+      }
 
       if (file.path.toLowerCase().endsWith(".json")) {
         // Convert JSON files through the export pipeline
@@ -487,7 +501,7 @@ export async function exportAssetPack(): Promise<void> {
           if (converted) {
             const filenameStem = destPath.split("/").pop()?.replace(/\.json$/i, "") ?? "";
 
-            // Auto-sync biome Name to match filename (Hytale resolves biomes by Name)
+            // Auto-sync biome Name to match filename (Hytale resolves biomes by filename)
             if (isBiomeFile(converted, destPath)) {
               const currentName = converted.Name as string | undefined;
               if (currentName && currentName !== filenameStem) {
@@ -514,6 +528,10 @@ export async function exportAssetPack(): Promise<void> {
             }
 
             await exportAssetFile(destPath, converted);
+          } else {
+            // Conversion returned null — copy as-is so the file isn't lost
+            failedFiles.push(relativePath);
+            await copyFile(file.path, destPath);
           }
         } catch {
           // If conversion fails, copy as-is and track the failure
