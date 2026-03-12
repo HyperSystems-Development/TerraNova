@@ -341,20 +341,34 @@ export function PropertyPanel() {
     (field: string, value: string) => {
       if (!biomeConfig) return;
       debouncedConfigChange(`Edit ${field}`, () => {
+        const currentTintProvider = (biomeConfig.TintProvider as Record<string, unknown> | undefined) ?? {};
+
+        if (field === "Color") {
+          const nextTintProvider: Record<string, unknown> = {
+            ...currentTintProvider,
+            Type: "Constant",
+            Color: value,
+          };
+          delete nextTintProvider.Delimiters;
+          delete nextTintProvider.Density;
+          setBiomeConfig({ ...biomeConfig, TintProvider: nextTintProvider });
+          return;
+        }
+
         // Handle Delimiters[n].Tint.Color path written by AtmosphereTab
         const delimPattern = /^Delimiters\[(\d+)\]\.Tint\.Color$/;
         const delimMatch = delimPattern.exec(field);
         if (delimMatch) {
           const idx = parseInt(delimMatch[1], 10);
           const updatedTint = applyBiomeTintBand(
-            biomeConfig.TintProvider as Record<string, unknown> | undefined,
+            currentTintProvider,
             idx,
             value,
           );
           setBiomeConfig({ ...biomeConfig, TintProvider: updatedTint });
         } else {
           // Legacy flat field path
-          const tint = { ...(biomeConfig.TintProvider as Record<string, unknown>), [field]: value };
+          const tint = { ...currentTintProvider, [field]: value };
           setBiomeConfig({ ...biomeConfig, TintProvider: tint });
         }
       });

@@ -10,6 +10,7 @@ import {
   resolveBiomeAtmosphere,
   type ResolveBiomeAtmosphereMetadata,
 } from "@/utils/resolveBiomeAtmosphere";
+import { applyBiomeTintBand } from "./biomeTintUtils";
 import { ColorPickerField } from "./ColorPickerField";
 import { SliderField } from "./SliderField";
 
@@ -148,7 +149,35 @@ function toServerRelativePath(path: string, serverRoot: string | null): string {
   return normalizedPath;
 }
 
-function WeatherInfoRow({ label, value }: { label: string; value: string }) {
+function WeatherInfoRow({
+  label,
+  value,
+  onClick,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={`flex w-full items-center justify-between gap-2 rounded border px-2 py-1 text-left transition-colors ${
+          disabled
+            ? "cursor-not-allowed border-tn-border/40 bg-tn-panel/20 text-tn-text-muted/50"
+            : "border-tn-border/60 bg-tn-panel/30 hover:border-tn-accent/60 hover:bg-tn-accent/10"
+        }`}
+      >
+        <span className="text-[10px] uppercase tracking-wide text-tn-text-muted">{label}</span>
+        <span className="truncate max-w-[190px] text-[10px] font-mono text-tn-text" title={value}>{value}</span>
+      </button>
+    );
+  }
+
   return (
     <div className="flex items-center justify-between gap-2 rounded border border-tn-border/60 bg-tn-panel/30 px-2 py-1">
       <span className="text-[10px] uppercase tracking-wide text-tn-text-muted">{label}</span>
@@ -252,77 +281,6 @@ function saveAtmosphere(state: AtmosphereState) {
   }
 }
 
-// Real Hytale DensityDelimited tint bands use density ranges spanning -1 to 1.
-// Three equal thirds: [-1, -0.33), [-0.33, 0.33), [0.33, 1).
-const DEFAULT_TINT_RANGES: Array<{ MinInclusive: number; MaxExclusive: number }> = [
-  { MinInclusive: -1, MaxExclusive: -0.33 },
-  { MinInclusive: -0.33, MaxExclusive: 0.33 },
-  { MinInclusive: 0.33, MaxExclusive: 1 },
-];
-
-// Every real Hytale DensityDelimited TintProvider uses a SimplexNoise2D density
-// node with these parameters (consistent across all observed biomes).
-const DEFAULT_TINT_DENSITY: Record<string, unknown> = {
-  Type: "SimplexNoise2D",
-  Seed: "tints",
-  Scale: 100,
-  Octaves: 2,
-  Persistence: 0.2,
-  Lacunarity: 5,
-};
-
-function applyTintBand(
-  tintProvider: Record<string, unknown> | undefined,
-  index: number,
-  color: string,
-): Record<string, unknown> {
-  const sourceTintProvider = tintProvider ?? {};
-  const sourceDelimiters = Array.isArray(sourceTintProvider.Delimiters)
-    ? (sourceTintProvider.Delimiters as Array<Record<string, unknown>>)
-    : [];
-
-  const delimiters: Array<Record<string, unknown>> = sourceDelimiters.map((d) => ({ ...d }));
-  while (delimiters.length < 3) {
-    delimiters.push({});
-  }
-  while (delimiters.length <= index) {
-    delimiters.push({});
-  }
-
-  for (let band = 0; band < 3; band++) {
-    const existing = delimiters[band] ?? {};
-    const existingTint = (existing.Tint as Record<string, unknown>) ?? {};
-    const fallbackColor = DEFAULT_BIOME_TINT_COLORS[band];
-    const existingColor = typeof existingTint.Color === "string" ? existingTint.Color : fallbackColor;
-    // Ensure Range exists — real Hytale assets always have Range on each delimiter.
-    const existingRange = (existing.Range as Record<string, unknown>) ?? DEFAULT_TINT_RANGES[band] ?? DEFAULT_TINT_RANGES[0];
-    delimiters[band] = {
-      ...existing,
-      Range: existingRange,
-      // Tint.Type is always "Constant" in real Hytale assets.
-      Tint: { Type: "Constant", ...existingTint, Color: existingColor },
-    };
-  }
-
-  const targetDelimiter = delimiters[index] ?? {};
-  const targetTint = (targetDelimiter.Tint as Record<string, unknown>) ?? {};
-  delimiters[index] = { ...targetDelimiter, Tint: { Type: "Constant", ...targetTint, Color: color } };
-
-  const providerType = typeof sourceTintProvider.Type === "string" ? sourceTintProvider.Type : "DensityDelimited";
-  // Inject default Density node when creating a fresh DensityDelimited provider —
-  // all real Hytale biomes use SimplexNoise2D here to spatially vary tint bands.
-  const density = providerType === "DensityDelimited" && !sourceTintProvider.Density
-    ? DEFAULT_TINT_DENSITY
-    : sourceTintProvider.Density;
-
-  return {
-    ...sourceTintProvider,
-    Type: providerType,
-    ...(density !== undefined ? { Density: density } : {}),
-    Delimiters: delimiters,
-  };
-}
-
 const VISUAL_KEYS: (keyof AtmosphereState)[] = [
   "skyHorizon", "skyZenith", "sunsetColor", "sunGlowColor", "cloudDensity",
   "fogColor", "fogNear", "fogFar", "ambientColor", "sunColor", "waterTint", "sunAngle",
@@ -338,11 +296,15 @@ export function AtmosphereTab({
   const biomeConfig = useEditorStore((s) => s.biomeConfig);
   const biomeSections = useEditorStore((s) => s.biomeSections);
   const activeBiomeSection = useEditorStore((s) => s.activeBiomeSection);
+  const editingContext = useEditorStore((s) => s.editingContext);
   const setBiomeConfig = useEditorStore((s) => s.setBiomeConfig);
   const setBiomeSections = useEditorStore((s) => s.setBiomeSections);
   const setNodes = useEditorStore((s) => s.setNodes);
   const setEdges = useEditorStore((s) => s.setEdges);
   const setOutputNode = useEditorStore((s) => s.setOutputNode);
+  const setEditingContext = useEditorStore((s) => s.setEditingContext);
+  const switchBiomeSection = useEditorStore((s) => s.switchBiomeSection);
+  const setSelectedNodeId = useEditorStore((s) => s.setSelectedNodeId);
   const commitState = useEditorStore((s) => s.commitState);
   const setDirty = useProjectStore((s) => s.setDirty);
   const currentFile = useProjectStore((s) => s.currentFile);
@@ -447,6 +409,40 @@ export function AtmosphereTab({
     if (!currentFile && !projectPath) return;
     void resolveAssetWeather(weatherInfo.hour, false);
   }, [environmentProviderSignature, currentFile, projectPath, resolveAssetWeather, weatherInfo.hour]);
+
+  const canOpenEnvironmentGraph = Boolean(biomeSections?.EnvironmentProvider);
+  const canOpenTintGraph = Boolean(biomeSections?.TintProvider);
+
+  const openBiomeSectionGraph = useCallback((sectionKey: "EnvironmentProvider" | "TintProvider") => {
+    const section = useEditorStore.getState().biomeSections?.[sectionKey];
+    if (!section) return;
+
+    if (editingContext !== "Biome") {
+      setEditingContext("Biome");
+    }
+    switchBiomeSection(sectionKey);
+    if (section.outputNodeId) {
+      setSelectedNodeId(section.outputNodeId);
+    }
+  }, [editingContext, setEditingContext, setSelectedNodeId, switchBiomeSection]);
+
+  const handleOpenEnvironmentGraph = useCallback(() => {
+    openBiomeSectionGraph("EnvironmentProvider");
+  }, [openBiomeSectionGraph]);
+
+  const handleOpenTintGraph = useCallback(() => {
+    openBiomeSectionGraph("TintProvider");
+  }, [openBiomeSectionGraph]);
+
+  const handleOpenEnvironmentFile = useCallback(() => {
+    if (!weatherInfo.environmentPath) return;
+    void openFile(weatherInfo.environmentPath);
+  }, [openFile, weatherInfo.environmentPath]);
+
+  const handleOpenWeatherFile = useCallback(() => {
+    if (!weatherInfo.weatherPath) return;
+    void openFile(weatherInfo.weatherPath);
+  }, [openFile, weatherInfo.weatherPath]);
 
   // ── Time-of-day animation ───────────────────────────────────────────
   const [animating, setAnimating] = useState(false);
@@ -731,9 +727,30 @@ export function AtmosphereTab({
 
   const tint = biomeConfig?.TintProvider as Record<string, unknown> | undefined;
   const tintDelimiters = Array.isArray(tint?.Delimiters) ? tint!.Delimiters as Array<Record<string, unknown>> : null;
+  const tintProviderType = typeof tint?.Type === "string"
+    ? tint.Type
+    : tintDelimiters && tintDelimiters.length > 0
+      ? "DensityDelimited"
+      : "Constant";
+  const tintConstantColor = typeof tint?.Color === "string" ? tint.Color : DEFAULT_BIOME_TINT_COLORS[1];
   const tintColor1 = (tintDelimiters?.[0]?.Tint as Record<string, unknown>)?.Color as string ?? "#5b9e28";
   const tintColor2 = (tintDelimiters?.[1]?.Tint as Record<string, unknown>)?.Color as string ?? "#6ca229";
   const tintColor3 = (tintDelimiters?.[2]?.Tint as Record<string, unknown>)?.Color as string ?? "#7ea629";
+  const tintBandColors = tintProviderType === "DensityDelimited"
+    ? (tintDelimiters?.map((delimiter, index) => {
+        const tintNode = (delimiter.Tint as Record<string, unknown>) ?? {};
+        return typeof tintNode.Color === "string"
+          ? tintNode.Color
+          : DEFAULT_BIOME_TINT_COLORS[Math.min(index, DEFAULT_BIOME_TINT_COLORS.length - 1)];
+      }) ?? [])
+    : [tintConstantColor];
+  const tintGradientStops = tintBandColors.length === 0
+    ? DEFAULT_BIOME_TINT_COLORS.join(", ")
+    : tintBandColors.length === 1
+      ? tintBandColors[0]
+      : tintBandColors.map((color, index) => (
+          `${color} ${Math.round((index / (tintBandColors.length - 1)) * 100)}%`
+        )).join(", ");
 
   // Sync tint to previewStore whenever biomeConfig changes
   useEffect(() => {
@@ -741,16 +758,31 @@ export function AtmosphereTab({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tintColor1, tintColor2, tintColor3]);
 
-  function handleTintChange(field: "color1" | "color2" | "color3", value: string) {
+  function handleTintChange(field: "color1" | "color2" | "color3" | "constant", value: string) {
     // Map color1/2/3 to Delimiters array index
     const indexMap: Record<string, number> = { color1: 0, color2: 1, color3: 2 };
-    const idx = indexMap[field];
     const liveBiomeConfig = useEditorStore.getState().biomeConfig;
-    const nextTint = applyTintBand(
-      liveBiomeConfig?.TintProvider as Record<string, unknown> | undefined,
-      idx,
-      value,
-    );
+    const liveTintProvider = liveBiomeConfig?.TintProvider as Record<string, unknown> | undefined;
+    const liveTintType = typeof liveTintProvider?.Type === "string"
+      ? liveTintProvider.Type
+      : tintProviderType;
+
+    if (field === "constant" || liveTintType === "Constant") {
+      const nextTint: Record<string, unknown> = {
+        ...(liveTintProvider ?? {}),
+        Type: "Constant",
+        Color: value,
+      };
+      delete nextTint.Delimiters;
+      delete nextTint.Density;
+      onBiomeTintChange("Color", value);
+      syncTintSection(nextTint);
+      setTintColors({ color1: value, color2: value, color3: value });
+      return;
+    }
+
+    const idx = indexMap[field];
+    const nextTint = applyBiomeTintBand(liveTintProvider, idx, value);
     onBiomeTintChange(`Delimiters[${idx}].Tint.Color`, value);
     syncTintSection(nextTint);
     setTintColors({
@@ -864,14 +896,42 @@ export function AtmosphereTab({
           <WeatherInfoRow
             label="Env file"
             value={toServerRelativePath(weatherInfo.environmentPath, weatherInfo.serverRoot)}
+            onClick={handleOpenEnvironmentFile}
           />
         )}
         {weatherInfo.weatherPath && (
           <WeatherInfoRow
             label="Weather file"
             value={toServerRelativePath(weatherInfo.weatherPath, weatherInfo.serverRoot)}
+            onClick={handleOpenWeatherFile}
           />
         )}
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={handleOpenEnvironmentGraph}
+            disabled={!canOpenEnvironmentGraph}
+            className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-accent hover:text-tn-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Open Environment Graph
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenEnvironmentFile}
+            disabled={!weatherInfo.environmentPath}
+            className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-accent hover:text-tn-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Open Environment File
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenWeatherFile}
+            disabled={!weatherInfo.weatherPath}
+            className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-accent hover:text-tn-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Open Weather File
+          </button>
+        </div>
         <div className="flex items-center justify-between text-[10px] text-tn-text-muted">
           <span>{weatherStatusLabel}</span>
           <span className="font-mono">Hour {weatherInfo.hour}:00</span>
@@ -952,32 +1012,67 @@ export function AtmosphereTab({
       </SectionCard>
 
       <SectionCard label="Tint">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-[10px] text-tn-text-muted">
+            {tintProviderType === "DensityDelimited"
+              ? `${tintBandColors.length} band${tintBandColors.length === 1 ? "" : "s"} in TintProvider`
+              : "Constant TintProvider"}
+          </div>
+          <button
+            type="button"
+            onClick={handleOpenTintGraph}
+            disabled={!canOpenTintGraph}
+            className="px-2 py-1 text-[10px] rounded border border-tn-border text-tn-text-muted bg-tn-panel/40 hover:border-tn-accent hover:text-tn-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Open Tint Graph
+          </button>
+        </div>
         <div
           className="h-7 w-full rounded border border-tn-border"
-          style={{ background: `linear-gradient(to right, ${tintColor1}, ${tintColor2}, ${tintColor3})` }}
+          style={{ background: `linear-gradient(to right, ${tintGradientStops})` }}
         />
-        <div className="grid grid-cols-3 gap-1 text-[10px] text-tn-text-muted">
-          <div className="rounded border border-tn-border bg-tn-panel/40 px-1.5 py-1 text-center">Cool</div>
-          <div className="rounded border border-tn-border bg-tn-panel/40 px-1.5 py-1 text-center">Mid</div>
-          <div className="rounded border border-tn-border bg-tn-panel/40 px-1.5 py-1 text-center">Warm</div>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <ColorPickerField
-            label="Band 1"
-            value={tintColor1}
-            onChange={(v) => handleTintChange("color1", v)}
-          />
-          <ColorPickerField
-            label="Band 2"
-            value={tintColor2}
-            onChange={(v) => handleTintChange("color2", v)}
-          />
-          <ColorPickerField
-            label="Band 3"
-            value={tintColor3}
-            onChange={(v) => handleTintChange("color3", v)}
-          />
-        </div>
+        {tintProviderType === "DensityDelimited" ? (
+          <>
+            <div className="grid grid-cols-3 gap-1 text-[10px] text-tn-text-muted">
+              <div className="rounded border border-tn-border bg-tn-panel/40 px-1.5 py-1 text-center">Cool</div>
+              <div className="rounded border border-tn-border bg-tn-panel/40 px-1.5 py-1 text-center">Mid</div>
+              <div className="rounded border border-tn-border bg-tn-panel/40 px-1.5 py-1 text-center">Warm</div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <ColorPickerField
+                label="Band 1"
+                value={tintColor1}
+                onChange={(v) => handleTintChange("color1", v)}
+              />
+              <ColorPickerField
+                label="Band 2"
+                value={tintColor2}
+                onChange={(v) => handleTintChange("color2", v)}
+              />
+              <ColorPickerField
+                label="Band 3"
+                value={tintColor3}
+                onChange={(v) => handleTintChange("color3", v)}
+              />
+            </div>
+            {tintBandColors.length > 3 && (
+              <p className="text-[10px] text-tn-text-muted leading-tight">
+                Quick controls edit the first 3 bands. Open the Tint graph for full delimiter editing.
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <ColorPickerField
+              label="Tint Color"
+              value={tintConstantColor}
+              onChange={(v) => handleTintChange("constant", v)}
+            />
+            <p className="text-[10px] text-tn-text-muted leading-tight">
+              This biome uses a Constant TintProvider. Open the Tint graph if you want to replace it with a multi-band provider.
+            </p>
+          </>
+        )}
       </SectionCard>
 
       <SectionCard label="Ambient Audio">

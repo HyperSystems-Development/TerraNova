@@ -32,6 +32,19 @@ export function applyBiomeTintBand(
   color: string,
 ): Record<string, unknown> {
   const sourceTintProvider = tintProvider ?? {};
+  const providerType = typeof sourceTintProvider.Type === "string" ? sourceTintProvider.Type : "DensityDelimited";
+
+  if (providerType === "Constant") {
+    const nextTint: Record<string, unknown> = {
+      ...sourceTintProvider,
+      Type: "Constant",
+      Color: color,
+    };
+    delete nextTint.Delimiters;
+    delete nextTint.Density;
+    return nextTint;
+  }
+
   const sourceDelimiters = Array.isArray(sourceTintProvider.Delimiters)
     ? (sourceTintProvider.Delimiters as Array<Record<string, unknown>>)
     : [];
@@ -64,7 +77,6 @@ export function applyBiomeTintBand(
   const targetTint = (targetDelimiter.Tint as Record<string, unknown>) ?? {};
   delimiters[index] = { ...targetDelimiter, Tint: { Type: "Constant", ...targetTint, Color: color } };
 
-  const providerType = typeof sourceTintProvider.Type === "string" ? sourceTintProvider.Type : "DensityDelimited";
   const density = providerType === "DensityDelimited" && !sourceTintProvider.Density
     ? DEFAULT_TINT_DENSITY
     : sourceTintProvider.Density;

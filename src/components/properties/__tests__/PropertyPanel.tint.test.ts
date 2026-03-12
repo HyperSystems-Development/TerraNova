@@ -88,4 +88,18 @@ describe("applyBiomeTintBand", () => {
     expect((delimiters[2].Range as Record<string, unknown>).MinInclusive).toBe(0.33);
     expect((delimiters[2].Range as Record<string, unknown>).MaxExclusive).toBe(1);
   });
+
+  it("preserves Constant tint providers instead of creating delimiter fields", () => {
+    const next = applyBiomeTintBand({
+      Type: "Constant",
+      ExportAs: "FlatTint",
+      Color: "#224422",
+    }, 0, "#445566");
+
+    expect(next.Type).toBe("Constant");
+    expect(next.Color).toBe("#445566");
+    expect(next.ExportAs).toBe("FlatTint");
+    expect("Delimiters" in next).toBe(false);
+    expect("Density" in next).toBe(false);
+  });
 });
