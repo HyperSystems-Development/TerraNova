@@ -102,11 +102,11 @@ const HIGHLIGHTS: Section[] = [
 
 const FULL_CHANGELOG: Section[] = [
   {
-    title: "Hytale asset accuracy (QoL 2)",
+    title: "Hytale asset accuracy",
     items: [
       {
         label: "DensityDelimited tint Range fields",
-        description: "Each Delimiter in a DensityDelimited TintProvider now includes the correct Range (MinInclusive/MaxExclusive) matching real Hytale biomes — thirds across -1 to 1.",
+        description: "Each Delimiter now includes the correct Range (MinInclusive/MaxExclusive). Real Hytale biomes use thirds across -1 to 1, or 0-1 when paired with a Normalizer density.",
       },
       {
         label: "Tint.Type: Constant on all delimiters",
@@ -114,36 +114,16 @@ const FULL_CHANGELOG: Section[] = [
       },
       {
         label: "Default Density node injected automatically",
-        description: "If a DensityDelimited TintProvider has no Density field, the editor now injects the canonical SimplexNoise2D node (Seed: tints, Scale: 100, Octaves: 3) so exports are always valid.",
+        description: "If a DensityDelimited TintProvider has no Density field, the editor injects the canonical SimplexNoise2D node (Seed: tints, Scale: 100, Octaves: 2) so exports are always valid.",
       },
       {
-        label: "Clickable weather file paths",
-        description: "The resolved environment and weather file path rows in the Atmosphere tab Weather section are now clickable and open the file in the editor.",
-      },
-      {
-        label: "Biome browser search filter",
-        description: "A search input appears above the Biome Browser list when more than 4 biomes are present, letting you filter by biome name instantly.",
-      },
-      {
-        label: "Biome browser richer template entries",
-        description: "Template biome entries now show two lines: the biome Name and a subtitle with the display name and template source.",
-      },
-      {
-        label: "Weather section shows all warnings",
-        description: "Previously only the first warning was shown in the Weather metadata section. All resolve warnings are now listed.",
-      },
-      {
-        label: "Weather section shows env and weather paths",
-        description: "The resolved environment file path and weather file path are now displayed as rows in the Weather metadata panel.",
-      },
-      {
-        label: "HMR fix — utility functions extracted",
-        description: "applyBiomeTintBand, buildDelimiterTypeOptions, and getAdvancedDelimiterTypeDetails moved to biomeTintUtils.ts, fixing the Vite Fast Refresh HMR warning for PropertyPanel.",
+        label: "Tint band editing in node graph",
+        description: "Selecting a DensityDelimited TintProvider node now shows an inline band editor in the property panel — color pickers, min/max range inputs, add/remove bands.",
       },
     ],
   },
   {
-    title: "Atmosphere & weather (QoL 1)",
+    title: "Atmosphere & weather",
     items: [
       {
         label: "Time-of-day animation",
@@ -165,10 +145,18 @@ const FULL_CHANGELOG: Section[] = [
         label: "Weather resolution",
         description: "The tab resolves the active environment and weather ID from your server assets and shows them in a metadata panel.",
       },
+      {
+        label: "Clickable weather file paths",
+        description: "The resolved environment and weather file path rows in the Atmosphere tab Weather section are now clickable and open the file in the editor.",
+      },
+      {
+        label: "Weather section shows all warnings",
+        description: "Previously only the first warning was shown. All resolve warnings are now listed.",
+      },
     ],
   },
   {
-    title: "Validation & diagnostics (QoL 1)",
+    title: "Validation & diagnostics",
     items: [
       {
         label: "Environment delimiter validation",
@@ -193,11 +181,11 @@ const FULL_CHANGELOG: Section[] = [
     ],
   },
   {
-    title: "Editor & UI (QoL 1)",
+    title: "Editor & UI",
     items: [
       {
         label: "Tint provider support",
-        description: "TintProvider bands are editable as a gradient preview with three color pickers (cool/mid/warm).",
+        description: "TintProvider bands are editable as a gradient preview with three color pickers (cool/mid/warm) in the Atmosphere tab.",
       },
       {
         label: "EnvironmentProvider graph section",
@@ -206,6 +194,14 @@ const FULL_CHANGELOG: Section[] = [
       {
         label: "Hytale template biomes",
         description: "The Biome Browser now includes bundled Hytale reference biomes and template packs.",
+      },
+      {
+        label: "Biome browser search",
+        description: "A search input appears when more than 4 biomes are present, filtering by name instantly.",
+      },
+      {
+        label: "Biome browser richer template entries",
+        description: "Template entries show biome Name on the first line with displayName · templateName as a subtitle.",
       },
       {
         label: "Material autocomplete",

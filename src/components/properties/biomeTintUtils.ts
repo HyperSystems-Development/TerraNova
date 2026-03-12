@@ -21,7 +21,7 @@ const DEFAULT_TINT_DENSITY: Record<string, unknown> = {
   Type: "SimplexNoise2D",
   Seed: "tints",
   Scale: 100,
-  Octaves: 3,
+  Octaves: 2,
   Persistence: 0.2,
   Lacunarity: 5,
 };

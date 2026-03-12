@@ -3,49 +3,89 @@ import { useState, useEffect, useCallback } from "react";
 interface VersionEntry {
   version: string;
   date: string;
+  highlights?: { label: string; description: string }[];
   sections: { title: string; items: string[] }[];
 }
 
 const VERSIONS: VersionEntry[] = [
   {
-    version: "0.1.5 QoL2",
+    version: "0.1.5 QoL 1-2",
     date: "2026-03",
+    highlights: [
+      {
+        label: "Tint band editor — inline in node graph",
+        description: "Select a DensityDelimited TintProvider node in the graph → property panel now shows editable color bands with range inputs, add/remove.",
+      },
+      {
+        label: "Hytale-accurate tint exports",
+        description: "Range, Tint.Type: Constant, and a valid Density node are now written automatically — exports match real Hytale biome JSON.",
+      },
+      {
+        label: "Weather file paths — click to open",
+        description: "Resolved environment and weather file path rows in the Atmosphere tab are clickable. Click to open the file in the editor.",
+      },
+      {
+        label: "Biome browser search",
+        description: "Search box appears when you have more than 4 biomes — filter instantly by name.",
+      },
+      {
+        label: "Biome Browser — Hytale templates",
+        description: "Browse real Hytale reference biomes (Salt Flats, Hive World, The Underworld, etc.) from the Atmosphere tab Biome Browser.",
+      },
+      {
+        label: "Block/material autocomplete",
+        description: "All 193 Hytale material IDs available as autocomplete in Material, Solid, Fluid, BlockType fields.",
+      },
+      {
+        label: "Legacy node auto-fix",
+        description: "74 deprecated V2 types flagged in the Validation panel. 18 have 1:1 replacements — one click to replace.",
+      },
+      {
+        label: "Reveal in Explorer",
+        description: "Right-click any Asset Tree file or folder to open it highlighted in Windows Explorer.",
+      },
+    ],
     sections: [
       {
         title: "Hytale asset accuracy",
         items: [
-          "DensityDelimited TintProvider delimiters now include Range (-1 to 1 in thirds) matching real Hytale biomes",
+          "DensityDelimited TintProvider delimiters now include Range matching real Hytale biomes",
           "Tint.Type: \"Constant\" written on every delimiter to match V2 format exactly",
-          "Default Density node (SimplexNoise2D: Seed tints, Scale 100, Octaves 3) injected when missing from DensityDelimited TintProvider",
-          "Clickable env/weather file path rows in Atmosphere tab Weather section open the file in the editor",
-          "Biome Browser search filter — filters by name when more than 4 biomes are listed",
-          "Biome Browser template entries show biome Name + display name/source on two lines",
-          "Weather section now shows all resolve warnings, not just the first",
-          "Weather section shows resolved environment and weather file paths as metadata rows",
+          "Default Density node (SimplexNoise2D: Seed tints, Scale 100, Octaves 2) injected when missing",
+          "Tint band editor in PropertyPanel — color, min/max range, add/remove bands for DensityDelimited TintProvider nodes",
+          "Clickable env/weather file path rows in Atmosphere tab Weather section",
+          "Biome Browser search filter and richer two-line template entries",
+          "Weather section shows all resolve warnings",
         ],
       },
       {
-        title: "Code quality",
+        title: "Atmosphere & weather",
         items: [
-          "applyBiomeTintBand, buildDelimiterTypeOptions, getAdvancedDelimiterTypeDetails extracted to biomeTintUtils.ts — fixes Vite Fast Refresh HMR warning",
-          "6 new unit tests covering Range, Tint.Type, and Density injection in applyBiomeTintBand",
+          "Time-of-day animation with scrub and adjustable speed",
+          "Sun angle control (0–360°) with animate support",
+          "Environment export to named Env_* JSON file",
+          "Fog near/far distance and color controls",
+          "Weather resolution from server assets with metadata panel",
         ],
       },
-    ],
-  },
-  {
-    version: "0.1.5 QoL1",
-    date: "2026-03",
-    sections: [
       {
-        title: "New features",
+        title: "Validation & diagnostics",
         items: [
           "Block/material autocomplete — 193 Hytale material IDs suggested in Material, Solid, Fluid, BlockType fields",
-          "Legacy node auto-fix — 74 deprecated V2 types flagged; 18 have 1:1 replacements applicable in one click",
-          "Validation one-click fixes — biome name, tint provider, and field constraint errors all have Fix buttons",
-          "Reveal in Explorer — right-click any Asset Tree item to open it highlighted in Windows Explorer",
-          "Biome Browser — Hytale Templates tab with real reference biomes (Salt Flats, Hive World, The Underworld, etc.)",
-          "What's New dialog on first launch with full changelog and startup toggle",
+          "Legacy node auto-fix — 74 deprecated V2 types flagged; 18 have 1:1 replacements",
+          "Validation one-click fixes — biome name, tint provider, and field constraint errors",
+          "Environment delimiter validation with issue flagging",
+          "Asset reference candidate pills on relevant fields",
+        ],
+      },
+      {
+        title: "Editor & UI",
+        items: [
+          "EnvironmentProvider node graph section",
+          "Biome Browser with Hytale Templates tab (Salt Flats, Hive World, The Underworld, etc.)",
+          "Reveal in Explorer — right-click any Asset Tree item",
+          "Improved 3D preview lighting",
+          "HMR fix — utility functions extracted from PropertyPanel to biomeTintUtils.ts",
         ],
       },
     ],
@@ -247,6 +287,24 @@ export function ChangelogDialog({ open, onClose }: ChangelogDialogProps) {
 
                 {isOpen && (
                   <div className="px-5 pb-4 space-y-3">
+                    {v.highlights && v.highlights.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-accent mb-1.5">
+                          What to try
+                        </p>
+                        <ul className="space-y-2">
+                          {v.highlights.map((h) => (
+                            <li key={h.label} className="flex gap-2.5">
+                              <span className="mt-[5px] shrink-0 w-1.5 h-1.5 rounded-full bg-tn-accent" />
+                              <div>
+                                <p className="text-[12px] font-medium leading-snug">{h.label}</p>
+                                <p className="text-[11px] text-tn-text-muted leading-relaxed mt-0.5">{h.description}</p>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     {v.sections.map((section) => (
                       <div key={section.title}>
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted mb-1.5">

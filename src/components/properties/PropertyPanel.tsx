@@ -455,6 +455,8 @@ export function PropertyPanel() {
   const isEnvironmentDensityDelimitedNode =
     rfType === "Environment:DensityDelimited"
     || (typeName === "DensityDelimited" && (data._biomeField as string | undefined) === "EnvironmentProvider");
+  const isTintDensityDelimitedNode =
+    typeName === "DensityDelimited" && (data._biomeField as string | undefined) === "TintProvider";
 
   return (
     <div className="flex flex-col p-3 gap-3">
@@ -657,6 +659,121 @@ export function PropertyPanel() {
                 }}
                 onBlur={handleBlur}
               />
+            </FieldWrapper>
+          );
+        }
+        if (Array.isArray(value) && key === "Delimiters" && isTintDensityDelimitedNode) {
+          const delimiters = value as Array<Record<string, unknown>>;
+          return (
+            <FieldWrapper key={key} issue={issue} helpMode={helpMode} onHelpClick={handleHelpClick} extendedDesc={isExpanded ? extendedDesc : undefined}>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-tn-text-muted uppercase tracking-wider font-semibold">Tint Bands</span>
+                <div className="flex flex-col gap-1.5">
+                  {delimiters.map((delimiter, idx) => {
+                    const tint = (delimiter.Tint as Record<string, unknown>) ?? {};
+                    const range = (delimiter.Range as Record<string, unknown>) ?? {};
+                    const color = typeof tint.Color === "string" ? tint.Color : "#5b9e28";
+                    const minVal = typeof range.MinInclusive === "number" ? range.MinInclusive : -1;
+                    const maxVal = typeof range.MaxExclusive === "number" ? range.MaxExclusive : 1;
+                    return (
+                      <div key={idx} className="rounded border border-tn-border bg-tn-bg/40 px-2 py-1.5 flex flex-col gap-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-tn-text-muted font-mono">[{idx}]</span>
+                          <button
+                            onClick={() => handleDiscreteChange("Delimiters", delimiters.filter((_, i) => i !== idx))}
+                            className="text-[10px] text-tn-text-muted hover:text-red-400 transition-colors leading-none px-1"
+                            title="Remove band"
+                          >×</button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-tn-text-muted w-8 shrink-0">Color</span>
+                          <input
+                            type="color"
+                            value={color}
+                            onChange={(e) => {
+                              const next = delimiters.map((d, i) => i === idx ? {
+                                ...d,
+                                Tint: { Type: "Constant", ...(d.Tint as Record<string, unknown>), Color: e.target.value },
+                              } : d);
+                              handleContinuousChange("Delimiters", next);
+                            }}
+                            onBlur={handleBlur}
+                            className="w-8 h-5 rounded cursor-pointer border-0 bg-transparent p-0"
+                          />
+                          <input
+                            type="text"
+                            value={color}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              const next = delimiters.map((d, i) => i === idx ? {
+                                ...d,
+                                Tint: { Type: "Constant", ...(d.Tint as Record<string, unknown>), Color: v },
+                              } : d);
+                              handleContinuousChange("Delimiters", next);
+                            }}
+                            onBlur={handleBlur}
+                            className="flex-1 text-[10px] bg-tn-bg border border-tn-border rounded px-1.5 py-0.5 text-tn-text font-mono"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-tn-text-muted w-8 shrink-0">Min</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={minVal}
+                            onChange={(e) => {
+                              const v = parseFloat(e.target.value);
+                              if (Number.isNaN(v)) return;
+                              const next = delimiters.map((d, i) => i === idx ? {
+                                ...d,
+                                Range: { ...(d.Range as Record<string, unknown>), MinInclusive: v },
+                              } : d);
+                              handleContinuousChange("Delimiters", next);
+                            }}
+                            onBlur={handleBlur}
+                            className="flex-1 text-[10px] bg-tn-bg border border-tn-border rounded px-1.5 py-0.5 text-tn-text text-right"
+                          />
+                          <span className="text-[10px] text-tn-text-muted w-8 shrink-0 text-center">Max</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={maxVal}
+                            onChange={(e) => {
+                              const v = parseFloat(e.target.value);
+                              if (Number.isNaN(v)) return;
+                              const next = delimiters.map((d, i) => i === idx ? {
+                                ...d,
+                                Range: { ...(d.Range as Record<string, unknown>), MaxExclusive: v },
+                              } : d);
+                              handleContinuousChange("Delimiters", next);
+                            }}
+                            onBlur={handleBlur}
+                            className="flex-1 text-[10px] bg-tn-bg border border-tn-border rounded px-1.5 py-0.5 text-tn-text text-right"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => {
+                    const last = delimiters[delimiters.length - 1];
+                    const lastMax = typeof (last?.Range as Record<string, unknown>)?.MaxExclusive === "number"
+                      ? (last.Range as Record<string, unknown>).MaxExclusive as number
+                      : 1;
+                    handleDiscreteChange("Delimiters", [
+                      ...delimiters,
+                      {
+                        Range: { MinInclusive: lastMax, MaxExclusive: Math.min(lastMax + 0.33, 1) },
+                        Tint: { Type: "Constant", Color: "#7ea629" },
+                      },
+                    ]);
+                  }}
+                  className="text-[10px] text-tn-accent border border-tn-accent/50 rounded px-2 py-0.5 hover:bg-tn-accent/10 transition-colors"
+                >
+                  + Add band
+                </button>
+              </div>
             </FieldWrapper>
           );
         }
