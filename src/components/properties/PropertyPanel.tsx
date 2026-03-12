@@ -49,6 +49,13 @@ export {
 
 const DEFAULT_BIOME_TINT_COLORS = ["#5b9e28", "#6ca229", "#7ea629"] as const;
 
+// Real Hytale DensityDelimited tint bands span -1 to 1, split into thirds.
+const DEFAULT_TINT_RANGES: Array<{ MinInclusive: number; MaxExclusive: number }> = [
+  { MinInclusive: -1, MaxExclusive: -0.33 },
+  { MinInclusive: -0.33, MaxExclusive: 0.33 },
+  { MinInclusive: 0.33, MaxExclusive: 1 },
+];
+
 /** Field keys whose string value is a Hytale block/material identifier. */
 const MATERIAL_FIELD_KEYS = new Set(["Material", "Solid", "Fluid", "BlockType", "BlockTypes"]);
 
@@ -124,15 +131,19 @@ export function applyBiomeTintBand(
     const existingTint = (existing.Tint as Record<string, unknown>) ?? {};
     const fallbackColor = DEFAULT_BIOME_TINT_COLORS[band];
     const existingColor = typeof existingTint.Color === "string" ? existingTint.Color : fallbackColor;
+    // Ensure Range exists — real Hytale assets always have Range on each delimiter.
+    const existingRange = (existing.Range as Record<string, unknown>) ?? DEFAULT_TINT_RANGES[band] ?? DEFAULT_TINT_RANGES[0];
     delimiters[band] = {
       ...existing,
-      Tint: { ...existingTint, Color: existingColor },
+      Range: existingRange,
+      // Tint.Type is always "Constant" in real Hytale assets.
+      Tint: { Type: "Constant", ...existingTint, Color: existingColor },
     };
   }
 
   const targetDelimiter = delimiters[index] ?? {};
   const targetTint = (targetDelimiter.Tint as Record<string, unknown>) ?? {};
-  delimiters[index] = { ...targetDelimiter, Tint: { ...targetTint, Color: color } };
+  delimiters[index] = { ...targetDelimiter, Tint: { Type: "Constant", ...targetTint, Color: color } };
 
   return {
     ...sourceTintProvider,
