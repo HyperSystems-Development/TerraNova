@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import type { Edge, Node } from "@xyflow/react";
+import { Clock3, Cloud, LineChart, Palette } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { writeAssetFile } from "@/utils/ipc";
@@ -196,6 +197,24 @@ function describeValue(value: unknown): string {
 
 function normalizeHour(value: number): number {
   return clamp(Math.round(value), 0, 23);
+}
+
+function upsertColorKeyframe(entries: HourColor[], hour: number, color: string): HourColor[] {
+  const nextHour = normalizeHour(hour);
+  const existingIndex = entries.findIndex((entry) => entry.Hour === nextHour);
+  if (existingIndex >= 0) {
+    return entries.map((entry, index) => (index === existingIndex ? { ...entry, Color: color } : entry));
+  }
+  return [...entries, { Hour: nextHour, Color: color }];
+}
+
+function upsertValueKeyframe(entries: HourValue[], hour: number, value: number): HourValue[] {
+  const nextHour = normalizeHour(hour);
+  const existingIndex = entries.findIndex((entry) => entry.Hour === nextHour);
+  if (existingIndex >= 0) {
+    return entries.map((entry, index) => (index === existingIndex ? { ...entry, Value: value } : entry));
+  }
+  return [...entries, { Hour: nextHour, Value: value }];
 }
 
 function sectionClass(isFocused: boolean): string {
@@ -615,6 +634,10 @@ export function WeatherEditorView() {
   const [showIssueLog, setShowIssueLog] = useState(true);
   const [showTips, setShowTips] = useState(true);
   const [showAdvancedControls, setShowAdvancedControls] = useState(false);
+  const [showAtmosphereStrip, setShowAtmosphereStrip] = useState(false);
+  const [showPreviewTracks, setShowPreviewTracks] = useState(false);
+  const [showPreviewSnapshot, setShowPreviewSnapshot] = useState(false);
+  const [showPreviewAssets, setShowPreviewAssets] = useState(false);
   const [showFogSection, setShowFogSection] = useState(true);
   const [showColorSections, setShowColorSections] = useState(true);
   const [showValueSections, setShowValueSections] = useState(false);
@@ -704,6 +727,9 @@ export function WeatherEditorView() {
   ] as const;
   const quickPreviewPresetValue = quickPreviewHours.find((preset) => preset.hour === previewHour)?.hour.toString() ?? "custom";
   const detailPanelMode = showIssueLog ? (showTips ? "both" : "issues") : (showTips ? "tips" : "none");
+  const setSimpleColor = (trackKey: ColorTrackKey, color: string) => {
+    updateColorTrack(trackKey, upsertColorKeyframe(((doc[trackKey] as HourColor[] | undefined) ?? []), previewHour, color));
+  };
 
   const weatherIssues = useMemo<EditorCalloutItem[]>(() => {
     const items: EditorCalloutItem[] = [];
@@ -1206,195 +1232,230 @@ export function WeatherEditorView() {
         </>
       ) : null}
 
-      <div className="mt-3">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">24h Atmosphere Strip</p>
-        <div className="grid grid-cols-12 gap-1 sm:grid-cols-24">
-          {HOURS.map((hour) => (
-            <button
-              key={`hour-strip-${hour}`}
-              type="button"
-              onClick={() => setPreviewHour(hour)}
-              className={`group rounded border transition-transform hover:-translate-y-0.5 ${
-                previewHour === hour ? "border-tn-accent ring-1 ring-tn-accent/50" : "border-tn-border/50"
-              }`}
-              title={`${hour}:00`}
-            >
-              <div
-                className="h-10 rounded-sm"
-                style={{
-                  background: `linear-gradient(to bottom, ${interpolateColor((doc.SkyTopColors as HourColor[] | undefined) ?? [], hour)}, ${interpolateColor((doc.SkyBottomColors as HourColor[] | undefined) ?? [], hour)})`,
-                }}
+      <div className="mt-3 space-y-3">
+        <CollapsibleEditorSection
+          title="24h Atmosphere Strip"
+          description="A compact day-long sky strip. Click any hour to retime the scene preview."
+          badge={`${previewHour}:00`}
+          icon={<Clock3 className="h-4 w-4" />}
+          open={showAtmosphereStrip}
+          onToggle={() => setShowAtmosphereStrip((value) => !value)}
+        >
+          <div className="grid grid-cols-12 gap-1 sm:grid-cols-24">
+            {HOURS.map((hour) => (
+              <button
+                key={`hour-strip-${hour}`}
+                type="button"
+                onClick={() => setPreviewHour(hour)}
+                className={`group rounded border transition-transform hover:-translate-y-0.5 ${
+                  previewHour === hour ? "border-tn-accent ring-1 ring-tn-accent/50" : "border-tn-border/50"
+                }`}
+                title={`${hour}:00`}
+              >
+                <div
+                  className="h-10 rounded-sm"
+                  style={{
+                    background: `linear-gradient(to bottom, ${interpolateColor((doc.SkyTopColors as HourColor[] | undefined) ?? [], hour)}, ${interpolateColor((doc.SkyBottomColors as HourColor[] | undefined) ?? [], hour)})`,
+                  }}
+                />
+                <p className="py-1 text-center text-[9px] font-mono text-tn-text-muted">{hour}</p>
+              </button>
+            ))}
+          </div>
+        </CollapsibleEditorSection>
+
+        <CollapsibleEditorSection
+          title="Track Preview"
+          description="Sampled color and numeric tracks synced to the current preview hour."
+          badge={`${colorTrackCount + valueTrackCount} keys`}
+          icon={<LineChart className="h-4 w-4" />}
+          open={showPreviewTracks}
+          onToggle={() => setShowPreviewTracks((value) => !value)}
+        >
+          <div className="grid gap-3 xl:grid-cols-2">
+            <div className="space-y-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Color Track Preview</p>
+                <p className="mt-1 text-[11px] text-tn-text-muted">
+                  These rows are sampled directly from the color tracks. Click any hour to retime the preview.
+                </p>
+              </div>
+              <ColorTimelineRow
+                label="Sky Top"
+                keyframes={(doc.SkyTopColors as HourColor[] | undefined) ?? []}
+                currentHour={previewHour}
+                onSelectHour={setPreviewHour}
               />
-              <p className="py-1 text-center text-[9px] font-mono text-tn-text-muted">{hour}</p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-3 grid gap-3 xl:grid-cols-2">
-        <div className="space-y-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Color Track Preview</p>
-            <p className="mt-1 text-[11px] text-tn-text-muted">
-              These rows are sampled directly from the color tracks. Click any hour to retime the preview.
-            </p>
-          </div>
-          <ColorTimelineRow
-            label="Sky Top"
-            keyframes={(doc.SkyTopColors as HourColor[] | undefined) ?? []}
-            currentHour={previewHour}
-            onSelectHour={setPreviewHour}
-          />
-          <ColorTimelineRow
-            label="Sky Bottom"
-            keyframes={(doc.SkyBottomColors as HourColor[] | undefined) ?? []}
-            currentHour={previewHour}
-            onSelectHour={setPreviewHour}
-          />
-          <ColorTimelineRow
-            label="Sunset"
-            keyframes={(doc.SkySunsetColors as HourColor[] | undefined) ?? []}
-            currentHour={previewHour}
-            onSelectHour={setPreviewHour}
-          />
-          <ColorTimelineRow
-            label="Fog"
-            keyframes={(doc.FogColors as HourColor[] | undefined) ?? []}
-            currentHour={previewHour}
-            onSelectHour={setPreviewHour}
-          />
-          <ColorTimelineRow
-            label="Water"
-            keyframes={(doc.WaterTints as HourColor[] | undefined) ?? []}
-            currentHour={previewHour}
-            onSelectHour={setPreviewHour}
-          />
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Numeric Track Preview</p>
-            <p className="mt-1 text-[11px] text-tn-text-muted">
-              Curve sampling is shown here without leaving the editor. The selected hour stays synchronized with the scene card.
-            </p>
-          </div>
-          <ValueTimelineRow
-            label="Sun Scale"
-            keyframes={(doc.SunScales as HourValue[] | undefined) ?? []}
-            currentHour={previewHour}
-            onSelectHour={setPreviewHour}
-          />
-          <ValueTimelineRow
-            label="Moon Scale"
-            keyframes={(doc.MoonScales as HourValue[] | undefined) ?? []}
-            currentHour={previewHour}
-            onSelectHour={setPreviewHour}
-          />
-          <ValueTimelineRow
-            label="Fog Density"
-            keyframes={(doc.FogDensities as HourValue[] | undefined) ?? []}
-            currentHour={previewHour}
-            onSelectHour={setPreviewHour}
-          />
-          <ValueTimelineRow
-            label="Fog Falloff"
-            keyframes={(doc.FogHeightFalloffs as HourValue[] | undefined) ?? []}
-            currentHour={previewHour}
-            onSelectHour={setPreviewHour}
-          />
-          <ValueTimelineRow
-            label="Light Damping"
-            keyframes={(doc.SunlightDampingMultipliers as HourValue[] | undefined) ?? []}
-            currentHour={previewHour}
-            onSelectHour={setPreviewHour}
-          />
-        </div>
-      </div>
-
-      <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-        <PreviewSwatchCard label="Sky Top" color={skyTop} detail={skyTop} />
-        <PreviewSwatchCard label="Sky Bottom" color={skyBottom} detail={skyBottom} />
-        <PreviewSwatchCard label="Fog" color={fogColor} detail={fogColor} />
-        <PreviewSwatchCard label="Sunlight" color={sunlightColor} detail={sunlightColor} />
-        <PreviewSwatchCard label="Screen FX" color={screenFx} detail={screenFx} />
-        <PreviewSwatchCard label="Water Tint" color={waterTint} detail={waterTint} />
-        <PreviewValueCard label="Fog Density" value={formatTrackValue(fogDensity)} detail="Interpolated at the selected hour." />
-        <PreviewValueCard label="Fog Falloff" value={formatTrackValue(fogHeightFalloff)} detail="Height fade sampled from the curve." />
-        <PreviewValueCard label="Light Damping" value={formatTrackValue(sunlightDamping)} detail="Scene damping multiplier at this hour." />
-      </div>
-
-      <div className="mt-3 grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Cloud and Celestial Breakdown</p>
-              <p className="mt-1 text-[11px] text-tn-text-muted">
-                Asset-level preview details inferred from the weather file itself.
-              </p>
+              <ColorTimelineRow
+                label="Sky Bottom"
+                keyframes={(doc.SkyBottomColors as HourColor[] | undefined) ?? []}
+                currentHour={previewHour}
+                onSelectHour={setPreviewHour}
+              />
+              <ColorTimelineRow
+                label="Sunset"
+                keyframes={(doc.SkySunsetColors as HourColor[] | undefined) ?? []}
+                currentHour={previewHour}
+                onSelectHour={setPreviewHour}
+              />
+              <ColorTimelineRow
+                label="Fog"
+                keyframes={(doc.FogColors as HourColor[] | undefined) ?? []}
+                currentHour={previewHour}
+                onSelectHour={setPreviewHour}
+              />
+              <ColorTimelineRow
+                label="Water"
+                keyframes={(doc.WaterTints as HourColor[] | undefined) ?? []}
+                currentHour={previewHour}
+                onSelectHour={setPreviewHour}
+              />
             </div>
-            <span className="text-[10px] font-mono text-tn-text-muted">{tagSummary}</span>
+
+            <div className="space-y-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Numeric Track Preview</p>
+                <p className="mt-1 text-[11px] text-tn-text-muted">
+                  Curve sampling is shown here without leaving the editor. The selected hour stays synchronized with the scene card.
+                </p>
+              </div>
+              <ValueTimelineRow
+                label="Sun Scale"
+                keyframes={(doc.SunScales as HourValue[] | undefined) ?? []}
+                currentHour={previewHour}
+                onSelectHour={setPreviewHour}
+              />
+              <ValueTimelineRow
+                label="Moon Scale"
+                keyframes={(doc.MoonScales as HourValue[] | undefined) ?? []}
+                currentHour={previewHour}
+                onSelectHour={setPreviewHour}
+              />
+              <ValueTimelineRow
+                label="Fog Density"
+                keyframes={(doc.FogDensities as HourValue[] | undefined) ?? []}
+                currentHour={previewHour}
+                onSelectHour={setPreviewHour}
+              />
+              <ValueTimelineRow
+                label="Fog Falloff"
+                keyframes={(doc.FogHeightFalloffs as HourValue[] | undefined) ?? []}
+                currentHour={previewHour}
+                onSelectHour={setPreviewHour}
+              />
+              <ValueTimelineRow
+                label="Light Damping"
+                keyframes={(doc.SunlightDampingMultipliers as HourValue[] | undefined) ?? []}
+                currentHour={previewHour}
+                onSelectHour={setPreviewHour}
+              />
+            </div>
           </div>
-          <div className="mt-3 grid gap-2 lg:grid-cols-2">
-            {cloudLayers.slice(0, 4).map((layer, index) => {
-              const gradient = Array.isArray(layer.Colors) && layer.Colors.length
-                ? buildTrackGradient(layer.Colors ?? [])
-                : "";
-              const speed = interpolateValue(layer.Speeds ?? [], previewHour);
-              return (
-                <div key={`${layer.Texture ?? "cloud"}-${index}`} className="rounded border border-tn-border/40 bg-tn-surface/40 p-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <p className="text-[11px] font-medium text-tn-text">Cloud Layer {index + 1}</p>
-                      <p className="text-[10px] text-tn-text-muted">{readTextureLabel(layer.Texture)}</p>
-                    </div>
-                    <span className="text-[10px] font-mono text-tn-text-muted">{formatTrackValue(speed)} speed</span>
-                  </div>
-                  {gradient && (
-                    <div
-                      className="mt-2 h-3 rounded border border-tn-border/40"
-                      style={{ background: `linear-gradient(to right, ${gradient})` }}
-                    />
-                  )}
-                  <p className="mt-2 text-[10px] text-tn-text-muted">
-                    {Array.isArray(layer.Colors) ? layer.Colors.length : 0} color keys | {Array.isArray(layer.Speeds) ? layer.Speeds.length : 0} speed keys
+        </CollapsibleEditorSection>
+
+        <CollapsibleEditorSection
+          title="Sampled Values"
+          description="Current-hour swatches and numeric readouts pulled from the preview model."
+          badge={`${previewHour}:00 snapshot`}
+          icon={<Palette className="h-4 w-4" />}
+          open={showPreviewSnapshot}
+          onToggle={() => setShowPreviewSnapshot((value) => !value)}
+        >
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            <PreviewSwatchCard label="Sky Top" color={skyTop} detail={skyTop} />
+            <PreviewSwatchCard label="Sky Bottom" color={skyBottom} detail={skyBottom} />
+            <PreviewSwatchCard label="Fog" color={fogColor} detail={fogColor} />
+            <PreviewSwatchCard label="Sunlight" color={sunlightColor} detail={sunlightColor} />
+            <PreviewSwatchCard label="Screen FX" color={screenFx} detail={screenFx} />
+            <PreviewSwatchCard label="Water Tint" color={waterTint} detail={waterTint} />
+            <PreviewValueCard label="Fog Density" value={formatTrackValue(fogDensity)} detail="Interpolated at the selected hour." />
+            <PreviewValueCard label="Fog Falloff" value={formatTrackValue(fogHeightFalloff)} detail="Height fade sampled from the curve." />
+            <PreviewValueCard label="Light Damping" value={formatTrackValue(sunlightDamping)} detail="Scene damping multiplier at this hour." />
+          </div>
+        </CollapsibleEditorSection>
+
+        <CollapsibleEditorSection
+          title="Asset Breakdown"
+          description="Cloud, celestial, and metadata summaries inferred from the loaded weather file."
+          badge={`${cloudLayers.length} cloud layers`}
+          icon={<Cloud className="h-4 w-4" />}
+          open={showPreviewAssets}
+          onToggle={() => setShowPreviewAssets((value) => !value)}
+        >
+          <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Cloud and Celestial Breakdown</p>
+                  <p className="mt-1 text-[11px] text-tn-text-muted">
+                    Asset-level preview details inferred from the weather file itself.
                   </p>
                 </div>
-              );
-            })}
-            {cloudLayers.length === 0 && (
-              <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/20 p-3 text-[11px] text-tn-text-muted">
-                No cloud layers are configured in this weather file.
+                <span className="text-[10px] font-mono text-tn-text-muted">{tagSummary}</span>
               </div>
-            )}
-          </div>
-        </div>
+              <div className="mt-3 grid gap-2 lg:grid-cols-2">
+                {cloudLayers.slice(0, 4).map((layer, index) => {
+                  const gradient = Array.isArray(layer.Colors) && layer.Colors.length
+                    ? buildTrackGradient(layer.Colors ?? [])
+                    : "";
+                  const speed = interpolateValue(layer.Speeds ?? [], previewHour);
+                  return (
+                    <div key={`${layer.Texture ?? "cloud"}-${index}`} className="rounded border border-tn-border/40 bg-tn-surface/40 p-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-[11px] font-medium text-tn-text">Cloud Layer {index + 1}</p>
+                          <p className="text-[10px] text-tn-text-muted">{readTextureLabel(layer.Texture)}</p>
+                        </div>
+                        <span className="text-[10px] font-mono text-tn-text-muted">{formatTrackValue(speed)} speed</span>
+                      </div>
+                      {gradient && (
+                        <div
+                          className="mt-2 h-3 rounded border border-tn-border/40"
+                          style={{ background: `linear-gradient(to right, ${gradient})` }}
+                        />
+                      )}
+                      <p className="mt-2 text-[10px] text-tn-text-muted">
+                        {Array.isArray(layer.Colors) ? layer.Colors.length : 0} color keys | {Array.isArray(layer.Speeds) ? layer.Speeds.length : 0} speed keys
+                      </p>
+                    </div>
+                  );
+                })}
+                {cloudLayers.length === 0 && (
+                  <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/20 p-3 text-[11px] text-tn-text-muted">
+                    No cloud layers are configured in this weather file.
+                  </div>
+                )}
+              </div>
+            </div>
 
-        <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Assets and Metadata</p>
-          <div className="mt-3 space-y-2 text-[11px] text-tn-text">
-            <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
-              <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Stars</p>
-              <p className="mt-1">{readTextureLabel(starTexture ?? undefined)}</p>
-            </div>
-            <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
-              <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Moon Cycle</p>
-              <p className="mt-1">{moons.length} entries</p>
-              <p className="mt-1 text-[10px] text-tn-text-muted">{readTextureLabel(primaryMoonTexture)}</p>
-            </div>
-            <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
-              <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Tags</p>
-              <p className="mt-1 text-[10px] leading-relaxed text-tn-text-muted">{tagSummary}</p>
-            </div>
-            <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
-              <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Unmodeled Fields</p>
-              <p className="mt-1">{extraEntries.length} extra field{extraEntries.length === 1 ? "" : "s"}</p>
-            </div>
-            <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
-              <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Cloud Keys</p>
-              <p className="mt-1">{totalCloudColorKeys} color keys | {totalCloudSpeedKeys} speed keys</p>
+            <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Assets and Metadata</p>
+              <div className="mt-3 space-y-2 text-[11px] text-tn-text">
+                <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Stars</p>
+                  <p className="mt-1">{readTextureLabel(starTexture ?? undefined)}</p>
+                </div>
+                <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Moon Cycle</p>
+                  <p className="mt-1">{moons.length} entries</p>
+                  <p className="mt-1 text-[10px] text-tn-text-muted">{readTextureLabel(primaryMoonTexture)}</p>
+                </div>
+                <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Tags</p>
+                  <p className="mt-1 text-[10px] leading-relaxed text-tn-text-muted">{tagSummary}</p>
+                </div>
+                <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Unmodeled Fields</p>
+                  <p className="mt-1">{extraEntries.length} extra field{extraEntries.length === 1 ? "" : "s"}</p>
+                </div>
+                <div className="rounded border border-tn-border/40 bg-tn-surface/40 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Cloud Keys</p>
+                  <p className="mt-1">{totalCloudColorKeys} color keys | {totalCloudSpeedKeys} speed keys</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </CollapsibleEditorSection>
       </div>
     </div>
   );
@@ -1438,7 +1499,7 @@ export function WeatherEditorView() {
                 : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
             }`}
           >
-            {showAdvancedControls ? "Hide Advanced Controls" : "Advanced Controls"}
+            {showAdvancedControls ? "Hide In-Depth Controls" : "In-Depth Controls"}
           </button>
           <button
             type="button"
@@ -1500,7 +1561,123 @@ export function WeatherEditorView() {
             </div>
           )}
 
-          {Array.isArray(doc.FogDistance) && (
+          {hasWeatherDoc && (
+            <section className="rounded border border-tn-border/60 bg-tn-surface/35 px-3 py-3">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Simple Controls</p>
+                  <p className="mt-1 text-[11px] text-tn-text-muted">
+                    Fast default edits at the current preview hour. Use In-Depth Controls for full keyframe editing.
+                  </p>
+                </div>
+                <span className="rounded border border-tn-border/50 bg-tn-bg/60 px-2 py-0.5 text-[10px] font-mono text-tn-text-muted">
+                  {previewHour}:00
+                </span>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {([
+                  { key: "SkyTopColors", label: "Sky Top", value: skyTop },
+                  { key: "SkyBottomColors", label: "Sky Bottom", value: skyBottom },
+                  { key: "FogColors", label: "Fog", value: fogColor },
+                  { key: "SunColors", label: "Sun", value: sunColor },
+                ] as const).map((control) => (
+                  <label key={control.key} className="rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2">
+                    <span className="mb-2 block text-[10px] uppercase tracking-wider text-tn-text-muted">{control.label}</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={readHexColor(control.value)}
+                        onChange={(event) => setSimpleColor(control.key, buildColorString(event.target.value, 1))}
+                        className="h-8 w-10 shrink-0 cursor-pointer rounded border border-tn-border/70 bg-transparent p-0"
+                      />
+                      <input
+                        type="text"
+                        value={readHexColor(control.value)}
+                        onChange={(event) => setSimpleColor(control.key, buildColorString(event.target.value, 1))}
+                        className="min-w-0 flex-1 rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-tn-text"
+                      />
+                    </div>
+                  </label>
+                ))}
+
+                <div className="rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2">
+                  <span className="mb-2 block text-[10px] uppercase tracking-wider text-tn-text-muted">Fog Distance</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-[10px] text-tn-text-muted">
+                      Near
+                      <input
+                        type="number"
+                        step={1}
+                        value={doc.FogDistance?.[0] ?? -192}
+                        onChange={(event) => {
+                          const value = Number.parseFloat(event.target.value);
+                          if (!Number.isFinite(value)) return;
+                          updateDoc((previous) => ({
+                            ...previous,
+                            FogDistance: [value, (previous.FogDistance ?? [-192, 128])[1]],
+                          }));
+                        }}
+                        className="mt-1 w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text"
+                      />
+                    </label>
+                    <label className="text-[10px] text-tn-text-muted">
+                      Far
+                      <input
+                        type="number"
+                        step={1}
+                        value={doc.FogDistance?.[1] ?? 128}
+                        onChange={(event) => {
+                          const value = Number.parseFloat(event.target.value);
+                          if (!Number.isFinite(value)) return;
+                          updateDoc((previous) => ({
+                            ...previous,
+                            FogDistance: [(previous.FogDistance ?? [-192, 128])[0], value],
+                          }));
+                        }}
+                        className="mt-1 w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2">
+                  <span className="mb-2 block text-[10px] uppercase tracking-wider text-tn-text-muted">Simple Values</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-[10px] text-tn-text-muted">
+                      Sun Scale
+                      <input
+                        type="number"
+                        step={0.05}
+                        value={sunScale}
+                        onChange={(event) => {
+                          const value = Number.parseFloat(event.target.value);
+                          if (!Number.isFinite(value)) return;
+                          updateValueTrack("SunScales", upsertValueKeyframe(((doc.SunScales as HourValue[] | undefined) ?? []), previewHour, value));
+                        }}
+                        className="mt-1 w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text"
+                      />
+                    </label>
+                    <label className="text-[10px] text-tn-text-muted">
+                      Fog Density
+                      <input
+                        type="number"
+                        step={0.05}
+                        value={fogDensity}
+                        onChange={(event) => {
+                          const value = Number.parseFloat(event.target.value);
+                          if (!Number.isFinite(value)) return;
+                          updateValueTrack("FogDensities", upsertValueKeyframe(((doc.FogDensities as HourValue[] | undefined) ?? []), previewHour, value));
+                        }}
+                        className="mt-1 w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {showAdvancedControls && Array.isArray(doc.FogDistance) && (
             <CollapsibleEditorSection
               title="Fog Distance"
               description="Near and far fog bounds used by the preview volume."
@@ -1543,43 +1720,45 @@ export function WeatherEditorView() {
             </CollapsibleEditorSection>
           )}
 
-          <CollapsibleEditorSection
-            title="Color Tracks"
-            description="Keyframed weather colors. The graph still focuses these editors when nodes are selected."
-            badge={`${COLOR_TRACKS.length} tracks`}
-            open={showColorSections}
-            onToggle={() => setShowColorSections((value) => !value)}
-          >
-            <div className="grid gap-3 xl:grid-cols-2">
-              {COLOR_TRACKS.map((track) => {
-                const keyframes = (doc[track.key] as HourColor[] | undefined) ?? [];
-                return (
-                  <ColorTrackCard
-                    key={track.key}
-                    label={track.label}
-                    keyframes={keyframes}
-                    isFocused={selectedGraphNodeId === `color:${track.key}`}
-                    onChange={(index, next) => {
-                      updateColorTrack(track.key, keyframes.map((entry, entryIndex) => (
-                        entryIndex === index ? next : entry
-                      )));
-                    }}
-                    onRemove={(index) => {
-                      updateColorTrack(track.key, keyframes.filter((_, entryIndex) => entryIndex !== index));
-                    }}
-                    onAdd={() => {
-                      const usedHours = new Set(keyframes.map((entry) => entry.Hour));
-                      const nextHour = HOURS.find((hour) => !usedHours.has(hour)) ?? 12;
-                      updateColorTrack(track.key, [
-                        ...keyframes,
-                        { Hour: nextHour, Color: buildColorString(interpolateColor(keyframes, nextHour), 1) },
-                      ]);
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </CollapsibleEditorSection>
+          {showAdvancedControls && (
+            <CollapsibleEditorSection
+              title="Color Tracks"
+              description="Keyframed weather colors. The graph still focuses these editors when nodes are selected."
+              badge={`${COLOR_TRACKS.length} tracks`}
+              open={showColorSections}
+              onToggle={() => setShowColorSections((value) => !value)}
+            >
+              <div className="grid gap-3 xl:grid-cols-2">
+                {COLOR_TRACKS.map((track) => {
+                  const keyframes = (doc[track.key] as HourColor[] | undefined) ?? [];
+                  return (
+                    <ColorTrackCard
+                      key={track.key}
+                      label={track.label}
+                      keyframes={keyframes}
+                      isFocused={selectedGraphNodeId === `color:${track.key}`}
+                      onChange={(index, next) => {
+                        updateColorTrack(track.key, keyframes.map((entry, entryIndex) => (
+                          entryIndex === index ? next : entry
+                        )));
+                      }}
+                      onRemove={(index) => {
+                        updateColorTrack(track.key, keyframes.filter((_, entryIndex) => entryIndex !== index));
+                      }}
+                      onAdd={() => {
+                        const usedHours = new Set(keyframes.map((entry) => entry.Hour));
+                        const nextHour = HOURS.find((hour) => !usedHours.has(hour)) ?? 12;
+                        updateColorTrack(track.key, [
+                          ...keyframes,
+                          { Hour: nextHour, Color: buildColorString(interpolateColor(keyframes, nextHour), 1) },
+                        ]);
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </CollapsibleEditorSection>
+          )}
 
           {showAdvancedControls && (
             <>

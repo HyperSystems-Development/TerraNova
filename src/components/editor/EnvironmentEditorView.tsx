@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Edge, Node } from "@xyflow/react";
+import { CalendarClock, FileJson, Settings2, Tags } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
@@ -295,6 +296,7 @@ export function EnvironmentEditorView() {
   ] as const;
   const quickPreviewPresetValue = quickPreviewHours.find((preset) => preset.hour === previewHour)?.hour.toString() ?? "custom";
   const detailPanelMode = showIssueLog ? (showTips ? "both" : "issues") : (showTips ? "tips" : "none");
+  const primaryForecast = activeForecasts[0] ?? null;
 
   useEffect(() => {
     if (selectedDaypart) {
@@ -633,7 +635,7 @@ export function EnvironmentEditorView() {
                 : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
             }`}
           >
-            {showAdvancedControls ? "Hide Advanced Controls" : "Advanced Controls"}
+            {showAdvancedControls ? "Hide In-Depth Controls" : "In-Depth Controls"}
           </button>
           <button
             type="button"
@@ -937,10 +939,142 @@ export function EnvironmentEditorView() {
               )}
 
           <section className="grid gap-3 lg:grid-cols-2">
+            <section className="rounded border border-tn-border/60 bg-tn-surface/35 px-3 py-3">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted">Simple Controls</p>
+                  <p className="mt-1 text-[11px] text-tn-text-muted">
+                    Simple defaults for the environment file. Use In-Depth Controls for tags and deeper file edits.
+                  </p>
+                </div>
+                <span className="rounded border border-tn-border/50 bg-tn-bg/60 px-2 py-0.5 text-[10px] font-mono text-tn-text-muted">
+                  {previewHour}:00
+                </span>
+              </div>
+              <datalist id="environment-weather-options">
+                {weatherOptions.map((weather) => (
+                  <option key={weather.path} value={weather.id} />
+                ))}
+              </datalist>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2 rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2">
+                  <label className="block text-[10px] uppercase tracking-wider text-tn-text-muted">Parent</label>
+                  <input
+                    type="text"
+                    value={doc.Parent ?? ""}
+                    onChange={(event) => updateDoc((previous) => ({ ...previous, Parent: event.target.value || undefined }))}
+                    className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
+                    placeholder="Env_Zone1"
+                  />
+                </div>
+
+                <div className="space-y-2 rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2">
+                  <label className="block text-[10px] uppercase tracking-wider text-tn-text-muted">Water Tint</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={typeof doc.WaterTint === "string" ? doc.WaterTint : "#1983d9"}
+                      onChange={(event) => updateDoc((previous) => ({ ...previous, WaterTint: event.target.value }))}
+                      className="h-8 w-10 shrink-0 cursor-pointer rounded border border-tn-border/70 bg-transparent p-0"
+                    />
+                    <input
+                      type="text"
+                      value={typeof doc.WaterTint === "string" ? doc.WaterTint : ""}
+                      onChange={(event) => updateDoc((previous) => ({ ...previous, WaterTint: event.target.value }))}
+                      className="min-w-0 flex-1 rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-tn-text"
+                      placeholder="#1983d9"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2">
+                  <label className="block text-[10px] uppercase tracking-wider text-tn-text-muted">Spawn Density</label>
+                  <input
+                    type="number"
+                    step={0.05}
+                    value={typeof doc.SpawnDensity === "number" ? doc.SpawnDensity : 0.3}
+                    onChange={(event) => {
+                      const value = Number.parseFloat(event.target.value);
+                      if (!Number.isFinite(value)) return;
+                      updateDoc((previous) => ({ ...previous, SpawnDensity: value }));
+                    }}
+                    className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text"
+                  />
+                </div>
+
+                <label className="flex items-center justify-between rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2">
+                  <span className="text-[11px] text-tn-text">Block Modification Allowed</span>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(doc.BlockModificationAllowed)}
+                    onChange={(event) => updateDoc((previous) => ({ ...previous, BlockModificationAllowed: event.target.checked }))}
+                  />
+                </label>
+
+                <div className="space-y-2 rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2 md:col-span-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[10px] uppercase tracking-wider text-tn-text-muted">Primary Weather @ {previewHour}:00</label>
+                    <span className="text-[10px] text-tn-text-muted">{primaryForecast ? "Current hour default" : "Creates first entry"}</span>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_120px]">
+                    <input
+                      type="text"
+                      list="environment-weather-options"
+                      value={primaryForecast?.WeatherId ?? ""}
+                      onChange={(event) => updateDoc((previous) => {
+                        const entries = [...readForecastHour(previous, previewHour)];
+                        if (entries.length === 0) {
+                          entries.push({ WeatherId: event.target.value, Weight: 100 });
+                        } else {
+                          entries[0] = { ...entries[0], WeatherId: event.target.value };
+                        }
+                        return {
+                          ...previous,
+                          WeatherForecasts: {
+                            ...(previous.WeatherForecasts ?? {}),
+                            [String(previewHour)]: entries,
+                          },
+                        };
+                      })}
+                      className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
+                      placeholder="Zone1_Sunny"
+                    />
+                    <input
+                      type="number"
+                      step={1}
+                      value={primaryForecast?.Weight ?? 100}
+                      onChange={(event) => {
+                        const weight = Number.parseFloat(event.target.value);
+                        if (!Number.isFinite(weight)) return;
+                        updateDoc((previous) => {
+                          const entries = [...readForecastHour(previous, previewHour)];
+                          if (entries.length === 0) {
+                            entries.push({ WeatherId: weatherOptions[0]?.id ?? "", Weight: weight });
+                          } else {
+                            entries[0] = { ...entries[0], Weight: weight };
+                          }
+                          return {
+                            ...previous,
+                            WeatherForecasts: {
+                              ...(previous.WeatherForecasts ?? {}),
+                              [String(previewHour)]: entries,
+                            },
+                          };
+                        });
+                      }}
+                      className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {showAdvancedControls && (
             <CollapsibleEditorSection
               title="Overview"
               description="Parent environment and top-level file settings."
               badge={doc.Parent ?? "No parent"}
+              icon={<Settings2 className="h-4 w-4" />}
               open={showOverviewSection}
               onToggle={() => setShowOverviewSection((value) => !value)}
             >
@@ -1061,12 +1195,14 @@ export function EnvironmentEditorView() {
                 )}
               </div>
             </CollapsibleEditorSection>
+            )}
 
             {showAdvancedControls && (
               <CollapsibleEditorSection
                 title="Tags"
                 description="Optional tag groups for classifying the environment asset."
                 badge={`${tagEntries.length} groups`}
+                icon={<Tags className="h-4 w-4" />}
                 open={showTagsSection}
                 onToggle={() => setShowTagsSection((value) => !value)}
               >
@@ -1148,6 +1284,7 @@ export function EnvironmentEditorView() {
             title="Hourly Forecasts"
             description="Edit weather IDs and weights without keeping all 24 hour cards expanded at once."
             badge={`${displayedForecastHours.length}/${HOURS.length} hours`}
+            icon={<CalendarClock className="h-4 w-4" />}
             open={showForecastSection}
             onToggle={() => setShowForecastSection((value) => !value)}
           >
@@ -1157,11 +1294,6 @@ export function EnvironmentEditorView() {
                   Each hour card is an editable forecast node: weather ID, weight, and quick-open into the matching weather file.
                 </p>
               </div>
-              <datalist id="environment-weather-options">
-                {weatherOptions.map((weather) => (
-                  <option key={weather.path} value={weather.id} />
-                ))}
-              </datalist>
             </div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="environment-forecast-scope">
@@ -1321,6 +1453,7 @@ export function EnvironmentEditorView() {
               title="Additional Fields"
               description="Raw environment fields that are not yet represented by dedicated controls."
               badge={`${extraEntries.length} fields`}
+              icon={<FileJson className="h-4 w-4" />}
               open={showExtraSection}
               onToggle={() => setShowExtraSection((value) => !value)}
             >
