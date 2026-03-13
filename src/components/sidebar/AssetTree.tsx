@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useProjectStore, type DirectoryEntry } from "@/stores/projectStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import { showInFolder, createDirectory, copyFile, listDirectory } from "@/utils/ipc";
@@ -75,11 +76,45 @@ interface ContextMenuState {
 
 /** Standard Hytale asset folder names that can be bootstrapped quickly */
 const HYTALE_FOLDERS = [
-  { label: "Weathers", path: "Server\\Weathers" },
-  { label: "Environments", path: "Server\\Environments" },
-  { label: "Biomes", path: "Server\\HytaleGenerator\\Biomes" },
-  { label: "WorldStructures", path: "Server\\HytaleGenerator\\WorldStructures" },
+  { label: "Weathers", path: "Server\\Weathers", hytaleSubPath: "Server\\Weathers" },
+  { label: "Environments", path: "Server\\Environments", hytaleSubPath: "Server\\Environments" },
+  { label: "Biomes", path: "Server\\HytaleGenerator\\Biomes", hytaleSubPath: "Server\\HytaleGenerator\\Biomes" },
+  { label: "WorldStructures", path: "Server\\HytaleGenerator\\WorldStructures", hytaleSubPath: "Server\\HytaleGenerator\\WorldStructures" },
 ];
+
+function inferUserProfileRoot(path: string | null): string | null {
+  if (!path) return null;
+  const normalized = path.replace(/\//g, "\\");
+  const match = /^[A-Za-z]:\\Users\\[^\\]+/i.exec(normalized);
+  return match ? match[0] : null;
+}
+
+async function findHytaleAssetFiles(hytaleSubPath: string, projectPath: string | null): Promise<Array<{ name: string; path: string }>> {
+  const profileRoot = inferUserProfileRoot(projectPath);
+  if (!profileRoot) return [];
+  const savesRoot = `${profileRoot}\\AppData\\Roaming\\Hytale\\UserData\\Saves`;
+  const results: Array<{ name: string; path: string }> = [];
+  let saves: import("@/utils/ipc").DirectoryEntryData[];
+  try { saves = await listDirectory(savesRoot); } catch { return []; }
+  for (const saveEntry of saves) {
+    if (!saveEntry.is_dir) continue;
+    const modsPath = `${saveEntry.path}\\mods`;
+    let mods: import("@/utils/ipc").DirectoryEntryData[];
+    try { mods = await listDirectory(modsPath); } catch { continue; }
+    for (const modEntry of mods) {
+      if (!modEntry.is_dir) continue;
+      const assetPath = `${modEntry.path}\\${hytaleSubPath}`;
+      let entries: import("@/utils/ipc").DirectoryEntryData[];
+      try { entries = await listDirectory(assetPath); } catch { continue; }
+      for (const entry of entries) {
+        if (!entry.is_dir && entry.name.toLowerCase().endsWith(".json")) {
+          results.push({ name: entry.name, path: entry.path });
+        }
+      }
+    }
+  }
+  return results;
+}
 
 function ContextMenuDivider() {
   return <div className="my-1 border-t border-tn-border/40" />;
@@ -155,7 +190,7 @@ function ContextMenu({
     onClose();
   }
 
-  async function handleAddHytaleFolder(folderRelPath: string, label: string) {
+  async function handleAddHytaleFolder(folderRelPath: string, hytaleSubPath: string, label: string) {
     if (!projectPath) { onClose(); return; }
     const fullPath = `${projectPath}\\${folderRelPath}`;
     try {
@@ -163,22 +198,36 @@ function ContextMenu({
       onRefresh();
       addToast(`Created ${label} folder`, "success");
     } catch (e) {
-      addToast(`Failed: ${e}`, "error");
+      addToast(`Failed to create folder: ${e}`, "error");
+      onClose();
+      return;
+    }
+    // Try to find and copy a Hytale asset for this folder type
+    try {
+      const hytaleFiles = await findHytaleAssetFiles(hytaleSubPath, projectPath);
+      if (hytaleFiles.length > 0) {
+        const file = hytaleFiles[0];
+        await copyFile(file.path, `${fullPath}\\${file.name}`);
+        addToast(`Added default asset: ${file.name}`, "success");
+        onRefresh();
+      }
+    } catch {
+      // Non-fatal — folder was already created
     }
     onClose();
   }
 
   async function handleCopyHytaleAsset() {
-    // Prompt user to pick a file from the Hytale asset store
-    // We open a file dialog — use native via window.prompt as a path input fallback
-    // (Tauri's open dialog would be ideal but we can't call it here without a hook)
-    const src = window.prompt("Paste the full path to the Hytale asset file:");
-    if (!src?.trim()) { onClose(); return; }
-    const fileName = src.trim().split(/[/\\]/).pop() ?? "asset.json";
+    const selected = await openFileDialog({
+      title: "Import Hytale Asset",
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (!selected || typeof selected !== "string") { onClose(); return; }
+    const fileName = selected.split(/[/\\]/).pop() ?? "asset.json";
     const destDir = menu.isDir ? menu.path : menu.path.replace(/[/\\][^/\\]+$/, "");
     const dest = `${destDir}\\${fileName}`;
     try {
-      await copyFile(src.trim(), dest);
+      await copyFile(selected, dest);
       onRefresh();
       addToast(`Imported: ${fileName}`, "success");
     } catch (e) {
@@ -221,7 +270,7 @@ function ContextMenu({
                 key={f.path}
                 label={f.label}
                 sublabel={f.path}
-                onClick={() => { void handleAddHytaleFolder(f.path, f.label); }}
+                onClick={() => { void handleAddHytaleFolder(f.path, f.hytaleSubPath, f.label); }}
               />
             ))}
           </div>

@@ -878,6 +878,35 @@ export function EnvironmentEditorView() {
                                 </button>
                               ) : null;
                             })()}
+                            {!weatherPath && (() => {
+                              const serverRoot = inferServerRoot(currentFile, projectPath);
+                              return (
+                                <button
+                                  type="button"
+                                  title={`Locate ${entry.WeatherId} — pick file to copy into project`}
+                                  onClick={async () => {
+                                    const selected = await openFileDialog({
+                                      title: `Locate weather file for "${entry.WeatherId}"`,
+                                      filters: [{ name: "JSON", extensions: ["json"] }],
+                                    });
+                                    if (!selected || typeof selected !== "string") return;
+                                    const destDir = serverRoot ? `${serverRoot}\\Weathers` : null;
+                                    if (!destDir) { addToast("Cannot resolve Server\\Weathers path", "error"); return; }
+                                    try {
+                                      await createDirectory(destDir);
+                                      const fileName = selected.split(/[/\\]/).pop() ?? `${entry.WeatherId}.json`;
+                                      await copyFile(selected, `${destDir}\\${fileName}`);
+                                      addToast(`Copied ${fileName} into Server\\Weathers`, "success");
+                                    } catch (e) {
+                                      addToast(`Failed to copy file: ${e}`, "error");
+                                    }
+                                  }}
+                                  className="rounded border border-amber-500/50 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300 transition-colors hover:border-amber-400/70 hover:bg-amber-500/20"
+                                >
+                                  Locate…
+                                </button>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -1269,6 +1298,35 @@ export function EnvironmentEditorView() {
                                         Import
                                       </button>
                                     ) : null;
+                                  })()}
+                                  {!weatherPath && (() => {
+                                    const serverRoot = inferServerRoot(currentFile, projectPath);
+                                    return (
+                                      <button
+                                        type="button"
+                                        title={`Locate weather file for "${entry.WeatherId}"`}
+                                        onClick={async () => {
+                                          const selected = await openFileDialog({
+                                            title: `Locate weather file for "${entry.WeatherId}"`,
+                                            filters: [{ name: "JSON", extensions: ["json"] }],
+                                          });
+                                          if (!selected || typeof selected !== "string") return;
+                                          const destDir = serverRoot ? `${serverRoot}\\Weathers` : null;
+                                          if (!destDir) { addToast("Cannot resolve Server\\Weathers path", "error"); return; }
+                                          try {
+                                            await createDirectory(destDir);
+                                            const fileName = selected.split(/[/\\]/).pop() ?? `${entry.WeatherId}.json`;
+                                            await copyFile(selected, `${destDir}\\${fileName}`);
+                                            addToast(`Copied ${fileName} into Server\\Weathers`, "success");
+                                          } catch (e) {
+                                            addToast(`Failed to copy file: ${e}`, "error");
+                                          }
+                                        }}
+                                        className="rounded border border-amber-500/50 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300 transition-colors hover:border-amber-400/70 hover:bg-amber-500/20"
+                                      >
+                                        Locate…
+                                      </button>
+                                    );
                                   })()}
                                   <button
                                     type="button"
