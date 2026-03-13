@@ -8,17 +8,28 @@ export interface V2Asset {
 /**
  * Build a V2 JSON asset from a single root node, recursively nesting inputs.
  */
+/**
+ * Build a V2 JSON asset tree from a node, recursively nesting inputs.
+ *
+ * Uses `ancestors` (current recursion path) for cycle detection, and `visited`
+ * (all serialized node IDs) for disconnected-tree tracking. Shared nodes (DAGs)
+ * are serialized once per reference — this matches V2's tree-based JSON format
+ * where shared inputs are duplicated inline.
+ */
 function buildAsset(
   nodeId: string,
   nodeMap: Map<string, Node>,
   incomingEdges: Map<string, { source: string; targetHandle: string }[]>,
+  ancestors: Set<string>,
   visited: Set<string>,
 ): V2Asset | null {
-  if (visited.has(nodeId)) return null; // prevent cycles
-  visited.add(nodeId);
+  if (ancestors.has(nodeId)) return null; // actual cycle — break recursion
 
   const node = nodeMap.get(nodeId);
   if (!node) return null;
+
+  ancestors.add(nodeId);
+  visited.add(nodeId);
 
   const asset: V2Asset = {
     Type: (node.data as Record<string, unknown>).type as string,
@@ -31,7 +42,7 @@ function buildAsset(
   const arrayCollectors = new Map<string, { index: number; child: V2Asset }[]>();
 
   for (const { source, targetHandle } of incoming) {
-    const child = buildAsset(source, nodeMap, incomingEdges, visited);
+    const child = buildAsset(source, nodeMap, incomingEdges, ancestors, visited);
     if (!child) continue;
 
     const match = arrayHandlePattern.exec(targetHandle);
@@ -49,6 +60,8 @@ function buildAsset(
     items.sort((a, b) => a.index - b.index);
     asset[baseKey] = items.map((item) => item.child);
   }
+
+  ancestors.delete(nodeId); // allow re-entry from other paths (DAG support)
 
   return asset;
 }
@@ -183,17 +196,18 @@ export function graphToJson(nodes: Node[], edges: Edge[]): V2Asset | null {
     otherRoots = roots.slice(1);
   }
 
+  const ancestors = new Set<string>();
   const visited = new Set<string>();
 
   // Serialize the primary root tree
-  const rootAsset = buildAsset(primaryRoot.id, nodeMap, incomingEdges, visited);
+  const rootAsset = buildAsset(primaryRoot.id, nodeMap, incomingEdges, ancestors, visited);
   if (!rootAsset) return null;
 
   // Serialize any disconnected subtrees that weren't visited
   const disconnected: V2Asset[] = [];
   for (const root of otherRoots) {
     if (visited.has(root.id)) continue;
-    const subtree = buildAsset(root.id, nodeMap, incomingEdges, visited);
+    const subtree = buildAsset(root.id, nodeMap, incomingEdges, ancestors, visited);
     if (subtree) disconnected.push(subtree);
   }
 
@@ -227,7 +241,7 @@ export function graphToJsonMulti(nodes: Node[], edges: Edge[]): V2Asset[] {
 
   const results: V2Asset[] = [];
   for (const root of roots) {
-    const asset = buildAsset(root.id, nodeMap, incomingEdges, new Set());
+    const asset = buildAsset(root.id, nodeMap, incomingEdges, new Set(), new Set());
     if (asset) results.push(asset);
   }
 

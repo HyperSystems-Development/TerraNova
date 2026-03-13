@@ -422,9 +422,8 @@ function reverseClusterPropFields(
     result.Props = props;
     delete result.WeightedProps;
   }
-  delete result.Range;
-  delete result.Seed;
-  delete result.DistanceCurve;
+  // Preserve Range, Seed, and DistanceCurve for round-trip fidelity.
+  // These were previously deleted, causing data loss on re-export.
   return result;
 }
 
@@ -768,8 +767,8 @@ function transformNodeToInternal(
   if (hytaleType === "Normalizer" && "Inputs" in asset && Array.isArray(asset.Inputs)) {
     const rawInputs = asset.Inputs as Record<string, unknown>[];
     if (rawInputs.length === 1 && rawInputs[0]?.Type === "YValue") {
-      const fromMin = asset.FromMin as number ?? 0;
-      const fromMax = asset.FromMax as number ?? DEFAULT_WORLD_HEIGHT;
+      const fromMin = (asset.FromMin as number) ?? 0;
+      const fromMax = (asset.FromMax as number) ?? DEFAULT_WORLD_HEIGHT;
       return {
         Type: "GradientDensity",
         FromY: fromMax,

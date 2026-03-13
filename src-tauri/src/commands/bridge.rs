@@ -8,7 +8,7 @@ pub async fn bridge_connect(
     auth_token: String,
     state: tauri::State<'_, BridgeState>,
 ) -> Result<ServerStatus, String> {
-    let client = BridgeClient::new(&host, port, &auth_token);
+    let client = BridgeClient::new(&host, port, &auth_token)?;
     let status = client.status().await?;
     let mut lock = state.0.lock().await;
     *lock = Some(client);
@@ -99,8 +99,36 @@ pub async fn bridge_sync_file(
     relative_path: String,
     state: tauri::State<'_, BridgeState>,
 ) -> Result<BridgeResponse, String> {
-    let dest = std::path::Path::new(&server_mod_path).join(&relative_path);
-    let dest_str = dest
+    // Validate that relative_path doesn't escape server_mod_path via ".." traversal
+    let base = std::path::Path::new(&server_mod_path)
+        .canonicalize()
+        .map_err(|e| format!("Invalid server mod path: {}", e))?;
+    let dest = base.join(&relative_path);
+    // Ensure parent directory exists before canonicalizing
+    if let Some(parent) = dest.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let dest_canon = dest
+        .canonicalize()
+        .or_else(|_| {
+            // File doesn't exist yet — canonicalize the parent and append the filename
+            if let (Some(parent), Some(name)) = (dest.parent(), dest.file_name()) {
+                let canon_parent = parent.canonicalize().map_err(|e| e.to_string())?;
+                Ok(canon_parent.join(name))
+            } else {
+                Err(format!("Invalid destination path: {}", dest.display()))
+            }
+        })
+        .map_err(|e: String| e)?;
+
+    if !dest_canon.starts_with(&base) {
+        return Err(format!(
+            "Path traversal blocked: {} escapes {}",
+            relative_path, server_mod_path
+        ));
+    }
+
+    let dest_str = dest_canon
         .to_str()
         .ok_or("Invalid destination path")?;
     BridgeClient::sync_file(&source_path, dest_str)?;

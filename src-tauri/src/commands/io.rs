@@ -38,7 +38,10 @@ pub fn write_asset_file(path: String, content: Value) -> Result<(), String> {
     let temp_path = file_path.with_extension("tmp");
 
     fs::write(&temp_path, &json).map_err(|e| format!("Failed to write temp file: {}", e))?;
-    fs::rename(&temp_path, file_path).map_err(|e| format!("Failed to rename: {}", e))?;
+    if let Err(e) = fs::rename(&temp_path, file_path) {
+        let _ = fs::remove_file(&temp_path); // clean up leaked .tmp
+        return Err(format!("Failed to rename: {}", e));
+    }
 
     Ok(())
 }
@@ -54,7 +57,10 @@ pub fn export_asset_file(path: String, content: Value) -> Result<(), String> {
         .map_err(|e| format!("Failed to serialize: {}", e))?;
     let temp_path = file_path.with_extension("tmp");
     fs::write(&temp_path, &json).map_err(|e| format!("Failed to write: {}", e))?;
-    fs::rename(&temp_path, file_path).map_err(|e| format!("Failed to rename: {}", e))?;
+    if let Err(e) = fs::rename(&temp_path, file_path) {
+        let _ = fs::remove_file(&temp_path);
+        return Err(format!("Failed to rename: {}", e));
+    }
     Ok(())
 }
 
@@ -67,7 +73,10 @@ pub fn write_text_file(path: String, content: String) -> Result<(), String> {
     }
     let temp_path = file_path.with_extension("tmp");
     fs::write(&temp_path, &content).map_err(|e| format!("Failed to write: {}", e))?;
-    fs::rename(&temp_path, file_path).map_err(|e| format!("Failed to rename: {}", e))?;
+    if let Err(e) = fs::rename(&temp_path, file_path) {
+        let _ = fs::remove_file(&temp_path);
+        return Err(format!("Failed to rename: {}", e));
+    }
     Ok(())
 }
 
@@ -122,7 +131,7 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
     });
     fs::write(
         gen.join("Settings/Settings.json"),
-        serde_json::to_string_pretty(&settings).unwrap(),
+        serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
 
@@ -147,7 +156,7 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
     });
     fs::write(
         gen.join("WorldStructures/MainWorld.json"),
-        serde_json::to_string_pretty(&world).unwrap(),
+        serde_json::to_string_pretty(&world).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
 
@@ -168,7 +177,7 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
     });
     fs::write(
         gen.join("Biomes/DefaultBiome.json"),
-        serde_json::to_string_pretty(&biome).unwrap(),
+        serde_json::to_string_pretty(&biome).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
 
@@ -205,7 +214,7 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
     });
     fs::write(
         instances_dir.join("instance.bson"),
-        serde_json::to_string_pretty(&instance).unwrap(),
+        serde_json::to_string_pretty(&instance).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
 
@@ -221,7 +230,7 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
     });
     fs::write(
         target.join("manifest.json"),
-        serde_json::to_string_pretty(&manifest).unwrap(),
+        serde_json::to_string_pretty(&manifest).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
 
@@ -299,17 +308,36 @@ fn is_biome_folder(name: &std::ffi::OsStr) -> bool {
     s.eq_ignore_ascii_case("Biomes") || s.eq_ignore_ascii_case("references")
 }
 
+const MAX_TEMPLATE_DEPTH: usize = 20;
+
 fn collect_biome_files(
     dir: &Path,
     template_name: &str,
     display_name: &str,
     out: &mut Vec<TemplateBiomeEntry>,
 ) {
+    collect_biome_files_inner(dir, template_name, display_name, out, 0);
+}
+
+fn collect_biome_files_inner(
+    dir: &Path,
+    template_name: &str,
+    display_name: &str,
+    out: &mut Vec<TemplateBiomeEntry>,
+    depth: usize,
+) {
+    if depth > MAX_TEMPLATE_DEPTH {
+        return;
+    }
     let Ok(read_dir) = fs::read_dir(dir) else { return };
     for entry in read_dir.flatten() {
         let path = entry.path();
+        // Skip symlinks to prevent cycles
+        if path.is_symlink() {
+            continue;
+        }
         if path.is_dir() {
-            collect_biome_files(&path, template_name, display_name, out);
+            collect_biome_files_inner(&path, template_name, display_name, out, depth + 1);
         } else if path
             .parent()
             .and_then(|p| p.file_name())

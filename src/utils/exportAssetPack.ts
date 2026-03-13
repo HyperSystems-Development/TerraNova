@@ -246,6 +246,31 @@ export function validateExport(json: Record<string, unknown>, filePath?: string)
     if (!json.Name) warnings.push("Biome missing Name field");
     const terrain = json.Terrain as Record<string, unknown> | undefined;
     if (!terrain?.Density) warnings.push("Biome missing Terrain.Density");
+
+    // Recurse into biome subtrees that don't have a top-level "Type"
+    if (terrain?.Density && typeof terrain.Density === "object") {
+      checkNode(terrain.Density as Record<string, unknown>, "Terrain.Density");
+    }
+    if (json.MaterialProvider && typeof json.MaterialProvider === "object") {
+      checkNode(json.MaterialProvider as Record<string, unknown>, "MaterialProvider");
+    }
+    if (json.EnvironmentProvider && typeof json.EnvironmentProvider === "object") {
+      checkNode(json.EnvironmentProvider as Record<string, unknown>, "EnvironmentProvider");
+    }
+    if (json.TintProvider && typeof json.TintProvider === "object") {
+      checkNode(json.TintProvider as Record<string, unknown>, "TintProvider");
+    }
+    if (Array.isArray(json.Props)) {
+      for (let i = 0; i < json.Props.length; i++) {
+        const prop = json.Props[i] as Record<string, unknown> | undefined;
+        if (prop?.Positions && typeof prop.Positions === "object") {
+          checkNode(prop.Positions as Record<string, unknown>, `Props[${i}].Positions`);
+        }
+        if (prop?.Assignments && typeof prop.Assignments === "object") {
+          checkNode(prop.Assignments as Record<string, unknown>, `Props[${i}].Assignments`);
+        }
+      }
+    }
   } else if (json.Type === "NoiseRange") {
     // NoiseRange file validation
     if (!json.DefaultBiome) warnings.push("NoiseRange missing DefaultBiome");

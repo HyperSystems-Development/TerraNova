@@ -477,6 +477,16 @@ export function useTauriIO() {
             const layoutedNodes = await maybeAutoLayout(newNodes, newEdges);
             setNodes(layoutedNodes);
             setEdges(newEdges);
+
+            // Clear biome-specific state that may be left over from a previous biome file
+            useEditorStore.setState({
+              biomeSections: null,
+              activeBiomeSection: null,
+              biomeConfig: null,
+              biomeRanges: [],
+              noiseRangeConfig: null,
+            });
+
             commitState("Initial");
 
             // Store original wrapper for round-trip preservation

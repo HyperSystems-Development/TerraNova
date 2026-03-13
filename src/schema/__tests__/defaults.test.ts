@@ -18,10 +18,13 @@ describe("V2 CODEC default alignment", () => {
     expect(d.Octaves).toBe(4);
   });
 
-  it("Clamp defaults match V2 (-Infinity/+Infinity)", () => {
+  it("Clamp defaults are JSON-safe large sentinels", () => {
     const d = DENSITY_DEFAULTS.Clamp;
-    expect(d.Min).toBe(-Infinity);
-    expect(d.Max).toBe(Infinity);
+    expect(d.Min).toBe(-1e15);
+    expect(d.Max).toBe(1e15);
+    // Verify they survive JSON round-trip (unlike Infinity which becomes null)
+    expect(JSON.parse(JSON.stringify(d.Min))).toBe(-1e15);
+    expect(JSON.parse(JSON.stringify(d.Max))).toBe(1e15);
   });
 
   it("Curve Constant defaults to 0.0", () => {

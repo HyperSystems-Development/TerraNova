@@ -198,7 +198,7 @@ export const createHistorySlice: SliceCreator<HistorySliceState> = (set, get) =>
       } else {
         newHistory.push(fullEntry);
       }
-      { const _histMax = useConfigStore.getState().maxHistoryEntries; if (newHistory.length > _histMax) newHistory.shift(); }
+      { const _histMax = useConfigStore.getState().maxHistoryEntries; if (newHistory.length > _histMax) newHistory = newHistory.slice(newHistory.length - _histMax); }
       return {
         ...updates,
         nodes: newNodes,
@@ -253,7 +253,7 @@ export const createHistorySlice: SliceCreator<HistorySliceState> = (set, get) =>
         }
 
         // Global history for standalone files
-        const newHistory = state.history.slice(0, state.historyIndex + 1);
+        let newHistory = state.history.slice(0, state.historyIndex + 1);
         newHistory.push({
           nodes: cachedClone(state.nodes),
           edges: cachedClone(state.edges),
@@ -263,7 +263,7 @@ export const createHistorySlice: SliceCreator<HistorySliceState> = (set, get) =>
           settingsConfig: cachedClone(state.settingsConfig),
           label,
         });
-        { const _histMax = useConfigStore.getState().maxHistoryEntries; if (newHistory.length > _histMax) newHistory.shift(); }
+        { const _histMax = useConfigStore.getState().maxHistoryEntries; if (newHistory.length > _histMax) newHistory = newHistory.slice(newHistory.length - _histMax); }
         return { history: newHistory, historyIndex: newHistory.length - 1 };
       });
       schedulePersist();

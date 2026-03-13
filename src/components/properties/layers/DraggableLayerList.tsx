@@ -36,7 +36,7 @@ export function DraggableLayerList({
 
   const handlePointerDown = useCallback((e: React.PointerEvent, index: number) => {
     e.preventDefault();
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     dragRef.current = {
       dragging: true,
       dragIndex: index,

@@ -56,19 +56,37 @@ impl AssetPack {
         Ok(())
     }
 
+    const MAX_SCAN_DEPTH: usize = 20;
+
     fn scan_dir(
         root: &Path,
         dir: &Path,
         assets: &mut HashMap<String, Value>,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        Self::scan_dir_inner(root, dir, assets, 0)
+    }
+
+    fn scan_dir_inner(
+        root: &Path,
+        dir: &Path,
+        assets: &mut HashMap<String, Value>,
+        depth: usize,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if depth > Self::MAX_SCAN_DEPTH {
+            return Ok(());
+        }
         let entries = fs::read_dir(dir)?;
 
         for entry in entries {
             let entry = entry?;
             let path = entry.path();
+            // Skip symlinks to prevent cycles
+            if path.is_symlink() {
+                continue;
+            }
 
             if path.is_dir() {
-                Self::scan_dir(root, &path, assets)?;
+                Self::scan_dir_inner(root, &path, assets, depth + 1)?;
             } else if path.extension().is_some_and(|ext| ext == "json" || ext == "bson") {
                 let content = fs::read_to_string(&path)?;
                 let value: Value = serde_json::from_str(&content)?;

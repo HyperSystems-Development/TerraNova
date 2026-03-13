@@ -35,8 +35,8 @@ export function PreviewPanel() {
         e.preventDefault();
         setLegendVisible(!usePreviewStore.getState().showMaterialLegend);
       }
-      // Toggle wireframe
-      if (e.key === "w" && (e.ctrlKey || e.metaKey)) {
+      // Toggle wireframe (Ctrl+Shift+W to avoid conflicting with window close)
+      if (e.key === "W" && e.shiftKey && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         setShowWireframe(!usePreviewStore.getState().showVoxelWireframe);
       }

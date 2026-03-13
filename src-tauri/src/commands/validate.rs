@@ -56,13 +56,26 @@ pub fn validate_asset_pack(path: String) -> Result<ValidationResult, String> {
     })
 }
 
+const MAX_DIR_DEPTH: usize = 20;
+
 fn find_json_files(dir: &PathBuf) -> Vec<PathBuf> {
+    find_json_files_inner(dir, 0)
+}
+
+fn find_json_files_inner(dir: &PathBuf, depth: usize) -> Vec<PathBuf> {
+    if depth > MAX_DIR_DEPTH {
+        return Vec::new();
+    }
     let mut files = Vec::new();
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
             let path = entry.path();
+            // Skip symlinks to prevent cycles
+            if path.is_symlink() {
+                continue;
+            }
             if path.is_dir() {
-                files.extend(find_json_files(&path));
+                files.extend(find_json_files_inner(&path, depth + 1));
             } else if path.extension().is_some_and(|ext| ext == "json") {
                 files.push(path);
             }

@@ -169,11 +169,7 @@ function EdgeOutline() {
     return new EdgeOutlineEffect({
       resolution: new Vector2(size.width, size.height),
     });
-  }, []);
-
-  useEffect(() => {
-    effect.setSize(size.width, size.height);
-  }, [size, effect]);
+  }, [size.width, size.height]);
 
   useEffect(() => () => effect.dispose(), [effect]);
 

@@ -64,7 +64,12 @@ const HANDLE_TYPE_TO_CATEGORY: Record<string, AssetCategory> = {
 };
 
 function mapCategory(handleType: string): AssetCategory {
-  return HANDLE_TYPE_TO_CATEGORY[handleType] ?? AssetCategory.Density;
+  const cat = HANDLE_TYPE_TO_CATEGORY[handleType];
+  if (!cat) {
+    console.warn(`schemaLoader: unknown handleType "${handleType}", defaulting to Density`);
+    return AssetCategory.Density;
+  }
+  return cat;
 }
 
 /* ── Public accessors ─────────────────────────────────────────────── */
