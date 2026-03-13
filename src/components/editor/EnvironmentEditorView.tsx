@@ -849,93 +849,84 @@ export function EnvironmentEditorView() {
                   {activeForecasts.map((entry) => {
                     const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];
                     const maxWeight = activeForecasts[0]?.Weight ?? 1;
+                    const isHytale = weatherPath ? isHytaleAssetPath(weatherPath) : false;
+                    const serverRoot = inferServerRoot(currentFile, projectPath);
                     return (
                       <div
                         key={`${previewHour}-${entry.WeatherId}`}
                         className="rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2"
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: hashColor(entry.WeatherId) }} />
-                              <p className="truncate text-[11px] font-medium text-tn-text">{entry.WeatherId}</p>
-                            </div>
-                            <div className="mt-2 h-2 rounded-full bg-black/20">
-                              <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width: `${Math.max(8, (entry.Weight / Math.max(1, maxWeight)) * 100)}%`,
-                                  backgroundColor: hashColor(entry.WeatherId),
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <span className="text-[10px] font-mono text-tn-text-muted">{entry.Weight}</span>
+                        {/* Weight bar */}
+                        <div className="mb-1.5 h-1.5 rounded-full bg-black/20">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.max(6, (entry.Weight / Math.max(1, maxWeight)) * 100)}%`,
+                              backgroundColor: hashColor(entry.WeatherId),
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: hashColor(entry.WeatherId) }} />
+                          <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-tn-text">{entry.WeatherId}</p>
+                          <span className="shrink-0 text-[10px] font-mono text-tn-text-muted">{entry.Weight}</span>
+                          <button
+                            type="button"
+                            onClick={() => weatherPath && openFile(weatherPath)}
+                            disabled={!weatherPath}
+                            title={weatherPath ? `Open ${entry.WeatherId}` : "File not found in project or Hytale assets"}
+                            className={`shrink-0 rounded border px-2 py-0.5 text-[10px] transition-colors ${
+                              weatherPath
+                                ? "border-tn-border/60 text-tn-text-muted hover:border-tn-accent hover:text-tn-accent"
+                                : "cursor-not-allowed border-tn-border/30 text-tn-text-muted/40"
+                            }`}
+                          >
+                            Open
+                          </button>
+                          {isHytale && serverRoot && (
                             <button
                               type="button"
-                              onClick={() => weatherPath && openFile(weatherPath)}
-                              disabled={!weatherPath}
-                              className={`rounded border px-2 py-1 text-[10px] transition-colors ${
-                                weatherPath
-                                  ? "border-tn-border text-tn-text-muted hover:border-tn-accent hover:text-tn-accent"
-                                  : "cursor-not-allowed border-tn-border/40 text-tn-text-muted/50"
-                              }`}
+                              title={`Copy ${entry.WeatherId} from Hytale assets into project`}
+                              onClick={async () => {
+                                try {
+                                  await createDirectory(`${serverRoot}\\Weathers`);
+                                  await copyFile(weatherPath, `${serverRoot}\\Weathers\\${entry.WeatherId}.json`);
+                                  addToast(`Imported ${entry.WeatherId}`, "success");
+                                } catch (e) {
+                                  addToast(`Import failed: ${e}`, "error");
+                                }
+                              }}
+                              className="shrink-0 rounded border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/20"
                             >
-                              Open
+                              Import
                             </button>
-                            {weatherPath && isHytaleAssetPath(weatherPath) && (() => {
-                              const serverRoot = inferServerRoot(currentFile, projectPath);
-                              const destPath = serverRoot ? `${serverRoot}\\Weathers\\${entry.WeatherId}.json` : null;
-                              return destPath ? (
-                                <button
-                                  type="button"
-                                  title={`Import ${entry.WeatherId} from Hytale assets into project`}
-                                  onClick={async () => {
-                                    try {
-                                      if (serverRoot) await createDirectory(`${serverRoot}\\Weathers`);
-                                      await copyFile(weatherPath, destPath);
-                                      addToast(`Imported ${entry.WeatherId} into project`, "success");
-                                    } catch (e) {
-                                      addToast(`Import failed: ${e}`, "error");
-                                    }
-                                  }}
-                                  className="rounded border border-sky-500/50 bg-sky-500/10 px-2 py-1 text-[10px] text-sky-300 transition-colors hover:border-sky-400/70 hover:bg-sky-500/20"
-                                >
-                                  Import
-                                </button>
-                              ) : null;
-                            })()}
-                            {!weatherPath && (() => {
-                              const serverRoot = inferServerRoot(currentFile, projectPath);
-                              return (
-                                <button
-                                  type="button"
-                                  title={`Locate ${entry.WeatherId} — pick file to copy into project`}
-                                  onClick={async () => {
-                                    const selected = await openFileDialog({
-                                      title: `Locate weather file for "${entry.WeatherId}"`,
-                                      filters: [{ name: "JSON", extensions: ["json"] }],
-                                    });
-                                    if (!selected || typeof selected !== "string") return;
-                                    const destDir = serverRoot ? `${serverRoot}\\Weathers` : null;
-                                    if (!destDir) { addToast("Cannot resolve Server\\Weathers path", "error"); return; }
-                                    try {
-                                      await createDirectory(destDir);
-                                      const fileName = selected.split(/[/\\]/).pop() ?? `${entry.WeatherId}.json`;
-                                      await copyFile(selected, `${destDir}\\${fileName}`);
-                                      addToast(`Copied ${fileName} into Server\\Weathers`, "success");
-                                    } catch (e) {
-                                      addToast(`Failed to copy file: ${e}`, "error");
-                                    }
-                                  }}
-                                  className="rounded border border-amber-500/50 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300 transition-colors hover:border-amber-400/70 hover:bg-amber-500/20"
-                                >
-                                  Locate…
-                                </button>
-                              );
-                            })()}
-                          </div>
+                          )}
+                          {!weatherPath && (
+                            <button
+                              type="button"
+                              title={`Locate "${entry.WeatherId}" — pick file to copy into project`}
+                              onClick={async () => {
+                                const selected = await openFileDialog({
+                                  title: `Locate weather file for "${entry.WeatherId}"`,
+                                  filters: [{ name: "JSON", extensions: ["json"] }],
+                                });
+                                if (!selected || typeof selected !== "string") return;
+                                const destDir = serverRoot ? `${serverRoot}\\Weathers` : null;
+                                if (!destDir) { addToast("Cannot resolve Server\\Weathers path", "error"); return; }
+                                try {
+                                  await createDirectory(destDir);
+                                  const fileName = selected.split(/[/\\]/).pop() ?? `${entry.WeatherId}.json`;
+                                  await copyFile(selected, `${destDir}\\${fileName}`);
+                                  addToast(`Copied ${fileName} into Server\\Weathers`, "success");
+                                } catch (e) {
+                                  addToast(`Failed to copy file: ${e}`, "error");
+                                }
+                              }}
+                              className="shrink-0 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-300 transition-colors hover:border-amber-400/60 hover:bg-amber-500/20"
+                            >
+                              Locate…
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -1226,134 +1217,129 @@ export function EnvironmentEditorView() {
 
                       {entries.map((entry, index) => {
                         const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];
+                        const isHytale = weatherPath ? isHytaleAssetPath(weatherPath) : false;
+                        const serverRoot = inferServerRoot(currentFile, projectPath);
                         return (
                           <div
                             key={`${hour}-${index}-${entry.WeatherId}`}
-                            className="rounded border border-tn-border/40 bg-tn-surface px-2 py-2"
+                            className="flex items-center gap-1.5 rounded border border-tn-border/40 bg-tn-surface px-2 py-1.5"
                           >
-                            <div className="flex items-start gap-2">
-                              <div
-                                className="mt-1 h-3 w-3 shrink-0 rounded-full"
-                                style={{ backgroundColor: hashColor(entry.WeatherId || `hour-${hour}-${index}`) }}
-                              />
-                              <div className="min-w-0 flex-1 space-y-2">
-                                <input
-                                  type="text"
-                                  list="environment-weather-options"
-                                  value={entry.WeatherId}
-                                  onChange={(event) => updateDoc((previous) => ({
-                                    ...previous,
-                                    WeatherForecasts: {
-                                      ...(previous.WeatherForecasts ?? {}),
-                                      [String(hour)]: readForecastHour(previous, hour).map((item, itemIndex) => (
-                                        itemIndex === index ? { ...item, WeatherId: event.target.value } : item
-                                      )),
-                                    },
-                                  }))}
-                                  className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
-                                  placeholder="Zone1_Sunny"
-                                />
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="number"
-                                    step={1}
-                                    value={entry.Weight}
-                                    onChange={(event) => {
-                                      const weight = Number.parseFloat(event.target.value);
-                                      if (!Number.isFinite(weight)) return;
-                                      updateDoc((previous) => ({
-                                        ...previous,
-                                        WeatherForecasts: {
-                                          ...(previous.WeatherForecasts ?? {}),
-                                          [String(hour)]: readForecastHour(previous, hour).map((item, itemIndex) => (
-                                            itemIndex === index ? { ...item, Weight: weight } : item
-                                          )),
-                                        },
-                                      }));
-                                    }}
-                                    className="w-20 rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => weatherPath && openFile(weatherPath)}
-                                    disabled={!weatherPath}
-                                    className={`rounded border px-2 py-1 text-[10px] transition-colors ${
-                                      weatherPath
-                                        ? "border-tn-border text-tn-text-muted hover:border-tn-accent hover:text-tn-accent"
-                                        : "cursor-not-allowed border-tn-border/40 text-tn-text-muted/50"
-                                    }`}
-                                  >
-                                    Open
-                                  </button>
-                                  {weatherPath && isHytaleAssetPath(weatherPath) && (() => {
-                                    const serverRoot = inferServerRoot(currentFile, projectPath);
-                                    const destPath = serverRoot
-                                      ? `${serverRoot}\\Weathers\\${entry.WeatherId}.json`
-                                      : null;
-                                    return destPath ? (
-                                      <button
-                                        type="button"
-                                        title={`Copy from Hytale assets into ${destPath}`}
-                                        onClick={async () => {
-                                          try {
-                                            if (serverRoot) await createDirectory(`${serverRoot}\\Weathers`);
-                                            await copyFile(weatherPath, destPath);
-                                            addToast(`Imported ${entry.WeatherId} into project`, "success");
-                                          } catch (e) {
-                                            addToast(`Import failed: ${e}`, "error");
-                                          }
-                                        }}
-                                        className="rounded border border-sky-500/50 bg-sky-500/10 px-2 py-1 text-[10px] text-sky-300 transition-colors hover:border-sky-400/70 hover:bg-sky-500/20"
-                                      >
-                                        Import
-                                      </button>
-                                    ) : null;
-                                  })()}
-                                  {!weatherPath && (() => {
-                                    const serverRoot = inferServerRoot(currentFile, projectPath);
-                                    return (
-                                      <button
-                                        type="button"
-                                        title={`Locate weather file for "${entry.WeatherId}"`}
-                                        onClick={async () => {
-                                          const selected = await openFileDialog({
-                                            title: `Locate weather file for "${entry.WeatherId}"`,
-                                            filters: [{ name: "JSON", extensions: ["json"] }],
-                                          });
-                                          if (!selected || typeof selected !== "string") return;
-                                          const destDir = serverRoot ? `${serverRoot}\\Weathers` : null;
-                                          if (!destDir) { addToast("Cannot resolve Server\\Weathers path", "error"); return; }
-                                          try {
-                                            await createDirectory(destDir);
-                                            const fileName = selected.split(/[/\\]/).pop() ?? `${entry.WeatherId}.json`;
-                                            await copyFile(selected, `${destDir}\\${fileName}`);
-                                            addToast(`Copied ${fileName} into Server\\Weathers`, "success");
-                                          } catch (e) {
-                                            addToast(`Failed to copy file: ${e}`, "error");
-                                          }
-                                        }}
-                                        className="rounded border border-amber-500/50 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300 transition-colors hover:border-amber-400/70 hover:bg-amber-500/20"
-                                      >
-                                        Locate…
-                                      </button>
-                                    );
-                                  })()}
-                                  <button
-                                    type="button"
-                                    onClick={() => updateDoc((previous) => ({
-                                      ...previous,
-                                      WeatherForecasts: {
-                                        ...(previous.WeatherForecasts ?? {}),
-                                        [String(hour)]: readForecastHour(previous, hour).filter((_, itemIndex) => itemIndex !== index),
-                                      },
-                                    }))}
-                                    className="rounded border border-tn-border/60 px-2 py-1 text-[10px] text-tn-text-muted transition-colors hover:border-red-500/50 hover:text-red-400"
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
+                            {/* Color dot */}
+                            <div
+                              className="h-2.5 w-2.5 shrink-0 rounded-full"
+                              style={{ backgroundColor: hashColor(entry.WeatherId || `hour-${hour}-${index}`) }}
+                            />
+                            {/* Weather ID */}
+                            <input
+                              type="text"
+                              list="environment-weather-options"
+                              value={entry.WeatherId}
+                              onChange={(event) => updateDoc((previous) => ({
+                                ...previous,
+                                WeatherForecasts: {
+                                  ...(previous.WeatherForecasts ?? {}),
+                                  [String(hour)]: readForecastHour(previous, hour).map((item, itemIndex) => (
+                                    itemIndex === index ? { ...item, WeatherId: event.target.value } : item
+                                  )),
+                                },
+                              }))}
+                              className="min-w-0 flex-1 rounded border border-tn-border/60 bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
+                              placeholder="Zone1_Sunny"
+                            />
+                            {/* Weight */}
+                            <input
+                              type="number"
+                              step={1}
+                              min={0}
+                              value={entry.Weight}
+                              onChange={(event) => {
+                                const weight = Number.parseFloat(event.target.value);
+                                if (!Number.isFinite(weight)) return;
+                                updateDoc((previous) => ({
+                                  ...previous,
+                                  WeatherForecasts: {
+                                    ...(previous.WeatherForecasts ?? {}),
+                                    [String(hour)]: readForecastHour(previous, hour).map((item, itemIndex) => (
+                                      itemIndex === index ? { ...item, Weight: weight } : item
+                                    )),
+                                  },
+                                }));
+                              }}
+                              className="w-14 shrink-0 rounded border border-tn-border/60 bg-tn-bg px-1.5 py-1 text-[11px] font-mono text-right text-tn-text"
+                              title="Weight"
+                            />
+                            {/* Action buttons */}
+                            <button
+                              type="button"
+                              onClick={() => weatherPath && openFile(weatherPath)}
+                              disabled={!weatherPath}
+                              title={weatherPath ? `Open ${entry.WeatherId}` : "File not found"}
+                              className={`shrink-0 rounded border px-2 py-1 text-[10px] transition-colors ${
+                                weatherPath
+                                  ? "border-tn-border/60 text-tn-text-muted hover:border-tn-accent hover:text-tn-accent"
+                                  : "cursor-not-allowed border-tn-border/30 text-tn-text-muted/40"
+                              }`}
+                            >
+                              Open
+                            </button>
+                            {isHytale && serverRoot && (
+                              <button
+                                type="button"
+                                title={`Copy ${entry.WeatherId} from Hytale assets into project`}
+                                onClick={async () => {
+                                  try {
+                                    await createDirectory(`${serverRoot}\\Weathers`);
+                                    await copyFile(weatherPath, `${serverRoot}\\Weathers\\${entry.WeatherId}.json`);
+                                    addToast(`Imported ${entry.WeatherId}`, "success");
+                                  } catch (e) {
+                                    addToast(`Import failed: ${e}`, "error");
+                                  }
+                                }}
+                                className="shrink-0 rounded border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-[10px] text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/20"
+                              >
+                                Import
+                              </button>
+                            )}
+                            {!weatherPath && (
+                              <button
+                                type="button"
+                                title={`Locate "${entry.WeatherId}" — pick file to copy into project`}
+                                onClick={async () => {
+                                  const selected = await openFileDialog({
+                                    title: `Locate weather file for "${entry.WeatherId}"`,
+                                    filters: [{ name: "JSON", extensions: ["json"] }],
+                                  });
+                                  if (!selected || typeof selected !== "string") return;
+                                  const destDir = serverRoot ? `${serverRoot}\\Weathers` : null;
+                                  if (!destDir) { addToast("Cannot resolve Server\\Weathers path", "error"); return; }
+                                  try {
+                                    await createDirectory(destDir);
+                                    const fileName = selected.split(/[/\\]/).pop() ?? `${entry.WeatherId}.json`;
+                                    await copyFile(selected, `${destDir}\\${fileName}`);
+                                    addToast(`Copied ${fileName} into Server\\Weathers`, "success");
+                                  } catch (e) {
+                                    addToast(`Failed to copy file: ${e}`, "error");
+                                  }
+                                }}
+                                className="shrink-0 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300 transition-colors hover:border-amber-400/60 hover:bg-amber-500/20"
+                              >
+                                Locate…
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              title="Remove this forecast entry"
+                              onClick={() => updateDoc((previous) => ({
+                                ...previous,
+                                WeatherForecasts: {
+                                  ...(previous.WeatherForecasts ?? {}),
+                                  [String(hour)]: readForecastHour(previous, hour).filter((_, itemIndex) => itemIndex !== index),
+                                },
+                              }))}
+                              className="shrink-0 rounded border border-tn-border/40 px-2 py-1 text-[10px] text-tn-text-muted/60 transition-colors hover:border-red-500/50 hover:text-red-400"
+                            >
+                              ✕
+                            </button>
                           </div>
                         );
                       })}
