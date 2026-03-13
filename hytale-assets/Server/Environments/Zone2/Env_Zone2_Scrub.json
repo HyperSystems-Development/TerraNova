@@ -1,0 +1,8 @@
+{
+  "Parent": "Env_Zone2",
+  "Tags": {
+    "Zone2": [
+      "Scrub"
+    ]
+  }
+}

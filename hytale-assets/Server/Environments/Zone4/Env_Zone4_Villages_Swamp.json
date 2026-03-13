@@ -1,0 +1,9 @@
+{
+  "Parent": "Env_Zone4_Crucible",
+  "Tags": {
+    "Zone4": [
+      "Encounters",
+      "Crucible"
+    ]
+  }
+}

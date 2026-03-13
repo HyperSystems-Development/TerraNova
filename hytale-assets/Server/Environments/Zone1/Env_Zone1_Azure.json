@@ -1,0 +1,9 @@
+{
+  "Parent": "Env_Zone1",
+  "Tags": {
+    "Zone1": [
+      "Azure"
+    ]
+  },
+  "WaterTint": "#1983d9"
+}

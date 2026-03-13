@@ -1,0 +1,9 @@
+{
+  "Parent": "Env_Zone1",
+  "Tags": {
+    "Zone1": [
+      "Encounters",
+      "Mage_Towers"
+    ]
+  }
+}

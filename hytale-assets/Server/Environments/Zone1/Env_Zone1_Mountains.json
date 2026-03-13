@@ -1,0 +1,9 @@
+{
+  "Parent": "Env_Zone1",
+  "SpawnDensity": 0.3,
+  "Tags": {
+    "Zone1": [
+      "Mountains"
+    ]
+  }
+}

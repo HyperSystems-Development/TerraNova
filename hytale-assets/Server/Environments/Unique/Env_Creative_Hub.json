@@ -1,0 +1,153 @@
+{
+  "SpawnDensity": 0,
+  "Tags": {
+    "CreativeHub": []
+  },
+  "WaterTint": "#1983d9",
+  "WeatherForecasts": {
+    "0": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "1": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "2": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "3": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "4": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "5": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "6": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "7": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "8": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "9": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "10": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "11": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "12": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "13": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "14": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "15": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "16": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "17": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "18": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "19": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "20": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "21": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "22": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ],
+    "23": [
+      {
+        "WeatherId": "Creative_Hub",
+        "Weight": 100
+      }
+    ]
+  }
+}

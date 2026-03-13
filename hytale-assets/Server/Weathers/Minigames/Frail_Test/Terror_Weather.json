@@ -1,0 +1,42 @@
+{
+  "FogDistance": [
+    0.0,
+    1024.0
+  ],
+  "Particle": {
+    "SystemId": "Dust_Sparkles_Fine",
+    "Color": "#ea0000",
+    "Scale": 1.0
+  },
+  "SkyTopColors": [
+    {
+      "Hour": 23,
+      "Color": "#000000ff"
+    }
+  ],
+  "FogColors": [
+    {
+      "Hour": 23,
+      "Color": "#020205"
+    }
+  ],
+  "FogHeightFalloffs": [
+    {
+      "Hour": 23,
+      "Value": 4.0
+    }
+  ],
+  "FogDensities": [
+    {
+      "Hour": 23,
+      "Value": 1.2
+    }
+  ],
+  "ScreenEffect": "ScreenEffects/Poison.png",
+  "ScreenEffectColors": [
+    {
+      "Hour": 0,
+      "Color": "#8e1fe3ff"
+    }
+  ]
+}

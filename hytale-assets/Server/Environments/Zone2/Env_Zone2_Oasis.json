@@ -1,0 +1,443 @@
+{
+  "WaterTint": "#198dea",
+  "SpawnDensity": 0.4,
+  "Tags": {
+    "Zone2": [
+      "Oasis"
+    ]
+  },
+  "WeatherForecasts": {
+    "0": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "1": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "2": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "3": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "4": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "5": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "6": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "7": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "8": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "9": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "10": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "11": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "12": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "13": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "14": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "15": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "16": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "17": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "18": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "19": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "20": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "21": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "22": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ],
+    "23": [
+      {
+        "WeatherId": "Zone2_Desert_Haze",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone2_Blazing_Light",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone2_Sunny",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone2_Cloudy_Light",
+        "Weight": 30
+      }
+    ]
+  }
+}

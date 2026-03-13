@@ -107,6 +107,18 @@ pub fn list_directory(path: String) -> Result<Vec<DirectoryEntry>, String> {
     DirectoryEntry::scan(&dir_path).map_err(|e| e.to_string())
 }
 
+/// Resolve a bundled Hytale asset directory or file path.
+#[tauri::command]
+pub fn resolve_bundled_hytale_asset_path(
+    app: tauri::AppHandle,
+    relative_path: String,
+) -> Result<String, String> {
+    let resource_dir = app.path().resource_dir().ok();
+    crate::io::hytale_assets::resolve_hytale_asset_path(&relative_path, resource_dir)
+        .map(|path| path.to_string_lossy().to_string())
+        .map_err(|e| e.to_string())
+}
+
 /// Create a blank project with the minimal HytaleGenerator folder structure.
 #[tauri::command]
 pub fn create_blank_project(target_path: String) -> Result<(), String> {

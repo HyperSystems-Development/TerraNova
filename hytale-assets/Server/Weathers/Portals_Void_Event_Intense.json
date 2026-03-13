@@ -1,0 +1,126 @@
+{
+  "Clouds": [
+    {
+      "Texture": "Sky/Clouds/Medium_Base.png",
+      "Colors": [
+        {
+          "Hour": 0,
+          "Color": "rgba(#882456, 0.72)"
+        }
+      ],
+      "Speeds": [
+        {
+          "Hour": 0,
+          "Value": 2.6
+        }
+      ]
+    },
+    {
+      "Texture": "Sky/Clouds/Medium_Highlights.png",
+      "Colors": [
+        {
+          "Hour": 0,
+          "Color": "rgba(#35034DD3, 0.58)"
+        }
+      ],
+      "Speeds": [
+        {
+          "Hour": 0,
+          "Value": 1.5
+        }
+      ]
+    }
+  ],
+
+  "SkyTopColors": [
+    {
+      "Hour": 0,
+      "Color": "rgba(#44001C, 1)"
+    }
+  ],
+
+  "SkySunsetColors": [
+    {
+      "Hour": 0,
+      "Color": "rgba(#4B1B48A9, 0.55)"
+    }
+  ],
+
+  "FogColors": [
+    {
+      "Hour": 0,
+      "Color": "#2b05215e"
+    }
+  ],
+
+  "SunColors": [
+    {
+      "Hour": 0,
+      "Color": "#33063a9f"
+    }
+  ],
+
+  "SunlightColors": [
+    {
+      "Hour": 5,
+      "Color": "#e234bcff"
+    }
+  ],
+
+  "SunScales": [
+    {
+      "Hour": 0,
+      "Value": 3.6
+    }
+  ],
+
+  "SunGlowColors": [
+    {
+      "Hour": 0,
+      "Color": "rgba(#E021FF, 0.62)"
+    }
+  ],
+
+  "FogDistance": [
+    -105.0,
+    980.0
+  ],
+
+  "FogOptions": {
+    "FogHeightCameraFixed": 0.05,
+    "EffectiveViewDistanceMultiplier": 1.01
+  },
+
+  "Particle": {
+    "SystemId": "Magic_Sparks_Heavy_GS",
+    "OvergroundOnly": false,
+    "Color": "#fc4dff"
+  },
+
+  "FogHeightFalloffs": [
+    {
+      "Hour": 0,
+      "Value": 1.895
+    }
+  ],
+
+  "FogDensities": [
+    {
+      "Hour": 0,
+      "Value": 0.81
+    }
+  ],
+
+  "ColorFilters": [
+    {
+      "Color": "#fd07c8ff"
+    }
+  ],
+
+  "WaterTints": [
+    {
+      "Hour": 0,
+      "Color": "#140829ff"
+    }
+  ]
+}

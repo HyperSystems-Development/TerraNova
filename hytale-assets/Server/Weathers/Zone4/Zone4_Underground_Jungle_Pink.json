@@ -1,0 +1,186 @@
+{
+  "Tags": {
+    "Zone4": [
+    ]
+  },
+  "Stars": "Sky/Stars.png",
+  "Moons": [
+    {
+      "Day": 0,
+      "Texture": "Sky/MoonCycle/Moon_Full.png"
+    },
+    {
+      "Day": 1,
+      "Texture": "Sky/MoonCycle/Moon_Gibbous.png"
+    },
+    {
+      "Day": 2,
+      "Texture": "Sky/MoonCycle/Moon_Half.png"
+    },
+    {
+      "Day": 3,
+      "Texture": "Sky/MoonCycle/Moon_Crescent.png"
+    },
+    {
+      "Day": 4,
+      "Texture": "Sky/MoonCycle/Moon_New.png"
+    }
+  ],
+  "Clouds": [
+    {
+      "Texture": "Sky/Clouds/Twirled.png",
+      "Colors": [
+        {
+          "Hour": 3,
+          "Color": "#81ced624"
+        },
+        {
+          "Hour": 5,
+          "Color": "#8eccde5e"
+        },
+        {
+          "Hour": 7,
+          "Color": "#8ed7dee6"
+        },
+        {
+          "Hour": 17,
+          "Color": "#8ed7dee6"
+        },
+        {
+          "Hour": 19,
+          "Color": "#8eccde6b"
+        },
+        {
+          "Hour": 21,
+          "Color": "#81ced61c"
+        }
+      ],
+      "Speeds": [
+        {
+          "Hour": 0,
+          "Value": 1
+        }
+      ]
+    },
+    {
+      "Texture": "Sky/Clouds/Scars.png",
+      "Colors": [
+        {
+          "Hour": 3,
+          "Color": "#ab81d624"
+        },
+        {
+          "Hour": 5,
+          "Color": "#de8eaa5e"
+        },
+        {
+          "Hour": 7,
+          "Color": "#d98edee6"
+        },
+        {
+          "Hour": 17,
+          "Color": "#d98edee6"
+        },
+        {
+          "Hour": 19,
+          "Color": "#de8eaa6b"
+        },
+        {
+          "Hour": 21,
+          "Color": "#ab81d61c"
+        }
+      ],
+      "Speeds": [
+        {
+          "Hour": 0,
+          "Value": 1
+        }
+      ]
+    }
+  ],
+  "SkyTopColors": [
+    {
+      "Hour": 3,
+      "Color": "#0d2429e0"
+    },
+    {
+      "Hour": 5,
+      "Color": "#24536bff"
+    },
+    {
+      "Hour": 7,
+      "Color": "#ccd8e0ff"
+    },
+    {
+      "Hour": 17,
+      "Color": "#ccd8e0ff"
+    },
+    {
+      "Hour": 19,
+      "Color": "#24536bff"
+    },
+    {
+      "Hour": 21,
+      "Color": "#0d2429d1"
+    }
+  ],
+  "SkyBottomColors": [
+    {
+      "Hour": 3,
+      "Color": "#1e0f3e8f"
+    },
+    {
+      "Hour": 5,
+      "Color": "#8e55bfff"
+    },
+    {
+      "Hour": 7,
+      "Color": "#9270eeff"
+    },
+    {
+      "Hour": 17,
+      "Color": "#9270eeff"
+    },
+    {
+      "Hour": 19,
+      "Color": "#8e55bfff"
+    },
+    {
+      "Hour": 21,
+      "Color": "#1e0f3e8f"
+    }
+  ],
+  "SkySunsetColors": [
+    {
+      "Hour": 19,
+      "Color": "rgba(#766576, 0.374)"
+    }
+  ],
+  "FogColors": [
+    {
+      "Hour": 3,
+      "Color": "#453b66"
+    },
+    {
+      "Hour": 19,
+      "Color": "#6d467b"
+    },
+    {
+      "Hour": 21,
+      "Color": "#453b66"
+    },
+    {
+      "Hour": 7,
+      "Color": "#6d467b"
+    }
+  ],
+  "FogDistance": [
+    -224,
+    160
+  ],
+  "Particle": {
+    "SystemId": "Magic_Sparks_Heavy_GS",
+    "OvergroundOnly": false,
+    "Color": "#fd69a4"
+  }
+}

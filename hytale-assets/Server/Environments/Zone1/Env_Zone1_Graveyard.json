@@ -1,0 +1,154 @@
+{
+  "Parent": "Env_Zone1",
+  "Tags": {
+    "Zone1": [
+      "Encounters"
+    ]
+  },
+  "WeatherForecasts": {
+    "0": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "1": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "2": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "3": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "4": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "5": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "6": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "7": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "8": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "9": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "10": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "11": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "12": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "13": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "14": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "15": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "16": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "17": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "18": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "19": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "20": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "21": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "22": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ],
+    "23": [
+      {
+        "WeatherId": "Dungeon_Cursed_Crypt_Graveyard",
+        "Weight": 100
+      }
+    ]
+  }
+}

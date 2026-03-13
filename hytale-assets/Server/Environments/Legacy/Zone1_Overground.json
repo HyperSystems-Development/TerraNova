@@ -1,0 +1,726 @@
+{
+  "WaterTint": "#1983d9",
+  "SpawnDensity": 0.25,
+  "WeatherForecasts": {
+    "0": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "1": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "2": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "3": [
+       {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 30
+      },
+	  {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "4": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 50
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "5": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 50
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "6": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 50
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "7": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 50
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "8": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "9": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "10": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "11": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "12": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "13": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "14": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "15": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "16": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "17": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "18": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "19": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "20": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "21": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "22": [
+      {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ],
+    "23": [
+       {
+        "WeatherId": "Zone1_Foggy_Light",
+        "Weight": 0
+      },
+	  {
+        "WeatherId": "Zone1_Sunny_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Storm",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 70
+      },
+      {
+        "WeatherId": "Zone1_Cloudy_Medium",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 1
+      },
+      {
+        "WeatherId": "Zone1_Rain_Light",
+        "Weight": 1
+      }
+    ]
+  }
+}

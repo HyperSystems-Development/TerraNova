@@ -1,0 +1,63 @@
+{
+  "SkyTopColors": [
+    {
+      "Hour": 3,
+      "Color": "#2e254b"
+    }
+  ],
+  "SkyBottomColors": [
+    {
+      "Hour": 3,
+      "Color": "#2e254b"
+    }
+  ],
+  "SkySunsetColors": [
+    {
+      "Hour": 3,
+      "Color": "#2e254b"
+    }
+  ],
+  "FogColors": [
+    {
+      "Hour": 3,
+      "Color": "#2e254b"
+    }
+  ],
+  "FogDensities": [
+    {
+      "Hour": 0,
+      "Value": 0.85
+    }
+  ],
+  "FogHeightFalloffs": [
+    {
+      "Hour": 0,
+      "Value": 1.7
+    }
+  ],
+  "FogDistance": [
+    -128.0,
+    512.0
+  ],
+  "FogOptions": {
+    "FogHeightCameraFixed": 0.5,
+    "EffectiveViewDistanceMultiplier": 1.0
+  },
+  "SunScales": [
+    {
+      "Hour": 0,
+      "Value": 1
+    }
+  ],
+  "MoonScales": [
+    {
+      "Hour": 0,
+      "Value": 1
+    }
+  ],
+  "Particle": {
+    "SystemId": "Magic_Sparks_Heavy_GS",
+    "OvergroundOnly": true,
+    "Color": "#fd69a4"
+  }
+}

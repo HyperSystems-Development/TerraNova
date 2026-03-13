@@ -1,0 +1,89 @@
+{
+  "Tags": {
+    "Zone4": [
+    ]
+  },
+  "Stars": "Sky/Stars.png",
+  "Moons": [
+    {
+      "Day": 0,
+      "Texture": "Sky/MoonCycle/Moon_Full.png"
+    },
+    {
+      "Day": 1,
+      "Texture": "Sky/MoonCycle/Moon_Gibbous.png"
+    },
+    {
+      "Day": 2,
+      "Texture": "Sky/MoonCycle/Moon_Half.png"
+    },
+    {
+      "Day": 3,
+      "Texture": "Sky/MoonCycle/Moon_Crescent.png"
+    },
+    {
+      "Day": 4,
+      "Texture": "Sky/MoonCycle/Moon_New.png"
+    }
+  ],
+  "Clouds": [],
+  "SkyTopColors": [
+    {
+      "Hour": 3,
+      "Color": "rgba(#260213, 1)"
+    },
+    {
+      "Hour": 5,
+      "Color": "#24536bff"
+    },
+    {
+      "Hour": 7,
+      "Color": "rgba(#4d030b, 1)"
+    },
+    {
+      "Hour": 19,
+      "Color": "#24536bff"
+    },
+    {
+      "Hour": 21,
+      "Color": "#0d2429d1"
+    },
+    {
+      "Hour": 17,
+      "Color": "rgba(#4d030b, 1)"
+    }
+  ],
+  "SkySunsetColors": [
+    {
+      "Hour": 19,
+      "Color": "rgba(#766576, 0.374)"
+    }
+  ],
+  "FogColors": [
+    {
+      "Hour": 3,
+      "Color": "#601a12"
+    },
+    {
+      "Hour": 21,
+      "Color": "#601a12"
+    },
+    {
+      "Hour": 7,
+      "Color": "#913e27"
+    },
+    {
+      "Hour": 17,
+      "Color": "#913e27"
+    }
+  ],
+  "FogDistance": [
+    -224,
+    160
+  ],
+  "Particle": {
+    "SystemId": "Magic_Sparks_GS",
+    "OvergroundOnly": false,
+    "Color": "#ff682c"
+  }
+}

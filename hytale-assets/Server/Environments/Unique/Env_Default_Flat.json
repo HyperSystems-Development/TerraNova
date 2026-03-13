@@ -1,0 +1,155 @@
+{
+  "WaterTint": "#1983d9",
+  "SpawnDensity": 0.75,
+  "Tags": {
+    "Zone1": [
+      "Plains"
+    ]
+  },
+  "WeatherForecasts": {
+    "0": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "1": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "2": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "3": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "4": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "5": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "6": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "7": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "8": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "9": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "10": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "11": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "12": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "13": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "14": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "15": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "16": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "17": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "18": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "19": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "20": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "21": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "22": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ],
+    "23": [
+      {
+        "WeatherId": "Default_Flat",
+        "Weight": 1
+      }
+    ]
+  }
+}

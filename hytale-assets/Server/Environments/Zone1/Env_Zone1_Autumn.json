@@ -1,0 +1,347 @@
+{
+  "WaterTint": "#616f6f",
+  "SpawnDensity": 0.9,
+  "Tags": {
+    "Zone1": [
+      "Autumn"
+    ]
+  },
+  "WeatherForecasts": {
+    "0": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "1": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "2": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "3": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "4": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "5": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "6": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "7": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "8": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "9": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "10": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "11": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "12": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "13": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "14": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "15": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "16": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "17": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "18": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "19": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "20": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "21": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "22": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ],
+    "23": [
+      {
+        "WeatherId": "Zone1_Autumn_Forest_Windy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Sunny",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Rain",
+        "Weight": 5
+      }
+    ]
+  }
+}

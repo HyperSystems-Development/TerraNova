@@ -1,0 +1,731 @@
+{
+  "WaterTint": "#2076b5",
+  "SpawnDensity": 0.3,
+  "Tags": {
+    "Zone3": [
+      "Glacial"
+    ]
+  },
+  "WeatherForecasts": {
+    "0": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "1": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "2": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "3": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "4": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "5": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "6": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "7": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "8": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 20
+      }
+    ],
+    "9": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 20
+      }
+    ],
+    "10": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 20
+      }
+    ],
+    "11": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 20
+      }
+    ],
+    "12": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 20
+      }
+    ],
+    "13": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 20
+      }
+    ],
+    "14": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 20
+      }
+    ],
+    "15": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 20
+      }
+    ],
+    "16": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 20
+      }
+    ],
+    "17": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "18": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "19": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "20": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "21": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "22": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ],
+    "23": [
+      {
+        "WeatherId": "Zone3_Cloudy_Boreal",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone3_Northern_Lights",
+        "Weight": 25
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Medium",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Storm",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Cloudy_Light",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone3_Snow_Heavy",
+        "Weight": 15
+      }
+    ]
+  }
+}

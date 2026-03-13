@@ -1,0 +1,827 @@
+{
+  "Stars": "Sky/Stars.png",
+  "Moons": [
+    {
+      "Day": 0,
+      "Texture": "Sky/MoonCycle/Moon_Full.png"
+    },
+    {
+      "Day": 1,
+      "Texture": "Sky/MoonCycle/Moon_Gibbous.png"
+    },
+    {
+      "Day": 2,
+      "Texture": "Sky/MoonCycle/Moon_Half.png"
+    },
+    {
+      "Day": 3,
+      "Texture": "Sky/MoonCycle/Moon_Crescent.png"
+    },
+    {
+      "Day": 4,
+      "Texture": "Sky/MoonCycle/Moon_New.png"
+    }
+  ],
+  "Clouds": [
+    {
+      "Colors": [
+        {
+          "Hour": 3,
+          "Color": "rgba(#101016, 0.78)"
+        },
+        {
+          "Hour": 5,
+          "Color": "#ff5e435e"
+        },
+        {
+          "Hour": 7,
+          "Color": "rgba(#fbe5b6, 0.902)"
+        },
+        {
+          "Hour": 17,
+          "Color": "rgba(#fbe5b6, 0.9)"
+        },
+        {
+          "Hour": 19,
+          "Color": "#ff5e4354"
+        },
+        {
+          "Hour": 21,
+          "Color": "#1a1a1bc7"
+        }
+      ],
+      "Speeds": [
+        {
+          "Hour": 0,
+          "Value": 0.7
+        },
+        {
+          "Hour": 1,
+          "Value": 0.7
+        },
+        {
+          "Hour": 2,
+          "Value": 0.7
+        },
+        {
+          "Hour": 3,
+          "Value": 0.7
+        },
+        {
+          "Hour": 4,
+          "Value": 0.7
+        },
+        {
+          "Hour": 5,
+          "Value": 0.7
+        },
+        {
+          "Hour": 6,
+          "Value": 0.7
+        },
+        {
+          "Hour": 7,
+          "Value": 0.7
+        },
+        {
+          "Hour": 8,
+          "Value": 0.7
+        },
+        {
+          "Hour": 9,
+          "Value": 0.7
+        },
+        {
+          "Hour": 10,
+          "Value": 0.7
+        },
+        {
+          "Hour": 11,
+          "Value": 0.7
+        },
+        {
+          "Hour": 12,
+          "Value": 0.7
+        },
+        {
+          "Hour": 13,
+          "Value": 0.7
+        },
+        {
+          "Hour": 14,
+          "Value": 0.7
+        },
+        {
+          "Hour": 15,
+          "Value": 0.7
+        },
+        {
+          "Hour": 16,
+          "Value": 0.7
+        },
+        {
+          "Hour": 17,
+          "Value": 0.7
+        },
+        {
+          "Hour": 18,
+          "Value": 0.7
+        },
+        {
+          "Hour": 19,
+          "Value": 0.7
+        },
+        {
+          "Hour": 20,
+          "Value": 0.7
+        },
+        {
+          "Hour": 21,
+          "Value": 0.7
+        },
+        {
+          "Hour": 22,
+          "Value": 0.7
+        },
+        {
+          "Hour": 23,
+          "Value": 0.7
+        }
+      ],
+      "Texture": "Sky/Clouds/Marshmallow_Highlights.png"
+    },
+    {
+      "Colors": [
+        {
+          "Hour": 3,
+          "Color": "#0d4373c7"
+        },
+        {
+          "Hour": 5,
+          "Color": "rgba(#2e4464, 0.369)"
+        },
+        {
+          "Hour": 7,
+          "Color": "rgba(#848b92, 0.657)"
+        },
+        {
+          "Hour": 17,
+          "Color": "rgba(#848b92, 0.66)"
+        },
+        {
+          "Hour": 19,
+          "Color": "#ff5e4354"
+        },
+        {
+          "Hour": 21,
+          "Color": "#0d4373c7"
+        },
+        {
+          "Hour": 20,
+          "Color": "#292929ff"
+        },
+        {
+          "Hour": 4,
+          "Color": "#292929ff"
+        }
+      ],
+      "Speeds": [
+        {
+          "Hour": 0,
+          "Value": 0.7
+        },
+        {
+          "Hour": 1,
+          "Value": 0.7
+        },
+        {
+          "Hour": 2,
+          "Value": 0.7
+        },
+        {
+          "Hour": 3,
+          "Value": 0.7
+        },
+        {
+          "Hour": 4,
+          "Value": 0.7
+        },
+        {
+          "Hour": 5,
+          "Value": 0.7
+        },
+        {
+          "Hour": 6,
+          "Value": 0.7
+        },
+        {
+          "Hour": 7,
+          "Value": 0.7
+        },
+        {
+          "Hour": 8,
+          "Value": 0.7
+        },
+        {
+          "Hour": 9,
+          "Value": 0.7
+        },
+        {
+          "Hour": 10,
+          "Value": 0.7
+        },
+        {
+          "Hour": 11,
+          "Value": 0.7
+        },
+        {
+          "Hour": 12,
+          "Value": 0.7
+        },
+        {
+          "Hour": 13,
+          "Value": 0.7
+        },
+        {
+          "Hour": 14,
+          "Value": 0.7
+        },
+        {
+          "Hour": 15,
+          "Value": 0.7
+        },
+        {
+          "Hour": 16,
+          "Value": 0.7
+        },
+        {
+          "Hour": 17,
+          "Value": 0.7
+        },
+        {
+          "Hour": 18,
+          "Value": 0.7
+        },
+        {
+          "Hour": 19,
+          "Value": 0.7
+        },
+        {
+          "Hour": 20,
+          "Value": 0.7
+        },
+        {
+          "Hour": 21,
+          "Value": 0.7
+        },
+        {
+          "Hour": 22,
+          "Value": 0.7
+        },
+        {
+          "Hour": 23,
+          "Value": 0.7
+        }
+      ],
+      "Texture": "Sky/Clouds/Marshmallow_Base.png"
+    }
+  ],
+  "SkyTopColors": [
+    {
+      "Hour": 3,
+      "Color": "#00000000"
+    },
+    {
+      "Hour": 5,
+      "Color": "#2b69a8ff"
+    },
+    {
+      "Hour": 17,
+      "Color": "#1983d9ff"
+    },
+    {
+      "Hour": 19,
+      "Color": "#2b69a8ff"
+    },
+    {
+      "Hour": 21,
+      "Color": "#00000000"
+    },
+    {
+      "Hour": 7,
+      "Color": "rgba(#b5d8f4, 1)"
+    }
+  ],
+  "SkySunsetColors": [
+    {
+      "Hour": 3,
+      "Color": "#ffffff00"
+    },
+    {
+      "Hour": 5,
+      "Color": "rgba(#ecb1a7, 1)"
+    },
+    {
+      "Hour": 7,
+      "Color": "#ffffff00"
+    },
+    {
+      "Hour": 17,
+      "Color": "#ffffff00"
+    },
+    {
+      "Hour": 19,
+      "Color": "#ff5e43ff"
+    },
+    {
+      "Hour": 21,
+      "Color": "#ffffff00"
+    }
+  ],
+  "FogColors": [
+    {
+      "Hour": 3,
+      "Color": "#050e23"
+    },
+    {
+      "Hour": 5,
+      "Color": "#85aff3"
+    },
+    {
+      "Hour": 7,
+      "Color": "#bfc2ea"
+    },
+    {
+      "Hour": 17,
+      "Color": "#93c8e1"
+    },
+    {
+      "Hour": 19,
+      "Color": "#85aff3"
+    },
+    {
+      "Hour": 21,
+      "Color": "#050e23"
+    }
+  ],
+  "SunColors": [
+    {
+      "Hour": 19,
+      "Color": "#ffe7d4"
+    },
+    {
+      "Hour": 17,
+      "Color": "#ffffff"
+    },
+    {
+      "Hour": 5,
+      "Color": "#ffe7d4"
+    },
+    {
+      "Hour": 7,
+      "Color": "#ffffff"
+    },
+    {
+      "Hour": 6,
+      "Color": "#ffebdb"
+    },
+    {
+      "Hour": 18,
+      "Color": "#ffebdb"
+    }
+  ],
+  "SunScales": [
+    {
+      "Hour": 0,
+      "Value": 0.8
+    },
+    {
+      "Hour": 1,
+      "Value": 0.8
+    },
+    {
+      "Hour": 2,
+      "Value": 0.8
+    },
+    {
+      "Hour": 3,
+      "Value": 0.8
+    },
+    {
+      "Hour": 4,
+      "Value": 0.8
+    },
+    {
+      "Hour": 5,
+      "Value": 0.8
+    },
+    {
+      "Hour": 6,
+      "Value": 0.8
+    },
+    {
+      "Hour": 7,
+      "Value": 0.8
+    },
+    {
+      "Hour": 8,
+      "Value": 0.8
+    },
+    {
+      "Hour": 9,
+      "Value": 0.8
+    },
+    {
+      "Hour": 10,
+      "Value": 0.8
+    },
+    {
+      "Hour": 11,
+      "Value": 0.8
+    },
+    {
+      "Hour": 12,
+      "Value": 0.8
+    },
+    {
+      "Hour": 13,
+      "Value": 0.8
+    },
+    {
+      "Hour": 14,
+      "Value": 0.8
+    },
+    {
+      "Hour": 15,
+      "Value": 0.8
+    },
+    {
+      "Hour": 16,
+      "Value": 0.8
+    },
+    {
+      "Hour": 17,
+      "Value": 0.8
+    },
+    {
+      "Hour": 18,
+      "Value": 0.8
+    },
+    {
+      "Hour": 19,
+      "Value": 0.8
+    },
+    {
+      "Hour": 20,
+      "Value": 0.8
+    },
+    {
+      "Hour": 21,
+      "Value": 0.8
+    },
+    {
+      "Hour": 22,
+      "Value": 0.8
+    },
+    {
+      "Hour": 23,
+      "Value": 0.8
+    }
+  ],
+  "MoonScales": [
+    {
+      "Hour": 0,
+      "Value": 1.3
+    },
+    {
+      "Hour": 1,
+      "Value": 1.3
+    },
+    {
+      "Hour": 2,
+      "Value": 1.3
+    },
+    {
+      "Hour": 3,
+      "Value": 1.3
+    },
+    {
+      "Hour": 4,
+      "Value": 1.3
+    },
+    {
+      "Hour": 5,
+      "Value": 1.3
+    },
+    {
+      "Hour": 6,
+      "Value": 1.3
+    },
+    {
+      "Hour": 7,
+      "Value": 1.3
+    },
+    {
+      "Hour": 8,
+      "Value": 1.3
+    },
+    {
+      "Hour": 9,
+      "Value": 1.3
+    },
+    {
+      "Hour": 10,
+      "Value": 1.3
+    },
+    {
+      "Hour": 11,
+      "Value": 1.3
+    },
+    {
+      "Hour": 12,
+      "Value": 1.3
+    },
+    {
+      "Hour": 13,
+      "Value": 1.3
+    },
+    {
+      "Hour": 14,
+      "Value": 1.3
+    },
+    {
+      "Hour": 15,
+      "Value": 1.3
+    },
+    {
+      "Hour": 16,
+      "Value": 1.3
+    },
+    {
+      "Hour": 17,
+      "Value": 1.3
+    },
+    {
+      "Hour": 18,
+      "Value": 1.3
+    },
+    {
+      "Hour": 19,
+      "Value": 1.3
+    },
+    {
+      "Hour": 20,
+      "Value": 1.3
+    },
+    {
+      "Hour": 21,
+      "Value": 1.3
+    },
+    {
+      "Hour": 22,
+      "Value": 1.3
+    },
+    {
+      "Hour": 23,
+      "Value": 1.3
+    }
+  ],
+  "SunGlowColors": [
+    {
+      "Hour": 5,
+      "Color": "rgba(#fca3ac, 1)"
+    },
+    {
+      "Hour": 7,
+      "Color": "rgba(#eaec90, 1)"
+    },
+    {
+      "Hour": 17,
+      "Color": "rgba(#eaec90, 1)"
+    },
+    {
+      "Hour": 19,
+      "Color": "rgba(#fca3ac, 1)"
+    },
+    {
+      "Hour": 6,
+      "Color": "#eaeaeacd"
+    },
+    {
+      "Hour": 18,
+      "Color": "rgba(#eaeaea, 0.8)"
+    }
+  ],
+  "MoonColors": [
+    {
+      "Hour": 21,
+      "Color": "rgba(#78b4cc, 1)"
+    }
+  ],
+  "MoonGlowColors": [
+    {
+      "Hour": 21,
+      "Color": "rgba(#3f647c, 1)"
+    }
+  ],
+  "FogDensities": [
+    {
+      "Hour": 0,
+      "Value": 0.6
+    },
+    {
+      "Hour": 1,
+      "Value": 0.6
+    },
+    {
+      "Hour": 2,
+      "Value": 0.6
+    },
+    {
+      "Hour": 3,
+      "Value": 0.6
+    },
+    {
+      "Hour": 4,
+      "Value": 0.6
+    },
+    {
+      "Hour": 5,
+      "Value": 0.6
+    },
+    {
+      "Hour": 6,
+      "Value": 0.6
+    },
+    {
+      "Hour": 7,
+      "Value": 0.6
+    },
+    {
+      "Hour": 8,
+      "Value": 0.6
+    },
+    {
+      "Hour": 9,
+      "Value": 0.6
+    },
+    {
+      "Hour": 10,
+      "Value": 0.6
+    },
+    {
+      "Hour": 11,
+      "Value": 0.6
+    },
+    {
+      "Hour": 12,
+      "Value": 0.6
+    },
+    {
+      "Hour": 13,
+      "Value": 0.6
+    },
+    {
+      "Hour": 14,
+      "Value": 0.6
+    },
+    {
+      "Hour": 15,
+      "Value": 0.6
+    },
+    {
+      "Hour": 16,
+      "Value": 0.6
+    },
+    {
+      "Hour": 17,
+      "Value": 0.6
+    },
+    {
+      "Hour": 18,
+      "Value": 0.6
+    },
+    {
+      "Hour": 19,
+      "Value": 0.6
+    },
+    {
+      "Hour": 20,
+      "Value": 0.6
+    },
+    {
+      "Hour": 21,
+      "Value": 0.6
+    },
+    {
+      "Hour": 22,
+      "Value": 0.6
+    },
+    {
+      "Hour": 23,
+      "Value": 0.6
+    }
+  ],
+  "FogHeightFalloffs": [
+    {
+      "Hour": 0,
+      "Value": 10
+    },
+    {
+      "Hour": 1,
+      "Value": 10
+    },
+    {
+      "Hour": 2,
+      "Value": 10
+    },
+    {
+      "Hour": 3,
+      "Value": 10
+    },
+    {
+      "Hour": 4,
+      "Value": 10
+    },
+    {
+      "Hour": 5,
+      "Value": 10
+    },
+    {
+      "Hour": 6,
+      "Value": 10
+    },
+    {
+      "Hour": 7,
+      "Value": 10
+    },
+    {
+      "Hour": 8,
+      "Value": 10
+    },
+    {
+      "Hour": 9,
+      "Value": 10
+    },
+    {
+      "Hour": 10,
+      "Value": 10
+    },
+    {
+      "Hour": 11,
+      "Value": 10
+    },
+    {
+      "Hour": 12,
+      "Value": 10
+    },
+    {
+      "Hour": 13,
+      "Value": 10
+    },
+    {
+      "Hour": 14,
+      "Value": 10
+    },
+    {
+      "Hour": 15,
+      "Value": 10
+    },
+    {
+      "Hour": 16,
+      "Value": 10
+    },
+    {
+      "Hour": 17,
+      "Value": 10
+    },
+    {
+      "Hour": 18,
+      "Value": 10
+    },
+    {
+      "Hour": 19,
+      "Value": 10
+    },
+    {
+      "Hour": 20,
+      "Value": 10
+    },
+    {
+      "Hour": 21,
+      "Value": 10
+    },
+    {
+      "Hour": 22,
+      "Value": 10
+    },
+    {
+      "Hour": 23,
+      "Value": 10
+    }
+  ],
+  "FogDistance": [
+    -96,
+    1024
+  ]
+}

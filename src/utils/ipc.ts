@@ -76,6 +76,10 @@ export async function listDirectory(path: string): Promise<DirectoryEntryData[]>
   return invoke<DirectoryEntryData[]>("list_directory", { path });
 }
 
+export async function resolveBundledHytaleAssetPath(relativePath: string): Promise<string> {
+  return invoke<string>("resolve_bundled_hytale_asset_path", { relativePath });
+}
+
 export async function createFromTemplate(
   templateName: string,
   targetPath: string,

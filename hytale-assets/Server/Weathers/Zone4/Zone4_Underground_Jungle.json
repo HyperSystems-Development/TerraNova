@@ -1,0 +1,407 @@
+{
+  "Tags": {
+    "Zone4": [
+    ]
+  },
+  "Stars": "Sky/Stars.png",
+  "Moons": [
+    {
+      "Day": 0,
+      "Texture": "Sky/MoonCycle/Moon_Full.png"
+    },
+    {
+      "Day": 1,
+      "Texture": "Sky/MoonCycle/Moon_Gibbous.png"
+    },
+    {
+      "Day": 2,
+      "Texture": "Sky/MoonCycle/Moon_Half.png"
+    },
+    {
+      "Day": 3,
+      "Texture": "Sky/MoonCycle/Moon_Crescent.png"
+    },
+    {
+      "Day": 4,
+      "Texture": "Sky/MoonCycle/Moon_New.png"
+    }
+  ],
+  "Clouds": [
+    {
+      "Texture": "Sky/Clouds/Twirled.png",
+      "Colors": [
+        {
+          "Hour": 3,
+          "Color": "#9ed68124"
+        },
+        {
+          "Hour": 5,
+          "Color": "#c9de8e5e"
+        },
+        {
+          "Hour": 7,
+          "Color": "rgba(#ebf9c2, 0.902)"
+        },
+        {
+          "Hour": 17,
+          "Color": "rgba(#f0fec9, 0.902)"
+        },
+        {
+          "Hour": 19,
+          "Color": "#dbeb696b"
+        },
+        {
+          "Hour": 21,
+          "Color": "#9ee98b1c"
+        }
+      ],
+      "Speeds": [
+        {
+          "Hour": 0,
+          "Value": 1
+        }
+      ]
+    },
+    {
+      "Texture": "Sky/Clouds/Scars.png",
+      "Colors": [
+        {
+          "Hour": 3,
+          "Color": "#9ed68124"
+        },
+        {
+          "Hour": 5,
+          "Color": "#c9de8e5e"
+        },
+        {
+          "Hour": 7,
+          "Color": "rgba(#fbffee, 0.902)"
+        },
+        {
+          "Hour": 17,
+          "Color": "rgba(#faffea, 0.902)"
+        },
+        {
+          "Hour": 19,
+          "Color": "#dbeb696b"
+        },
+        {
+          "Hour": 21,
+          "Color": "#9ee98b1c"
+        }
+      ],
+      "Speeds": [
+        {
+          "Hour": 0,
+          "Value": 1
+        }
+      ]
+    }
+  ],
+  "SkyTopColors": [
+    {
+      "Hour": 3,
+      "Color": "#12290de0"
+    },
+    {
+      "Hour": 5,
+      "Color": "#246b4bff"
+    },
+    {
+      "Hour": 7,
+      "Color": "rgba(#abe9fb, 1)"
+    },
+    {
+      "Hour": 17,
+      "Color": "rgba(#abe9fb, 1)"
+    },
+    {
+      "Hour": 19,
+      "Color": "#246b4bff"
+    },
+    {
+      "Hour": 21,
+      "Color": "#1a2510d1"
+    }
+  ],
+  "SkyBottomColors": [
+    {
+      "Hour": 3,
+      "Color": "#2d3e0f8f"
+    },
+    {
+      "Hour": 5,
+      "Color": "#b0bf55ff"
+    },
+    {
+      "Hour": 7,
+      "Color": "rgba(#70e2ee, 1)"
+    },
+    {
+      "Hour": 17,
+      "Color": "rgba(#70e2ee, 1)"
+    },
+    {
+      "Hour": 19,
+      "Color": "#b0bf55ff"
+    },
+    {
+      "Hour": 21,
+      "Color": "#2d3e0f8f"
+    }
+  ],
+  "SkySunsetColors": [
+    {
+      "Hour": 3,
+      "Color": "#a9e32c00"
+    },
+    {
+      "Hour": 5,
+      "Color": "rgba(#f7fc73, 1)"
+    },
+    {
+      "Hour": 7,
+      "Color": "#52e46d00"
+    },
+    {
+      "Hour": 17,
+      "Color": "#52e46d00"
+    },
+    {
+      "Hour": 19,
+      "Color": "rgba(#f7fc73, 1)"
+    },
+    {
+      "Hour": 21,
+      "Color": "#a9e32c00"
+    },
+    {
+      "Hour": 12,
+      "Color": "rgba(#f1d762, 1)"
+    }
+  ],
+  "FogColors": [
+    {
+      "Hour": 3,
+      "Color": "#374d7d"
+    },
+    {
+      "Hour": 5,
+      "Color": "#3d5c9b"
+    },
+    {
+      "Hour": 19,
+      "Color": "#3d5c9b"
+    },
+    {
+      "Hour": 21,
+      "Color": "#374d7d"
+    }
+  ],
+  "FogDistance": [
+    -224,
+    160
+  ],
+  "SunScales": [
+    {
+      "Hour": 0,
+      "Value": 0.8
+    },
+    {
+      "Hour": 1,
+      "Value": 0.8
+    },
+    {
+      "Hour": 2,
+      "Value": 0.8
+    },
+    {
+      "Hour": 3,
+      "Value": 0.8
+    },
+    {
+      "Hour": 4,
+      "Value": 0.8
+    },
+    {
+      "Hour": 5,
+      "Value": 0.8
+    },
+    {
+      "Hour": 6,
+      "Value": 0.8
+    },
+    {
+      "Hour": 7,
+      "Value": 0.8
+    },
+    {
+      "Hour": 8,
+      "Value": 0.8
+    },
+    {
+      "Hour": 9,
+      "Value": 0.8
+    },
+    {
+      "Hour": 10,
+      "Value": 0.8
+    },
+    {
+      "Hour": 11,
+      "Value": 0.8
+    },
+    {
+      "Hour": 12,
+      "Value": 0.8
+    },
+    {
+      "Hour": 13,
+      "Value": 0.8
+    },
+    {
+      "Hour": 14,
+      "Value": 0.8
+    },
+    {
+      "Hour": 15,
+      "Value": 0.8
+    },
+    {
+      "Hour": 16,
+      "Value": 0.8
+    },
+    {
+      "Hour": 17,
+      "Value": 0.8
+    },
+    {
+      "Hour": 18,
+      "Value": 0.8
+    },
+    {
+      "Hour": 19,
+      "Value": 0.8
+    },
+    {
+      "Hour": 20,
+      "Value": 0.8
+    },
+    {
+      "Hour": 21,
+      "Value": 0.8
+    },
+    {
+      "Hour": 22,
+      "Value": 0.8
+    },
+    {
+      "Hour": 23,
+      "Value": 0.8
+    }
+  ],
+  "MoonScales": [
+    {
+      "Hour": 0,
+      "Value": 1.6
+    },
+    {
+      "Hour": 1,
+      "Value": 1.6
+    },
+    {
+      "Hour": 2,
+      "Value": 1.6
+    },
+    {
+      "Hour": 3,
+      "Value": 1.6
+    },
+    {
+      "Hour": 4,
+      "Value": 1.6
+    },
+    {
+      "Hour": 5,
+      "Value": 1.6
+    },
+    {
+      "Hour": 6,
+      "Value": 1.6
+    },
+    {
+      "Hour": 7,
+      "Value": 1.6
+    },
+    {
+      "Hour": 8,
+      "Value": 1.6
+    },
+    {
+      "Hour": 9,
+      "Value": 1.6
+    },
+    {
+      "Hour": 10,
+      "Value": 1.6
+    },
+    {
+      "Hour": 11,
+      "Value": 1.6
+    },
+    {
+      "Hour": 12,
+      "Value": 1.6
+    },
+    {
+      "Hour": 13,
+      "Value": 1.6
+    },
+    {
+      "Hour": 14,
+      "Value": 1.6
+    },
+    {
+      "Hour": 15,
+      "Value": 1.6
+    },
+    {
+      "Hour": 16,
+      "Value": 1.6
+    },
+    {
+      "Hour": 17,
+      "Value": 1.6
+    },
+    {
+      "Hour": 18,
+      "Value": 1.6
+    },
+    {
+      "Hour": 19,
+      "Value": 1.6
+    },
+    {
+      "Hour": 20,
+      "Value": 1.6
+    },
+    {
+      "Hour": 21,
+      "Value": 1.6
+    },
+    {
+      "Hour": 22,
+      "Value": 1.6
+    },
+    {
+      "Hour": 23,
+      "Value": 1.6
+    }
+  ],
+  "Particle": {
+    "SystemId": "Magic_Sparks_GS",
+    "OvergroundOnly": false,
+    "Color": "#ffd757"
+  },
+  "SunlightColors": null
+}

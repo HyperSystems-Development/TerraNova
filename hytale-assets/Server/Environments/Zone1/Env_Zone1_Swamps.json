@@ -1,0 +1,443 @@
+{
+  "WaterTint": "#66682b",
+  "SpawnDensity": 0.9,
+  "Tags": {
+    "Zone1": [
+      "Swamps"
+    ]
+  },
+  "WeatherForecasts": {
+    "0": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "1": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "2": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 20
+      }
+    ],
+    "3": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 80
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 5
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 15
+      }
+    ],
+    "4": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 80
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 5
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 15
+      }
+    ],
+    "5": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 80
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 5
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 15
+      }
+    ],
+    "6": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 20
+      }
+    ],
+    "7": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 10
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 30
+      }
+    ],
+    "8": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "9": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "10": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "11": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "12": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "13": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "14": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "15": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "16": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "17": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 60
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "18": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "19": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 30
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 30
+      }
+    ],
+    "20": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 50
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 15
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 15
+      }
+    ],
+    "21": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "22": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ],
+    "23": [
+      {
+        "WeatherId": "Zone1_Swamp_Foggy",
+        "Weight": 40
+      },
+      {
+        "WeatherId": "Zone1_Azurewood_Fireflies",
+        "Weight": 0
+      },
+      {
+        "WeatherId": "Zone1_Swamp",
+        "Weight": 20
+      },
+      {
+        "WeatherId": "Zone1_Swamp_Rain",
+        "Weight": 40
+      }
+    ]
+  }
+}

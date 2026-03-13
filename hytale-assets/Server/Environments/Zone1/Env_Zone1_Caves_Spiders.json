@@ -1,0 +1,9 @@
+{
+  "Parent": "Env_Zone1_Caves",
+  "Tags": {
+    "Zone1": [
+      "Caves",
+      "Spiders"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "Parent": "Env_Zone3",
+  "Tags": {
+    "Zone3": [
+      "Boreal"
+    ]
+  },
+  "WaterTint": "#4080c0"
+}

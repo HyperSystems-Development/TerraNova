@@ -1,0 +1,268 @@
+{
+  "Stars": "Sky/Stars.png",
+  "Moons": [
+    {
+      "Day": 0,
+      "Texture": "Sky/MoonCycle/Moon_Full.png"
+    },
+    {
+      "Day": 1,
+      "Texture": "Sky/MoonCycle/Moon_Gibbous.png"
+    },
+    {
+      "Day": 2,
+      "Texture": "Sky/MoonCycle/Moon_Half.png"
+    },
+    {
+      "Day": 3,
+      "Texture": "Sky/MoonCycle/Moon_Crescent.png"
+    },
+    {
+      "Day": 4,
+      "Texture": "Sky/MoonCycle/Moon_New.png"
+    }
+  ],
+  "SkyTopColors": [
+    {
+      "Hour": 10,
+      "Color": "#d4d13793"
+    }
+  ],
+  "SkyBottomColors": null,
+  "SkySunsetColors": [
+    {
+      "Hour": 10,
+      "Color": "#5b5a4700"
+    }
+  ],
+  "FogColors": [
+    {
+      "Hour": 10,
+      "Color": "#323422"
+    }
+  ],
+  "SunColors": null,
+  "MoonColors": null,
+  "MoonGlowColors": null,
+  "SunScales": [
+    {
+      "Hour": 0,
+      "Value": 0.7
+    },
+    {
+      "Hour": 1,
+      "Value": 0.7
+    },
+    {
+      "Hour": 2,
+      "Value": 0.7
+    },
+    {
+      "Hour": 3,
+      "Value": 0.7
+    },
+    {
+      "Hour": 4,
+      "Value": 0.7
+    },
+    {
+      "Hour": 5,
+      "Value": 0.7
+    },
+    {
+      "Hour": 6,
+      "Value": 0.7
+    },
+    {
+      "Hour": 7,
+      "Value": 0.7
+    },
+    {
+      "Hour": 8,
+      "Value": 0.7
+    },
+    {
+      "Hour": 9,
+      "Value": 0.7
+    },
+    {
+      "Hour": 10,
+      "Value": 0.7
+    },
+    {
+      "Hour": 11,
+      "Value": 0.7
+    },
+    {
+      "Hour": 12,
+      "Value": 0.7
+    },
+    {
+      "Hour": 13,
+      "Value": 0.7
+    },
+    {
+      "Hour": 14,
+      "Value": 0.7
+    },
+    {
+      "Hour": 15,
+      "Value": 0.7
+    },
+    {
+      "Hour": 16,
+      "Value": 0.7
+    },
+    {
+      "Hour": 17,
+      "Value": 0.7
+    },
+    {
+      "Hour": 18,
+      "Value": 0.7
+    },
+    {
+      "Hour": 19,
+      "Value": 0.7
+    },
+    {
+      "Hour": 20,
+      "Value": 0.7
+    },
+    {
+      "Hour": 21,
+      "Value": 0.7
+    },
+    {
+      "Hour": 22,
+      "Value": 0.7
+    },
+    {
+      "Hour": 23,
+      "Value": 0.7
+    }
+  ],
+  "MoonScales": [
+    {
+      "Hour": 0,
+      "Value": 1
+    },
+    {
+      "Hour": 1,
+      "Value": 1
+    },
+    {
+      "Hour": 2,
+      "Value": 1
+    },
+    {
+      "Hour": 3,
+      "Value": 1
+    },
+    {
+      "Hour": 4,
+      "Value": 1
+    },
+    {
+      "Hour": 5,
+      "Value": 1
+    },
+    {
+      "Hour": 6,
+      "Value": 1
+    },
+    {
+      "Hour": 7,
+      "Value": 1
+    },
+    {
+      "Hour": 8,
+      "Value": 1
+    },
+    {
+      "Hour": 9,
+      "Value": 1
+    },
+    {
+      "Hour": 10,
+      "Value": 1
+    },
+    {
+      "Hour": 11,
+      "Value": 1
+    },
+    {
+      "Hour": 12,
+      "Value": 1
+    },
+    {
+      "Hour": 13,
+      "Value": 1
+    },
+    {
+      "Hour": 14,
+      "Value": 1
+    },
+    {
+      "Hour": 15,
+      "Value": 1
+    },
+    {
+      "Hour": 16,
+      "Value": 1
+    },
+    {
+      "Hour": 17,
+      "Value": 1
+    },
+    {
+      "Hour": 18,
+      "Value": 1
+    },
+    {
+      "Hour": 19,
+      "Value": 1
+    },
+    {
+      "Hour": 20,
+      "Value": 1
+    },
+    {
+      "Hour": 21,
+      "Value": 1
+    },
+    {
+      "Hour": 22,
+      "Value": 1
+    },
+    {
+      "Hour": 23,
+      "Value": 1
+    }
+  ],
+  "SunGlowColors": null,
+  "FogDistance": [
+    -180.0,
+    140.0
+  ],
+  "Particle": {
+    "SystemId": "Dust_Cave_Flies"
+  },
+  "FogHeightFalloffs": null,
+  "FogDensities": null,
+  "WaterTints": [
+    {
+      "Hour": 10,
+      "Color": "#4e4933"
+    }
+  ],
+  "ColorFilters": null,
+  "SunlightColors": [
+    {
+      "Hour": 9,
+      "Color": "#baffb3"
+    }
+  ],
+  "SunlightDampingMultipliers": null,
+  "ScreenEffectColors": null
+}

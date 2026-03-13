@@ -25,6 +25,7 @@ pub fn run() {
             io_commands::copy_file,
             io_commands::create_directory,
             io_commands::list_directory,
+            io_commands::resolve_bundled_hytale_asset_path,
             io_commands::create_from_template,
             io_commands::list_template_biomes,
             io_commands::create_blank_project,
