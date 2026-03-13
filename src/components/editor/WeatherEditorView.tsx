@@ -1247,20 +1247,6 @@ export function WeatherEditorView() {
               </CollapsibleEditorSection>
 
               <CollapsibleEditorSection
-                title="Issue Log"
-                description="Validation warnings and info for the loaded weather file."
-                badge={weatherIssues.length > 0 ? `${weatherIssues.length}` : undefined}
-                open={showIssueLog}
-                onToggle={() => setShowIssueLog((v) => !v)}
-              >
-                <EditorCalloutSection
-                  title="Issues"
-                  items={weatherIssues}
-                  emptyState="No obvious weather file problems were detected."
-                />
-              </CollapsibleEditorSection>
-
-              <CollapsibleEditorSection
                 title="Quick Edit"
                 description="Fast color and fog edits at the selected preview hour."
                 badge={`${previewHour}:00`}
@@ -1367,6 +1353,20 @@ export function WeatherEditorView() {
                   </div>
                 </div>
               </div>
+              </CollapsibleEditorSection>
+
+              <CollapsibleEditorSection
+                title="Issue Log"
+                description="Validation warnings and info for the loaded weather file."
+                badge={weatherIssues.length > 0 ? `${weatherIssues.length}` : undefined}
+                open={showIssueLog}
+                onToggle={() => setShowIssueLog((v) => !v)}
+              >
+                <EditorCalloutSection
+                  title="Issues"
+                  items={weatherIssues}
+                  emptyState="No obvious weather file problems were detected."
+                />
               </CollapsibleEditorSection>
 
               <CollapsibleEditorSection

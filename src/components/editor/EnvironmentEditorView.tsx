@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { FolderOpen, FolderPlus, Save, WandSparkles } from "lucide-react";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
@@ -295,9 +296,9 @@ export function EnvironmentEditorView() {
     return !norm.startsWith(projNorm);
   }
 
-  // Notify when the file references weathers that only exist as Hytale assets.
+  // Weather IDs in the file that only resolve to Hytale asset paths (not in project).
   const hytaleOnlyIds = useMemo(() => {
-    if (lookupStatus !== "ready" || !rawJsonContent) return [];
+    if (!rawJsonContent || Object.keys(weatherPathIndex).length === 0) return [];
     const forecasts = (rawJsonContent as EnvironmentDoc).WeatherForecasts ?? {};
     const allIds = new Set<string>();
     for (const entries of Object.values(forecasts)) {
@@ -308,17 +309,69 @@ export function EnvironmentEditorView() {
       return p && isHytaleAssetPath(p);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lookupStatus, rawJsonContent, weatherPathIndex, projectPath]);
+  }, [rawJsonContent, weatherPathIndex, projectPath]);
 
+  // Weather IDs referenced but not found anywhere (not in project, not in Hytale assets).
+  const missingIds = useMemo(() => {
+    if (!rawJsonContent || lookupStatus === "loading") return [];
+    const forecasts = (rawJsonContent as EnvironmentDoc).WeatherForecasts ?? {};
+    const allIds = new Set<string>();
+    for (const entries of Object.values(forecasts)) {
+      for (const e of entries) if (e.WeatherId) allIds.add(e.WeatherId);
+    }
+    return [...allIds].filter((id) => !weatherPathIndex[id.toLowerCase()]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawJsonContent, weatherPathIndex, lookupStatus]);
+
+  // Auto-copy Hytale weather assets into the project's Server\Weathers folder on file open.
   useEffect(() => {
     if (hytaleOnlyIds.length === 0) return;
+    const serverRoot = inferServerRoot(currentFile, projectPath);
+    if (!serverRoot) {
+      addToast(
+        `${hytaleOnlyIds.length} weather(s) found in Hytale assets but Server root could not be inferred. Use the Import button to copy them manually.`,
+        "warning",
+      );
+      return;
+    }
+    const weathersDir = joinWindowsPath(serverRoot, "Weathers");
+    async function autoImport() {
+      let imported = 0;
+      let failed = 0;
+      await createDirectory(weathersDir).catch(() => {});
+      for (const id of hytaleOnlyIds) {
+        const srcPath = weatherPathIndex[id.toLowerCase()];
+        if (!srcPath) continue;
+        const fileName = srcPath.split(/[/\\]/).pop() ?? `${id}.json`;
+        const destPath = joinWindowsPath(weathersDir, fileName);
+        try {
+          await copyFile(srcPath, destPath);
+          imported += 1;
+        } catch {
+          failed += 1;
+        }
+      }
+      if (imported > 0) {
+        addToast(`Auto-imported ${imported} Hytale weather(s) into Server\\Weathers.`, "success");
+      }
+      if (failed > 0) {
+        addToast(`Failed to import ${failed} weather file(s). Use the Import button to retry.`, "warning");
+      }
+    }
+    void autoImport();
+  // Only fire when the set of IDs changes (file switch / lookup complete)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hytaleOnlyIds.join(",")]);
+
+  // Notify about weathers that couldn't be found anywhere, offer file picker.
+  useEffect(() => {
+    if (missingIds.length === 0) return;
     addToast(
-      `${hytaleOnlyIds.length} weather(s) reference Hytale assets not in your project: ${hytaleOnlyIds.slice(0, 3).join(", ")}${hytaleOnlyIds.length > 3 ? "…" : ""}. Use the Import button to copy them in.`,
+      `${missingIds.length} weather(s) not found: ${missingIds.slice(0, 3).join(", ")}${missingIds.length > 3 ? "…" : ""}. Use the Locate button in the forecast to find them.`,
       "warning",
     );
-  // Only fire when the set changes (file switch / lookup complete)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hytaleOnlyIds.join(","), addToast]);
+  }, [missingIds.join(","), addToast]);
 
   const doc = rawJsonContent ?? ({} as EnvironmentDoc);
 
