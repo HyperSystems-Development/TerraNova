@@ -373,8 +373,8 @@ async function convertFileForExport(sourcePath: string): Promise<Record<string, 
       result = { ...result };
       if (Array.isArray(result.ContentFields) && (!result.Framework || (Array.isArray(result.Framework) && result.Framework.length === 0) || (typeof result.Framework === "object" && Object.keys(result.Framework as object).length === 0))) {
         const entries = (result.ContentFields as Record<string, unknown>[]).map((cf) => ({
-          Name: cf.Name as string,
-          Value: cf.Y as number,
+          Name: (cf.Name ?? cf.name) as string,
+          Value: (cf.Y ?? cf.y ?? cf.Value ?? cf.value) as number,
         }));
         result.Framework = [{ Type: "DecimalConstants", Entries: entries }];
         delete result.ContentFields;

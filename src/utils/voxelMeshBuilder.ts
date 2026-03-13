@@ -269,9 +269,11 @@ export function buildVoxelMeshes(
   const n = resolution;
   const ys = ySlices;
 
-  // Build material grid: (x, y, z) → material ID (-1 for air)
-  const matGrid = new Int8Array(n * n * ys);
-  matGrid.fill(-1);
+  // Build material grid: (x, y, z) → material ID (255 for air)
+  // Must be Uint8Array — Int8Array wraps IDs >= 128 to negative, which the
+  // `matId === 255` air check below would then silently discard as empty.
+  const matGrid = new Uint8Array(n * n * ys);
+  matGrid.fill(255);
 
   for (let i = 0; i < voxelData.count; i++) {
     const bx = Math.round(voxelData.positions[i * 3]);
@@ -314,7 +316,7 @@ export function buildVoxelMeshes(
           // Check if this voxel has a surface voxel (is in matGrid)
           const gridIdx = by * n * n + bz * n + bx;
           const matId = matGrid[gridIdx];
-          if (matId < 0) continue; // not a surface voxel
+          if (matId === 255) continue; // not a surface voxel (air sentinel)
 
           // Check if face is exposed (neighbor in face direction is not solid)
           const [nx, ny, nz] = axisMap.neighborOffset(slice, u, v);
