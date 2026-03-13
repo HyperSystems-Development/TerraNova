@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect, type ReactNode } from "react";
 import { useEditorStore } from "@/stores/editorStore";
-import { useProjectStore } from "@/stores/projectStore";
+import { useProjectStore, type DirectoryEntry } from "@/stores/projectStore";
 import { useUIStore } from "@/stores/uiStore";
+import { useTauriIO } from "@/hooks/useTauriIO";
 import { useFieldChange } from "@/hooks/useFieldChange";
 import { SliderField } from "./SliderField";
 import { VectorField } from "./VectorField";
@@ -26,7 +27,9 @@ import { FIELD_CONSTRAINTS } from "@/schema/constraints";
 import { NODE_TIPS } from "@/schema/nodeTips";
 import { FIELD_DESCRIPTIONS, getShortDescription, getExtendedDescription } from "@/schema/fieldDescriptions";
 import { useLanguage } from "@/languages/useLanguage";
-import { showInFolder } from "@/utils/ipc";
+import { useToastStore } from "@/stores/toastStore";
+import { copyFile, createDirectory, exportAssetFile, listDirectory, resolveBundledHytaleAssetPath, showInFolder } from "@/utils/ipc";
+import mapDirEntry from "@/utils/mapDirEntry";
 import {
   type DelimiterValidationIssue,
   readDelimiterRangeMin,
@@ -146,6 +149,150 @@ function isAssetFileInFolder(path: string | null, folderName: string): boolean {
   return path.replace(/\\/g, "/").toLowerCase().includes(`/${folderName.toLowerCase()}/`);
 }
 
+interface AssetInspectorEntry {
+  key: string;
+  label: string;
+  detail: string;
+  status: "in-pack" | "built-in" | "missing";
+  projectPath: string | null;
+  bundledPath: string | null;
+  kind: "weather-texture" | "environment-weather";
+}
+
+function normalizeWindowsPath(path: string): string {
+  return path.replace(/\//g, "\\").replace(/\\+$/, "");
+}
+
+function joinWindowsPath(base: string, child: string): string {
+  return `${base.replace(/[\\/]+$/, "")}\\${child.replace(/^[\\/]+/, "").replace(/\//g, "\\")}`;
+}
+
+function getWindowsDirname(path: string): string {
+  const normalized = normalizeWindowsPath(path);
+  const lastSeparator = normalized.lastIndexOf("\\");
+  return lastSeparator >= 0 ? normalized.slice(0, lastSeparator) : normalized;
+}
+
+function toRelativeDisplayPath(root: string | null, path: string): string {
+  const normalizedPath = normalizeWindowsPath(path);
+  if (!root) return normalizedPath;
+  const normalizedRoot = normalizeWindowsPath(root);
+  const prefix = `${normalizedRoot}\\`.toLowerCase();
+  return normalizedPath.toLowerCase().startsWith(prefix)
+    ? normalizedPath.slice(normalizedRoot.length + 1)
+    : normalizedPath;
+}
+
+function collectDirectoryFilePaths(entries: DirectoryEntry[]): string[] {
+  const files: string[] = [];
+  const visit = (items: DirectoryEntry[]) => {
+    for (const entry of items) {
+      if (entry.isDir && Array.isArray(entry.children)) {
+        visit(entry.children);
+        continue;
+      }
+      if (!entry.isDir) {
+        files.push(entry.path);
+      }
+    }
+  };
+  visit(entries);
+  return files;
+}
+
+function getFileStem(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const fileName = normalized.slice(normalized.lastIndexOf("/") + 1);
+  return fileName.replace(/\.[^.]+$/i, "");
+}
+
+function referenceToBundledCommonPath(referencePath: string): string {
+  const normalized = referencePath.replace(/\//g, "\\").replace(/^\\+/, "");
+  return normalized.toLowerCase().startsWith("common\\") ? normalized : `Common\\${normalized}`;
+}
+
+function referenceToProjectCommonPath(projectRoot: string, referencePath: string): string {
+  const normalized = referencePath.replace(/\//g, "\\").replace(/^\\+/, "");
+  const relativePath = normalized.toLowerCase().startsWith("common\\") ? normalized : `Common\\${normalized}`;
+  return joinWindowsPath(projectRoot, relativePath);
+}
+
+function collectWeatherTextureReferences(doc: Record<string, unknown>): Array<{ label: string; referencePath: string }> {
+  const references: Array<{ label: string; referencePath: string }> = [];
+  const seen = new Set<string>();
+  const pushReference = (label: string, referencePath: unknown) => {
+    if (typeof referencePath !== "string" || !referencePath.trim()) return;
+    const normalized = referencePath.trim();
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    references.push({ label, referencePath: normalized });
+  };
+
+  pushReference("Stars", doc.Stars);
+
+  if (Array.isArray(doc.Moons)) {
+    for (const [index, moon] of doc.Moons.entries()) {
+      if (moon && typeof moon === "object") {
+        pushReference(`Moon ${index + 1}`, (moon as { Texture?: unknown }).Texture);
+      }
+    }
+  }
+
+  if (Array.isArray(doc.Clouds)) {
+    for (const [index, cloud] of doc.Clouds.entries()) {
+      if (cloud && typeof cloud === "object") {
+        pushReference(`Cloud ${index + 1}`, (cloud as { Texture?: unknown }).Texture);
+      }
+    }
+  }
+
+  return references;
+}
+
+function collectEnvironmentWeatherIds(doc: Record<string, unknown>): string[] {
+  const forecasts = doc.WeatherForecasts && typeof doc.WeatherForecasts === "object"
+    ? doc.WeatherForecasts as Record<string, unknown>
+    : {};
+  const ids = new Set<string>();
+  for (const entries of Object.values(forecasts)) {
+    if (!Array.isArray(entries)) continue;
+    for (const entry of entries) {
+      if (entry && typeof entry === "object" && typeof (entry as { WeatherId?: unknown }).WeatherId === "string") {
+        ids.add((entry as { WeatherId: string }).WeatherId);
+      }
+    }
+  }
+  return [...ids].sort((left, right) => left.localeCompare(right));
+}
+
+function buildDefaultWeatherDoc(weatherId: string) {
+  return {
+    $Comment: `Placeholder weather created by TerraNova for ${weatherId}`,
+    SkyTopColors: [{ Hour: 12, Color: "rgba(#5ba3e8, 1.0)" }],
+    SkyBottomColors: [{ Hour: 12, Color: "rgba(#3a7fc1, 1.0)" }],
+    FogColors: [{ Hour: 12, Color: "rgba(#a8cce0, 0.4)" }],
+    SunColors: [{ Hour: 12, Color: "rgba(#ffffff, 1.0)" }],
+    MoonColors: [{ Hour: 0, Color: "rgba(#cbd5f5, 1.0)" }],
+    SunlightColors: [{ Hour: 12, Color: "rgba(#ffffff, 1.0)" }],
+    SunScales: [{ Hour: 12, Value: 1.0 }],
+    MoonScales: [{ Hour: 0, Value: 1.0 }],
+    FogDensities: [{ Hour: 12, Value: 0.01 }],
+    FogDistance: [64, 512],
+  };
+}
+
+function statusClass(status: AssetInspectorEntry["status"]): string {
+  switch (status) {
+    case "in-pack":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+    case "built-in":
+      return "border-sky-500/30 bg-sky-500/10 text-sky-300";
+    default:
+      return "border-amber-500/30 bg-amber-500/10 text-amber-300";
+  }
+}
+
 export function PropertyPanel() {
   const nodes = useEditorStore((s) => s.nodes);
   const edges = useEditorStore((s) => s.edges);
@@ -156,11 +303,15 @@ export function PropertyPanel() {
   const switchBiomeSection = useEditorStore((s) => s.switchBiomeSection);
   const setEditingContext = useEditorStore((s) => s.setEditingContext);
   const biomeSections = useEditorStore((s) => s.biomeSections);
+  const directoryTree = useProjectStore((s) => s.directoryTree);
   const setDirty = useProjectStore((s) => s.setDirty);
+  const setDirectoryTree = useProjectStore((s) => s.setDirectoryTree);
   const currentFile = useProjectStore((s) => s.currentFile);
   const projectPath = useProjectStore((s) => s.projectPath);
   const rawJsonContent = useEditorStore((s) => s.rawJsonContent);
   const editingContext = useEditorStore((s) => s.editingContext);
+  const { openFile } = useTauriIO();
+  const addToast = useToastStore((s) => s.addToast);
   const { getTypeDisplayName, getFieldDisplayName, getFieldTransform } = useLanguage();
   const helpMode = useUIStore((s) => s.helpMode);
   const toggleHelpMode = useUIStore((s) => s.toggleHelpMode);
@@ -180,6 +331,10 @@ export function PropertyPanel() {
   const settingsConfig = useEditorStore((s) => s.settingsConfig);
   const setSettingsConfig = useEditorStore((s) => s.setSettingsConfig);
   const activeBiomeSection = useEditorStore((s) => s.activeBiomeSection);
+  const [assetInspectorEntries, setAssetInspectorEntries] = useState<AssetInspectorEntry[]>([]);
+  const [assetInspectorLoading, setAssetInspectorLoading] = useState(false);
+  const [assetInspectorActionKey, setAssetInspectorActionKey] = useState<string | null>(null);
+  const [assetInspectorRevision, setAssetInspectorRevision] = useState(0);
 
   const hasPendingSnapshotRef = useRef(false);
   const lastChangedFieldRef = useRef<{ field: string; nodeType: string }>({ field: "", nodeType: "" });
@@ -191,6 +346,14 @@ export function PropertyPanel() {
   const selectedNodeBiomeField = typeof selectedNodeData?._biomeField === "string"
     ? selectedNodeData._biomeField
     : "";
+  const assetInspectorMode =
+    !selectedNode && rawJsonContent
+      ? isAssetFileInFolder(currentFile, "Server/Weathers")
+        ? "weather"
+        : isAssetFileInFolder(currentFile, "Server/Environments")
+          ? "environment"
+          : null
+      : null;
   const shouldLoadEnvironmentNames =
     selectedNode?.type === "Environment:DensityDelimited"
     || (selectedNodeType === "DensityDelimited" && selectedNodeBiomeField === "EnvironmentProvider");
@@ -246,6 +409,207 @@ export function PropertyPanel() {
       cancelled = true;
     };
   }, [shouldLoadEnvironmentNames, currentFile, projectPath]);
+
+  const refreshAssetInspectorTree = useCallback(async () => {
+    if (projectPath) {
+      try {
+        const entries = await listDirectory(projectPath);
+        setDirectoryTree(entries.map(mapDirEntry));
+      } catch {
+        // Tree refresh failure is non-fatal for the inspector.
+      }
+    }
+    setAssetInspectorRevision((value) => value + 1);
+  }, [projectPath, setDirectoryTree]);
+
+  const importAssetInspectorEntries = useCallback(async (entries: AssetInspectorEntry[]) => {
+    const importableEntries = entries.filter((entry): entry is AssetInspectorEntry & { bundledPath: string; projectPath: string } => (
+      Boolean(entry.bundledPath && entry.projectPath)
+    ));
+    if (importableEntries.length === 0) return;
+
+    let imported = 0;
+    let failed = 0;
+
+    for (const entry of importableEntries) {
+      try {
+        await createDirectory(getWindowsDirname(entry.projectPath)).catch(() => {});
+        await copyFile(entry.bundledPath, entry.projectPath);
+        imported += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    await refreshAssetInspectorTree();
+
+    const noun = importableEntries[0]?.kind === "weather-texture"
+      ? "referenced sky asset"
+      : "referenced weather file";
+
+    if (imported > 0) {
+      addToast(`Added ${imported} ${noun}${imported === 1 ? "" : "s"} to this pack.`, "success");
+    }
+    if (failed > 0) {
+      addToast(`Failed to add ${failed} ${noun}${failed === 1 ? "" : "s"}.`, imported > 0 ? "warning" : "error");
+    }
+  }, [addToast, refreshAssetInspectorTree]);
+
+  const createAssetInspectorWeatherFiles = useCallback(async (entries: AssetInspectorEntry[]) => {
+    const creatableEntries = entries.filter((entry): entry is AssetInspectorEntry & { projectPath: string } => (
+      entry.kind === "environment-weather" && Boolean(entry.projectPath)
+    ));
+    if (creatableEntries.length === 0) return;
+
+    let created = 0;
+    let failed = 0;
+
+    for (const entry of creatableEntries) {
+      try {
+        await createDirectory(getWindowsDirname(entry.projectPath)).catch(() => {});
+        await exportAssetFile(entry.projectPath, buildDefaultWeatherDoc(entry.label));
+        created += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    await refreshAssetInspectorTree();
+
+    if (created > 0) {
+      addToast(`Created ${created} placeholder weather file${created === 1 ? "" : "s"} in Server\\Weathers.`, "success");
+    }
+    if (failed > 0) {
+      addToast(`Failed to create ${failed} placeholder weather file${failed === 1 ? "" : "s"}.`, created > 0 ? "warning" : "error");
+    }
+  }, [addToast, refreshAssetInspectorTree]);
+
+  const runAssetInspectorAction = useCallback(async (actionKey: string, action: () => Promise<void>) => {
+    if (assetInspectorActionKey) return;
+    setAssetInspectorActionKey(actionKey);
+    try {
+      await action();
+    } catch (error) {
+      addToast(String(error), "error");
+    } finally {
+      setAssetInspectorActionKey(null);
+    }
+  }, [assetInspectorActionKey, addToast]);
+
+  useEffect(() => {
+    if (!assetInspectorMode || !rawJsonContent || !projectPath) {
+      setAssetInspectorEntries([]);
+      setAssetInspectorLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadEntries = async () => {
+      setAssetInspectorLoading(true);
+
+      try {
+        const doc = rawJsonContent as Record<string, unknown>;
+        const projectFiles = collectDirectoryFilePaths(Array.isArray(directoryTree) ? directoryTree : []);
+        const projectFileIndex = new Set(projectFiles.map((path) => normalizeWindowsPath(path).toLowerCase()));
+
+        if (assetInspectorMode === "weather") {
+          const textureEntries = await Promise.all(
+            collectWeatherTextureReferences(doc).map(async ({ label, referencePath }) => {
+              const targetPath = referenceToProjectCommonPath(projectPath, referencePath);
+              const inPack = projectFileIndex.has(normalizeWindowsPath(targetPath).toLowerCase());
+              let bundledPath: string | null = null;
+
+              if (!inPack) {
+                try {
+                  bundledPath = await resolveBundledHytaleAssetPath(referenceToBundledCommonPath(referencePath));
+                } catch {
+                  bundledPath = null;
+                }
+              }
+
+              return {
+                key: `weather-texture:${referencePath}`.toLowerCase(),
+                label,
+                detail: referencePath.replace(/\//g, "\\"),
+                status: inPack ? "in-pack" : bundledPath ? "built-in" : "missing",
+                projectPath: targetPath,
+                bundledPath,
+                kind: "weather-texture",
+              } satisfies AssetInspectorEntry;
+            }),
+          );
+
+          if (!cancelled) {
+            setAssetInspectorEntries(textureEntries);
+          }
+          return;
+        }
+
+        const projectWeatherIndex = new Map<string, string>();
+        for (const filePath of projectFiles) {
+          const normalizedFilePath = normalizeWindowsPath(filePath);
+          if (!normalizedFilePath.toLowerCase().endsWith(".json")) continue;
+          if (!isAssetFileInFolder(normalizedFilePath, "Server/Weathers")) continue;
+          projectWeatherIndex.set(getFileStem(normalizedFilePath).toLowerCase(), normalizedFilePath);
+        }
+
+        const bundledWeatherIndex = new Map<string, string>();
+        try {
+          const bundledWeathersPath = await resolveBundledHytaleAssetPath("Server\\Weathers");
+          const bundledEntries = await listDirectory(bundledWeathersPath);
+          const bundledFiles = collectDirectoryFilePaths(bundledEntries.map(mapDirEntry));
+          for (const filePath of bundledFiles) {
+            const normalizedFilePath = normalizeWindowsPath(filePath);
+            if (!normalizedFilePath.toLowerCase().endsWith(".json")) continue;
+            bundledWeatherIndex.set(getFileStem(normalizedFilePath).toLowerCase(), normalizedFilePath);
+          }
+        } catch {
+          // Built-in weather lookup is optional.
+        }
+
+        const weatherEntries = collectEnvironmentWeatherIds(doc).map((weatherId) => {
+          const weatherKey = weatherId.toLowerCase();
+          const existingProjectPath = projectWeatherIndex.get(weatherKey) ?? null;
+          const bundledPath = existingProjectPath ? null : bundledWeatherIndex.get(weatherKey) ?? null;
+          const targetFileName = bundledPath
+            ? (normalizeWindowsPath(bundledPath).split("\\").pop() ?? `${weatherId}.json`)
+            : `${weatherId}.json`;
+          const targetPath = existingProjectPath ?? joinWindowsPath(projectPath, `Server\\Weathers\\${targetFileName}`);
+
+          return {
+            key: `environment-weather:${weatherKey}`,
+            label: weatherId,
+            detail: existingProjectPath
+              ? toRelativeDisplayPath(projectPath, existingProjectPath)
+              : `Server\\Weathers\\${targetFileName}`,
+            status: existingProjectPath ? "in-pack" : bundledPath ? "built-in" : "missing",
+            projectPath: targetPath,
+            bundledPath,
+            kind: "environment-weather",
+          } satisfies AssetInspectorEntry;
+        });
+
+        if (!cancelled) {
+          setAssetInspectorEntries(weatherEntries);
+        }
+      } catch {
+        if (!cancelled) {
+          setAssetInspectorEntries([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setAssetInspectorLoading(false);
+        }
+      }
+    };
+
+    void loadEntries();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [assetInspectorMode, rawJsonContent, projectPath, directoryTree, assetInspectorRevision]);
 
   const canOpenEnvironmentGraph = Boolean(
     biomeSections?.EnvironmentProvider,
@@ -474,10 +838,13 @@ export function PropertyPanel() {
       );
     }
 
-    if ((isAssetFileInFolder(currentFile, "Server/Weathers") || isAssetFileInFolder(currentFile, "Server/Environments")) && rawJsonContent) {
-      const isWeatherAsset = isAssetFileInFolder(currentFile, "Server/Weathers");
+    if (assetInspectorMode && rawJsonContent) {
+      const isWeatherAsset = assetInspectorMode === "weather";
       const assetLabel = isWeatherAsset ? "Weather Asset Inspector" : "Environment Asset Inspector";
       const doc = rawJsonContent as Record<string, unknown>;
+      const inPackEntries = assetInspectorEntries.filter((entry) => entry.status === "in-pack");
+      const builtInEntries = assetInspectorEntries.filter((entry) => entry.status === "built-in");
+      const missingEntries = assetInspectorEntries.filter((entry) => entry.status === "missing");
       const summaryRows = isWeatherAsset
         ? [
             {
@@ -565,6 +932,191 @@ export function PropertyPanel() {
                 <p className="mt-1 text-sm font-semibold text-tn-text">{item.value}</p>
               </div>
             ))}
+          </div>
+
+          <div className="rounded border border-tn-border/50 bg-tn-bg/50 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Asset Tools</p>
+                <p className="mt-1 text-xs text-tn-text-muted">
+                  {isWeatherAsset
+                    ? "Track missing sky textures and pull bundled Hytale assets into the pack's Common folder."
+                    : "Resolve referenced weather IDs without leaving the editor by opening, importing, or creating files."}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1 text-[10px]">
+                <span className={`rounded border px-2 py-1 ${statusClass("in-pack")}`}>{inPackEntries.length} in pack</span>
+                <span className={`rounded border px-2 py-1 ${statusClass("built-in")}`}>{builtInEntries.length} built-in</span>
+                <span className={`rounded border px-2 py-1 ${statusClass("missing")}`}>{missingEntries.length} missing</span>
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {builtInEntries.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void runAssetInspectorAction(
+                      isWeatherAsset ? "batch-add-built-in-textures" : "batch-import-built-in-weathers",
+                      async () => {
+                        await importAssetInspectorEntries(builtInEntries);
+                      },
+                    );
+                  }}
+                  disabled={assetInspectorActionKey !== null}
+                  className="rounded border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isWeatherAsset ? "Add Built-ins" : "Import Built-ins"}
+                </button>
+              )}
+              {!isWeatherAsset && missingEntries.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void runAssetInspectorAction("batch-create-missing-weathers", async () => {
+                      await createAssetInspectorWeatherFiles(missingEntries);
+                    });
+                  }}
+                  disabled={assetInspectorActionKey !== null}
+                  className="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Create Missing Files
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  void runAssetInspectorAction("refresh-asset-inspector", refreshAssetInspectorTree);
+                }}
+                disabled={assetInspectorActionKey !== null}
+                className="rounded border border-tn-border px-3 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Refresh
+              </button>
+            </div>
+
+            {!projectPath && (
+              <div className="mt-3 rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                Open the file from a pack root to enable import and create actions.
+              </div>
+            )}
+
+            <div className="mt-3 flex max-h-[26rem] flex-col gap-2 overflow-y-auto pr-1">
+              {assetInspectorLoading ? (
+                <div className="rounded border border-dashed border-tn-border/60 px-3 py-4 text-xs text-tn-text-muted">
+                  Scanning referenced assets...
+                </div>
+              ) : assetInspectorEntries.length === 0 ? (
+                <div className="rounded border border-dashed border-tn-border/60 px-3 py-4 text-xs text-tn-text-muted">
+                  {isWeatherAsset
+                    ? "No referenced sky textures were found on this weather file yet."
+                    : "No referenced weather IDs were found on this environment file yet."}
+                </div>
+              ) : (
+                assetInspectorEntries.map((entry) => {
+                  const isRunning = assetInspectorActionKey === `entry:${entry.key}`;
+                  const projectRelativePath = entry.projectPath ? toRelativeDisplayPath(projectPath, entry.projectPath) : null;
+
+                  return (
+                    <div key={entry.key} className="rounded border border-tn-border/60 bg-tn-bg/60 p-3">
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-1 h-2.5 w-2.5 rounded-full ${
+                          entry.status === "in-pack"
+                            ? "bg-emerald-400"
+                            : entry.status === "built-in"
+                              ? "bg-sky-400"
+                              : "bg-amber-400"
+                        }`} />
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-sm font-medium text-tn-text">{entry.label}</p>
+                            <span className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${statusClass(entry.status)}`}>
+                              {entry.status === "in-pack" ? "In Pack" : entry.status === "built-in" ? "Built-In" : "Missing"}
+                            </span>
+                          </div>
+                          <p className="mt-1 break-all text-[11px] text-tn-text-muted">{entry.detail}</p>
+                          {isWeatherAsset && projectRelativePath && (
+                            <p className="mt-1 text-[11px] text-tn-text-muted/80">Pack path: {projectRelativePath}</p>
+                          )}
+                        </div>
+
+                        {entry.kind === "weather-texture" && entry.status === "in-pack" && entry.projectPath && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void showInFolder(entry.projectPath!);
+                            }}
+                            disabled={assetInspectorActionKey !== null}
+                            className="rounded border border-tn-border px-2.5 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            Reveal
+                          </button>
+                        )}
+
+                        {entry.kind === "weather-texture" && entry.status === "built-in" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void runAssetInspectorAction(`entry:${entry.key}`, async () => {
+                                await importAssetInspectorEntries([entry]);
+                              });
+                            }}
+                            disabled={assetInspectorActionKey !== null}
+                            className="rounded border border-sky-500/40 bg-sky-500/10 px-2.5 py-1.5 text-xs text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isRunning ? "Adding..." : "Add"}
+                          </button>
+                        )}
+
+                        {entry.kind === "environment-weather" && entry.status === "in-pack" && entry.projectPath && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void openFile(entry.projectPath!);
+                            }}
+                            disabled={assetInspectorActionKey !== null}
+                            className="rounded border border-tn-border px-2.5 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            Open
+                          </button>
+                        )}
+
+                        {entry.kind === "environment-weather" && entry.status === "built-in" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void runAssetInspectorAction(`entry:${entry.key}`, async () => {
+                                await importAssetInspectorEntries([entry]);
+                              });
+                            }}
+                            disabled={assetInspectorActionKey !== null}
+                            className="rounded border border-sky-500/40 bg-sky-500/10 px-2.5 py-1.5 text-xs text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isRunning ? "Importing..." : "Import"}
+                          </button>
+                        )}
+
+                        {entry.kind === "environment-weather" && entry.status === "missing" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void runAssetInspectorAction(`entry:${entry.key}`, async () => {
+                                await createAssetInspectorWeatherFiles([entry]);
+                              });
+                            }}
+                            disabled={assetInspectorActionKey !== null}
+                            className="rounded border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isRunning ? "Creating..." : "Create"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
 
           <div className="rounded border border-tn-border/50 bg-tn-bg/50 p-3">

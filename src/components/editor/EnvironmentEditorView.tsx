@@ -426,20 +426,14 @@ export function EnvironmentEditorView() {
   }, [rawJsonContent, weatherPathIndex, lookupStatus]);
 
   // Auto-copy Hytale weather assets into the project's Server\Weathers folder on file open.
+  // Any unresolved state is surfaced in the Issue Log instead of a toast.
   useEffect(() => {
     if (hytaleOnlyIds.length === 0) return;
     const serverRoot = inferServerRoot(currentFile, projectPath);
-    if (!serverRoot) {
-      addToast(
-        `${hytaleOnlyIds.length} weather(s) found in Hytale assets but Server root could not be inferred. Use the Import button to copy them manually.`,
-        "warning",
-      );
-      return;
-    }
+    if (!serverRoot) return;
     const weathersDir = joinWindowsPath(serverRoot, "Weathers");
     async function autoImport() {
       let imported = 0;
-      let failed = 0;
       await createDirectory(weathersDir).catch(() => {});
       for (const id of hytaleOnlyIds) {
         const srcPath = weatherPathIndex[id.toLowerCase()];
@@ -450,31 +444,17 @@ export function EnvironmentEditorView() {
           await copyFile(srcPath, destPath);
           imported += 1;
         } catch {
-          failed += 1;
+          // Failed imports remain visible in the Issue Log.
         }
       }
       if (imported > 0) {
-        addToast(`Auto-imported ${imported} Hytale weather(s) into Server\\Weathers.`, "success");
         await refreshProjectTreeAndLookup();
-      }
-      if (failed > 0) {
-        addToast(`Failed to import ${failed} weather file(s). Use the Import button to retry.`, "warning");
       }
     }
     void autoImport();
   // Only fire when the set of IDs changes (file switch / lookup complete)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFile, hytaleOnlyIds.join(","), projectPath]);
-
-  // Notify about weathers that couldn't be found anywhere, offer file picker.
-  useEffect(() => {
-    if (missingIds.length === 0) return;
-    addToast(
-      `${missingIds.length} weather(s) not found: ${missingIds.slice(0, 3).join(", ")}${missingIds.length > 3 ? "…" : ""}. Use the Locate button in the forecast to find them.`,
-      "warning",
-    );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [missingIds.join(","), addToast]);
 
   const doc = rawJsonContent ?? ({} as EnvironmentDoc);
 
