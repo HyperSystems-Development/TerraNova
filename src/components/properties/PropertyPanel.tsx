@@ -1023,13 +1023,15 @@ export function PropertyPanel() {
                     : "Context summary and file actions for the asset open in the center editor."}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={toggleAssetInspectorCompact}
-                className="shrink-0 rounded border border-tn-border px-2.5 py-1 text-[10px] uppercase tracking-wider text-tn-text-muted transition-colors hover:bg-tn-surface hover:text-tn-text"
-              >
-                {compactAssetInspector ? "Expand" : "Compact"}
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleAssetInspectorCompact}
+                  className="rounded border border-tn-border px-2.5 py-1 text-[10px] uppercase tracking-wider text-tn-text-muted transition-colors hover:bg-tn-surface hover:text-tn-text"
+                >
+                  {compactAssetInspector ? "Expand" : "Compact"}
+                </button>
+              </div>
             </div>
           </div>
 

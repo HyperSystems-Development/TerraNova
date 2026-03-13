@@ -296,6 +296,183 @@ function EnvironmentMetricCard({ label, value, detail }: { label: string; value:
   );
 }
 
+function isPathInProject(path: string | undefined, projectPath: string | null): boolean {
+  if (!path || !projectPath) return false;
+  const normalizedPath = path.replace(/\//g, "\\").toLowerCase();
+  const normalizedProject = projectPath.replace(/\//g, "\\").replace(/[\\]+$/, "").toLowerCase();
+  return normalizedPath === normalizedProject || normalizedPath.startsWith(`${normalizedProject}\\`);
+}
+
+function getForecastResolution(
+  weatherId: string,
+  weatherPath: string | undefined,
+  projectPath: string | null,
+): {
+  status: "in-pack" | "built-in" | "missing";
+  label: string;
+  detail: string;
+} {
+  if (!weatherPath) {
+    return {
+      status: "missing",
+      label: "Missing",
+      detail: weatherId
+        ? "No matching weather file is resolved yet. Locate an existing file or create a placeholder."
+        : "Enter a weather ID, then locate or create the file.",
+    };
+  }
+
+  const fileName = weatherPath.split(/[/\\]/).pop() ?? weatherId;
+  if (isPathInProject(weatherPath, projectPath)) {
+    return {
+      status: "in-pack",
+      label: "In Pack",
+      detail: `Resolved to ${fileName} in this pack.`,
+    };
+  }
+
+  return {
+    status: "built-in",
+    label: "Built-In",
+    detail: `Resolved to bundled Hytale asset ${fileName}. Import it into Server\\Weathers to include it in the pack.`,
+  };
+}
+
+function forecastResolutionBadgeClass(status: "in-pack" | "built-in" | "missing"): string {
+  switch (status) {
+    case "in-pack":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+    case "built-in":
+      return "border-sky-500/30 bg-sky-500/10 text-sky-300";
+    default:
+      return "border-amber-500/30 bg-amber-500/10 text-amber-300";
+  }
+}
+
+interface ForecastEntryEditorCardProps {
+  entry: WeatherForecastEntry;
+  index: number;
+  hour: number;
+  projectPath: string | null;
+  weatherPath: string | undefined;
+  onWeatherIdChange: (weatherId: string) => void;
+  onWeightChange: (weight: number) => void;
+  onOpen: () => void;
+  onImport?: () => void;
+  onLocate?: () => void;
+  onRemove?: () => void;
+}
+
+function ForecastEntryEditorCard({
+  entry,
+  index,
+  hour,
+  projectPath,
+  weatherPath,
+  onWeatherIdChange,
+  onWeightChange,
+  onOpen,
+  onImport,
+  onLocate,
+  onRemove,
+}: ForecastEntryEditorCardProps) {
+  const resolution = getForecastResolution(entry.WeatherId, weatherPath, projectPath);
+
+  return (
+    <div className="rounded border border-tn-border/40 bg-tn-surface/70 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: hashColor(entry.WeatherId || `hour-${hour}-${index}`) }}
+          />
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">
+            Entry {index + 1}
+          </p>
+          <span className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${forecastResolutionBadgeClass(resolution.status)}`}>
+            {resolution.label}
+          </span>
+        </div>
+        {onRemove && (
+          <button
+            type="button"
+            title="Remove this forecast entry"
+            onClick={onRemove}
+            className="shrink-0 rounded border border-tn-border/40 px-2 py-1 text-[10px] text-tn-text-muted/60 transition-colors hover:border-red-500/50 hover:text-red-400"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+
+      <div className="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_110px]">
+        <label className="flex min-w-0 flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">
+          Weather ID
+          <input
+            type="text"
+            list="environment-weather-options"
+            value={entry.WeatherId}
+            onChange={(event) => onWeatherIdChange(event.target.value)}
+            className="min-w-0 rounded border border-tn-border/60 bg-tn-bg px-2 py-1.5 text-[11px] normal-case tracking-normal text-tn-text"
+            placeholder="Zone1_Sunny"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">
+          Weight
+          <input
+            type="number"
+            step={1}
+            min={0}
+            value={entry.Weight}
+            onChange={(event) => {
+              const weight = Number.parseFloat(event.target.value);
+              if (!Number.isFinite(weight)) return;
+              onWeightChange(weight);
+            }}
+            className="rounded border border-tn-border/60 bg-tn-bg px-2 py-1.5 text-[11px] font-mono text-right text-tn-text"
+          />
+        </label>
+      </div>
+
+      <p className="mt-2 break-all text-[10px] text-tn-text-muted">{resolution.detail}</p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onOpen}
+          disabled={!weatherPath}
+          title={weatherPath ? `Open ${entry.WeatherId}` : "File not found"}
+          className={`rounded border px-2.5 py-1 text-[10px] font-medium transition-colors ${
+            weatherPath
+              ? "border-tn-border/60 text-tn-text-muted hover:border-tn-accent hover:text-tn-accent"
+              : "cursor-not-allowed border-tn-border/30 text-tn-text-muted/40"
+          }`}
+        >
+          Open
+        </button>
+        {onImport && (
+          <button
+            type="button"
+            onClick={onImport}
+            className="rounded border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-[10px] font-medium text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/20"
+          >
+            Import
+          </button>
+        )}
+        {onLocate && (
+          <button
+            type="button"
+            onClick={onLocate}
+            className="rounded border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-amber-300 transition-colors hover:border-amber-400/60 hover:bg-amber-500/20"
+          >
+            Locate...
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function EnvironmentEditorView() {
   const rawJsonContent = useEditorStore((state) => state.rawJsonContent) as EnvironmentDoc | null;
   const setRawJsonContent = useEditorStore((state) => state.setRawJsonContent);
@@ -639,6 +816,87 @@ export function EnvironmentEditorView() {
       addToast("Weathers folder not found. Creating it now with a default weather file...", "info");
       await handleCreateDefaultWeather();
       try { await showInFolder(weathersDirPath); } catch { /* ignore */ }
+    }
+  };
+
+  const setForecastEntries = (hour: number, entries: WeatherForecastEntry[]) => {
+    updateDoc((previous) => ({
+      ...previous,
+      WeatherForecasts: {
+        ...(previous.WeatherForecasts ?? {}),
+        [String(hour)]: entries,
+      },
+    }));
+  };
+
+  const updateForecastEntry = (
+    hour: number,
+    index: number,
+    updater: (entry: WeatherForecastEntry) => WeatherForecastEntry,
+  ) => {
+    setForecastEntries(
+      hour,
+      readForecastHour(doc, hour).map((entry, entryIndex) => (
+        entryIndex === index ? updater(entry) : entry
+      )),
+    );
+  };
+
+  const addForecastEntry = (hour: number) => {
+    setForecastEntries(hour, [
+      ...readForecastHour(doc, hour),
+      {
+        WeatherId: weatherOptions[0]?.id ?? "",
+        Weight: 100,
+      },
+    ]);
+  };
+
+  const removeForecastEntry = (hour: number, index: number) => {
+    setForecastEntries(
+      hour,
+      readForecastHour(doc, hour).filter((_, entryIndex) => entryIndex !== index),
+    );
+  };
+
+  const clearForecastHour = (hour: number) => {
+    setForecastEntries(hour, []);
+  };
+
+  const handleImportForecastWeather = async (weatherId: string, sourcePath: string) => {
+    if (!weathersDirPath) {
+      addToast("Cannot resolve Server\\Weathers path", "error");
+      return;
+    }
+    try {
+      await createDirectory(weathersDirPath);
+      const fileName = sourcePath.split(/[/\\]/).pop() ?? `${weatherId}.json`;
+      await copyFile(sourcePath, joinWindowsPath(weathersDirPath, fileName));
+      await refreshProjectTreeAndLookup();
+      addToast(`Imported ${weatherId}`, "success");
+    } catch (error) {
+      addToast(`Import failed: ${error}`, "error");
+    }
+  };
+
+  const handleLocateForecastWeather = async (weatherId: string) => {
+    const selected = await openFileDialog({
+      title: `Locate weather file for "${weatherId}"`,
+      filters: [{ name: "JSON", extensions: ["json"] }],
+    });
+    if (!selected || typeof selected !== "string") return;
+    if (!weathersDirPath) {
+      addToast("Cannot resolve Server\\Weathers path", "error");
+      return;
+    }
+    try {
+      await createDirectory(weathersDirPath);
+      const fileName = selected.split(/[/\\]/).pop() ?? `${weatherId}.json`;
+      await copyFile(selected, joinWindowsPath(weathersDirPath, fileName));
+      await refreshProjectTreeAndLookup();
+      addToast(`Copied ${fileName} into Server\\Weathers`, "success");
+    } catch (error) {
+      addToast(`Failed to copy file: ${error}`, "error");
     }
   };
 
@@ -1004,24 +1262,72 @@ export function EnvironmentEditorView() {
               </div>
 
               <div className="mt-3 rounded border border-tn-border/50 bg-tn-bg/70 p-3">
-                <div className="mb-2 flex items-center justify-between">
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Active Forecasts</p>
                     <p className="mt-1 text-[11px] text-tn-text-muted">
-                      Weighted weather entries for {previewHour}:00.
+                      Full forecast editor for the currently selected preview hour.
                     </p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-[10px]">
+                      <span className="rounded border border-tn-border/40 bg-tn-bg/60 px-2 py-1 text-tn-text-muted">
+                        Hour {previewHour}:00
+                      </span>
+                      <span className="rounded border border-tn-border/40 bg-tn-bg/60 px-2 py-1 text-tn-text-muted">
+                        {activeForecasts.length} entries
+                      </span>
+                      <span className="rounded border border-tn-border/40 bg-tn-bg/60 px-2 py-1 text-tn-text-muted">
+                        Total weight {activeForecasts.reduce((sum, entry) => sum + entry.Weight, 0)}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-tn-text-muted">{activeForecasts.length} entries</p>
+                  <div className="flex flex-wrap gap-2">
+                    {activeForecasts.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => clearForecastHour(previewHour)}
+                        className="rounded border border-tn-border/40 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-tn-text-muted transition-colors hover:border-red-500/50 hover:text-red-400"
+                      >
+                        Clear Hour
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => addForecastEntry(previewHour)}
+                      className="rounded border border-tn-accent/40 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-tn-accent transition-colors hover:bg-tn-accent/10"
+                    >
+                      Add Weather
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   {activeForecasts.length === 0 && (
-                    <p className="text-[11px] text-tn-text-muted">
+                    <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/30 px-3 py-4 text-[11px] text-tn-text-muted">
                       {doc.Parent?.trim()
                         ? `No local weather forecasts configured for this hour. This file may inherit forecasts from ${doc.Parent}.`
                         : "No weather forecasts configured for this hour."}
-                    </p>
+                    </div>
                   )}
-                  {activeForecasts.map((entry) => {
+                  {activeForecasts.map((entry, index) => {
+                    const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];
+                    const isHytale = weatherPath ? isHytaleAssetPath(weatherPath) : false;
+                    return (
+                      <ForecastEntryEditorCard
+                        key={`active-forecast-card-${previewHour}-${index}-${entry.WeatherId}`}
+                        entry={entry}
+                        index={index}
+                        hour={previewHour}
+                        projectPath={projectPath}
+                        weatherPath={weatherPath}
+                        onWeatherIdChange={(weatherId) => updateForecastEntry(previewHour, index, (current) => ({ ...current, WeatherId: weatherId }))}
+                        onWeightChange={(weight) => updateForecastEntry(previewHour, index, (current) => ({ ...current, Weight: weight }))}
+                        onOpen={() => { if (weatherPath) void openFile(weatherPath); }}
+                        onImport={isHytale && weatherPath ? () => { void handleImportForecastWeather(entry.WeatherId, weatherPath); } : undefined}
+                        onLocate={!weatherPath ? () => { void handleLocateForecastWeather(entry.WeatherId); } : undefined}
+                        onRemove={() => removeForecastEntry(previewHour, index)}
+                      />
+                    );
+                  })}
+                  {false && activeForecasts.map((entry) => {
                     const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];
                     const maxWeight = activeForecasts[0]?.Weight ?? 1;
                     const isHytale = weatherPath ? isHytaleAssetPath(weatherPath) : false;
@@ -1341,12 +1647,10 @@ export function EnvironmentEditorView() {
             open={showForecastSection}
             onToggle={() => setShowForecastSection((value) => !value)}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <p className="mt-1 text-[11px] text-tn-text-muted">
-                  Each hour card is an editable forecast node: weather ID, weight, and quick-open into the matching weather file.
-                </p>
-              </div>
+            <div className="mb-3 rounded border border-tn-border/40 bg-tn-bg/40 px-3 py-3">
+              <p className="text-[11px] text-tn-text-muted">
+                Each hour card shows the full local forecast setup for that hour: weather ID, weight, file resolution state, and related file actions.
+              </p>
             </div>
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="environment-forecast-scope">
@@ -1366,10 +1670,11 @@ export function EnvironmentEditorView() {
                 <span className="text-[10px] text-amber-300">Select a daypart card to narrow this view.</span>
               )}
             </div>
-            <div className="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
+            <div className={forecastScope === "current" ? "mx-auto grid w-full max-w-3xl gap-3" : "grid gap-3 xl:grid-cols-2 2xl:grid-cols-3"}>
               {displayedForecastHours.map((hour) => {
                 const entries = readForecastHour(doc, hour);
                 const totalWeight = entries.reduce((sum, entry) => sum + entry.Weight, 0);
+                const hourDaypart = DAYPARTS.find((daypart) => hour >= daypart.start && hour <= daypart.end) ?? null;
                 return (
                   <div
                     key={`forecast-${hour}`}
@@ -1379,38 +1684,85 @@ export function EnvironmentEditorView() {
                         : "border-tn-border/40 bg-tn-bg"
                     }`}
                   >
-                    <div className="mb-2 flex items-center justify-between">
+                    <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-[11px] font-medium text-tn-text">{hour}:00</p>
-                        <p className="text-[10px] text-tn-text-muted">Total weight: {totalWeight}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-[13px] font-semibold text-tn-text">{hour}:00</p>
+                          {hourDaypart && (
+                            <span
+                              className="rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider"
+                              style={{
+                                borderColor: `${hourDaypart.accent}66`,
+                                backgroundColor: `${hourDaypart.accent}1a`,
+                                color: hourDaypart.accent,
+                              }}
+                            >
+                              {hourDaypart.label}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[10px]">
+                          <span className="rounded border border-tn-border/40 bg-tn-surface/60 px-2 py-1 text-tn-text-muted">
+                            {entries.length} entries
+                          </span>
+                          <span className="rounded border border-tn-border/40 bg-tn-surface/60 px-2 py-1 text-tn-text-muted">
+                            Total weight {totalWeight}
+                          </span>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => updateDoc((previous) => ({
-                          ...previous,
-                          WeatherForecasts: {
-                            ...(previous.WeatherForecasts ?? {}),
-                            [String(hour)]: [
-                              ...readForecastHour(previous, hour),
-                              {
-                                WeatherId: weatherOptions[0]?.id ?? "",
-                                Weight: 100,
-                              },
-                            ],
-                          },
-                        }))}
-                        className="rounded border border-tn-accent/40 px-2 py-1 text-[10px] text-tn-accent transition-colors hover:bg-tn-accent/10"
-                      >
-                        Add Weather
-                      </button>
+                      <div className="flex flex-wrap gap-2">
+                        {entries.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => clearForecastHour(hour)}
+                            className="rounded border border-tn-border/40 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-tn-text-muted transition-colors hover:border-red-500/50 hover:text-red-400"
+                          >
+                            Clear Hour
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => addForecastEntry(hour)}
+                          className="rounded border border-tn-accent/40 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-tn-accent transition-colors hover:bg-tn-accent/10"
+                        >
+                          Add Weather
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
                       {entries.length === 0 && (
-                        <p className="text-[11px] text-tn-text-muted">No forecasts configured for this hour.</p>
+                        <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/30 px-3 py-4 text-[11px] text-tn-text-muted">
+                          No local forecasts configured for this hour.
+                        </div>
                       )}
 
                       {entries.map((entry, index) => {
+                        const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];
+                        const isHytale = weatherPath ? isHytaleAssetPath(weatherPath) : false;
+                        return (
+                          <ForecastEntryEditorCard
+                            key={`forecast-card-${hour}-${index}-${entry.WeatherId}`}
+                            entry={entry}
+                            index={index}
+                            hour={hour}
+                            projectPath={projectPath}
+                            weatherPath={weatherPath}
+                            onWeatherIdChange={(weatherId) => updateForecastEntry(hour, index, (current) => ({ ...current, WeatherId: weatherId }))}
+                            onWeightChange={(weight) => updateForecastEntry(hour, index, (current) => ({ ...current, Weight: weight }))}
+                            onOpen={() => { if (weatherPath) void openFile(weatherPath); }}
+                            onImport={isHytale && weatherPath ? () => { void handleImportForecastWeather(entry.WeatherId, weatherPath); } : undefined}
+                            onLocate={!weatherPath ? () => { void handleLocateForecastWeather(entry.WeatherId); } : undefined}
+                            onRemove={() => removeForecastEntry(hour, index)}
+                          />
+                        );
+                      })}
+
+                      {false && entries.length === 0 && (
+                        <p className="text-[11px] text-tn-text-muted">No forecasts configured for this hour.</p>
+                      )}
+
+                      {false && entries.map((entry, index) => {
                         const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];
                         const isHytale = weatherPath ? isHytaleAssetPath(weatherPath) : false;
                         const serverRoot = inferServerRoot(currentFile, projectPath);

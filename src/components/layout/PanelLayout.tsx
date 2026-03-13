@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AssetTree } from "@/components/sidebar/AssetTree";
 import { FileActions } from "@/components/sidebar/FileActions";
 import { NodePalette } from "@/components/editor/NodePalette";
@@ -274,6 +275,7 @@ export function PanelLayout() {
 
   const leftPanelVisible = useUIStore((s) => s.leftPanelVisible);
   const rightPanelVisible = useUIStore((s) => s.rightPanelVisible);
+  const setRightPanelVisible = useUIStore((s) => s.setRightPanelVisible);
   const useAccordion = useUIStore((s) => s.useAccordionSidebar);
   const compactAssetInspector = useUIStore((s) => s.compactAssetInspector);
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
@@ -347,6 +349,17 @@ export function PanelLayout() {
         <CenterPanel />
       </div>
 
+      {!rightPanelVisible && (
+        <button
+          type="button"
+          onClick={() => setRightPanelVisible(true)}
+          title="Show Right Panel"
+          className="flex w-7 shrink-0 items-center justify-center border-l border-tn-border bg-tn-surface/90 text-tn-text-muted transition-colors hover:bg-tn-surface hover:text-tn-text"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      )}
+
       {/* Right panel */}
       {rightPanelVisible && (
         <>
@@ -355,6 +368,15 @@ export function PanelLayout() {
             className="w-1 cursor-col-resize hover:bg-tn-accent/30 active:bg-tn-accent/50 shrink-0"
             onMouseDown={handleDrag("right")}
           />
+
+          <button
+            type="button"
+            onClick={() => setRightPanelVisible(false)}
+            title="Hide Right Panel"
+            className="flex w-7 shrink-0 items-center justify-center border-l border-tn-border bg-tn-surface/90 text-tn-text-muted transition-colors hover:bg-tn-surface hover:text-tn-text"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
 
           {/* Right panel: properties */}
           <div
