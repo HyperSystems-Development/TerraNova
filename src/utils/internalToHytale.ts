@@ -554,17 +554,34 @@ function flattenBlendCurve(curve: Record<string, unknown>): Record<string, unkno
     return { Type: "Manual", Points: [[0, 0], [1, 1]] };
   }
 
-  const pointsA = (inputA.Points as number[][]) ?? [];
-  const pointsB = (inputB.Points as number[][]) ?? [];
+  // Normalize points to [x, y] arrays — handles both [x,y] tuples and {x,y}/{In,Out} objects
+  function normalizePoints(raw: unknown): number[][] {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((pt: unknown) => {
+        if (Array.isArray(pt) && pt.length === 2) return pt as number[];
+        if (pt && typeof pt === "object") {
+          const o = pt as Record<string, unknown>;
+          const x = (o.x ?? o.In) as number | undefined;
+          const y = (o.y ?? o.Out) as number | undefined;
+          if (x != null && y != null) return [x, y];
+        }
+        return null;
+      })
+      .filter((pt): pt is number[] => pt !== null);
+  }
+
+  const pointsA = normalizePoints(inputA.Points);
+  const pointsB = normalizePoints(inputB.Points);
 
   // Build lookup maps: x → y for each curve
   const mapA = new Map<number, number>();
   for (const pt of pointsA) {
-    if (Array.isArray(pt) && pt.length === 2) mapA.set(pt[0], pt[1]);
+    mapA.set(pt[0], pt[1]);
   }
   const mapB = new Map<number, number>();
   for (const pt of pointsB) {
-    if (Array.isArray(pt) && pt.length === 2) mapB.set(pt[0], pt[1]);
+    mapB.set(pt[0], pt[1]);
   }
 
   // Collect all unique X values, sorted
