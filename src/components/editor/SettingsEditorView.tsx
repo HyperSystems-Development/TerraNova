@@ -115,7 +115,7 @@ export function SettingsEditorView() {
 
         {/* Info text */}
         <p className="text-[10px] text-tn-text-muted text-center leading-relaxed">
-          Edit values in the right panel. Changes are saved to Settings.json on Ctrl+S.
+          Edit values in the right panel (toggle with Ctrl+]). Changes are saved to Settings.json on Ctrl+S.
         </p>
       </div>
     </div>

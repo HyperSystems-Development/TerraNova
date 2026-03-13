@@ -134,7 +134,7 @@ async function extractBiomeSections(
 
       const positions = prop.Positions;
       if (positions && typeof positions === "object" && "Type" in (positions as Record<string, unknown>)) {
-        const { nodes, edges } = jsonToGraph(positions as Record<string, unknown>, 0, 0, `pos_${i}`);
+        const { nodes, edges } = jsonToGraph(positions as Record<string, unknown>, 0, 0, `pos_${i}`, "Positions");
         // Tag root node for reassembly
         if (nodes.length > 0) {
           // const root = nodes.find((n) => !edges.some((e) => e.target !== n.id || edges.some((e2) => e2.source === n.id && !edges.some((e3) => e3.target === n.id))));
@@ -149,7 +149,7 @@ async function extractBiomeSections(
 
       const assignments = prop.Assignments;
       if (assignments && typeof assignments === "object" && "Type" in (assignments as Record<string, unknown>)) {
-        const { nodes, edges } = jsonToGraph(assignments as Record<string, unknown>, 0, 400, `asgn_${i}`);
+        const { nodes, edges } = jsonToGraph(assignments as Record<string, unknown>, 0, 400, `asgn_${i}`, "Assignments");
         // Tag root node for reassembly
         if (nodes.length > 0) {
           const rootNode = nodes[nodes.length - 1];
@@ -513,6 +513,8 @@ export function useTauriIO() {
           store.setOriginalWrapper(raw);
           setNodes([]);
           setEdges([]);
+          // Ensure the right panel is visible so the user can edit settings
+          useUIStore.getState().setRightPanelVisible(true);
           commitState("Initial");
           // Restore persisted history if available
           const persistedSettings = loadPersistedHistory(projectPath, filePath);
