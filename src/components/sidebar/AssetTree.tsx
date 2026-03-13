@@ -116,6 +116,8 @@ const HYTALE_FOLDERS = [
   { label: "Biomes", path: "Server\\HytaleGenerator\\Biomes" },
   { label: "WorldStructures", path: "Server\\HytaleGenerator\\WorldStructures" },
 ];
+const QUICK_PICK_EXTENSIONS = new Set([".json", ".png", ".jpg", ".jpeg", ".dds", ".bson"]);
+const QUICK_PICK_LIMIT = 12;
 
 function normalizeWindowsPath(path: string): string {
   return path.replace(/\//g, "\\").replace(/\\+$/, "");
@@ -143,6 +145,11 @@ function getBundledAssetRelativePath(projectPath: string | null, targetPath: str
 
 function getBundledAssetSourceLabel(relativePath: string): string {
   return relativePath ? `Built-in\\${relativePath}` : "Built-in";
+}
+
+function isQuickPickAsset(name: string): boolean {
+  const extension = name.includes(".") ? name.slice(name.lastIndexOf(".")).toLowerCase() : "";
+  return QUICK_PICK_EXTENSIONS.has(extension);
 }
 
 async function findSeedAssetFile(sourceDir: string): Promise<DirectoryEntryData | null> {
@@ -212,6 +219,9 @@ function ContextMenu({
   const projectPath = useProjectStore((s) => s.projectPath);
   const addToast = useToastStore((s) => s.addToast);
   const [showFolderSubmenu, setShowFolderSubmenu] = useState(false);
+  const [showAssetSubmenu, setShowAssetSubmenu] = useState(false);
+  const [assetChoices, setAssetChoices] = useState<DirectoryEntryData[] | null>(null);
+  const [assetChoiceError, setAssetChoiceError] = useState<string | null>(null);
   const targetDirectory = getTargetDirectory(menu);
   const bundledAssetRelativePath = getBundledAssetRelativePath(projectPath, targetDirectory);
   const assetSourceLabel = getBundledAssetSourceLabel(bundledAssetRelativePath);
@@ -226,6 +236,13 @@ function ContextMenu({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [onClose]);
+
+  useEffect(() => {
+    setShowFolderSubmenu(false);
+    setShowAssetSubmenu(false);
+    setAssetChoices(null);
+    setAssetChoiceError(null);
+  }, [bundledAssetRelativePath, targetDirectory]);
 
   function handleReveal() {
     showInFolder(menu.path).catch(() => {});
@@ -284,6 +301,33 @@ function ContextMenu({
     onClose();
   }
 
+  async function copyBundledAsset(sourcePath: string, fileName: string) {
+    const destination = `${targetDirectory}\\${fileName}`;
+    try {
+      await copyFile(sourcePath, destination);
+      onRefresh();
+      addToast(`Added Hytale asset: ${fileName}`, "success");
+    } catch (error) {
+      addToast(`Failed to add asset: ${error}`, "error");
+    }
+    onClose();
+  }
+
+  async function loadAssetChoices() {
+    try {
+      const sourcePath = await resolveBundledHytaleAssetPath(bundledAssetRelativePath);
+      const entries = await listDirectory(sourcePath);
+      const files = entries
+        .filter((entry) => !entry.is_dir && isQuickPickAsset(entry.name))
+        .sort((left, right) => left.name.localeCompare(right.name));
+      setAssetChoices(files);
+      setAssetChoiceError(null);
+    } catch (error) {
+      setAssetChoices([]);
+      setAssetChoiceError(String(error));
+    }
+  }
+
   async function handleCopyHytaleAsset() {
     let defaultPath: string;
     try {
@@ -305,15 +349,7 @@ function ContextMenu({
     }
 
     const fileName = selected.split(/[/\\]/).pop() ?? "asset.json";
-    const destination = `${targetDirectory}\\${fileName}`;
-    try {
-      await copyFile(selected, destination);
-      onRefresh();
-      addToast(`Added Hytale asset: ${fileName}`, "success");
-    } catch (error) {
-      addToast(`Failed to add asset: ${error}`, "error");
-    }
-    onClose();
+    await copyBundledAsset(selected, fileName);
   }
 
   return (
@@ -359,13 +395,70 @@ function ContextMenu({
         ) : null}
       </div>
 
-      <ContextMenuItem
-        label="Add Hytale Asset..."
-        sublabel={assetSourceLabel}
-        onClick={() => {
-          void handleCopyHytaleAsset();
-        }}
-      />
+      <div className="relative">
+        <button
+          className="flex w-full items-center justify-between px-3 py-1.5 text-left text-tn-text transition-colors hover:bg-white/[0.06]"
+          onMouseEnter={() => {
+            setShowAssetSubmenu(true);
+            if (assetChoices === null) {
+              void loadAssetChoices();
+            }
+          }}
+          onMouseLeave={() => setShowAssetSubmenu(false)}
+        >
+          <span className="text-[13px]">Add Hytale Asset</span>
+          <svg className="h-3 w-3 text-tn-text-muted" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M6 3l5 5-5 5V3z" />
+          </svg>
+        </button>
+        {showAssetSubmenu ? (
+          <div
+            className="absolute left-full top-0 z-50 min-w-[220px] rounded border border-tn-border bg-tn-surface py-1 shadow-xl"
+            onMouseEnter={() => setShowAssetSubmenu(true)}
+            onMouseLeave={() => setShowAssetSubmenu(false)}
+          >
+            <div className="border-b border-tn-border/40 px-3 py-1.5">
+              <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">
+                {assetSourceLabel}
+              </p>
+            </div>
+            {assetChoices === null ? (
+              <div className="px-3 py-2 text-[11px] text-tn-text-muted">Loading assets...</div>
+            ) : assetChoices.length > 0 ? (
+              <>
+                {assetChoices.slice(0, QUICK_PICK_LIMIT).map((asset) => (
+                  <ContextMenuItem
+                    key={asset.path}
+                    label={asset.name}
+                    onClick={() => {
+                      void copyBundledAsset(asset.path, asset.name);
+                    }}
+                  />
+                ))}
+                {assetChoices.length > QUICK_PICK_LIMIT ? (
+                  <div className="px-3 py-1 text-[10px] text-tn-text-muted">
+                    {assetChoices.length - QUICK_PICK_LIMIT} more file(s) available via Browse...
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="px-3 py-2 text-[11px] text-tn-text-muted">
+                {assetChoiceError ? "No direct file picks here. Use Browse..." : "No bundled files in this folder."}
+              </div>
+            )}
+
+            <ContextMenuDivider />
+
+            <ContextMenuItem
+              label="Browse..."
+              sublabel={assetSourceLabel}
+              onClick={() => {
+                void handleCopyHytaleAsset();
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
