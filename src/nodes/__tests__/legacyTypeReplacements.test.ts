@@ -18,11 +18,11 @@ describe("getLegacyReplacement", () => {
     expect(getLegacyReplacement("SimplexRidgeNoise2D")).toBe("SimplexNoise2D");
     expect(getLegacyReplacement("SimplexRidgeNoise3D")).toBe("SimplexNoise3D");
     expect(getLegacyReplacement("DoubleNormalizer")).toBe("Normalizer");
-    expect(getLegacyReplacement("AverageFunction")).toBe("Mix");
+    expect(getLegacyReplacement("AverageFunction")).toBe("Blend");
     expect(getLegacyReplacement("FlatCache")).toBe("Cache2D");
     expect(getLegacyReplacement("Amplitude")).toBe("AmplitudeConstant");
-    expect(getLegacyReplacement("Zero")).toBe("Slider");
-    expect(getLegacyReplacement("One")).toBe("Slider");
+    expect(getLegacyReplacement("Zero")).toBe("Constant");
+    expect(getLegacyReplacement("One")).toBe("Constant");
   });
 
   it("returns the replacement for curve types with 1:1 equivalents", () => {

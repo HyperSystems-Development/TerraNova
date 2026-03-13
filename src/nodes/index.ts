@@ -300,6 +300,7 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Material:Conditional": ConditionalMaterialNode,
   "Material:Blend": BlendMaterialNode,
   "Material:HeightGradient": HeightGradientMaterialNode,
+  "Material:NoiseSelectorMaterial": NoiseSelectorMaterialNode,
   "Material:NoiseSelector": NoiseSelectorMaterialNode,
   "Material:Solid": SolidMaterialNode,
   "Material:Empty": EmptyMaterialNode,

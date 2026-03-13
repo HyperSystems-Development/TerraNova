@@ -106,15 +106,20 @@ export function BiomeSectionTabs() {
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [dontAskAgain, setDontAskAgain] = useState(false);
+
+  // Auto-switch away from hidden sections — must be before any conditional return
+  // to satisfy the Rules of Hooks (hooks must always be called in the same order).
+  useEffect(() => {
+    if (!biomeSections || !activeBiomeSection) return;
+    if (!HIDDEN_SECTION_KEYS.has(activeBiomeSection)) return;
+    const visibleKeys = Object.keys(biomeSections).filter((key) => !HIDDEN_SECTION_KEYS.has(key));
+    if (visibleKeys.length === 0) return;
+    switchBiomeSection(visibleKeys[0]);
+  }, [biomeSections, activeBiomeSection, switchBiomeSection]);
+
   if (!biomeSections) return null;
 
   const keys = Object.keys(biomeSections).filter((key) => !HIDDEN_SECTION_KEYS.has(key));
-
-  useEffect(() => {
-    if (!activeBiomeSection || !HIDDEN_SECTION_KEYS.has(activeBiomeSection)) return;
-    if (keys.length === 0) return;
-    switchBiomeSection(keys[0]);
-  }, [activeBiomeSection, keys, switchBiomeSection]);
 
   const pendingSection = pendingDelete ? biomeSections[pendingDelete] : null;
   const pendingNodeCount = pendingSection?.nodes.length ?? 0;
