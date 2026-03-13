@@ -47,8 +47,11 @@ function getUpstreamNodeIds(startIds: Set<string>, edges: Edge[]): Set<string> {
 }
 
 export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps) {
-  const store = useEditorStore.getState();
-  const selectedNodes = store.nodes.filter((n) => n.selected);
+  // Use reactive selectors instead of getState() snapshot to avoid stale data
+  const nodes = useEditorStore((s) => s.nodes);
+  const edges = useEditorStore((s) => s.edges);
+
+  const selectedNodes = nodes.filter((n) => n.selected);
   const selectedIds = new Set(selectedNodes.map((n) => n.id));
 
   // Ensure the right-clicked node is included
@@ -56,12 +59,12 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
     selectedIds.add(nodeId);
   }
 
-  const rightClickedNode = store.nodes.find((n) => n.id === nodeId);
+  const rightClickedNode = nodes.find((n) => n.id === nodeId);
   const isGroup = rightClickedNode?.type === "group";
   const isRootNode = rightClickedNode?.type === "Root";
-  const rootNode = store.nodes.find((n) => n.type === "Root");
+  const rootNode = nodes.find((n) => n.type === "Root");
   const isConnectedToRoot = rootNode
-    ? store.edges.some((e) => e.source === nodeId && e.target === rootNode.id)
+    ? edges.some((e) => e.source === nodeId && e.target === rootNode.id)
     : false;
 
   return (
@@ -70,8 +73,9 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         label="Cut"
         shortcut="Ctrl+X"
         onClick={() => {
-          store.copyNodes();
-          store.removeNodes([...selectedIds]);
+          const s = useEditorStore.getState();
+          s.copyNodes();
+          s.removeNodes([...selectedIds]);
           onClose();
         }}
       />
@@ -79,7 +83,7 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         label="Copy"
         shortcut="Ctrl+C"
         onClick={() => {
-          store.copyNodes();
+          useEditorStore.getState().copyNodes();
           onClose();
         }}
       />
@@ -87,7 +91,7 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         label="Duplicate"
         shortcut="Ctrl+D"
         onClick={() => {
-          store.duplicateNodes();
+          useEditorStore.getState().duplicateNodes();
           onClose();
         }}
       />
@@ -95,7 +99,7 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         label="Delete"
         shortcut="Del"
         onClick={() => {
-          store.removeNodes([...selectedIds]);
+          useEditorStore.getState().removeNodes([...selectedIds]);
           onClose();
         }}
       />
@@ -105,7 +109,7 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         shortcut="Ctrl+G"
         disabled={selectedIds.size < 2}
         onClick={() => {
-          store.createGroup([...selectedIds], `Group (${selectedIds.size})`);
+          useEditorStore.getState().createGroup([...selectedIds], `Group (${selectedIds.size})`);
           onClose();
         }}
       />
@@ -113,7 +117,7 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         label="Ungroup"
         disabled={!isGroup}
         onClick={() => {
-          if (isGroup) store.expandGroup(nodeId);
+          if (isGroup) useEditorStore.getState().expandGroup(nodeId);
           onClose();
         }}
       />
@@ -122,16 +126,16 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         label="Select Upstream"
         shortcut={resolveKeybinding("selectUpstream")}
         onClick={() => {
-          const upstream = getUpstreamNodeIds(selectedIds, store.edges);
-          const currentSelected = new Set(store.nodes.filter((n) => n.selected).map((n) => n.id));
+          const s = useEditorStore.getState();
+          const upstream = getUpstreamNodeIds(selectedIds, s.edges);
+          const currentSelected = new Set(s.nodes.filter((n) => n.selected).map((n) => n.id));
           if (upstream.size === currentSelected.size && [...upstream].every((id) => currentSelected.has(id))) {
-            // Toggle off: keep only the most-downstream nodes (tips) in the selection
             const tips = new Set([...currentSelected].filter((id) =>
-              !store.edges.some((e) => e.source === id && currentSelected.has(e.target)),
+              !s.edges.some((e) => e.source === id && currentSelected.has(e.target)),
             ));
-            store.setNodes(store.nodes.map((n) => ({ ...n, selected: tips.has(n.id) })));
+            s.setNodes(s.nodes.map((n) => ({ ...n, selected: tips.has(n.id) })));
           } else {
-            store.setNodes(store.nodes.map((n) => ({ ...n, selected: upstream.has(n.id) })));
+            s.setNodes(s.nodes.map((n) => ({ ...n, selected: upstream.has(n.id) })));
           }
           onClose();
         }}
@@ -140,16 +144,16 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         label="Select Downstream"
         shortcut={resolveKeybinding("selectDownstream")}
         onClick={() => {
-          const downstream = getDownstreamNodeIds(selectedIds, store.edges);
-          const currentSelected = new Set(store.nodes.filter((n) => n.selected).map((n) => n.id));
+          const s = useEditorStore.getState();
+          const downstream = getDownstreamNodeIds(selectedIds, s.edges);
+          const currentSelected = new Set(s.nodes.filter((n) => n.selected).map((n) => n.id));
           if (downstream.size === currentSelected.size && [...downstream].every((id) => currentSelected.has(id))) {
-            // Toggle off: keep only the most-upstream nodes (roots) in the selection
             const roots = new Set([...currentSelected].filter((id) =>
-              !store.edges.some((e) => e.target === id && currentSelected.has(e.source)),
+              !s.edges.some((e) => e.target === id && currentSelected.has(e.source)),
             ));
-            store.setNodes(store.nodes.map((n) => ({ ...n, selected: roots.has(n.id) })));
+            s.setNodes(s.nodes.map((n) => ({ ...n, selected: roots.has(n.id) })));
           } else {
-            store.setNodes(store.nodes.map((n) => ({ ...n, selected: downstream.has(n.id) })));
+            s.setNodes(s.nodes.map((n) => ({ ...n, selected: downstream.has(n.id) })));
           }
           onClose();
         }}
@@ -178,12 +182,14 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         shortcut="Ctrl+T"
         disabled={isRootNode}
         onClick={() => {
-          if (isConnectedToRoot && rootNode) {
+          const s = useEditorStore.getState();
+          const curRootNode = s.nodes.find((n) => n.type === "Root");
+          if (isConnectedToRoot && curRootNode) {
             // Disconnect: remove the edge and clear output
-            store.setEdges(store.edges.filter((e) => !(e.source === nodeId && e.target === rootNode.id)));
-            store.setOutputNode(null);
+            s.setEdges(s.edges.filter((e) => !(e.source === nodeId && e.target === curRootNode.id)));
+            s.setOutputNode(null);
           } else {
-            let target = rootNode;
+            let target = curRootNode;
             // Create Root node if none exists
             if (!target) {
               const rootId = crypto.randomUUID();
@@ -194,10 +200,10 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
                 position: { x: clickedPos.x + 300, y: clickedPos.y },
                 data: { type: "Root", fields: {} },
               } as Node;
-              store.addNode(target);
+              s.addNode(target);
             }
             // Remove any existing edge into Root, then wire this node
-            const filtered = store.edges.filter((e) => e.target !== target!.id);
+            const filtered = s.edges.filter((e) => e.target !== target!.id);
             const newEdge: Edge = {
               id: `${nodeId}-${target.id}`,
               source: nodeId,
@@ -205,8 +211,8 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
               target: target.id,
               targetHandle: "input",
             };
-            store.setEdges([...filtered, newEdge]);
-            store.setOutputNode(nodeId);
+            s.setEdges([...filtered, newEdge]);
+            s.setOutputNode(nodeId);
           }
           onClose();
         }}

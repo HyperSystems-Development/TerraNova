@@ -11,7 +11,8 @@ export const SimplexNoise2DNode = memo(function SimplexNoise2DNode(props: TypedN
 
   // Handle both internal (Frequency) and Hytale (Scale) field names
   const freq = data.fields.Frequency ?? (data.fields.Scale != null ? 1 / (data.fields.Scale as number) : 0.01);
-  const amp = data.fields.Amplitude ?? data.fields.Persistence ?? 1.0;
+  // Persistence is a separate field (Gain), not an alias for Amplitude
+  const amp = data.fields.Amplitude ?? 1.0;
 
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={SIMPLEX_NOISE_2D_HANDLES}>

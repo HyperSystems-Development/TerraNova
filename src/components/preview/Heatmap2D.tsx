@@ -354,15 +354,35 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
         return;
       }
 
-      // Normal click starts pan
+      // Normal click starts pan — use document-level listeners so drag
+      // releases correctly even when the cursor leaves the heatmap container
       dragRef.current = {
         startX: e.clientX,
         startY: e.clientY,
         startOX: canvasTransform.offsetX,
         startOY: canvasTransform.offsetY,
       };
+
+      const handleDocMouseMove = (ev: MouseEvent) => {
+        if (!dragRef.current) return;
+        const dx = ev.clientX - dragRef.current.startX;
+        const dy = ev.clientY - dragRef.current.startY;
+        setCanvasTransform({
+          ...canvasTransform,
+          offsetX: dragRef.current.startOX + dx,
+          offsetY: dragRef.current.startOY + dy,
+        });
+      };
+      const handleDocMouseUp = () => {
+        dragRef.current = null;
+        crossLineRef.current = null;
+        document.removeEventListener("mousemove", handleDocMouseMove);
+        document.removeEventListener("mouseup", handleDocMouseUp);
+      };
+      document.addEventListener("mousemove", handleDocMouseMove);
+      document.addEventListener("mouseup", handleDocMouseUp);
     },
-    [canvasTransform, rangeMin, rangeMax, showCrossSection, getInteractionRect],
+    [canvasTransform, rangeMin, rangeMax, showCrossSection, getInteractionRect, setCanvasTransform],
   );
 
   const onMouseUp = useCallback(() => {
