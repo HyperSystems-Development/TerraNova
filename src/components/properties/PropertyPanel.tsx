@@ -20,6 +20,7 @@ import { MaterialLayerStack } from "./MaterialLayerStack";
 import { AtmosphereTab } from "./AtmosphereTab";
 import { DebugTab } from "./DebugTab";
 import { PropPlacementGrid } from "./PropPlacementGrid";
+import { CollapsibleEditorSection } from "@/components/editor/CollapsibleEditorSection";
 import { POSITION_TYPE_NAMES } from "@/utils/positionEvaluator";
 import { getCurveEvaluator } from "@/utils/curveEvaluators";
 import { validateField, type ValidationIssue } from "@/schema/validation";
@@ -304,14 +305,18 @@ function inferSuggestedEnvironmentParent(
     return findExact(zonePrefix)
       ?? findPrefix(zonePrefix)
       ?? findContains(`zone${zoneMatch[1]}`)
+      ?? findExact("Env_Zone1")
+      ?? findPrefix("Env_Zone1")
       ?? findExact("Env_Default_Flat")
       ?? "Env_Default_Flat";
   }
 
-  return findExact("Env_Default_Flat")
+  return findExact("Env_Zone1")
+    ?? findPrefix("Env_Zone1")
+    ?? findExact("Env_Default_Flat")
     ?? findPrefix("Env_Default")
     ?? envNames[0]
-    ?? "Env_Default_Flat";
+    ?? "Env_Zone1";
 }
 
 function statusClass(status: AssetInspectorEntry["status"]): string {
@@ -368,6 +373,11 @@ export function PropertyPanel() {
   const [assetInspectorLoading, setAssetInspectorLoading] = useState(false);
   const [assetInspectorActionKey, setAssetInspectorActionKey] = useState<string | null>(null);
   const [assetInspectorRevision, setAssetInspectorRevision] = useState(0);
+  const [assetInspectorCategory, setAssetInspectorCategory] = useState("all");
+  const [assetInspectorOverviewOpen, setAssetInspectorOverviewOpen] = useState(true);
+  const [assetInspectorToolsOpen, setAssetInspectorToolsOpen] = useState(true);
+  const [assetInspectorReferencesOpen, setAssetInspectorReferencesOpen] = useState(true);
+  const [assetInspectorGuidanceOpen, setAssetInspectorGuidanceOpen] = useState(false);
 
   const hasPendingSnapshotRef = useRef(false);
   const lastChangedFieldRef = useRef<{ field: string; nodeType: string }>({ field: "", nodeType: "" });
@@ -644,6 +654,14 @@ export function PropertyPanel() {
     };
   }, [assetInspectorMode, rawJsonContent, projectPath, directoryTree, assetInspectorRevision]);
 
+  useEffect(() => {
+    setAssetInspectorCategory("all");
+    setAssetInspectorOverviewOpen(true);
+    setAssetInspectorToolsOpen(true);
+    setAssetInspectorReferencesOpen(true);
+    setAssetInspectorGuidanceOpen(false);
+  }, [assetInspectorMode, currentFile]);
+
   const canOpenEnvironmentGraph = Boolean(
     biomeSections?.EnvironmentProvider,
   );
@@ -884,6 +902,39 @@ export function PropertyPanel() {
         );
         return rank(left.status) - rank(right.status) || left.label.localeCompare(right.label);
       });
+      const assetInspectorCategoryOptions = isWeatherAsset
+        ? [
+            { value: "all", label: "All assets" },
+            { value: "celestial", label: "Celestial" },
+            { value: "clouds", label: "Clouds" },
+            { value: "needs-attention", label: "Needs attention" },
+            { value: "built-in", label: "Built-in" },
+            { value: "missing", label: "Missing" },
+            { value: "in-pack", label: "In pack" },
+          ]
+        : [
+            { value: "all", label: "All weather refs" },
+            { value: "needs-attention", label: "Needs attention" },
+            { value: "built-in", label: "Built-in" },
+            { value: "missing", label: "Missing" },
+            { value: "in-pack", label: "In pack" },
+          ];
+      const filteredAssetInspectorEntries = prioritizedAssetInspectorEntries.filter((entry) => {
+        switch (assetInspectorCategory) {
+          case "needs-attention":
+            return entry.status !== "in-pack";
+          case "built-in":
+          case "missing":
+          case "in-pack":
+            return entry.status === assetInspectorCategory;
+          case "celestial":
+            return isWeatherAsset && (entry.label === "Stars" || entry.label.startsWith("Moon "));
+          case "clouds":
+            return isWeatherAsset && entry.label.startsWith("Cloud ");
+          default:
+            return true;
+        }
+      });
       const suggestedParentEnvironment = !isWeatherAsset && !(typeof doc.Parent === "string" && doc.Parent.trim())
         ? inferSuggestedEnvironmentParent(currentFile, [...FIELD_SUGGESTIONS.Environment])
         : null;
@@ -962,24 +1013,43 @@ export function PropertyPanel() {
             </p>
           </div>
 
-          <div className="rounded border border-tn-border/60 bg-tn-bg/70 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Current File</p>
-            <p className="mt-1 truncate text-sm font-medium text-tn-text">
-              {currentFile?.split(/[/\\]/).pop() ?? "Untitled"}
-            </p>
-            <p className="mt-1 break-all text-[11px] text-tn-text-muted">{currentFile ?? "No file open"}</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {summaryRows.map((item) => (
-              <div key={item.label} className="rounded border border-tn-border/50 bg-tn-bg/60 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">{item.label}</p>
-                <p className="mt-1 text-sm font-semibold text-tn-text">{item.value}</p>
+          <CollapsibleEditorSection
+            title="Overview"
+            description="Current file and high-level summary for the asset open in the center editor."
+            badge={currentFile?.split(/[/\\]/).pop() ?? "Untitled"}
+            open={assetInspectorOverviewOpen}
+            onToggle={() => setAssetInspectorOverviewOpen((value) => !value)}
+          >
+            <div className="flex flex-col gap-3">
+              <div className="rounded border border-tn-border/60 bg-tn-bg/70 p-3">
+                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Current File</p>
+                <p className="mt-1 truncate text-sm font-medium text-tn-text">
+                  {currentFile?.split(/[/\\]/).pop() ?? "Untitled"}
+                </p>
+                <p className="mt-1 break-all text-[11px] text-tn-text-muted">{currentFile ?? "No file open"}</p>
               </div>
-            ))}
-          </div>
 
-          <div className="rounded border border-tn-border/50 bg-tn-bg/50 p-3">
+              <div className="grid grid-cols-2 gap-2">
+                {summaryRows.map((item) => (
+                  <div key={item.label} className="rounded border border-tn-border/50 bg-tn-bg/60 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">{item.label}</p>
+                    <p className="mt-1 text-sm font-semibold text-tn-text">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CollapsibleEditorSection>
+
+          <CollapsibleEditorSection
+            title="Asset Tools"
+            description={isWeatherAsset
+              ? "Track missing sky textures and pull bundled Hytale assets into the pack's Common folder."
+              : "Resolve referenced weather IDs without leaving the editor by opening, importing, or creating files."}
+            badge={`${filteredAssetInspectorEntries.length}/${assetInspectorEntries.length}`}
+            open={assetInspectorToolsOpen}
+            onToggle={() => setAssetInspectorToolsOpen((value) => !value)}
+          >
+            <div className="rounded border border-tn-border/50 bg-tn-bg/50 p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Asset Tools</p>
@@ -994,6 +1064,26 @@ export function PropertyPanel() {
                 <span className={`rounded border px-2 py-1 ${statusClass("built-in")}`}>{builtInEntries.length} built-in</span>
                 <span className={`rounded border px-2 py-1 ${statusClass("missing")}`}>{missingEntries.length} missing</span>
               </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-end gap-3">
+              <label className="flex min-w-[180px] flex-col gap-1 text-[10px] uppercase tracking-wider text-tn-text-muted">
+                Category
+                <select
+                  value={assetInspectorCategory}
+                  onChange={(event) => setAssetInspectorCategory(event.target.value)}
+                  className="rounded border border-tn-border bg-tn-bg px-2 py-1.5 text-[11px] normal-case tracking-normal text-tn-text"
+                >
+                  {assetInspectorCategoryOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="pb-1 text-[11px] text-tn-text-muted">
+                Showing {filteredAssetInspectorEntries.length} of {assetInspectorEntries.length} referenced {isWeatherAsset ? "assets" : "weather files"}.
+              </p>
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
@@ -1084,7 +1174,7 @@ export function PropertyPanel() {
                     <p className="mt-1 text-[11px] text-tn-text-muted">
                       {typeof doc.Parent === "string" && doc.Parent.trim()
                         ? "Inherited environment settings will flow from this parent."
-                        : `Suggested parent: ${suggestedParentEnvironment ?? "Env_Default_Flat"}`}
+                        : `Suggested parent: ${suggestedParentEnvironment ?? "Env_Zone1"}`}
                     </p>
                   </div>
                   <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
@@ -1098,8 +1188,46 @@ export function PropertyPanel() {
                   </div>
                 </div>
               )}
+            </div>
+          </CollapsibleEditorSection>
 
-              <div className="mt-3 flex max-h-[26rem] flex-col gap-2 overflow-y-auto pr-1">
+          <CollapsibleEditorSection
+            title="Guidance"
+            description="Authoring notes for pack folder structure and how to build from Hytale-style assets."
+            badge={isWeatherAsset ? "Common + Weathers" : "Environments"}
+            open={assetInspectorGuidanceOpen}
+            onToggle={() => setAssetInspectorGuidanceOpen((value) => !value)}
+          >
+            <div className="flex flex-col gap-3">
+              <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
+                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Folder Notes</p>
+                <p className="mt-1 text-[11px] text-tn-text-muted">
+                  {isWeatherAsset
+                    ? "Store weather JSON in Server\\Weathers. Import a built-in Hytale weather to start fast, then keep referenced sky textures under Common\\Sky."
+                    : "Store environment JSON in Server\\Environments. Start from a Hytale asset or create your own, then point Parent at a shared base such as Env_Zone1, Env_Zone1_Caves, or another family root."}
+                </p>
+              </div>
+              {!isWeatherAsset && (
+                <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
+                  <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Zone Folder Pattern</p>
+                  <p className="mt-1 text-[11px] text-tn-text-muted">
+                    Mirror Hytale by grouping environments into folders like Server\\Environments\\Zone1, Zone2, Zone3, Zone4, Zone0, and Unique. Keep a shared base such as Env_Zone1 or Env_Zone1_Caves alongside the child variants in that family.
+                  </p>
+                </div>
+              )}
+            </div>
+          </CollapsibleEditorSection>
+
+          <CollapsibleEditorSection
+            title="Referenced Assets"
+            description={isWeatherAsset
+              ? "Sky textures referenced by this weather asset."
+              : "Weather files referenced by this environment asset."}
+            badge={`${filteredAssetInspectorEntries.length}`}
+            open={assetInspectorReferencesOpen}
+            onToggle={() => setAssetInspectorReferencesOpen((value) => !value)}
+          >
+            <div className="mt-3 flex max-h-[26rem] flex-col gap-2 overflow-y-auto pr-1">
                 {assetInspectorLoading ? (
                 <div className="rounded border border-dashed border-tn-border/60 px-3 py-4 text-xs text-tn-text-muted">
                   Scanning referenced assets...
@@ -1110,8 +1238,12 @@ export function PropertyPanel() {
                     ? "No referenced sky textures were found on this weather file yet."
                     : "No referenced weather IDs were found on this environment file yet."}
                 </div>
+              ) : filteredAssetInspectorEntries.length === 0 ? (
+                <div className="rounded border border-dashed border-tn-border/60 px-3 py-4 text-xs text-tn-text-muted">
+                  No referenced {isWeatherAsset ? "assets" : "weather files"} match the current category.
+                </div>
               ) : (
-                prioritizedAssetInspectorEntries.map((entry) => {
+                filteredAssetInspectorEntries.map((entry) => {
                   const isRunning = assetInspectorActionKey === `entry:${entry.key}`;
                   const projectRelativePath = entry.projectPath ? toRelativeDisplayPath(projectPath, entry.projectPath) : null;
 
@@ -1215,7 +1347,7 @@ export function PropertyPanel() {
                 })
               )}
             </div>
-          </div>
+          </CollapsibleEditorSection>
 
           <div className="rounded border border-tn-border/50 bg-tn-bg/50 p-3">
             <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Quick Actions</p>

@@ -192,14 +192,18 @@ function inferSuggestedParentEnvironment(
     return findExact(zonePrefix)
       ?? findPrefix(zonePrefix)
       ?? findContains(`zone${zoneMatch[1]}`)
+      ?? findExact("Env_Zone1")
+      ?? findPrefix("Env_Zone1")
       ?? findExact("Env_Default_Flat")
-      ?? "Env_Default_Flat";
+      ?? "Env_Zone1";
   }
 
-  return findExact("Env_Default_Flat")
+  return findExact("Env_Zone1")
+    ?? findPrefix("Env_Zone1")
+    ?? findExact("Env_Default_Flat")
     ?? findPrefix("Env_Default")
     ?? envNames[0]
-    ?? "Env_Default_Flat";
+    ?? "Env_Zone1";
 }
 
 function buildDefaultWeatherDoc(weatherId: string) {
