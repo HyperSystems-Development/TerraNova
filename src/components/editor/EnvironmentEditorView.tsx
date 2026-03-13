@@ -16,6 +16,7 @@ import {
 } from "@/utils/ipc";
 import { useToastStore } from "@/stores/toastStore";
 import mapDirEntry from "@/utils/mapDirEntry";
+import { loadKnownEnvironmentNames } from "@/utils/environmentAssetLookup";
 import { EditorCalloutSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
 
@@ -169,6 +170,38 @@ function readForecastHour(doc: EnvironmentDoc, hour: number): WeatherForecastEnt
   return Array.isArray(entries) ? entries : [];
 }
 
+function inferSuggestedParentEnvironment(
+  currentFile: string | null,
+  knownEnvironmentNames: string[],
+): string {
+  const envNames = knownEnvironmentNames.filter((name) => /^Env_/i.test(name));
+  const normalizedPath = (currentFile ?? "").replace(/\\/g, "/").toLowerCase();
+  const findExact = (candidate: string) => envNames.find((name) => name.toLowerCase() === candidate.toLowerCase()) ?? null;
+  const findPrefix = (candidatePrefix: string) => envNames.find((name) => name.toLowerCase().startsWith(candidatePrefix.toLowerCase())) ?? null;
+  const findContains = (fragment: string) => envNames.find((name) => name.toLowerCase().includes(fragment.toLowerCase())) ?? null;
+
+  if (normalizedPath.includes("void")) {
+    return findExact("Env_Default_Void")
+      ?? findContains("void")
+      ?? "Env_Default_Void";
+  }
+
+  const zoneMatch = /zone[_ -]?(\d+)/i.exec(normalizedPath);
+  if (zoneMatch) {
+    const zonePrefix = `Env_Zone${zoneMatch[1]}`;
+    return findExact(zonePrefix)
+      ?? findPrefix(zonePrefix)
+      ?? findContains(`zone${zoneMatch[1]}`)
+      ?? findExact("Env_Default_Flat")
+      ?? "Env_Default_Flat";
+  }
+
+  return findExact("Env_Default_Flat")
+    ?? findPrefix("Env_Default")
+    ?? envNames[0]
+    ?? "Env_Default_Flat";
+}
+
 function buildDefaultWeatherDoc(weatherId: string) {
   return {
     $Comment: `Default weather created by TerraNova for ${weatherId}`,
@@ -273,6 +306,7 @@ export function EnvironmentEditorView() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [weatherOptions, setWeatherOptions] = useState<Array<{ id: string; path: string }>>([]);
   const [weatherPathIndex, setWeatherPathIndex] = useState<Record<string, string>>({});
+  const [environmentParentOptions, setEnvironmentParentOptions] = useState<string[]>([]);
   const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [previewHour, setPreviewHour] = useState(12);
@@ -458,6 +492,32 @@ export function EnvironmentEditorView() {
 
   const doc = rawJsonContent ?? ({} as EnvironmentDoc);
 
+  useEffect(() => {
+    let active = true;
+
+    void loadKnownEnvironmentNames(currentFile, projectPath)
+      .then((names) => {
+        if (active) {
+          setEnvironmentParentOptions(names ?? []);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setEnvironmentParentOptions([]);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [currentFile, projectPath]);
+
+  const suggestedParentEnvironment = useMemo(() => (
+    doc.Parent?.trim()
+      ? null
+      : inferSuggestedParentEnvironment(currentFile, environmentParentOptions)
+  ), [currentFile, doc.Parent, environmentParentOptions]);
+
   const updateDoc = (updater: (previous: EnvironmentDoc) => EnvironmentDoc) => {
     if (!rawJsonContent) return;
     const next = updater(structuredClone(doc));
@@ -634,7 +694,15 @@ export function EnvironmentEditorView() {
       items.push({
         severity: "warning",
         title: "Parent environment is missing",
-        detail: "Most environment files should inherit from a base Env_* parent so shared settings are not duplicated.",
+        detail: "Real Hytale assets usually point specialized files at a shared base parent: Env_Zone1_Azure -> Env_Zone1, Env_Zone1_Caves_Forests -> Env_Zone1_Caves, Env_Forgotten_Temple_Exterior -> Env_Forgotten_Temple_Base.",
+        fix: suggestedParentEnvironment
+          ? {
+              label: `Use ${suggestedParentEnvironment}`,
+              onFix: () => {
+                updateDoc((previous) => ({ ...previous, Parent: suggestedParentEnvironment }));
+              },
+            }
+          : undefined,
       });
     }
 
@@ -737,6 +805,7 @@ export function EnvironmentEditorView() {
     lookupStatus,
     materializeReferencedWeatherFiles,
     missingIds,
+    suggestedParentEnvironment,
     tagEntries.length,
   ]);
 
@@ -1081,17 +1150,37 @@ export function EnvironmentEditorView() {
                   <option key={weather.path} value={weather.id} />
                 ))}
               </datalist>
+              <datalist id="environment-parent-options">
+                {environmentParentOptions.map((environmentName) => (
+                  <option key={environmentName} value={environmentName} />
+                ))}
+              </datalist>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="block text-[10px] uppercase tracking-wider text-tn-text-muted">Parent</label>
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="block text-[10px] uppercase tracking-wider text-tn-text-muted">Parent</label>
+                    {!doc.Parent?.trim() && suggestedParentEnvironment && (
+                      <button
+                        type="button"
+                        onClick={() => updateDoc((previous) => ({ ...previous, Parent: suggestedParentEnvironment }))}
+                        className="text-[10px] text-tn-accent transition-colors hover:text-tn-accent/80"
+                      >
+                        Use {suggestedParentEnvironment}
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="text"
+                    list="environment-parent-options"
                     value={doc.Parent ?? ""}
                     onChange={(event) => updateDoc((previous) => ({ ...previous, Parent: event.target.value || undefined }))}
                     className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
                     placeholder="Env_Zone1"
                   />
-                  <p className="text-[10px] text-tn-text-muted">Inherits WeatherForecasts and settings from the parent environment.</p>
+                  <p className="text-[10px] text-tn-text-muted">
+                    Inherits WeatherForecasts and settings from the parent environment. Hytale usually chains variants to a shared base such as Env_Zone1, Env_Zone1_Caves, or Env_Forgotten_Temple_Base.
+                    {!doc.Parent?.trim() && suggestedParentEnvironment ? ` Suggested default: ${suggestedParentEnvironment}.` : ""}
+                  </p>
                 </div>
 
                 <div className="space-y-1">

@@ -282,6 +282,38 @@ function buildDefaultWeatherDoc(weatherId: string) {
   };
 }
 
+function inferSuggestedEnvironmentParent(
+  currentFile: string | null,
+  knownEnvironmentNames: string[],
+): string {
+  const envNames = knownEnvironmentNames.filter((name) => /^Env_/i.test(name));
+  const normalizedPath = (currentFile ?? "").replace(/\\/g, "/").toLowerCase();
+  const findExact = (candidate: string) => envNames.find((name) => name.toLowerCase() === candidate.toLowerCase()) ?? null;
+  const findPrefix = (candidatePrefix: string) => envNames.find((name) => name.toLowerCase().startsWith(candidatePrefix.toLowerCase())) ?? null;
+  const findContains = (fragment: string) => envNames.find((name) => name.toLowerCase().includes(fragment.toLowerCase())) ?? null;
+
+  if (normalizedPath.includes("void")) {
+    return findExact("Env_Default_Void")
+      ?? findContains("void")
+      ?? "Env_Default_Void";
+  }
+
+  const zoneMatch = /zone[_ -]?(\d+)/i.exec(normalizedPath);
+  if (zoneMatch) {
+    const zonePrefix = `Env_Zone${zoneMatch[1]}`;
+    return findExact(zonePrefix)
+      ?? findPrefix(zonePrefix)
+      ?? findContains(`zone${zoneMatch[1]}`)
+      ?? findExact("Env_Default_Flat")
+      ?? "Env_Default_Flat";
+  }
+
+  return findExact("Env_Default_Flat")
+    ?? findPrefix("Env_Default")
+    ?? envNames[0]
+    ?? "Env_Default_Flat";
+}
+
 function statusClass(status: AssetInspectorEntry["status"]): string {
   switch (status) {
     case "in-pack":
@@ -309,6 +341,7 @@ export function PropertyPanel() {
   const currentFile = useProjectStore((s) => s.currentFile);
   const projectPath = useProjectStore((s) => s.projectPath);
   const rawJsonContent = useEditorStore((s) => s.rawJsonContent);
+  const setRawJsonContent = useEditorStore((s) => s.setRawJsonContent);
   const editingContext = useEditorStore((s) => s.editingContext);
   const { openFile } = useTauriIO();
   const addToast = useToastStore((s) => s.addToast);
@@ -845,6 +878,18 @@ export function PropertyPanel() {
       const inPackEntries = assetInspectorEntries.filter((entry) => entry.status === "in-pack");
       const builtInEntries = assetInspectorEntries.filter((entry) => entry.status === "built-in");
       const missingEntries = assetInspectorEntries.filter((entry) => entry.status === "missing");
+      const prioritizedAssetInspectorEntries = [...assetInspectorEntries].sort((left, right) => {
+        const rank = (status: AssetInspectorEntry["status"]) => (
+          status === "missing" ? 0 : status === "built-in" ? 1 : 2
+        );
+        return rank(left.status) - rank(right.status) || left.label.localeCompare(right.label);
+      });
+      const suggestedParentEnvironment = !isWeatherAsset && !(typeof doc.Parent === "string" && doc.Parent.trim())
+        ? inferSuggestedEnvironmentParent(currentFile, [...FIELD_SUGGESTIONS.Environment])
+        : null;
+      const projectAssetFolder = projectPath
+        ? joinWindowsPath(projectPath, isWeatherAsset ? "Common\\Sky" : "Server\\Weathers")
+        : null;
       const summaryRows = isWeatherAsset
         ? [
             {
@@ -969,6 +1014,22 @@ export function PropertyPanel() {
                   {isWeatherAsset ? "Add Built-ins" : "Import Built-ins"}
                 </button>
               )}
+              {!isWeatherAsset && suggestedParentEnvironment && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRawJsonContent({
+                      ...(doc as Record<string, unknown>),
+                      Parent: suggestedParentEnvironment,
+                    });
+                    setDirty(true);
+                  }}
+                  disabled={assetInspectorActionKey !== null}
+                  className="rounded border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-200 transition-colors hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Use {suggestedParentEnvironment}
+                </button>
+              )}
               {!isWeatherAsset && missingEntries.length > 0 && (
                 <button
                   type="button"
@@ -981,6 +1042,18 @@ export function PropertyPanel() {
                   className="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Create Missing Files
+                </button>
+              )}
+              {projectAssetFolder && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    void showInFolder(projectAssetFolder);
+                  }}
+                  disabled={assetInspectorActionKey !== null}
+                  className="rounded border border-tn-border px-3 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isWeatherAsset ? "Reveal Sky Folder" : "Reveal Weathers Folder"}
                 </button>
               )}
               <button
@@ -998,11 +1071,36 @@ export function PropertyPanel() {
             {!projectPath && (
               <div className="mt-3 rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
                 Open the file from a pack root to enable import and create actions.
-              </div>
-            )}
+                </div>
+              )}
 
-            <div className="mt-3 flex max-h-[26rem] flex-col gap-2 overflow-y-auto pr-1">
-              {assetInspectorLoading ? (
+              {!isWeatherAsset && (
+                <div className="mt-3 grid gap-2 md:grid-cols-2">
+                  <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Parent Chain</p>
+                    <p className="mt-1 text-sm font-semibold text-tn-text">
+                      {typeof doc.Parent === "string" && doc.Parent.trim() ? doc.Parent : "No parent set"}
+                    </p>
+                    <p className="mt-1 text-[11px] text-tn-text-muted">
+                      {typeof doc.Parent === "string" && doc.Parent.trim()
+                        ? "Inherited environment settings will flow from this parent."
+                        : `Suggested parent: ${suggestedParentEnvironment ?? "Env_Default_Flat"}`}
+                    </p>
+                  </div>
+                  <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Resolution Focus</p>
+                    <p className="mt-1 text-sm font-semibold text-tn-text">
+                      {builtInEntries.length + missingEntries.length} referenced weather file(s) still need attention
+                    </p>
+                    <p className="mt-1 text-[11px] text-tn-text-muted">
+                      Import built-ins first, then create placeholders only for custom weather IDs that do not exist anywhere.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-3 flex max-h-[26rem] flex-col gap-2 overflow-y-auto pr-1">
+                {assetInspectorLoading ? (
                 <div className="rounded border border-dashed border-tn-border/60 px-3 py-4 text-xs text-tn-text-muted">
                   Scanning referenced assets...
                 </div>
@@ -1013,7 +1111,7 @@ export function PropertyPanel() {
                     : "No referenced weather IDs were found on this environment file yet."}
                 </div>
               ) : (
-                assetInspectorEntries.map((entry) => {
+                prioritizedAssetInspectorEntries.map((entry) => {
                   const isRunning = assetInspectorActionKey === `entry:${entry.key}`;
                   const projectRelativePath = entry.projectPath ? toRelativeDisplayPath(projectPath, entry.projectPath) : null;
 

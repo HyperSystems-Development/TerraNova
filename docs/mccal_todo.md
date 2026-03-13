@@ -2,6 +2,23 @@
 
 ---
 
+## Environment Parent Inheritance Docs
+
+**TODO:** Add a short tutorial/help entry explaining how Hytale uses `Parent` on environment assets.
+
+**Observed from real assets in `C:\Users\wolft\Desktop\Assets\Server\Environments`:**
+- Zone variants inherit from their zone base: `Env_Zone1_Azure` -> `Env_Zone1`, `Env_Zone1_Plains` -> `Env_Zone1`
+- Cave variants inherit from the cave base: `Env_Zone1_Caves_Forests` -> `Env_Zone1_Caves`, `Env_Zone2_Caves_Deserts` -> `Env_Zone2_Caves`
+- Unique sets inherit from a shared base: `Env_Forgotten_Temple_Exterior` -> `Env_Forgotten_Temple_Base`
+- Tiered volcanic variants inherit from the T1 base: `Env_Zone1_Caves_Volcanic_T2` -> `Env_Zone1_Caves_Volcanic_T1`
+
+**What the eventual guide should explain:**
+- `Parent` is usually a shared base environment, not a duplicate of the current file name
+- Child environments often override only a small set of fields like `Tags`, `WaterTint`, or a narrow weather slice
+- Safe defaults depend on the family: `Env_ZoneX`, `Env_ZoneX_Caves`, `Env_Default_Flat`, or `Env_Default_Void`
+
+---
+
 ## Tint System: Quick Notes & Actions
 
 **Limitation:**
