@@ -186,6 +186,7 @@ export function EnvironmentEditorView() {
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [previewHour, setPreviewHour] = useState(12);
   const [selectedDaypartId, setSelectedDaypartId] = useState<(typeof DAYPARTS)[number]["id"] | null>(null);
+  const [showIssueLog, setShowIssueLog] = useState(true);
   const [showPreview, setShowPreview] = useState(true);
   const [showOverviewSection, setShowOverviewSection] = useState(true);
   const [showTagsSection, setShowTagsSection] = useState(false);
@@ -703,6 +704,33 @@ export function EnvironmentEditorView() {
               No environment file loaded.
             </div>
           )}
+          {hasEnvironmentDoc && (
+            <CollapsibleEditorSection
+              title="Issue Log"
+              description="Validation warnings and info for the loaded environment file."
+              badge={environmentIssues.length > 0 ? `${environmentIssues.length}` : undefined}
+              open={showIssueLog}
+              onToggle={() => setShowIssueLog((v) => !v)}
+            >
+              <div className="flex flex-col gap-2">
+                <EditorCalloutSection
+                  title="Issues"
+                  items={environmentIssues}
+                  emptyState="No obvious environment file problems were detected."
+                />
+                {isWeatherDirMissing && (
+                  <button
+                    type="button"
+                    onClick={() => { void handleCreateDefaultWeather(); }}
+                    className="inline-flex items-center gap-2 self-start rounded border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300 transition-colors hover:border-amber-400/70 hover:bg-amber-400/20"
+                  >
+                    <WandSparkles className="h-3 w-3" />
+                    Create Default Weather
+                  </button>
+                )}
+              </div>
+            </CollapsibleEditorSection>
+          )}
           <CollapsibleEditorSection
             title="Preview"
             description="Forecast strip, active weather weights, and daypart summaries."
@@ -943,24 +971,6 @@ export function EnvironmentEditorView() {
                     </p>
                   </button>
                 ))}
-              </div>
-
-              <div className="mt-3 mb-3 flex flex-col gap-2">
-                <EditorCalloutSection
-                  title="Issue Log"
-                  items={environmentIssues}
-                  emptyState="No obvious environment file problems were detected in the current forecast model."
-                />
-                {isWeatherDirMissing && (
-                  <button
-                    type="button"
-                    onClick={() => { void handleCreateDefaultWeather(); }}
-                    className="inline-flex items-center gap-2 self-start rounded border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300 transition-colors hover:border-amber-400/70 hover:bg-amber-400/20"
-                  >
-                    <WandSparkles className="h-3 w-3" />
-                    Create Default Weather
-                  </button>
-                )}
               </div>
 
             </div>
