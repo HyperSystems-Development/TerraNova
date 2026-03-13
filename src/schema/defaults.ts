@@ -40,7 +40,7 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   Constant: { Value: 0.0 },
   ImportedValue: { Name: "" },
   // Clamping & range
-  Clamp: { Min: -Infinity, Max: Infinity },
+  Clamp: { Min: -1e15, Max: 1e15 },
   ClampToIndex: { Min: 0, Max: 255 },
   Normalizer: { SourceRange: { Min: -1, Max: 1 }, TargetRange: { Min: 0, Max: 1 } },
   DoubleNormalizer: { SourceRangeA: { Min: -1, Max: 0 }, TargetRangeA: { Min: 0, Max: 0.5 }, SourceRangeB: { Min: 0, Max: 1 }, TargetRangeB: { Min: 0.5, Max: 1 } },

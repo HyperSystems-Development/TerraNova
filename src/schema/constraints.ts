@@ -47,10 +47,10 @@ export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> 
     Exponent: { required: true, message: "Pow requires an Exponent" },
   },
   OffsetConstant: {
-    Offset: { required: true },
+    Value: { required: true },
   },
   AmplitudeConstant: {
-    Amplitude: { required: true },
+    Value: { required: true },
   },
 
   // Smooth operations (Smoothness constraints)
