@@ -2,6 +2,7 @@ export interface EditorCalloutItem {
   severity: "error" | "warning" | "info";
   title: string;
   detail: string;
+  fix?: { label: string; onFix: () => void };
 }
 
 const SEVERITY_COLORS: Record<EditorCalloutItem["severity"], string> = {
@@ -82,6 +83,15 @@ export function EditorCalloutSection({
                 <p className="text-[11px] font-medium text-tn-text leading-tight">{item.title}</p>
                 <p className="mt-0.5 text-[10px] leading-relaxed text-tn-text-muted">{item.detail}</p>
               </div>
+              {item.fix && (
+                <button
+                  type="button"
+                  onClick={item.fix.onFix}
+                  className="shrink-0 rounded border border-tn-accent/50 bg-tn-accent/10 px-2 py-0.5 text-[10px] font-medium text-tn-accent transition-colors hover:bg-tn-accent/20"
+                >
+                  {item.fix.label}
+                </button>
+              )}
             </div>
           ))}
         </div>

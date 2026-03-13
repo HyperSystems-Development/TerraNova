@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Save } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
@@ -715,7 +715,7 @@ export function WeatherEditorView() {
     updateColorTrack(trackKey, upsertColorKeyframe(((doc[trackKey] as HourColor[] | undefined) ?? []), previewHour, color));
   };
 
-  const weatherIssues = useMemo<EditorCalloutItem[]>(() => {
+  const weatherIssues: EditorCalloutItem[] = (() => {
     const items: EditorCalloutItem[] = [];
     const essentialMissing = [
       { key: "SkyTopColors", label: "Sky Top" },
@@ -737,12 +737,23 @@ export function WeatherEditorView() {
         severity: "warning",
         title: "Fog distance is not configured",
         detail: "Set near/far fog bounds so the preview volume matches the real weather file.",
+        fix: {
+          label: "Set defaults",
+          onFix: () => updateDoc((previous) => ({ ...previous, FogDistance: [-96, 1024] })),
+        },
       });
     } else if ((doc.FogDistance[1] ?? 0) <= (doc.FogDistance[0] ?? 0)) {
       items.push({
         severity: "error",
         title: "Fog distance range is inverted",
         detail: `Far (${doc.FogDistance[1]}) should be greater than near (${doc.FogDistance[0]}).`,
+        fix: {
+          label: "Swap values",
+          onFix: () => updateDoc((previous) => ({
+            ...previous,
+            FogDistance: [previous.FogDistance![1], previous.FogDistance![0]] as [number, number],
+          })),
+        },
       });
     }
 
@@ -771,6 +782,50 @@ export function WeatherEditorView() {
         severity: "warning",
         title: "Duplicate hour keys detected",
         detail: duplicateTrackWarnings.slice(0, 4).join(" | "),
+        fix: {
+          label: "Deduplicate",
+          onFix: () => updateDoc((previous) => {
+            const next = { ...previous };
+            for (const track of COLOR_TRACKS) {
+              const kf = (next[track.key] as HourColor[] | undefined) ?? [];
+              const seen = new Set<number>();
+              next[track.key] = kf.filter((entry) => {
+                if (seen.has(entry.Hour)) return false;
+                seen.add(entry.Hour);
+                return true;
+              });
+            }
+            for (const track of VALUE_TRACKS) {
+              const kf = (next[track.key] as HourValue[] | undefined) ?? [];
+              const seen = new Set<number>();
+              next[track.key] = kf.filter((entry) => {
+                if (seen.has(entry.Hour)) return false;
+                seen.add(entry.Hour);
+                return true;
+              });
+            }
+            if (Array.isArray(next.Clouds)) {
+              next.Clouds = (next.Clouds as CloudLayer[]).map((layer) => {
+                const colorSeen = new Set<number>();
+                const speedSeen = new Set<number>();
+                return {
+                  ...layer,
+                  Colors: (layer.Colors ?? []).filter((e) => {
+                    if (colorSeen.has(e.Hour)) return false;
+                    colorSeen.add(e.Hour);
+                    return true;
+                  }),
+                  Speeds: (layer.Speeds ?? []).filter((e) => {
+                    if (speedSeen.has(e.Hour)) return false;
+                    speedSeen.add(e.Hour);
+                    return true;
+                  }),
+                };
+              });
+            }
+            return next;
+          }),
+        },
       });
     }
 
@@ -779,6 +834,20 @@ export function WeatherEditorView() {
         severity: "info",
         title: "No celestial assets configured",
         detail: "This file has neither a star texture nor moon entries, so the night preview will stay visually sparse.",
+        fix: {
+          label: "Add defaults",
+          onFix: () => updateDoc((previous) => ({
+            ...previous,
+            Stars: "Sky/Stars.png",
+            Moons: [
+              { Day: 0, Texture: "Sky/MoonCycle/Moon_Full.png" },
+              { Day: 1, Texture: "Sky/MoonCycle/Moon_Gibbous.png" },
+              { Day: 2, Texture: "Sky/MoonCycle/Moon_Half.png" },
+              { Day: 3, Texture: "Sky/MoonCycle/Moon_Crescent.png" },
+              { Day: 4, Texture: "Sky/MoonCycle/Moon_New.png" },
+            ],
+          })),
+        },
       });
     }
 
@@ -787,6 +856,38 @@ export function WeatherEditorView() {
         severity: "info",
         title: "No cloud layers present",
         detail: "The sky preview is currently driven only by color tracks and celestial settings.",
+        fix: {
+          label: "Add cloud layer",
+          onFix: () => updateDoc((previous) => ({
+            ...previous,
+            Clouds: [
+              {
+                Texture: "Sky/Clouds/Light_Base.png",
+                Colors: [
+                  { Hour: 3, Color: "#1a1a1bc7" },
+                  { Hour: 5, Color: "rgba(#ff5e43, 0.504)" },
+                  { Hour: 7, Color: "#ffffffe6" },
+                  { Hour: 17, Color: "#ffffffe6" },
+                  { Hour: 19, Color: "#ff5e4347" },
+                  { Hour: 21, Color: "#1a1a1bc7" },
+                ],
+                Speeds: [{ Hour: 0, Value: 0.7 }],
+              },
+              {
+                Texture: "Sky/Clouds/Light_Highlights.png",
+                Colors: [
+                  { Hour: 3, Color: "#1a1a1bc7" },
+                  { Hour: 5, Color: "#ff5e4366" },
+                  { Hour: 7, Color: "#ffffffe6" },
+                  { Hour: 17, Color: "#ffffffe6" },
+                  { Hour: 19, Color: "#ff5e4347" },
+                  { Hour: 21, Color: "#1a1a1bc7" },
+                ],
+                Speeds: [{ Hour: 0, Value: 0.7 }],
+              },
+            ],
+          })),
+        },
       });
     }
 
@@ -799,7 +900,7 @@ export function WeatherEditorView() {
     }
 
     return items;
-  }, [cloudLayers, doc, extraEntries.length, moons.length, starTexture]);
+  })();
 
   const previewPanel = (
     <div>
@@ -1301,13 +1402,13 @@ export function WeatherEditorView() {
                       <input
                         type="number"
                         step={1}
-                        value={doc.FogDistance?.[0] ?? -192}
+                        value={doc.FogDistance?.[0] ?? -96}
                         onChange={(event) => {
                           const value = Number.parseFloat(event.target.value);
                           if (!Number.isFinite(value)) return;
                           updateDoc((previous) => ({
                             ...previous,
-                            FogDistance: [value, (previous.FogDistance ?? [-192, 128])[1]],
+                            FogDistance: [value, (previous.FogDistance ?? [-96, 1024])[1]],
                           }));
                         }}
                         className="mt-1 w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text"
@@ -1318,13 +1419,13 @@ export function WeatherEditorView() {
                       <input
                         type="number"
                         step={1}
-                        value={doc.FogDistance?.[1] ?? 128}
+                        value={doc.FogDistance?.[1] ?? 1024}
                         onChange={(event) => {
                           const value = Number.parseFloat(event.target.value);
                           if (!Number.isFinite(value)) return;
                           updateDoc((previous) => ({
                             ...previous,
-                            FogDistance: [(previous.FogDistance ?? [-192, 128])[0], value],
+                            FogDistance: [(previous.FogDistance ?? [-96, 1024])[0], value],
                           }));
                         }}
                         className="mt-1 w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text"
@@ -1381,13 +1482,13 @@ export function WeatherEditorView() {
                 <input
                   type="number"
                   step={1}
-                  value={(doc.FogDistance as [number, number] | undefined)?.[0] ?? -192}
+                  value={(doc.FogDistance as [number, number] | undefined)?.[0] ?? -96}
                   onChange={(event) => {
                     const value = Number.parseFloat(event.target.value);
                     if (!Number.isFinite(value)) return;
                     updateDoc((previous) => ({
                       ...previous,
-                      FogDistance: [value, (previous.FogDistance ?? [-192, 128])[1]],
+                      FogDistance: [value, (previous.FogDistance ?? [-96, 1024])[1]],
                     }));
                   }}
                   className="flex-1 rounded border border-tn-border bg-tn-bg px-2 py-1 text-[10px] font-mono text-right text-tn-text"
@@ -1396,13 +1497,13 @@ export function WeatherEditorView() {
                 <input
                   type="number"
                   step={1}
-                  value={(doc.FogDistance as [number, number] | undefined)?.[1] ?? 128}
+                  value={(doc.FogDistance as [number, number] | undefined)?.[1] ?? 1024}
                   onChange={(event) => {
                     const value = Number.parseFloat(event.target.value);
                     if (!Number.isFinite(value)) return;
                     updateDoc((previous) => ({
                       ...previous,
-                      FogDistance: [(previous.FogDistance ?? [-192, 128])[0], value],
+                      FogDistance: [(previous.FogDistance ?? [-96, 1024])[0], value],
                     }));
                   }}
                   className="flex-1 rounded border border-tn-border bg-tn-bg px-2 py-1 text-[10px] font-mono text-right text-tn-text"
