@@ -18,8 +18,8 @@ describe("HANDLE_REGISTRY", () => {
     if (missing.length > 0) {
       console.warn("Missing HANDLE_REGISTRY entries:", missing);
     }
-    // Allow a small tolerance for newly added node types
-    expect(missing.length).toBeLessThanOrEqual(5);
+    // Every registered node type must have a handle registry entry
+    expect(missing.length).toBe(0);
   });
 
   it("every HandleDef has a valid category", () => {
