@@ -44,6 +44,7 @@ export function useVoxelEvaluation() {
   const setVoxelLoading = usePreviewStore((s) => s.setVoxelLoading);
   const setVoxelError = usePreviewStore((s) => s.setVoxelError);
   const setVoxelMaterials = usePreviewStore((s) => s.setVoxelMaterials);
+  const debounceMs = useConfigStore((s) => s.debounceMs);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const evalIdRef = useRef(0);
@@ -285,7 +286,7 @@ export function useVoxelEvaluation() {
       }
 
       runStep();
-    }, useConfigStore.getState().debounceMs);
+    }, debounceMs);
 
     return () => {
       unmountedRef.current = true;
@@ -296,7 +297,7 @@ export function useVoxelEvaluation() {
   }, [
     nodes, edges, contentFields, outputNodeId, materialConfig, mode, rangeMin, rangeMax, voxelYMin, voxelYMax,
     voxelYSlices, voxelResolution, selectedPreviewNodeId, viewMode,
-    autoRefresh, showMaterialColors, autoFitYEnabled,
+    autoRefresh, showMaterialColors, autoFitYEnabled, debounceMs,
     setVoxelDensities, setVoxelLoading, setVoxelError, setVoxelMaterials,
   ]);
 }

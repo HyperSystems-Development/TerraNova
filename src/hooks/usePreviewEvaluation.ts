@@ -25,6 +25,7 @@ export function usePreviewEvaluation() {
   const setValues = usePreviewStore((s) => s.setValues);
   const setLoading = usePreviewStore((s) => s.setLoading);
   const setPreviewError = usePreviewStore((s) => s.setPreviewError);
+  const debounceMs = useConfigStore((s) => s.debounceMs);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const evalIdRef = useRef(0);
 
@@ -73,13 +74,13 @@ export function usePreviewEvaluation() {
           setLoading(false);
         }
       }
-    }, useConfigStore.getState().debounceMs);
+    }, debounceMs);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       cancelEvaluation();
     };
-  }, [nodes, edges, contentFields, outputNodeId, resolution, rangeMin, rangeMax, yLevel, selectedPreviewNodeId, viewMode, autoRefresh, setValues, setLoading, setPreviewError]);
+  }, [nodes, edges, contentFields, outputNodeId, resolution, rangeMin, rangeMax, yLevel, selectedPreviewNodeId, viewMode, autoRefresh, setValues, setLoading, setPreviewError, debounceMs]);
 }
 
 /**

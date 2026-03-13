@@ -25,6 +25,7 @@ export function useComparisonEvaluation() {
   const setCompareValuesB = usePreviewStore((s) => s.setCompareValuesB);
   const setCompareLoadingA = usePreviewStore((s) => s.setCompareLoadingA);
   const setCompareLoadingB = usePreviewStore((s) => s.setCompareLoadingB);
+  const debounceMs = useConfigStore((s) => s.debounceMs);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const workerARef = useRef<WorkerInstance | null>(null);
@@ -137,7 +138,7 @@ export function useComparisonEvaluation() {
           }
         }
       }
-    }, useConfigStore.getState().debounceMs);
+    }, debounceMs);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -145,5 +146,5 @@ export function useComparisonEvaluation() {
       workerBRef.current?.cancel();
     };
   }, [nodes, edges, contentFields, resolution, rangeMin, rangeMax, yLevel, viewMode, compareNodeA, compareNodeB,
-      setCompareValuesA, setCompareValuesB, setCompareLoadingA, setCompareLoadingB]);
+      setCompareValuesA, setCompareValuesB, setCompareLoadingA, setCompareLoadingB, debounceMs]);
 }
