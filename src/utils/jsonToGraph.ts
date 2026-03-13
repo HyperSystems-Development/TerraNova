@@ -20,6 +20,9 @@ const HANDLE_MIGRATION: Record<string, Record<string, string>> = {
   "Curve:Blend":                { InputA: "Inputs[0]", InputB: "Inputs[1]" },
   "Material:NoiseSelectorMaterial": { InputA: "Inputs[0]", InputB: "Inputs[1]" },
   "Material:NoiseSelector":     { InputA: "Inputs[0]", InputB: "Inputs[1]" },
+  // V2 uses singular "Material" field; registry expects "Materials[0]"
+  "Material:SimpleHorizontal":  { Material: "Materials[0]" },
+  "Material:Striped":           { Material: "Materials[0]" },
 };
 
 function migrateHandle(nodeType: string, handle: string): string {
@@ -130,6 +133,7 @@ const FIELD_CATEGORY_PREFIX: Record<string, string> = {
   // Array fields for compound nodes
   Scanners: "Scanner",
   Props: "Prop",
+  Assignments: "Assignment",
   // Density fields (no prefix — bare density type)
   FieldFunction: "",
   Density: "",
