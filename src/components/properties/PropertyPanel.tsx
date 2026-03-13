@@ -26,6 +26,7 @@ import { FIELD_CONSTRAINTS } from "@/schema/constraints";
 import { NODE_TIPS } from "@/schema/nodeTips";
 import { FIELD_DESCRIPTIONS, getShortDescription, getExtendedDescription } from "@/schema/fieldDescriptions";
 import { useLanguage } from "@/languages/useLanguage";
+import { showInFolder } from "@/utils/ipc";
 import {
   type DelimiterValidationIssue,
   readDelimiterRangeMin,
@@ -118,6 +119,33 @@ interface EnvironmentNameLookup {
   error: string | null;
 }
 
+const WEATHER_SUMMARY_COLOR_KEYS = [
+  "SkyTopColors",
+  "SkyBottomColors",
+  "SkySunsetColors",
+  "FogColors",
+  "SunColors",
+  "SunGlowColors",
+  "MoonColors",
+  "MoonGlowColors",
+  "SunlightColors",
+  "ScreenEffectColors",
+  "WaterTints",
+];
+
+const WEATHER_SUMMARY_VALUE_KEYS = [
+  "SunScales",
+  "MoonScales",
+  "FogDensities",
+  "FogHeightFalloffs",
+  "SunlightDampingMultipliers",
+];
+
+function isAssetFileInFolder(path: string | null, folderName: string): boolean {
+  if (!path) return false;
+  return path.replace(/\\/g, "/").toLowerCase().includes(`/${folderName.toLowerCase()}/`);
+}
+
 export function PropertyPanel() {
   const nodes = useEditorStore((s) => s.nodes);
   const edges = useEditorStore((s) => s.edges);
@@ -131,6 +159,7 @@ export function PropertyPanel() {
   const setDirty = useProjectStore((s) => s.setDirty);
   const currentFile = useProjectStore((s) => s.currentFile);
   const projectPath = useProjectStore((s) => s.projectPath);
+  const rawJsonContent = useEditorStore((s) => s.rawJsonContent);
   const editingContext = useEditorStore((s) => s.editingContext);
   const { getTypeDisplayName, getFieldDisplayName, getFieldTransform } = useLanguage();
   const helpMode = useUIStore((s) => s.helpMode);
@@ -442,6 +471,126 @@ export function PropertyPanel() {
           onPropMetaChange={handlePropMetaChange}
           onBlur={handleConfigBlur}
         />
+      );
+    }
+
+    if ((isAssetFileInFolder(currentFile, "Server/Weathers") || isAssetFileInFolder(currentFile, "Server/Environments")) && rawJsonContent) {
+      const isWeatherAsset = isAssetFileInFolder(currentFile, "Server/Weathers");
+      const assetLabel = isWeatherAsset ? "Weather Asset Inspector" : "Environment Asset Inspector";
+      const doc = rawJsonContent as Record<string, unknown>;
+      const summaryRows = isWeatherAsset
+        ? [
+            {
+              label: "Color tracks",
+              value: String(WEATHER_SUMMARY_COLOR_KEYS.filter((key) => Array.isArray(doc[key])).length),
+            },
+            {
+              label: "Value tracks",
+              value: String(WEATHER_SUMMARY_VALUE_KEYS.filter((key) => Array.isArray(doc[key])).length),
+            },
+            {
+              label: "Cloud layers",
+              value: String(Array.isArray(doc.Clouds) ? doc.Clouds.length : 0),
+            },
+            {
+              label: "Moons",
+              value: String(Array.isArray(doc.Moons) ? doc.Moons.length : 0),
+            },
+            {
+              label: "Stars",
+              value: typeof doc.Stars === "string" && doc.Stars.trim() ? "Configured" : "Missing",
+            },
+          ]
+        : (() => {
+            const forecasts = (doc.WeatherForecasts && typeof doc.WeatherForecasts === "object"
+              ? doc.WeatherForecasts
+              : {}) as Record<string, unknown>;
+            const forecastEntries = Object.values(forecasts)
+              .filter((value) => Array.isArray(value))
+              .map((value) => value as unknown[]);
+            const totalEntries = forecastEntries.reduce((sum, entries) => sum + entries.length, 0);
+            const uniqueWeatherIds = new Set<string>();
+            for (const entries of forecastEntries) {
+              for (const entry of entries) {
+                if (entry && typeof entry === "object" && typeof (entry as { WeatherId?: unknown }).WeatherId === "string") {
+                  uniqueWeatherIds.add((entry as { WeatherId: string }).WeatherId);
+                }
+              }
+            }
+            return [
+              {
+                label: "Forecast hours",
+                value: String(forecastEntries.filter((entries) => entries.length > 0).length),
+              },
+              {
+                label: "Forecast entries",
+                value: String(totalEntries),
+              },
+              {
+                label: "Weather refs",
+                value: String(uniqueWeatherIds.size),
+              },
+              {
+                label: "Tags",
+                value: String(doc.Tags && typeof doc.Tags === "object" ? Object.keys(doc.Tags as Record<string, unknown>).length : 0),
+              },
+              {
+                label: "Parent",
+                value: typeof doc.Parent === "string" && doc.Parent.trim() ? doc.Parent : "None",
+              },
+            ];
+          })();
+
+      return (
+        <div className="flex h-full flex-col gap-3 p-3">
+          <div className="border-b border-tn-border pb-2">
+            <h3 className="text-sm font-semibold">{assetLabel}</h3>
+            <p className="mt-1 text-xs text-tn-text-muted">
+              Context summary and file actions for the asset open in the center editor.
+            </p>
+          </div>
+
+          <div className="rounded border border-tn-border/60 bg-tn-bg/70 p-3">
+            <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Current File</p>
+            <p className="mt-1 truncate text-sm font-medium text-tn-text">
+              {currentFile?.split(/[/\\]/).pop() ?? "Untitled"}
+            </p>
+            <p className="mt-1 break-all text-[11px] text-tn-text-muted">{currentFile ?? "No file open"}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {summaryRows.map((item) => (
+              <div key={item.label} className="rounded border border-tn-border/50 bg-tn-bg/60 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">{item.label}</p>
+                <p className="mt-1 text-sm font-semibold text-tn-text">{item.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded border border-tn-border/50 bg-tn-bg/50 p-3">
+            <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Quick Actions</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentFile) void showInFolder(currentFile);
+                }}
+                className="rounded border border-tn-border px-3 py-1.5 text-xs text-tn-text hover:bg-tn-surface"
+              >
+                Reveal File
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (projectPath) void showInFolder(projectPath);
+                }}
+                className="rounded border border-tn-border px-3 py-1.5 text-xs text-tn-text hover:bg-tn-surface"
+              >
+                Reveal Pack Root
+              </button>
+            </div>
+          </div>
+        </div>
       );
     }
 

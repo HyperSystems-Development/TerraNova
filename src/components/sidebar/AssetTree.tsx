@@ -110,6 +110,11 @@ interface ContextMenuState {
   isDir: boolean;
 }
 
+interface NewFolderDialogState {
+  open: boolean;
+  targetDirectory: string;
+}
+
 const HYTALE_FOLDERS = [
   { label: "Weathers", path: "Server\\Weathers" },
   { label: "Environments", path: "Server\\Environments" },
@@ -182,6 +187,116 @@ function ContextMenuDivider() {
   return <div className="my-1 border-t border-tn-border/40" />;
 }
 
+function validateFolderName(name: string): string | null {
+  const trimmed = name.trim();
+  if (!trimmed) return "Folder name is required.";
+  if (trimmed === "." || trimmed === "..") return "Folder name cannot be . or ..";
+  if (/[\\/]/.test(trimmed)) return "Folder name cannot contain path separators.";
+  if (/[<>:"|?*]/.test(trimmed)) return "Folder name contains invalid Windows characters.";
+  return null;
+}
+
+function NewFolderDialog({
+  open,
+  targetDirectory,
+  value,
+  error,
+  loading,
+  onChange,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  targetDirectory: string;
+  value: string;
+  error: string | null;
+  loading: boolean;
+  onChange: (value: string) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const timeout = window.setTimeout(() => inputRef.current?.focus(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key === "Enter" && !loading) {
+        event.preventDefault();
+        onConfirm();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [loading, onClose, onConfirm, open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60" onClick={onClose}>
+      <div
+        className="w-[440px] rounded-lg border border-tn-border bg-tn-panel p-5 shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold text-tn-text">New Folder</h2>
+          <p className="mt-1 text-xs text-tn-text-muted">Create a folder inside:</p>
+          <p className="mt-1 truncate rounded border border-tn-border/50 bg-tn-bg/70 px-2 py-1 text-[11px] text-tn-text-muted">
+            {targetDirectory}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-tn-text-muted" htmlFor="asset-tree-new-folder">
+            Folder Name
+          </label>
+          <input
+            id="asset-tree-new-folder"
+            ref={inputRef}
+            type="text"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="NewFolder"
+            className="rounded border border-tn-border bg-tn-bg px-2 py-1.5 text-sm text-tn-text outline-none transition-colors focus:border-tn-accent"
+          />
+          {error ? <p className="text-xs text-red-400">{error}</p> : null}
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2 border-t border-tn-border pt-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded border border-tn-border px-3 py-1.5 text-xs hover:bg-tn-surface disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className="rounded bg-tn-accent px-3 py-1.5 text-xs font-medium text-tn-bg hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? "Creating..." : "Create Folder"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ContextMenuItem({
   label,
   sublabel,
@@ -210,10 +325,12 @@ function ContextMenu({
   menu,
   onClose,
   onRefresh,
+  onRequestNewFolder,
 }: {
   menu: ContextMenuState;
   onClose: () => void;
   onRefresh: () => void;
+  onRequestNewFolder: (targetDirectory: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const projectPath = useProjectStore((s) => s.projectPath);
@@ -249,21 +366,8 @@ function ContextMenu({
     onClose();
   }
 
-  async function handleNewFolder() {
-    const name = window.prompt("New folder name:");
-    if (!name?.trim()) {
-      onClose();
-      return;
-    }
-
-    const newPath = `${targetDirectory}\\${name.trim()}`;
-    try {
-      await createDirectory(newPath);
-      onRefresh();
-      addToast(`Created folder: ${name.trim()}`, "success");
-    } catch (error) {
-      addToast(`Failed to create folder: ${error}`, "error");
-    }
+  function handleNewFolder() {
+    onRequestNewFolder(targetDirectory);
     onClose();
   }
 
@@ -544,7 +648,15 @@ export function AssetTree() {
   const directoryTree = useProjectStore((s) => s.directoryTree);
   const setDirectoryTree = useProjectStore((s) => s.setDirectoryTree);
   const projectPath = useProjectStore((s) => s.projectPath);
+  const addToast = useToastStore((s) => s.addToast);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [newFolderDialog, setNewFolderDialog] = useState<NewFolderDialogState>({
+    open: false,
+    targetDirectory: "",
+  });
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderError, setNewFolderError] = useState<string | null>(null);
+  const [creatingFolder, setCreatingFolder] = useState(false);
 
   const handleContextMenu = useCallback((event: React.MouseEvent, path: string, isDir: boolean) => {
     event.preventDefault();
@@ -560,6 +672,43 @@ export function AssetTree() {
       // Leave the tree as-is if refresh fails.
     }
   }, [projectPath, setDirectoryTree]);
+
+  const handleRequestNewFolder = useCallback((targetDirectory: string) => {
+    setNewFolderDialog({ open: true, targetDirectory });
+    setNewFolderName("");
+    setNewFolderError(null);
+  }, []);
+
+  const handleCloseNewFolderDialog = useCallback(() => {
+    if (creatingFolder) return;
+    setNewFolderDialog({ open: false, targetDirectory: "" });
+    setNewFolderName("");
+    setNewFolderError(null);
+  }, [creatingFolder]);
+
+  const handleConfirmNewFolder = useCallback(async () => {
+    const validationError = validateFolderName(newFolderName);
+    if (validationError) {
+      setNewFolderError(validationError);
+      return;
+    }
+
+    setCreatingFolder(true);
+    setNewFolderError(null);
+    const folderName = newFolderName.trim();
+    const newPath = `${newFolderDialog.targetDirectory}\\${folderName}`;
+    try {
+      await createDirectory(newPath);
+      await handleRefresh();
+      addToast(`Created folder: ${folderName}`, "success");
+      setNewFolderDialog({ open: false, targetDirectory: "" });
+      setNewFolderName("");
+    } catch (error) {
+      setNewFolderError(`Failed to create folder: ${error}`);
+    } finally {
+      setCreatingFolder(false);
+    }
+  }, [addToast, handleRefresh, newFolderDialog.targetDirectory, newFolderName]);
 
   if (directoryTree.length === 0) {
     return (
@@ -585,8 +734,24 @@ export function AssetTree() {
           onRefresh={() => {
             void handleRefresh();
           }}
+          onRequestNewFolder={handleRequestNewFolder}
         />
       ) : null}
+      <NewFolderDialog
+        open={newFolderDialog.open}
+        targetDirectory={newFolderDialog.targetDirectory}
+        value={newFolderName}
+        error={newFolderError}
+        loading={creatingFolder}
+        onChange={(value) => {
+          setNewFolderName(value);
+          if (newFolderError) setNewFolderError(null);
+        }}
+        onClose={handleCloseNewFolderDialog}
+        onConfirm={() => {
+          void handleConfirmNewFolder();
+        }}
+      />
     </div>
   );
 }
