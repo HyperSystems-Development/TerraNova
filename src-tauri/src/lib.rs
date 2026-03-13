@@ -23,6 +23,7 @@ pub fn run() {
             io_commands::export_asset_file,
             io_commands::write_text_file,
             io_commands::copy_file,
+            io_commands::create_directory,
             io_commands::list_directory,
             io_commands::create_from_template,
             io_commands::list_template_biomes,

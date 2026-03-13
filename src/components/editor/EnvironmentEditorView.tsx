@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Eye, EyeOff, FolderOpen, FolderPlus, Save, WandSparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { FolderOpen, FolderPlus, Save, WandSparkles } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
-import { exportAssetFile, listDirectory, showInFolder, writeAssetFile, type DirectoryEntryData } from "@/utils/ipc";
+import { copyFile, createDirectory, exportAssetFile, listDirectory, showInFolder, writeAssetFile, type DirectoryEntryData } from "@/utils/ipc";
 import { useToastStore } from "@/stores/toastStore";
-import { EditorCalloutSection, EditorTipsSection, type EditorCalloutItem } from "./EditorCallouts";
+import { EditorCalloutSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
 
 interface WeatherForecastEntry {
@@ -102,13 +102,6 @@ function hashColor(seed: string): string {
   return `hsl(${hue} 55% 48%)`;
 }
 
-function sectionClass(isFocused: boolean): string {
-  return `rounded border p-3 transition-colors ${
-    isFocused
-      ? "border-tn-accent/70 bg-tn-accent/10 shadow-[0_0_0_1px_rgba(100,180,255,0.18)]"
-      : "border-tn-border/60 bg-tn-surface/40"
-  }`;
-}
 
 function summarizeDaypart(doc: EnvironmentDoc, start: number, end: number) {
   const weatherWeights = new Map<string, number>();
@@ -185,7 +178,6 @@ export function EnvironmentEditorView() {
   const { openFile } = useTauriIO();
   const addToast = useToastStore((state) => state.addToast);
   const hasEnvironmentDoc = rawJsonContent !== null;
-  const previewSectionRef = useRef<HTMLDivElement | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [weatherOptions, setWeatherOptions] = useState<Array<{ id: string; path: string }>>([]);
   const [weatherPathIndex, setWeatherPathIndex] = useState<Record<string, string>>({});
@@ -294,6 +286,39 @@ export function EnvironmentEditorView() {
       active = false;
     };
   }, [currentFile, projectPath]);
+
+  // Determines if a resolved path is from Hytale assets (not inside the current project).
+  function isHytaleAssetPath(resolvedPath: string): boolean {
+    if (!projectPath) return false;
+    const norm = resolvedPath.replace(/\\/g, "/").toLowerCase();
+    const projNorm = projectPath.replace(/\\/g, "/").toLowerCase();
+    return !norm.startsWith(projNorm);
+  }
+
+  // Notify when the file references weathers that only exist as Hytale assets.
+  const hytaleOnlyIds = useMemo(() => {
+    if (lookupStatus !== "ready" || !rawJsonContent) return [];
+    const forecasts = (rawJsonContent as EnvironmentDoc).WeatherForecasts ?? {};
+    const allIds = new Set<string>();
+    for (const entries of Object.values(forecasts)) {
+      for (const e of entries) if (e.WeatherId) allIds.add(e.WeatherId);
+    }
+    return [...allIds].filter((id) => {
+      const p = weatherPathIndex[id.toLowerCase()];
+      return p && isHytaleAssetPath(p);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lookupStatus, rawJsonContent, weatherPathIndex, projectPath]);
+
+  useEffect(() => {
+    if (hytaleOnlyIds.length === 0) return;
+    addToast(
+      `${hytaleOnlyIds.length} weather(s) reference Hytale assets not in your project: ${hytaleOnlyIds.slice(0, 3).join(", ")}${hytaleOnlyIds.length > 3 ? "…" : ""}. Use the Import button to copy them in.`,
+      "warning",
+    );
+  // Only fire when the set changes (file switch / lookup complete)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hytaleOnlyIds.join(","), addToast]);
 
   const doc = rawJsonContent ?? ({} as EnvironmentDoc);
 
@@ -559,11 +584,6 @@ export function EnvironmentEditorView() {
     return items;
   }, [doc, extraEntries.length, lookupError, lookupStatus, tagEntries.length, uniqueWeatherIds, weatherPathIndex]);
 
-  const environmentTips = useMemo(() => [
-    "Use the daypart cards to jump the preview to a time range and highlight the matching forecast cluster.",
-    "The weather ID inputs are backed by the Server\\Weathers datalist, so prefer selecting existing IDs over typing freehand.",
-    "Use the Open buttons beside forecast rows to jump directly into the referenced weather file.",
-  ], []);
   const displayedForecastHours = useMemo(() => {
     if (forecastScope === "current") {
       return [previewHour];
@@ -582,30 +602,6 @@ export function EnvironmentEditorView() {
           <p className="mt-0.5 text-[10px] text-tn-text-muted">{currentFile?.split(/[/\\]/).pop() ?? "Untitled"}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (showPreview) {
-                setShowPreview(false);
-                return;
-              }
-              setShowPreview(true);
-              window.requestAnimationFrame(() => {
-                previewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-              });
-            }}
-            disabled={!hasEnvironmentDoc}
-            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
-              !hasEnvironmentDoc
-                ? "cursor-not-allowed border-tn-border/40 bg-tn-bg/50 text-tn-text-muted/50"
-                : showPreview
-                  ? "border-tn-accent/70 bg-tn-accent/10 text-tn-accent"
-                  : "border-tn-border/70 bg-tn-bg/70 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-            }`}
-          >
-            {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            {showPreview ? "Hide Preview" : "Show Preview"}
-          </button>
           <button
             type="button"
             onClick={() => { void handleLocateWeathers(); }}
@@ -654,19 +650,14 @@ export function EnvironmentEditorView() {
               No environment file loaded.
             </div>
           )}
-          <section className={showPreview ? "" : "hidden"}>
-              <div ref={previewSectionRef} className={sectionClass(false)}>
-                  <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Environment Preview</p>
-                      <p className="mt-1 text-[11px] text-tn-text-muted">
-                        Forecast strip, active weather weights, and daypart summaries for the selected hour.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-tn-border/50 bg-tn-bg/60 px-2 py-0.5 text-[10px] font-mono text-tn-text-muted">
-                      {previewHour}:00
-                    </span>
-                  </div>
+          <CollapsibleEditorSection
+            title="Preview"
+            description="Forecast strip, active weather weights, and daypart summaries."
+            badge={`${previewHour}:00`}
+            open={showPreview}
+            onToggle={() => setShowPreview((v) => !v)}
+          >
+            <div>
 
                   <div className="mb-3 flex flex-wrap items-center gap-3 rounded border border-tn-border/40 bg-tn-bg/40 px-3 py-2">
                     <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="environment-preview-hour">
@@ -812,6 +803,28 @@ export function EnvironmentEditorView() {
                             >
                               Open
                             </button>
+                            {weatherPath && isHytaleAssetPath(weatherPath) && (() => {
+                              const serverRoot = inferServerRoot(currentFile, projectPath);
+                              const destPath = serverRoot ? `${serverRoot}\\Weathers\\${entry.WeatherId}.json` : null;
+                              return destPath ? (
+                                <button
+                                  type="button"
+                                  title={`Import ${entry.WeatherId} from Hytale assets into project`}
+                                  onClick={async () => {
+                                    try {
+                                      if (serverRoot) await createDirectory(`${serverRoot}\\Weathers`);
+                                      await copyFile(weatherPath, destPath);
+                                      addToast(`Imported ${entry.WeatherId} into project`, "success");
+                                    } catch (e) {
+                                      addToast(`Import failed: ${e}`, "error");
+                                    }
+                                  }}
+                                  className="rounded border border-sky-500/50 bg-sky-500/10 px-2 py-1 text-[10px] text-sky-300 transition-colors hover:border-sky-400/70 hover:bg-sky-500/20"
+                                >
+                                  Import
+                                </button>
+                              ) : null;
+                            })()}
                           </div>
                         </div>
                       </div>
@@ -868,9 +881,8 @@ export function EnvironmentEditorView() {
                 )}
               </div>
 
-              <EditorTipsSection title="Tips" tips={environmentTips} />
-              </div>
-            </section>
+            </div>
+          </CollapsibleEditorSection>
 
           <CollapsibleEditorSection
               title="Overview"
@@ -1181,6 +1193,30 @@ export function EnvironmentEditorView() {
                                   >
                                     Open
                                   </button>
+                                  {weatherPath && isHytaleAssetPath(weatherPath) && (() => {
+                                    const serverRoot = inferServerRoot(currentFile, projectPath);
+                                    const destPath = serverRoot
+                                      ? `${serverRoot}\\Weathers\\${entry.WeatherId}.json`
+                                      : null;
+                                    return destPath ? (
+                                      <button
+                                        type="button"
+                                        title={`Copy from Hytale assets into ${destPath}`}
+                                        onClick={async () => {
+                                          try {
+                                            if (serverRoot) await createDirectory(`${serverRoot}\\Weathers`);
+                                            await copyFile(weatherPath, destPath);
+                                            addToast(`Imported ${entry.WeatherId} into project`, "success");
+                                          } catch (e) {
+                                            addToast(`Import failed: ${e}`, "error");
+                                          }
+                                        }}
+                                        className="rounded border border-sky-500/50 bg-sky-500/10 px-2 py-1 text-[10px] text-sky-300 transition-colors hover:border-sky-400/70 hover:bg-sky-500/20"
+                                      >
+                                        Import
+                                      </button>
+                                    ) : null;
+                                  })()}
                                   <button
                                     type="button"
                                     onClick={() => updateDoc((previous) => ({

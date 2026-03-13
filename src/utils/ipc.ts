@@ -68,6 +68,10 @@ export async function copyFile(source: string, destination: string): Promise<voi
   return invoke("copy_file", { source, destination });
 }
 
+export async function createDirectory(path: string): Promise<void> {
+  return invoke("create_directory", { path });
+}
+
 export async function listDirectory(path: string): Promise<DirectoryEntryData[]> {
   return invoke<DirectoryEntryData[]>("list_directory", { path });
 }

@@ -4,28 +4,23 @@ export interface EditorCalloutItem {
   detail: string;
 }
 
-function calloutStyles(severity: EditorCalloutItem["severity"]) {
-  switch (severity) {
-    case "error":
-      return {
-        container: "border-red-500/40 bg-red-500/8",
-        dot: "bg-red-400",
-        label: "text-red-300",
-      };
-    case "warning":
-      return {
-        container: "border-amber-500/40 bg-amber-500/8",
-        dot: "bg-amber-300",
-        label: "text-amber-200",
-      };
-    default:
-      return {
-        container: "border-sky-500/35 bg-sky-500/8",
-        dot: "bg-sky-300",
-        label: "text-sky-200",
-      };
-  }
-}
+const SEVERITY_COLORS: Record<EditorCalloutItem["severity"], string> = {
+  error: "text-red-400",
+  warning: "text-amber-400",
+  info: "text-sky-400",
+};
+
+const SEVERITY_BAR: Record<EditorCalloutItem["severity"], string> = {
+  error: "bg-red-500",
+  warning: "bg-amber-400",
+  info: "bg-sky-500",
+};
+
+const SEVERITY_ICONS: Record<EditorCalloutItem["severity"], string> = {
+  error: "✖",
+  warning: "⚠",
+  info: "ℹ",
+};
 
 export function EditorCalloutSection({
   title,
@@ -36,36 +31,59 @@ export function EditorCalloutSection({
   items: EditorCalloutItem[];
   emptyState: string;
 }) {
+  const counts = {
+    error: items.filter((i) => i.severity === "error").length,
+    warning: items.filter((i) => i.severity === "warning").length,
+    info: items.filter((i) => i.severity === "info").length,
+  };
+
   return (
-    <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">{title}</p>
-        <span className="text-[10px] font-mono text-tn-text-muted">{items.length}</span>
+    <div className="rounded border border-tn-border/50 bg-tn-bg/60">
+      {/* Header row */}
+      <div className="flex items-center gap-2 border-b border-tn-border/40 px-3 py-1.5">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted flex-1">{title}</p>
+        {counts.error > 0 && (
+          <span className="flex items-center gap-1 text-[10px] text-red-400">
+            <span>✖</span><span>{counts.error}</span>
+          </span>
+        )}
+        {counts.warning > 0 && (
+          <span className="flex items-center gap-1 text-[10px] text-amber-400">
+            <span>⚠</span><span>{counts.warning}</span>
+          </span>
+        )}
+        {counts.info > 0 && (
+          <span className="flex items-center gap-1 text-[10px] text-sky-400">
+            <span>ℹ</span><span>{counts.info}</span>
+          </span>
+        )}
       </div>
+
       {items.length === 0 ? (
-        <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
-          {emptyState}
+        <div className="flex items-center gap-2 px-3 py-2">
+          <span className="text-[13px] text-emerald-400">✔</span>
+          <p className="text-[11px] text-tn-text-muted">{emptyState}</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {items.map((item, index) => {
-            const styles = calloutStyles(item.severity);
-            return (
-              <div
-                key={`${item.severity}-${item.title}-${index}`}
-                className={`rounded border px-3 py-2 ${styles.container}`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${styles.dot}`} />
-                  <span className={`text-[10px] font-semibold uppercase tracking-wider ${styles.label}`}>
-                    {item.severity}
-                  </span>
-                </div>
-                <p className="mt-1 text-[11px] font-medium text-tn-text">{item.title}</p>
-                <p className="mt-1 text-[10px] leading-relaxed text-tn-text-muted">{item.detail}</p>
+        <div>
+          {items.map((item, index) => (
+            <div
+              key={`${item.severity}-${item.title}-${index}`}
+              className={`relative flex items-start gap-2.5 px-3 py-2 ${
+                index < items.length - 1 ? "border-b border-tn-border/30" : ""
+              } hover:bg-white/[0.02] transition-colors`}
+            >
+              {/* Left accent bar */}
+              <div className={`absolute inset-y-0 left-0 w-0.5 rounded-l ${SEVERITY_BAR[item.severity]}`} />
+              <span className={`mt-px shrink-0 text-[12px] pl-1 ${SEVERITY_COLORS[item.severity]}`}>
+                {SEVERITY_ICONS[item.severity]}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-medium text-tn-text leading-tight">{item.title}</p>
+                <p className="mt-0.5 text-[10px] leading-relaxed text-tn-text-muted">{item.detail}</p>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -80,18 +98,21 @@ export function EditorTipsSection({
   tips: string[];
 }) {
   return (
-    <div className="rounded border border-tn-border/50 bg-tn-bg/70 p-3">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">{title}</p>
+    <div className="rounded border border-tn-border/50 bg-tn-bg/60">
+      <div className="flex items-center gap-2 border-b border-tn-border/40 px-3 py-1.5">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted flex-1">{title}</p>
         <span className="text-[10px] font-mono text-tn-text-muted">{tips.length}</span>
       </div>
-      <div className="space-y-2">
+      <div>
         {tips.map((tip, index) => (
-          <div key={`${index}-${tip}`} className="rounded border border-tn-border/40 bg-tn-surface/35 px-3 py-2">
-            <div className="flex items-start gap-2">
-              <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-tn-accent" />
-              <p className="text-[11px] leading-relaxed text-tn-text-muted">{tip}</p>
-            </div>
+          <div
+            key={`${index}-${tip}`}
+            className={`flex items-start gap-2.5 px-3 py-2 ${
+              index < tips.length - 1 ? "border-b border-tn-border/30" : ""
+            }`}
+          >
+            <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-tn-accent" />
+            <p className="text-[11px] leading-relaxed text-tn-text-muted">{tip}</p>
           </div>
         ))}
       </div>

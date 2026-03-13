@@ -80,6 +80,12 @@ pub fn write_text_file(path: String, content: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Create a directory (and all parent directories) at the given path.
+#[tauri::command]
+pub fn create_directory(path: String) -> Result<(), String> {
+    fs::create_dir_all(&path).map_err(|e| format!("Failed to create directory: {}", e))
+}
+
 /// Copy a file from source to destination, creating parent directories.
 #[tauri::command]
 pub fn copy_file(source: String, destination: String) -> Result<(), String> {
