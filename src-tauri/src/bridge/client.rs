@@ -29,16 +29,17 @@ impl BridgeState {
 }
 
 impl BridgeClient {
-    pub fn new(host: &str, port: u16, auth_token: &str) -> Self {
-        Self {
-            http: Client::builder()
-                .connect_timeout(Duration::from_secs(3))
-                .timeout(Duration::from_secs(8))
-                .build()
-                .expect("Failed to build HTTP client"),
+    pub fn new(host: &str, port: u16, auth_token: &str) -> Result<Self, String> {
+        let http = Client::builder()
+            .connect_timeout(Duration::from_secs(3))
+            .timeout(Duration::from_secs(8))
+            .build()
+            .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+        Ok(Self {
+            http,
             base_url: format!("http://{}:{}", host, port),
             auth_token: auth_token.to_string(),
-        }
+        })
     }
 
     pub async fn status(&self) -> Result<ServerStatus, String> {

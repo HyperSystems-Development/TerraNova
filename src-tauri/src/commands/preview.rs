@@ -29,6 +29,14 @@ pub struct EvaluateResponse {
 /// Evaluate a density function graph at an NxN grid of positions.
 #[tauri::command]
 pub fn evaluate_density(request: EvaluateRequest) -> Result<EvaluateResponse, String> {
+    // Cap resolution to prevent excessive memory allocation (2048^2 * 4 = 16 MB max)
+    if request.resolution > 2048 {
+        return Err(format!(
+            "Resolution {} exceeds maximum of 2048",
+            request.resolution
+        ));
+    }
+
     let evaluator =
         DensityEvaluator::from_json(&request.graph).map_err(|e| format!("Parse error: {}", e))?;
 

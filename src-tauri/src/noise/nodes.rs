@@ -33,6 +33,8 @@ impl SimplexNoise2DNode {
         octaves: i32,
         seed: String,
     ) -> Self {
+        // Cap octaves to prevent excessive computation (32 octaves is already extreme)
+        let octaves = octaves.clamp(1, 32);
         let mut noise = FastNoiseLite::new();
         noise.set_noise_type(Some(fastnoise_lite::NoiseType::OpenSimplex2));
 
