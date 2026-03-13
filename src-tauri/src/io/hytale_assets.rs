@@ -1,23 +1,22 @@
 use std::path::{Component, Path, PathBuf};
 
-/// Resolve the root bundled `hytale-assets/Server/` directory in dev and production builds.
+/// Resolve the root bundled `hytale-assets/` directory in dev and production builds.
 pub fn find_hytale_assets_root(
     resource_dir: Option<PathBuf>,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
     // 1. Tauri resource directory (production)
     if let Some(res_dir) = resource_dir {
-        let p = res_dir.join("hytale-assets").join("Server");
+        let p = res_dir.join("hytale-assets");
         if p.is_dir() {
             return Ok(p);
         }
     }
 
-    // 2. Development path: <workspace>/hytale-assets/Server/
+    // 2. Development path: <workspace>/hytale-assets/
     let dev_path = std::env::current_dir()?
         .parent()
         .unwrap_or(Path::new("."))
-        .join("hytale-assets")
-        .join("Server");
+        .join("hytale-assets");
     if dev_path.is_dir() {
         return Ok(dev_path);
     }
@@ -27,14 +26,13 @@ pub fn find_hytale_assets_root(
         let p = exe_path
             .parent()
             .unwrap_or(Path::new("."))
-            .join("hytale-assets")
-            .join("Server");
+            .join("hytale-assets");
         if p.is_dir() {
             return Ok(p);
         }
     }
 
-    Err("hytale-assets/Server directory not found".into())
+    Err("hytale-assets directory not found".into())
 }
 
 fn sanitize_relative_path(relative_path: &str) -> Result<PathBuf, Box<dyn std::error::Error>> {

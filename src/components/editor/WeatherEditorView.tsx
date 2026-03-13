@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Save } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
-import { writeAssetFile } from "@/utils/ipc";
+import { useToastStore } from "@/stores/toastStore";
+import { copyFile, listDirectory, resolveBundledHytaleAssetPath, writeAssetFile } from "@/utils/ipc";
+import mapDirEntry from "@/utils/mapDirEntry";
 import { EditorCalloutSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
 
@@ -78,6 +80,51 @@ const KNOWN_KEYS = new Set<string>([
 
 type ColorTrackKey = (typeof COLOR_TRACKS)[number]["key"];
 type ValueTrackKey = (typeof VALUE_TRACKS)[number]["key"];
+
+interface BundledAssetSource {
+  bundledPath: string;
+  referencePath: string;
+}
+
+const DEFAULT_CELESTIAL_ASSETS: BundledAssetSource[] = [
+  { bundledPath: "Common\\Sky\\Stars.png", referencePath: "Sky/Stars.png" },
+  { bundledPath: "Common\\Sky\\MoonCycle\\Moon_Full.png", referencePath: "Sky/MoonCycle/Moon_Full.png" },
+  { bundledPath: "Common\\Sky\\MoonCycle\\Moon_Gibbous.png", referencePath: "Sky/MoonCycle/Moon_Gibbous.png" },
+  { bundledPath: "Common\\Sky\\MoonCycle\\Moon_Half.png", referencePath: "Sky/MoonCycle/Moon_Half.png" },
+  { bundledPath: "Common\\Sky\\MoonCycle\\Moon_Crescent.png", referencePath: "Sky/MoonCycle/Moon_Crescent.png" },
+  { bundledPath: "Common\\Sky\\MoonCycle\\Moon_New.png", referencePath: "Sky/MoonCycle/Moon_New.png" },
+];
+
+const DEFAULT_CLOUD_ASSETS: BundledAssetSource[] = [
+  { bundledPath: "Common\\Sky\\Clouds\\Light_Base.png", referencePath: "Sky/Clouds/Light_Base.png" },
+  { bundledPath: "Common\\Sky\\Clouds\\Light_Highlights.png", referencePath: "Sky/Clouds/Light_Highlights.png" },
+];
+
+function normalizeWindowsPath(path: string): string {
+  return path.replace(/\//g, "\\").replace(/\\+$/, "");
+}
+
+function joinWindowsPath(base: string, child: string): string {
+  return `${base.replace(/[\\/]+$/, "")}\\${child.replace(/^[\\/]+/, "").replace(/\//g, "\\")}`;
+}
+
+function inferProjectRoot(projectPath: string | null, currentFile: string | null): string | null {
+  if (projectPath) {
+    return normalizeWindowsPath(projectPath);
+  }
+  if (!currentFile) {
+    return null;
+  }
+
+  const normalizedCurrentFile = normalizeWindowsPath(currentFile);
+  const serverMarker = "\\server\\";
+  const serverIndex = normalizedCurrentFile.toLowerCase().lastIndexOf(serverMarker);
+  if (serverIndex >= 0) {
+    return normalizedCurrentFile.slice(0, serverIndex);
+  }
+
+  return normalizedCurrentFile.replace(/\\[^\\]+$/, "");
+}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -610,9 +657,12 @@ function ValueTimelineRow({
 export function WeatherEditorView() {
   const rawJsonContent = useEditorStore((state) => state.rawJsonContent) as WeatherDoc | null;
   const setRawJsonContent = useEditorStore((state) => state.setRawJsonContent);
+  const projectPath = useProjectStore((state) => state.projectPath);
   const currentFile = useProjectStore((state) => state.currentFile);
   const isDirty = useProjectStore((state) => state.isDirty);
   const setDirty = useProjectStore((state) => state.setDirty);
+  const setDirectoryTree = useProjectStore((state) => state.setDirectoryTree);
+  const addToast = useToastStore((state) => state.addToast);
   const hasWeatherDoc = rawJsonContent !== null;
   const [previewHour, setPreviewHour] = useState(12);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
@@ -647,6 +697,45 @@ export function WeatherEditorView() {
 
   const updateValueTrack = (trackKey: ValueTrackKey, next: HourValue[]) => {
     updateDoc((previous) => ({ ...previous, [trackKey]: next }));
+  };
+
+  const syncBundledAssetsToProject = async (assets: BundledAssetSource[]) => {
+    const projectRoot = inferProjectRoot(projectPath, currentFile);
+    if (!projectRoot) {
+      addToast("Cannot determine the project root to add the referenced asset files.", "warning");
+      return;
+    }
+
+    const uniqueAssets = [...new Map(assets.map((asset) => [asset.bundledPath.toLowerCase(), asset])).values()];
+    let copied = 0;
+    let failed = 0;
+
+    for (const asset of uniqueAssets) {
+      try {
+        const sourcePath = await resolveBundledHytaleAssetPath(asset.bundledPath);
+        const destinationPath = joinWindowsPath(projectRoot, asset.bundledPath);
+        await copyFile(sourcePath, destinationPath);
+        copied += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    if (projectPath) {
+      try {
+        const entries = await listDirectory(projectPath);
+        setDirectoryTree(entries.map(mapDirEntry));
+      } catch {
+        // Tree refresh failure is non-fatal. The files were still copied.
+      }
+    }
+
+    if (copied > 0) {
+      addToast(`Added ${copied} built-in asset file(s) to the pack.`, "success");
+    }
+    if (failed > 0) {
+      addToast(`Failed to add ${failed} built-in asset file(s).`, copied > 0 ? "warning" : "error");
+    }
   };
 
   const handleSave = async () => {
@@ -836,17 +925,20 @@ export function WeatherEditorView() {
         detail: "This file has neither a star texture nor moon entries, so the night preview will stay visually sparse.",
         fix: {
           label: "Add defaults",
-          onFix: () => updateDoc((previous) => ({
-            ...previous,
-            Stars: "Sky/Stars.png",
-            Moons: [
-              { Day: 0, Texture: "Sky/MoonCycle/Moon_Full.png" },
-              { Day: 1, Texture: "Sky/MoonCycle/Moon_Gibbous.png" },
-              { Day: 2, Texture: "Sky/MoonCycle/Moon_Half.png" },
-              { Day: 3, Texture: "Sky/MoonCycle/Moon_Crescent.png" },
-              { Day: 4, Texture: "Sky/MoonCycle/Moon_New.png" },
-            ],
-          })),
+          onFix: () => {
+            updateDoc((previous) => ({
+              ...previous,
+              Stars: DEFAULT_CELESTIAL_ASSETS[0].referencePath,
+              Moons: [
+                { Day: 0, Texture: DEFAULT_CELESTIAL_ASSETS[1].referencePath },
+                { Day: 1, Texture: DEFAULT_CELESTIAL_ASSETS[2].referencePath },
+                { Day: 2, Texture: DEFAULT_CELESTIAL_ASSETS[3].referencePath },
+                { Day: 3, Texture: DEFAULT_CELESTIAL_ASSETS[4].referencePath },
+                { Day: 4, Texture: DEFAULT_CELESTIAL_ASSETS[5].referencePath },
+              ],
+            }));
+            void syncBundledAssetsToProject(DEFAULT_CELESTIAL_ASSETS);
+          },
         },
       });
     }
@@ -858,35 +950,38 @@ export function WeatherEditorView() {
         detail: "The sky preview is currently driven only by color tracks and celestial settings.",
         fix: {
           label: "Add cloud layer",
-          onFix: () => updateDoc((previous) => ({
-            ...previous,
-            Clouds: [
-              {
-                Texture: "Sky/Clouds/Light_Base.png",
-                Colors: [
-                  { Hour: 3, Color: "#1a1a1bc7" },
-                  { Hour: 5, Color: "rgba(#ff5e43, 0.504)" },
-                  { Hour: 7, Color: "#ffffffe6" },
-                  { Hour: 17, Color: "#ffffffe6" },
-                  { Hour: 19, Color: "#ff5e4347" },
-                  { Hour: 21, Color: "#1a1a1bc7" },
-                ],
-                Speeds: [{ Hour: 0, Value: 0.7 }],
-              },
-              {
-                Texture: "Sky/Clouds/Light_Highlights.png",
-                Colors: [
-                  { Hour: 3, Color: "#1a1a1bc7" },
-                  { Hour: 5, Color: "#ff5e4366" },
-                  { Hour: 7, Color: "#ffffffe6" },
-                  { Hour: 17, Color: "#ffffffe6" },
-                  { Hour: 19, Color: "#ff5e4347" },
-                  { Hour: 21, Color: "#1a1a1bc7" },
-                ],
-                Speeds: [{ Hour: 0, Value: 0.7 }],
-              },
-            ],
-          })),
+          onFix: () => {
+            updateDoc((previous) => ({
+              ...previous,
+              Clouds: [
+                {
+                  Texture: DEFAULT_CLOUD_ASSETS[0].referencePath,
+                  Colors: [
+                    { Hour: 3, Color: "#1a1a1bc7" },
+                    { Hour: 5, Color: "rgba(#ff5e43, 0.504)" },
+                    { Hour: 7, Color: "#ffffffe6" },
+                    { Hour: 17, Color: "#ffffffe6" },
+                    { Hour: 19, Color: "#ff5e4347" },
+                    { Hour: 21, Color: "#1a1a1bc7" },
+                  ],
+                  Speeds: [{ Hour: 0, Value: 0.7 }],
+                },
+                {
+                  Texture: DEFAULT_CLOUD_ASSETS[1].referencePath,
+                  Colors: [
+                    { Hour: 3, Color: "#1a1a1bc7" },
+                    { Hour: 5, Color: "#ff5e4366" },
+                    { Hour: 7, Color: "#ffffffe6" },
+                    { Hour: 17, Color: "#ffffffe6" },
+                    { Hour: 19, Color: "#ff5e4347" },
+                    { Hour: 21, Color: "#1a1a1bc7" },
+                  ],
+                  Speeds: [{ Hour: 0, Value: 0.7 }],
+                },
+              ],
+            }));
+            void syncBundledAssetsToProject(DEFAULT_CLOUD_ASSETS);
+          },
         },
       });
     }

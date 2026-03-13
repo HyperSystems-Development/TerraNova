@@ -138,20 +138,11 @@ function getBundledAssetRelativePath(projectPath: string | null, targetPath: str
     .slice(normalizedProjectPath.length)
     .replace(/^\\+/, "");
 
-  if (!relativePath || relativePath.toLowerCase() === "server") {
-    return "";
-  }
-
-  const serverPrefix = "server\\";
-  if (relativePath.toLowerCase().startsWith(serverPrefix)) {
-    return relativePath.slice(serverPrefix.length);
-  }
-
-  return "";
+  return relativePath;
 }
 
 function getBundledAssetSourceLabel(relativePath: string): string {
-  return relativePath ? `Built-in\\Server\\${relativePath}` : "Built-in\\Server";
+  return relativePath ? `Built-in\\${relativePath}` : "Built-in";
 }
 
 async function findSeedAssetFile(sourceDir: string): Promise<DirectoryEntryData | null> {
@@ -306,7 +297,7 @@ function ContextMenu({
     const selected = await openFileDialog({
       title: "Add Hytale Asset",
       defaultPath,
-      filters: [{ name: "JSON", extensions: ["json"] }],
+      filters: [{ name: "Hytale Assets", extensions: ["json", "png", "jpg", "jpeg", "dds", "bson"] }],
     });
     if (!selected || typeof selected !== "string") {
       onClose();
