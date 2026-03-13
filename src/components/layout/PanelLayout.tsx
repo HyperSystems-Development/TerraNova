@@ -10,12 +10,21 @@ import { ValidationPanel } from "@/components/editor/ValidationPanel";
 import { Toolbar } from "@/components/layout/Toolbar";
 import { useGraphDiagnostics } from "@/hooks/useGraphDiagnostics";
 import { useUIStore, type SidebarSectionId } from "@/stores/uiStore";
+import { useEditorStore } from "@/stores/editorStore";
+import { useProjectStore } from "@/stores/projectStore";
 import { useDiagnosticsStore } from "@/stores/diagnosticsStore";
 
 const MIN_PANEL_WIDTH = 180;
 const DEFAULT_LEFT = 240;
 const DEFAULT_RIGHT = 320;
+const COMPACT_RIGHT = 272;
 const STORAGE_KEY = "terranova-panel-widths";
+
+function isAssetInspectorFile(path: string | null): boolean {
+  if (!path) return false;
+  const normalized = path.replace(/\\/g, "/").toLowerCase();
+  return normalized.includes("/server/weathers/") || normalized.includes("/server/environments/");
+}
 
 function loadPersistedWidths(): { left: number; right: number } {
   try {
@@ -266,6 +275,14 @@ export function PanelLayout() {
   const leftPanelVisible = useUIStore((s) => s.leftPanelVisible);
   const rightPanelVisible = useUIStore((s) => s.rightPanelVisible);
   const useAccordion = useUIStore((s) => s.useAccordionSidebar);
+  const compactAssetInspector = useUIStore((s) => s.compactAssetInspector);
+  const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
+  const rawJsonContent = useEditorStore((s) => s.rawJsonContent);
+  const currentFile = useProjectStore((s) => s.currentFile);
+  const assetInspectorActive = !selectedNodeId && Boolean(rawJsonContent) && isAssetInspectorFile(currentFile);
+  const displayRightWidth = compactAssetInspector && assetInspectorActive
+    ? Math.min(rightWidth, COMPACT_RIGHT)
+    : rightWidth;
 
   // Drive diagnostics computation (debounced, pushes to diagnosticsStore)
   useGraphDiagnostics();
@@ -283,7 +300,7 @@ export function PanelLayout() {
     (side: "left" | "right") => (e: React.MouseEvent) => {
       e.preventDefault();
       const startX = e.clientX;
-      const startWidth = side === "left" ? leftWidth : rightWidth;
+      const startWidth = side === "left" ? leftWidth : displayRightWidth;
 
       function onMouseMove(ev: MouseEvent) {
         const delta = ev.clientX - startX;
@@ -301,7 +318,7 @@ export function PanelLayout() {
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
     },
-    [leftWidth, rightWidth],
+    [displayRightWidth, leftWidth],
   );
 
   return (
@@ -342,7 +359,7 @@ export function PanelLayout() {
           {/* Right panel: properties */}
           <div
             className="flex flex-col bg-tn-surface border-l border-tn-border overflow-y-auto shrink-0 transition-all duration-150"
-            style={{ width: rightWidth }}
+            style={{ width: displayRightWidth }}
           >
             <PropertyPanel />
           </div>

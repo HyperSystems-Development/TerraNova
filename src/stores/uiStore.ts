@@ -105,6 +105,7 @@ interface UIState {
   showMinimap: boolean;
   leftPanelVisible: boolean;
   rightPanelVisible: boolean;
+  compactAssetInspector: boolean;
   helpMode: boolean;
 
   // Props deletion confirmation preference
@@ -125,6 +126,7 @@ interface UIState {
   setRightPanelVisible: (visible: boolean) => void;
   toggleLeftPanel: () => void;
   toggleRightPanel: () => void;
+  toggleAssetInspectorCompact: () => void;
   toggleHelpMode: () => void;
 
   // Props deletion confirmation
@@ -150,6 +152,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   showMinimap: getStoredBool("tn-showMinimap", true),
   leftPanelVisible: getStoredBool("tn-leftPanel", true),
   rightPanelVisible: getStoredBool("tn-rightPanel", true),
+  compactAssetInspector: getStoredBool("tn-compactAssetInspector", false),
   helpMode: false,
   suppressPropDeleteConfirm: getStoredBool("tn-suppressPropDeleteConfirm", false),
   useAccordionSidebar: getStoredBool("tn-accordionSidebar", false),
@@ -189,6 +192,11 @@ export const useUIStore = create<UIState>((set, get) => ({
     const next = !get().rightPanelVisible;
     persist("tn-rightPanel", next);
     set({ rightPanelVisible: next });
+  },
+  toggleAssetInspectorCompact: () => {
+    const next = !get().compactAssetInspector;
+    persist("tn-compactAssetInspector", next);
+    set({ compactAssetInspector: next });
   },
   toggleHelpMode: () => set({ helpMode: !get().helpMode }),
 

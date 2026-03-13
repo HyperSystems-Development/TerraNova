@@ -24,21 +24,25 @@ export function CollapsibleEditorSection({
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/5"
+        className="w-full px-3 py-2 text-left transition-colors hover:bg-white/5"
       >
-        {open ? (
-          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-tn-text-muted" />
-        ) : (
-          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-tn-text-muted" />
-        )}
-        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-tn-text">{title}</span>
-        {badge && (
-          <span className="rounded border border-tn-border/50 bg-tn-bg/60 px-1.5 py-0.5 text-[10px] font-mono text-tn-text-muted">
-            {badge}
-          </span>
-        )}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {open ? (
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-tn-text-muted" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-tn-text-muted" />
+          )}
+          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-tn-text">{title}</span>
+          {badge && (
+            <span className="rounded border border-tn-border/50 bg-tn-bg/60 px-1.5 py-0.5 text-[10px] font-mono text-tn-text-muted">
+              {badge}
+            </span>
+          )}
+        </div>
         {description && !open && (
-          <span className="ml-1 min-w-0 truncate text-[10px] text-tn-text-muted">{description}</span>
+          <p className="pl-[1.375rem] pt-1 text-[10px] leading-relaxed text-tn-text-muted">
+            {description}
+          </p>
         )}
       </button>
       {open && (

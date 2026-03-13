@@ -1613,7 +1613,7 @@ export function WeatherEditorView() {
                 open={showColorSections}
                 onToggle={() => setShowColorSections((value) => !value)}
               >
-              <div className="grid gap-3 xl:grid-cols-2">
+              <div className="grid gap-3 2xl:grid-cols-2">
                 {COLOR_TRACKS.map((track) => {
                   const keyframes = (doc[track.key] as HourColor[] | undefined) ?? [];
                   return (
@@ -1651,7 +1651,7 @@ export function WeatherEditorView() {
                 open={showValueSections}
                 onToggle={() => setShowValueSections((value) => !value)}
               >
-                <div className="grid gap-3 xl:grid-cols-2">
+                <div className="grid gap-3 2xl:grid-cols-2">
                   {VALUE_TRACKS.map((track) => {
                     const keyframes = (doc[track.key] as HourValue[] | undefined) ?? [];
                     return (

@@ -353,6 +353,8 @@ export function PropertyPanel() {
   const { getTypeDisplayName, getFieldDisplayName, getFieldTransform } = useLanguage();
   const helpMode = useUIStore((s) => s.helpMode);
   const toggleHelpMode = useUIStore((s) => s.toggleHelpMode);
+  const compactAssetInspector = useUIStore((s) => s.compactAssetInspector);
+  const toggleAssetInspectorCompact = useUIStore((s) => s.toggleAssetInspectorCompact);
   const [expandedField, setExpandedField] = useState<string | null>(null);
   const [environmentLookup, setEnvironmentLookup] = useState<EnvironmentNameLookup>({
     status: "idle",
@@ -378,6 +380,7 @@ export function PropertyPanel() {
   const [assetInspectorToolsOpen, setAssetInspectorToolsOpen] = useState(true);
   const [assetInspectorReferencesOpen, setAssetInspectorReferencesOpen] = useState(true);
   const [assetInspectorGuidanceOpen, setAssetInspectorGuidanceOpen] = useState(false);
+  const assetInspectorContainerRef = useRef<HTMLDivElement | null>(null);
 
   const hasPendingSnapshotRef = useRef(false);
   const lastChangedFieldRef = useRef<{ field: string; nodeType: string }>({ field: "", nodeType: "" });
@@ -660,6 +663,7 @@ export function PropertyPanel() {
     setAssetInspectorToolsOpen(true);
     setAssetInspectorReferencesOpen(true);
     setAssetInspectorGuidanceOpen(false);
+    assetInspectorContainerRef.current?.scrollTo({ top: 0 });
   }, [assetInspectorMode, currentFile]);
 
   const canOpenEnvironmentGraph = Boolean(
@@ -1005,191 +1009,29 @@ export function PropertyPanel() {
           })();
 
       return (
-        <div className="flex h-full flex-col gap-3 p-3">
+        <div
+          ref={assetInspectorContainerRef}
+          className={`flex h-full flex-col overflow-y-auto ${compactAssetInspector ? "gap-2 p-2" : "gap-3 p-3"}`}
+        >
           <div className="border-b border-tn-border pb-2">
-            <h3 className="text-sm font-semibold">{assetLabel}</h3>
-            <p className="mt-1 text-xs text-tn-text-muted">
-              Context summary and file actions for the asset open in the center editor.
-            </p>
-          </div>
-
-          <CollapsibleEditorSection
-            title="Overview"
-            description="Current file and high-level summary for the asset open in the center editor."
-            badge={currentFile?.split(/[/\\]/).pop() ?? "Untitled"}
-            open={assetInspectorOverviewOpen}
-            onToggle={() => setAssetInspectorOverviewOpen((value) => !value)}
-          >
-            <div className="flex flex-col gap-3">
-              <div className="rounded border border-tn-border/60 bg-tn-bg/70 p-3">
-                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Current File</p>
-                <p className="mt-1 truncate text-sm font-medium text-tn-text">
-                  {currentFile?.split(/[/\\]/).pop() ?? "Untitled"}
-                </p>
-                <p className="mt-1 break-all text-[11px] text-tn-text-muted">{currentFile ?? "No file open"}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {summaryRows.map((item) => (
-                  <div key={item.label} className="rounded border border-tn-border/50 bg-tn-bg/60 px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">{item.label}</p>
-                    <p className="mt-1 text-sm font-semibold text-tn-text">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CollapsibleEditorSection>
-
-          <CollapsibleEditorSection
-            title="Asset Tools"
-            description={isWeatherAsset
-              ? "Track missing sky textures and pull bundled Hytale assets into the pack's Common folder."
-              : "Resolve referenced weather IDs without leaving the editor by opening, importing, or creating files."}
-            badge={`${filteredAssetInspectorEntries.length}/${assetInspectorEntries.length}`}
-            open={assetInspectorToolsOpen}
-            onToggle={() => setAssetInspectorToolsOpen((value) => !value)}
-          >
-            <div className="rounded border border-tn-border/50 bg-tn-bg/50 p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Asset Tools</p>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold">{assetLabel}</h3>
                 <p className="mt-1 text-xs text-tn-text-muted">
-                  {isWeatherAsset
-                    ? "Track missing sky textures and pull bundled Hytale assets into the pack's Common folder."
-                    : "Resolve referenced weather IDs without leaving the editor by opening, importing, or creating files."}
+                  {compactAssetInspector
+                    ? "Compact asset tools for the file open in the center editor."
+                    : "Context summary and file actions for the asset open in the center editor."}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-1 text-[10px]">
-                <span className={`rounded border px-2 py-1 ${statusClass("in-pack")}`}>{inPackEntries.length} in pack</span>
-                <span className={`rounded border px-2 py-1 ${statusClass("built-in")}`}>{builtInEntries.length} built-in</span>
-                <span className={`rounded border px-2 py-1 ${statusClass("missing")}`}>{missingEntries.length} missing</span>
-              </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-end gap-3">
-              <label className="flex min-w-[180px] flex-col gap-1 text-[10px] uppercase tracking-wider text-tn-text-muted">
-                Category
-                <select
-                  value={assetInspectorCategory}
-                  onChange={(event) => setAssetInspectorCategory(event.target.value)}
-                  className="rounded border border-tn-border bg-tn-bg px-2 py-1.5 text-[11px] normal-case tracking-normal text-tn-text"
-                >
-                  {assetInspectorCategoryOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <p className="pb-1 text-[11px] text-tn-text-muted">
-                Showing {filteredAssetInspectorEntries.length} of {assetInspectorEntries.length} referenced {isWeatherAsset ? "assets" : "weather files"}.
-              </p>
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {builtInEntries.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    void runAssetInspectorAction(
-                      isWeatherAsset ? "batch-add-built-in-textures" : "batch-import-built-in-weathers",
-                      async () => {
-                        await importAssetInspectorEntries(builtInEntries);
-                      },
-                    );
-                  }}
-                  disabled={assetInspectorActionKey !== null}
-                  className="rounded border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isWeatherAsset ? "Add Built-ins" : "Import Built-ins"}
-                </button>
-              )}
-              {!isWeatherAsset && suggestedParentEnvironment && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRawJsonContent({
-                      ...(doc as Record<string, unknown>),
-                      Parent: suggestedParentEnvironment,
-                    });
-                    setDirty(true);
-                  }}
-                  disabled={assetInspectorActionKey !== null}
-                  className="rounded border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-200 transition-colors hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Use {suggestedParentEnvironment}
-                </button>
-              )}
-              {!isWeatherAsset && missingEntries.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    void runAssetInspectorAction("batch-create-missing-weathers", async () => {
-                      await createAssetInspectorWeatherFiles(missingEntries);
-                    });
-                  }}
-                  disabled={assetInspectorActionKey !== null}
-                  className="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Create Missing Files
-                </button>
-              )}
-              {projectAssetFolder && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    void showInFolder(projectAssetFolder);
-                  }}
-                  disabled={assetInspectorActionKey !== null}
-                  className="rounded border border-tn-border px-3 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isWeatherAsset ? "Reveal Sky Folder" : "Reveal Weathers Folder"}
-                </button>
-              )}
               <button
                 type="button"
-                onClick={() => {
-                  void runAssetInspectorAction("refresh-asset-inspector", refreshAssetInspectorTree);
-                }}
-                disabled={assetInspectorActionKey !== null}
-                className="rounded border border-tn-border px-3 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={toggleAssetInspectorCompact}
+                className="shrink-0 rounded border border-tn-border px-2.5 py-1 text-[10px] uppercase tracking-wider text-tn-text-muted transition-colors hover:bg-tn-surface hover:text-tn-text"
               >
-                Refresh
+                {compactAssetInspector ? "Expand" : "Compact"}
               </button>
             </div>
-
-            {!projectPath && (
-              <div className="mt-3 rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                Open the file from a pack root to enable import and create actions.
-                </div>
-              )}
-
-              {!isWeatherAsset && (
-                <div className="mt-3 grid gap-2 md:grid-cols-2">
-                  <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Parent Chain</p>
-                    <p className="mt-1 text-sm font-semibold text-tn-text">
-                      {typeof doc.Parent === "string" && doc.Parent.trim() ? doc.Parent : "No parent set"}
-                    </p>
-                    <p className="mt-1 text-[11px] text-tn-text-muted">
-                      {typeof doc.Parent === "string" && doc.Parent.trim()
-                        ? "Inherited environment settings will flow from this parent."
-                        : `Suggested parent: ${suggestedParentEnvironment ?? "Env_Zone1"}`}
-                    </p>
-                  </div>
-                  <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Resolution Focus</p>
-                    <p className="mt-1 text-sm font-semibold text-tn-text">
-                      {builtInEntries.length + missingEntries.length} referenced weather file(s) still need attention
-                    </p>
-                    <p className="mt-1 text-[11px] text-tn-text-muted">
-                      Import built-ins first, then create placeholders only for custom weather IDs that do not exist anywhere.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CollapsibleEditorSection>
+          </div>
 
           <CollapsibleEditorSection
             title="Guidance"
@@ -1219,6 +1061,176 @@ export function PropertyPanel() {
           </CollapsibleEditorSection>
 
           <CollapsibleEditorSection
+            title="Overview"
+            description="Current file and high-level summary for the asset open in the center editor."
+            badge={currentFile?.split(/[/\\]/).pop() ?? "Untitled"}
+            open={assetInspectorOverviewOpen}
+            onToggle={() => setAssetInspectorOverviewOpen((value) => !value)}
+          >
+            <div className="flex flex-col gap-3">
+              <div className="rounded border border-tn-border/60 bg-tn-bg/70 p-3">
+                <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Current File</p>
+                <p className="mt-1 truncate text-sm font-medium text-tn-text">
+                  {currentFile?.split(/[/\\]/).pop() ?? "Untitled"}
+                </p>
+                <p className="mt-1 break-all text-[11px] text-tn-text-muted">{currentFile ?? "No file open"}</p>
+              </div>
+
+              <div className={`grid gap-2 ${compactAssetInspector ? "grid-cols-1" : "grid-cols-2"}`}>
+                {summaryRows.map((item) => (
+                  <div key={item.label} className="rounded border border-tn-border/50 bg-tn-bg/60 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">{item.label}</p>
+                    <p className="mt-1 text-sm font-semibold text-tn-text">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CollapsibleEditorSection>
+
+          <CollapsibleEditorSection
+            title="Asset Tools"
+            description={isWeatherAsset
+              ? "Track missing sky textures and pull bundled Hytale assets into the pack's Common folder."
+              : "Resolve referenced weather IDs without leaving the editor by opening, importing, or creating files."}
+            badge={`${filteredAssetInspectorEntries.length}/${assetInspectorEntries.length}`}
+            open={assetInspectorToolsOpen}
+            onToggle={() => setAssetInspectorToolsOpen((value) => !value)}
+          >
+            <div className="flex flex-col gap-3 rounded border border-tn-border/50 bg-tn-bg/50 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-wrap gap-1 text-[10px]">
+                  <span className={`rounded border px-2 py-1 ${statusClass("in-pack")}`}>{inPackEntries.length} in pack</span>
+                  <span className={`rounded border px-2 py-1 ${statusClass("built-in")}`}>{builtInEntries.length} built-in</span>
+                  <span className={`rounded border px-2 py-1 ${statusClass("missing")}`}>{missingEntries.length} missing</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="flex min-w-[180px] flex-col gap-1 text-[10px] uppercase tracking-wider text-tn-text-muted">
+                  Category
+                  <select
+                    value={assetInspectorCategory}
+                    onChange={(event) => setAssetInspectorCategory(event.target.value)}
+                    className="rounded border border-tn-border bg-tn-bg px-2 py-1.5 text-[11px] normal-case tracking-normal text-tn-text"
+                  >
+                    {assetInspectorCategoryOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="pb-1 text-[11px] text-tn-text-muted">
+                  Showing {filteredAssetInspectorEntries.length} of {assetInspectorEntries.length} referenced {isWeatherAsset ? "assets" : "weather files"}.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {builtInEntries.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void runAssetInspectorAction(
+                        isWeatherAsset ? "batch-add-built-in-textures" : "batch-import-built-in-weathers",
+                        async () => {
+                          await importAssetInspectorEntries(builtInEntries);
+                        },
+                      );
+                    }}
+                    disabled={assetInspectorActionKey !== null}
+                    className="rounded border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isWeatherAsset ? "Add Built-ins" : "Import Built-ins"}
+                  </button>
+                )}
+                {!isWeatherAsset && suggestedParentEnvironment && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRawJsonContent({
+                        ...(doc as Record<string, unknown>),
+                        Parent: suggestedParentEnvironment,
+                      });
+                      setDirty(true);
+                    }}
+                    disabled={assetInspectorActionKey !== null}
+                    className="rounded border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-200 transition-colors hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Use {suggestedParentEnvironment}
+                  </button>
+                )}
+                {!isWeatherAsset && missingEntries.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void runAssetInspectorAction("batch-create-missing-weathers", async () => {
+                        await createAssetInspectorWeatherFiles(missingEntries);
+                      });
+                    }}
+                    disabled={assetInspectorActionKey !== null}
+                    className="rounded border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Create Missing Files
+                  </button>
+                )}
+                {projectAssetFolder && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void showInFolder(projectAssetFolder);
+                    }}
+                    disabled={assetInspectorActionKey !== null}
+                    className="rounded border border-tn-border px-3 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isWeatherAsset ? "Reveal Sky Folder" : "Reveal Weathers Folder"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    void runAssetInspectorAction("refresh-asset-inspector", refreshAssetInspectorTree);
+                  }}
+                  disabled={assetInspectorActionKey !== null}
+                  className="rounded border border-tn-border px-3 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Refresh
+                </button>
+              </div>
+
+              {!projectPath && (
+                <div className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                  Open the file from a pack root to enable import and create actions.
+                </div>
+              )}
+
+              {!isWeatherAsset && (
+                <div className={`grid gap-2 ${compactAssetInspector ? "grid-cols-1" : "md:grid-cols-2"}`}>
+                  <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Parent Chain</p>
+                    <p className="mt-1 text-sm font-semibold text-tn-text">
+                      {typeof doc.Parent === "string" && doc.Parent.trim() ? doc.Parent : "No parent set"}
+                    </p>
+                    <p className="mt-1 text-[11px] text-tn-text-muted">
+                      {typeof doc.Parent === "string" && doc.Parent.trim()
+                        ? "Inherited environment settings will flow from this parent."
+                        : `Suggested parent: ${suggestedParentEnvironment ?? "Env_Zone1"}`}
+                    </p>
+                  </div>
+                  <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Resolution Focus</p>
+                    <p className="mt-1 text-sm font-semibold text-tn-text">
+                      {builtInEntries.length + missingEntries.length} referenced weather file(s) still need attention
+                    </p>
+                    <p className="mt-1 text-[11px] text-tn-text-muted">
+                      Import built-ins first, then create placeholders only for custom weather IDs that do not exist anywhere.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CollapsibleEditorSection>
+
+          <CollapsibleEditorSection
             title="Referenced Assets"
             description={isWeatherAsset
               ? "Sky textures referenced by this weather asset."
@@ -1227,8 +1239,8 @@ export function PropertyPanel() {
             open={assetInspectorReferencesOpen}
             onToggle={() => setAssetInspectorReferencesOpen((value) => !value)}
           >
-            <div className="mt-3 flex max-h-[26rem] flex-col gap-2 overflow-y-auto pr-1">
-                {assetInspectorLoading ? (
+            <div className="flex max-h-[26rem] flex-col gap-2 overflow-y-auto pr-1">
+              {assetInspectorLoading ? (
                 <div className="rounded border border-dashed border-tn-border/60 px-3 py-4 text-xs text-tn-text-muted">
                   Scanning referenced assets...
                 </div>
@@ -1246,100 +1258,113 @@ export function PropertyPanel() {
                 filteredAssetInspectorEntries.map((entry) => {
                   const isRunning = assetInspectorActionKey === `entry:${entry.key}`;
                   const projectRelativePath = entry.projectPath ? toRelativeDisplayPath(projectPath, entry.projectPath) : null;
+                  const hasEntryAction = Boolean(
+                    (entry.kind === "weather-texture" && entry.status === "in-pack" && entry.projectPath)
+                    || (entry.kind === "weather-texture" && entry.status === "built-in")
+                    || (entry.kind === "environment-weather" && entry.status === "in-pack" && entry.projectPath)
+                    || (entry.kind === "environment-weather" && entry.status === "built-in")
+                    || (entry.kind === "environment-weather" && entry.status === "missing"),
+                  );
 
                   return (
                     <div key={entry.key} className="rounded border border-tn-border/60 bg-tn-bg/60 p-3">
-                      <div className="flex items-start gap-3">
-                        <div className={`mt-1 h-2.5 w-2.5 rounded-full ${
-                          entry.status === "in-pack"
-                            ? "bg-emerald-400"
-                            : entry.status === "built-in"
-                              ? "bg-sky-400"
-                              : "bg-amber-400"
-                        }`} />
+                      <div className={compactAssetInspector ? "flex flex-col gap-2" : "flex items-start gap-3"}>
+                        <div className="flex min-w-0 items-start gap-3">
+                          <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
+                            entry.status === "in-pack"
+                              ? "bg-emerald-400"
+                              : entry.status === "built-in"
+                                ? "bg-sky-400"
+                                : "bg-amber-400"
+                          }`} />
 
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="truncate text-sm font-medium text-tn-text">{entry.label}</p>
-                            <span className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${statusClass(entry.status)}`}>
-                              {entry.status === "in-pack" ? "In Pack" : entry.status === "built-in" ? "Built-In" : "Missing"}
-                            </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="truncate text-sm font-medium text-tn-text">{entry.label}</p>
+                              <span className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${statusClass(entry.status)}`}>
+                                {entry.status === "in-pack" ? "In Pack" : entry.status === "built-in" ? "Built-In" : "Missing"}
+                              </span>
+                            </div>
+                            <p className="mt-1 break-all text-[11px] text-tn-text-muted">{entry.detail}</p>
+                            {isWeatherAsset && projectRelativePath && (
+                              <p className="mt-1 text-[11px] text-tn-text-muted/80">Pack path: {projectRelativePath}</p>
+                            )}
                           </div>
-                          <p className="mt-1 break-all text-[11px] text-tn-text-muted">{entry.detail}</p>
-                          {isWeatherAsset && projectRelativePath && (
-                            <p className="mt-1 text-[11px] text-tn-text-muted/80">Pack path: {projectRelativePath}</p>
-                          )}
                         </div>
 
-                        {entry.kind === "weather-texture" && entry.status === "in-pack" && entry.projectPath && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void showInFolder(entry.projectPath!);
-                            }}
-                            disabled={assetInspectorActionKey !== null}
-                            className="rounded border border-tn-border px-2.5 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            Reveal
-                          </button>
-                        )}
+                        {hasEntryAction && (
+                          <div className={compactAssetInspector ? "ml-[1.375rem] flex flex-wrap gap-2" : "shrink-0"}>
+                            {entry.kind === "weather-texture" && entry.status === "in-pack" && entry.projectPath && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void showInFolder(entry.projectPath!);
+                                }}
+                                disabled={assetInspectorActionKey !== null}
+                                className="rounded border border-tn-border px-2.5 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                Reveal
+                              </button>
+                            )}
 
-                        {entry.kind === "weather-texture" && entry.status === "built-in" && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void runAssetInspectorAction(`entry:${entry.key}`, async () => {
-                                await importAssetInspectorEntries([entry]);
-                              });
-                            }}
-                            disabled={assetInspectorActionKey !== null}
-                            className="rounded border border-sky-500/40 bg-sky-500/10 px-2.5 py-1.5 text-xs text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isRunning ? "Adding..." : "Add"}
-                          </button>
-                        )}
+                            {entry.kind === "weather-texture" && entry.status === "built-in" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void runAssetInspectorAction(`entry:${entry.key}`, async () => {
+                                    await importAssetInspectorEntries([entry]);
+                                  });
+                                }}
+                                disabled={assetInspectorActionKey !== null}
+                                className="rounded border border-sky-500/40 bg-sky-500/10 px-2.5 py-1.5 text-xs text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {isRunning ? "Adding..." : "Add"}
+                              </button>
+                            )}
 
-                        {entry.kind === "environment-weather" && entry.status === "in-pack" && entry.projectPath && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void openFile(entry.projectPath!);
-                            }}
-                            disabled={assetInspectorActionKey !== null}
-                            className="rounded border border-tn-border px-2.5 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            Open
-                          </button>
-                        )}
+                            {entry.kind === "environment-weather" && entry.status === "in-pack" && entry.projectPath && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void openFile(entry.projectPath!);
+                                }}
+                                disabled={assetInspectorActionKey !== null}
+                                className="rounded border border-tn-border px-2.5 py-1.5 text-xs text-tn-text transition-colors hover:bg-tn-surface disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                Open
+                              </button>
+                            )}
 
-                        {entry.kind === "environment-weather" && entry.status === "built-in" && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void runAssetInspectorAction(`entry:${entry.key}`, async () => {
-                                await importAssetInspectorEntries([entry]);
-                              });
-                            }}
-                            disabled={assetInspectorActionKey !== null}
-                            className="rounded border border-sky-500/40 bg-sky-500/10 px-2.5 py-1.5 text-xs text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isRunning ? "Importing..." : "Import"}
-                          </button>
-                        )}
+                            {entry.kind === "environment-weather" && entry.status === "built-in" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void runAssetInspectorAction(`entry:${entry.key}`, async () => {
+                                    await importAssetInspectorEntries([entry]);
+                                  });
+                                }}
+                                disabled={assetInspectorActionKey !== null}
+                                className="rounded border border-sky-500/40 bg-sky-500/10 px-2.5 py-1.5 text-xs text-sky-200 transition-colors hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {isRunning ? "Importing..." : "Import"}
+                              </button>
+                            )}
 
-                        {entry.kind === "environment-weather" && entry.status === "missing" && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void runAssetInspectorAction(`entry:${entry.key}`, async () => {
-                                await createAssetInspectorWeatherFiles([entry]);
-                              });
-                            }}
-                            disabled={assetInspectorActionKey !== null}
-                            className="rounded border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isRunning ? "Creating..." : "Create"}
-                          </button>
+                            {entry.kind === "environment-weather" && entry.status === "missing" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void runAssetInspectorAction(`entry:${entry.key}`, async () => {
+                                    await createAssetInspectorWeatherFiles([entry]);
+                                  });
+                                }}
+                                disabled={assetInspectorActionKey !== null}
+                                className="rounded border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-200 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {isRunning ? "Creating..." : "Create"}
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
