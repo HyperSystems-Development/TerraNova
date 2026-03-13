@@ -1,3 +1,4 @@
+#[cfg(not(target_os = "windows"))]
 use std::process::{Command, Stdio};
 
 #[tauri::command]

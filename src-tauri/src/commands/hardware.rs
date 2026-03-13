@@ -41,6 +41,7 @@ pub fn get_gpu_info() -> GpuInfo {
 }
 
 /// Parse a memory value string like "8192 MB", "12 GB", or "12884901888" (bytes) into megabytes.
+#[cfg(any(target_os = "macos", test))]
 fn parse_memory_value(s: &str) -> Option<u64> {
     let s = s.trim();
 
