@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarClock, Eye, EyeOff, FileJson, Save, Settings2, SlidersHorizontal, Tags, WandSparkles } from "lucide-react";
+import { Eye, EyeOff, FolderOpen, FolderPlus, Save, WandSparkles } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
-import { listDirectory, writeAssetFile, type DirectoryEntryData } from "@/utils/ipc";
+import { exportAssetFile, listDirectory, showInFolder, writeAssetFile, type DirectoryEntryData } from "@/utils/ipc";
+import { useToastStore } from "@/stores/toastStore";
 import { EditorCalloutSection, EditorTipsSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
 
@@ -54,6 +55,19 @@ function findServerRoot(path: string | null): string | null {
 
 function inferServerRoot(currentFile: string | null, projectPath: string | null): string | null {
   return findServerRoot(currentFile) ?? findServerRoot(projectPath) ?? (projectPath ? joinWindowsPath(projectPath, "Server") : null);
+}
+
+function inferUserProfileRoot(path: string | null): string | null {
+  if (!path) return null;
+  const normalized = path.replace(/\//g, "\\");
+  const match = /^[A-Za-z]:\\Users\\[^\\]+/i.exec(normalized);
+  return match ? match[0] : null;
+}
+
+function buildHytaleWeatherCandidates(currentFile: string | null, projectPath: string | null): string[] {
+  const profileRoot = inferUserProfileRoot(currentFile) ?? inferUserProfileRoot(projectPath);
+  if (!profileRoot) return [];
+  return [joinWindowsPath(profileRoot, "AppData\\Roaming\\Hytale\\UserData\\Saves")];
 }
 
 function collectJsonFiles(entries: DirectoryEntryData[]): Array<{ id: string; path: string }> {
@@ -169,6 +183,7 @@ export function EnvironmentEditorView() {
   const isDirty = useProjectStore((state) => state.isDirty);
   const setDirty = useProjectStore((state) => state.setDirty);
   const { openFile } = useTauriIO();
+  const addToast = useToastStore((state) => state.addToast);
   const hasEnvironmentDoc = rawJsonContent !== null;
   const previewSectionRef = useRef<HTMLDivElement | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
@@ -179,9 +194,6 @@ export function EnvironmentEditorView() {
   const [previewHour, setPreviewHour] = useState(12);
   const [selectedDaypartId, setSelectedDaypartId] = useState<(typeof DAYPARTS)[number]["id"] | null>(null);
   const [showPreview, setShowPreview] = useState(true);
-  const [showIssueLog, setShowIssueLog] = useState(true);
-  const [showTips, setShowTips] = useState(true);
-  const [showAdvancedControls, setShowAdvancedControls] = useState(false);
   const [showOverviewSection, setShowOverviewSection] = useState(true);
   const [showTagsSection, setShowTagsSection] = useState(false);
   const [showForecastSection, setShowForecastSection] = useState(true);
@@ -191,41 +203,92 @@ export function EnvironmentEditorView() {
   useEffect(() => {
     let active = true;
     const serverRoot = inferServerRoot(currentFile, projectPath);
-    if (!serverRoot) {
-      setLookupStatus("error");
-      setLookupError("Could not infer the Server root for weather lookup.");
-      setWeatherOptions([]);
-      setWeatherPathIndex({});
-      return () => {
-        active = false;
-      };
-    }
 
     setLookupStatus("loading");
     setLookupError(null);
 
-    void listDirectory(joinWindowsPath(serverRoot, "Weathers"))
-      .then((entries) => {
-        if (!active) return;
-        const files = collectJsonFiles(entries);
-        const nextIndex: Record<string, string> = {};
-        for (const file of files) {
-          const key = file.id.toLowerCase();
-          if (!nextIndex[key]) {
-            nextIndex[key] = file.path;
+    async function scanHytaleAssetWeathers(): Promise<Array<{ id: string; path: string }>> {
+      const hytaleRoots = buildHytaleWeatherCandidates(currentFile, projectPath);
+      const allFiles: Array<{ id: string; path: string }> = [];
+      for (const savesRoot of hytaleRoots) {
+        let saves: DirectoryEntryData[];
+        try { saves = await listDirectory(savesRoot); } catch { continue; }
+        for (const saveEntry of saves) {
+          if (!saveEntry.is_dir) continue;
+          const modsPath = joinWindowsPath(saveEntry.path, "mods");
+          let mods: DirectoryEntryData[];
+          try { mods = await listDirectory(modsPath); } catch { continue; }
+          for (const modEntry of mods) {
+            if (!modEntry.is_dir) continue;
+            const weathersPath = joinWindowsPath(joinWindowsPath(modEntry.path, "Server"), "Weathers");
+            let weatherEntries: DirectoryEntryData[];
+            try { weatherEntries = await listDirectory(weathersPath); } catch { continue; }
+            const files = collectJsonFiles(weatherEntries);
+            allFiles.push(...files);
           }
         }
-        setWeatherOptions(files);
-        setWeatherPathIndex(nextIndex);
-        setLookupStatus("ready");
-      })
-      .catch((error) => {
-        if (!active) return;
-        setWeatherOptions([]);
-        setWeatherPathIndex({});
+      }
+      return allFiles;
+    }
+
+    async function run() {
+      const allFiles: Array<{ id: string; path: string }> = [];
+      let projectWeathersFound = false;
+
+      if (serverRoot) {
+        try {
+          const entries = await listDirectory(joinWindowsPath(serverRoot, "Weathers"));
+          const files = collectJsonFiles(entries);
+          allFiles.push(...files);
+          projectWeathersFound = true;
+        } catch {
+          // will try Hytale assets below
+        }
+      }
+
+      // Always supplement with Hytale UserData saves weather files
+      const hytaleFiles = await scanHytaleAssetWeathers();
+      for (const file of hytaleFiles) {
+        allFiles.push(file);
+      }
+
+      if (!active) return;
+
+      // Build index: project files were pushed first, so they take priority.
+      // Hytale files fill in any IDs not already covered.
+      const nextIndex: Record<string, string> = {};
+      const seen = new Set<string>();
+      const deduped: Array<{ id: string; path: string }> = [];
+      for (const file of allFiles) {
+        const key = file.id.toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          deduped.push(file);
+          nextIndex[key] = file.path;
+        }
+        // first occurrence wins — project files are always pushed before Hytale files
+      }
+
+      deduped.sort((a, b) => a.id.localeCompare(b.id));
+      setWeatherOptions(deduped);
+      setWeatherPathIndex(nextIndex);
+
+      if (!serverRoot) {
         setLookupStatus("error");
-        setLookupError(String(error));
-      });
+        setLookupError(hytaleFiles.length > 0
+          ? `Server\\Weathers not found — showing ${hytaleFiles.length} file(s) from Hytale assets.`
+          : "Could not infer the Server root for weather lookup.");
+      } else if (!projectWeathersFound) {
+        setLookupStatus("error");
+        setLookupError(hytaleFiles.length > 0
+          ? `Server\\Weathers directory not found. Showing ${hytaleFiles.length} file(s) from Hytale assets. Create the folder or click "Create Default Weather".`
+          : "Server\\Weathers directory not found. Create the folder or open a file inside the Server directory.");
+      } else {
+        setLookupStatus("ready");
+      }
+    }
+
+    void run();
 
     return () => {
       active = false;
@@ -241,6 +304,131 @@ export function EnvironmentEditorView() {
     setDirty(true);
     if (saveStatus !== "idle") {
       setSaveStatus("idle");
+    }
+  };
+
+  const isWeatherDirMissing = lookupStatus === "error" && (lookupError?.includes("not found") ?? false);
+
+  const handleCreateDefaultWeather = async () => {
+    const serverRoot = inferServerRoot(currentFile, projectPath);
+    if (!serverRoot) return;
+    const filePath = joinWindowsPath(joinWindowsPath(serverRoot, "Weathers"), "Weather_Default.json");
+    const defaultWeather = {
+      $Comment: "Default weather created by TerraNova",
+      SkyTopColors: [
+        { Hour: 0, Color: "rgba(#0a1628, 1.0)" },
+        { Hour: 6, Color: "rgba(#1e3a5f, 1.0)" },
+        { Hour: 8, Color: "rgba(#4a90d9, 1.0)" },
+        { Hour: 12, Color: "rgba(#5ba3e8, 1.0)" },
+        { Hour: 18, Color: "rgba(#e07b39, 1.0)" },
+        { Hour: 20, Color: "rgba(#1a2a4a, 1.0)" },
+        { Hour: 23, Color: "rgba(#0a1628, 1.0)" },
+      ],
+      SkyBottomColors: [
+        { Hour: 0, Color: "rgba(#050d1a, 1.0)" },
+        { Hour: 6, Color: "rgba(#122540, 1.0)" },
+        { Hour: 8, Color: "rgba(#2d6aa0, 1.0)" },
+        { Hour: 12, Color: "rgba(#3a7fc1, 1.0)" },
+        { Hour: 18, Color: "rgba(#c0582a, 1.0)" },
+        { Hour: 20, Color: "rgba(#0f1e35, 1.0)" },
+        { Hour: 23, Color: "rgba(#050d1a, 1.0)" },
+      ],
+      FogColors: [
+        { Hour: 0, Color: "rgba(#0d1f33, 1.0)" },
+        { Hour: 8, Color: "rgba(#7ab0d4, 0.6)" },
+        { Hour: 12, Color: "rgba(#a8cce0, 0.4)" },
+        { Hour: 20, Color: "rgba(#1a2e45, 0.7)" },
+        { Hour: 23, Color: "rgba(#0d1f33, 1.0)" },
+      ],
+      SunColors: [
+        { Hour: 0, Color: "rgba(#000000, 0.0)" },
+        { Hour: 6, Color: "rgba(#f97316, 1.0)" },
+        { Hour: 8, Color: "rgba(#fde68a, 1.0)" },
+        { Hour: 12, Color: "rgba(#ffffff, 1.0)" },
+        { Hour: 18, Color: "rgba(#f97316, 1.0)" },
+        { Hour: 20, Color: "rgba(#000000, 0.0)" },
+        { Hour: 23, Color: "rgba(#000000, 0.0)" },
+      ],
+      MoonColors: [
+        { Hour: 0, Color: "rgba(#cbd5f5, 1.0)" },
+        { Hour: 6, Color: "rgba(#000000, 0.0)" },
+        { Hour: 20, Color: "rgba(#000000, 0.0)" },
+        { Hour: 22, Color: "rgba(#cbd5f5, 1.0)" },
+        { Hour: 23, Color: "rgba(#cbd5f5, 1.0)" },
+      ],
+      SunlightColors: [
+        { Hour: 0, Color: "rgba(#1a2a4a, 0.3)" },
+        { Hour: 6, Color: "rgba(#f97316, 0.8)" },
+        { Hour: 8, Color: "rgba(#fde68a, 1.0)" },
+        { Hour: 12, Color: "rgba(#ffffff, 1.0)" },
+        { Hour: 18, Color: "rgba(#f97316, 0.8)" },
+        { Hour: 20, Color: "rgba(#1a2a4a, 0.3)" },
+        { Hour: 23, Color: "rgba(#1a2a4a, 0.3)" },
+      ],
+      SunScales: [
+        { Hour: 0, Value: 0.0 },
+        { Hour: 6, Value: 0.8 },
+        { Hour: 8, Value: 1.0 },
+        { Hour: 12, Value: 1.0 },
+        { Hour: 18, Value: 0.8 },
+        { Hour: 20, Value: 0.0 },
+        { Hour: 23, Value: 0.0 },
+      ],
+      MoonScales: [
+        { Hour: 0, Value: 1.0 },
+        { Hour: 6, Value: 0.0 },
+        { Hour: 20, Value: 0.0 },
+        { Hour: 22, Value: 1.0 },
+        { Hour: 23, Value: 1.0 },
+      ],
+      FogDensities: [
+        { Hour: 0, Value: 0.04 },
+        { Hour: 8, Value: 0.01 },
+        { Hour: 12, Value: 0.005 },
+        { Hour: 20, Value: 0.03 },
+        { Hour: 23, Value: 0.04 },
+      ],
+      FogDistance: [64, 512],
+    };
+    try {
+      await exportAssetFile(filePath, defaultWeather);
+      // Re-trigger the directory lookup by bumping state
+      setLookupStatus("loading");
+      setLookupError(null);
+      const entries = await listDirectory(joinWindowsPath(serverRoot, "Weathers"));
+      const files = collectJsonFiles(entries);
+      const nextIndex: Record<string, string> = {};
+      for (const file of files) {
+        const key = file.id.toLowerCase();
+        if (!nextIndex[key]) nextIndex[key] = file.path;
+      }
+      setWeatherOptions(files);
+      setWeatherPathIndex(nextIndex);
+      setLookupStatus("ready");
+    } catch (error) {
+      setLookupStatus("error");
+      setLookupError(String(error));
+    }
+  };
+
+  const weathersDirPath = (() => {
+    const serverRoot = inferServerRoot(currentFile, projectPath);
+    return serverRoot ? joinWindowsPath(serverRoot, "Weathers") : null;
+  })();
+
+  const handleLocateWeathers = async () => {
+    if (!weathersDirPath) {
+      addToast("Cannot determine Server root from the current file path.", "warning");
+      return;
+    }
+    try {
+      // Try opening — if it exists this reveals it in Explorer
+      await showInFolder(weathersDirPath);
+    } catch {
+      // Directory doesn't exist — create it with a default weather file first
+      addToast("Weathers folder not found. Creating it now with a default weather file...", "info");
+      await handleCreateDefaultWeather();
+      try { await showInFolder(weathersDirPath); } catch { /* ignore */ }
     }
   };
 
@@ -281,7 +469,6 @@ export function EnvironmentEditorView() {
     { label: "Evening", hour: 18 },
   ] as const;
   const quickPreviewPresetValue = quickPreviewHours.find((preset) => preset.hour === previewHour)?.hour.toString() ?? "custom";
-  const detailPanelMode = showIssueLog ? (showTips ? "both" : "issues") : (showTips ? "tips" : "none");
   const primaryForecast = activeForecasts[0] ?? null;
 
   useEffect(() => {
@@ -345,9 +532,10 @@ export function EnvironmentEditorView() {
     }
 
     if (lookupStatus === "error") {
+      const isNotFound = lookupError?.includes("not found") ?? false;
       items.push({
-        severity: "error",
-        title: "Weather directory lookup failed",
+        severity: isNotFound ? "warning" : "error",
+        title: isNotFound ? "Weather directory not found" : "Weather directory lookup failed",
         detail: lookupError ?? "Could not read Server\\Weathers for forecast validation.",
       });
     }
@@ -396,18 +584,6 @@ export function EnvironmentEditorView() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setShowAdvancedControls((value) => !value)}
-            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
-              showAdvancedControls
-                ? "border-tn-accent/70 bg-tn-accent/15 text-tn-accent"
-                : "border-tn-border/70 bg-tn-bg/70 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-            }`}
-          >
-            <WandSparkles className="h-3.5 w-3.5" />
-            {showAdvancedControls ? "Hide In-Depth Controls" : "In-Depth Controls"}
-          </button>
-          <button
-            type="button"
             onClick={() => {
               if (showPreview) {
                 setShowPreview(false);
@@ -429,6 +605,22 @@ export function EnvironmentEditorView() {
           >
             {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             {showPreview ? "Hide Preview" : "Show Preview"}
+          </button>
+          <button
+            type="button"
+            onClick={() => { void handleLocateWeathers(); }}
+            disabled={!hasEnvironmentDoc}
+            title={weathersDirPath ?? "Locate or create Server\\Weathers folder"}
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
+              !hasEnvironmentDoc
+                ? "cursor-not-allowed border-tn-border/40 bg-tn-bg/50 text-tn-text-muted/50"
+                : lookupStatus === "ready"
+                  ? "border-tn-border/70 bg-tn-bg/70 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
+                  : "border-amber-400/40 bg-amber-400/10 text-amber-300 hover:border-amber-400/70 hover:bg-amber-400/20"
+            }`}
+          >
+            {lookupStatus === "ready" ? <FolderOpen className="h-3.5 w-3.5" /> : <FolderPlus className="h-3.5 w-3.5" />}
+            {lookupStatus === "ready" ? "Weathers" : "Create Weathers"}
           </button>
           <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${
             isDirty
@@ -462,8 +654,7 @@ export function EnvironmentEditorView() {
               No environment file loaded.
             </div>
           )}
-          {showPreview ? (
-            <section>
+          <section className={showPreview ? "" : "hidden"}>
               <div ref={previewSectionRef} className={sectionClass(false)}>
                   <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -659,84 +850,42 @@ export function EnvironmentEditorView() {
                 ))}
               </div>
 
-              {showAdvancedControls ? (
-                <>
-                  <div className="mt-3 mb-3 flex flex-wrap items-center gap-2">
-                    <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="environment-detail-panels">
-                      Detail Panels
-                    </label>
-                    <select
-                      id="environment-detail-panels"
-                      value={detailPanelMode}
-                      onChange={(event) => {
-                        const nextMode = event.target.value;
-                        setShowIssueLog(nextMode === "both" || nextMode === "issues");
-                        setShowTips(nextMode === "both" || nextMode === "tips");
-                      }}
-                      className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
-                    >
-                      <option value="both">Issue log + tips</option>
-                      <option value="issues">Issue log only</option>
-                      <option value="tips">Tips only</option>
-                      <option value="none">Hide both</option>
-                    </select>
-                  </div>
+              <div className="mt-3 mb-3 flex flex-col gap-2">
+                <EditorCalloutSection
+                  title="Issue Log"
+                  items={environmentIssues}
+                  emptyState="No obvious environment file problems were detected in the current forecast model."
+                />
+                {isWeatherDirMissing && (
+                  <button
+                    type="button"
+                    onClick={() => { void handleCreateDefaultWeather(); }}
+                    className="inline-flex items-center gap-2 self-start rounded border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300 transition-colors hover:border-amber-400/70 hover:bg-amber-400/20"
+                  >
+                    <WandSparkles className="h-3 w-3" />
+                    Create Default Weather
+                  </button>
+                )}
+              </div>
 
-                  {showIssueLog || showTips ? (
-                    <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.15fr_0.85fr]" : ""}`}>
-                      {showIssueLog && (
-                        <EditorCalloutSection
-                          title="Issue Log"
-                          items={environmentIssues}
-                          emptyState="No obvious environment file problems were detected in the current forecast model."
-                        />
-                      )}
-                      {showTips && <EditorTipsSection title="Tips" tips={environmentTips} />}
-                    </div>
-                  ) : (
-                    <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
-                      Issue log and tips are hidden.
-                    </div>
-                  )}
-                </>
-              ) : null}
+              <EditorTipsSection title="Tips" tips={environmentTips} />
               </div>
             </section>
-          ) : (
-            <section>
-              <div ref={previewSectionRef} className={sectionClass(false)}>
-                <div className="flex min-h-[120px] items-center justify-center rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-4 py-6 text-center text-[11px] text-tn-text-muted">
-                  Preview hidden. Use <span className="mx-1 font-medium text-tn-text">Show Preview</span> in the header to bring it back without shoving the rest of the editor upward.
-                </div>
-              </div>
-            </section>
-          )}
 
-          <section className="grid gap-3 lg:grid-cols-2">
-            <section className="rounded-lg border border-tn-border/70 bg-tn-surface/45 px-3.5 py-3.5 shadow-sm">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-tn-border/50 bg-tn-bg/70 text-tn-accent">
-                    <SlidersHorizontal className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-tn-text">Simple Controls</p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-tn-text-muted">
-                      Simple defaults for the environment file. Use In-Depth Controls for tags and deeper file edits.
-                    </p>
-                  </div>
-                </div>
-                <span className="rounded border border-tn-border/50 bg-tn-bg/60 px-2 py-0.5 text-[10px] font-mono text-tn-text-muted">
-                  {previewHour}:00
-                </span>
-              </div>
+          <CollapsibleEditorSection
+              title="Overview"
+              description="Parent, weather, water tint, spawn density and block modification settings."
+              badge={doc.Parent ?? "No parent"}
+              open={showOverviewSection}
+              onToggle={() => setShowOverviewSection((value) => !value)}
+            >
               <datalist id="environment-weather-options">
                 {weatherOptions.map((weather) => (
                   <option key={weather.path} value={weather.id} />
                 ))}
               </datalist>
               <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-2 rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2">
+                <div className="space-y-1">
                   <label className="block text-[10px] uppercase tracking-wider text-tn-text-muted">Parent</label>
                   <input
                     type="text"
@@ -745,243 +894,81 @@ export function EnvironmentEditorView() {
                     className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
                     placeholder="Env_Zone1"
                   />
+                  <p className="text-[10px] text-tn-text-muted">Inherits WeatherForecasts and settings from the parent environment.</p>
                 </div>
 
-                <div className="space-y-2 rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2">
-                  <label className="block text-[10px] uppercase tracking-wider text-tn-text-muted">Water Tint</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={typeof doc.WaterTint === "string" ? doc.WaterTint : "#1983d9"}
-                      onChange={(event) => updateDoc((previous) => ({ ...previous, WaterTint: event.target.value }))}
-                      className="h-8 w-10 shrink-0 cursor-pointer rounded border border-tn-border/70 bg-transparent p-0"
-                    />
-                    <input
-                      type="text"
-                      value={typeof doc.WaterTint === "string" ? doc.WaterTint : ""}
-                      onChange={(event) => updateDoc((previous) => ({ ...previous, WaterTint: event.target.value }))}
-                      className="min-w-0 flex-1 rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-tn-text"
-                      placeholder="#1983d9"
-                    />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] uppercase tracking-wider text-tn-text-muted">Water Tint</label>
+                    {"WaterTint" in doc && (
+                      <button type="button" onClick={() => updateDoc((previous) => { const next = { ...previous }; delete next.WaterTint; return next; })} className="text-[10px] text-tn-text-muted hover:text-red-400">Remove</button>
+                    )}
                   </div>
-                </div>
-
-                <div className="space-y-2 rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2">
-                  <label className="block text-[10px] uppercase tracking-wider text-tn-text-muted">Spawn Density</label>
-                  <input
-                    type="number"
-                    step={0.05}
-                    value={typeof doc.SpawnDensity === "number" ? doc.SpawnDensity : 0.3}
-                    onChange={(event) => {
-                      const value = Number.parseFloat(event.target.value);
-                      if (!Number.isFinite(value)) return;
-                      updateDoc((previous) => ({ ...previous, SpawnDensity: value }));
-                    }}
-                    className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text"
-                  />
-                </div>
-
-                <label className="flex items-center justify-between rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2">
-                  <span className="text-[11px] text-tn-text">Block Modification Allowed</span>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(doc.BlockModificationAllowed)}
-                    onChange={(event) => updateDoc((previous) => ({ ...previous, BlockModificationAllowed: event.target.checked }))}
-                  />
-                </label>
-
-                <div className="space-y-2 rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2 md:col-span-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <label className="text-[10px] uppercase tracking-wider text-tn-text-muted">Primary Weather @ {previewHour}:00</label>
-                    <span className="text-[10px] text-tn-text-muted">{primaryForecast ? "Current hour default" : "Creates first entry"}</span>
-                  </div>
-                  <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_120px]">
-                    <input
-                      type="text"
-                      list="environment-weather-options"
-                      value={primaryForecast?.WeatherId ?? ""}
-                      onChange={(event) => updateDoc((previous) => {
-                        const entries = [...readForecastHour(previous, previewHour)];
-                        if (entries.length === 0) {
-                          entries.push({ WeatherId: event.target.value, Weight: 100 });
-                        } else {
-                          entries[0] = { ...entries[0], WeatherId: event.target.value };
-                        }
-                        return {
-                          ...previous,
-                          WeatherForecasts: {
-                            ...(previous.WeatherForecasts ?? {}),
-                            [String(previewHour)]: entries,
-                          },
-                        };
-                      })}
-                      className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
-                      placeholder="Zone1_Sunny"
-                    />
-                    <input
-                      type="number"
-                      step={1}
-                      value={primaryForecast?.Weight ?? 100}
-                      onChange={(event) => {
-                        const weight = Number.parseFloat(event.target.value);
-                        if (!Number.isFinite(weight)) return;
-                        updateDoc((previous) => {
-                          const entries = [...readForecastHour(previous, previewHour)];
-                          if (entries.length === 0) {
-                            entries.push({ WeatherId: weatherOptions[0]?.id ?? "", Weight: weight });
-                          } else {
-                            entries[0] = { ...entries[0], Weight: weight };
-                          }
-                          return {
-                            ...previous,
-                            WeatherForecasts: {
-                              ...(previous.WeatherForecasts ?? {}),
-                              [String(previewHour)]: entries,
-                            },
-                          };
-                        });
-                      }}
-                      className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text"
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {showAdvancedControls && (
-            <CollapsibleEditorSection
-              title="Overview"
-              description="Parent environment and top-level file settings."
-              badge={doc.Parent ?? "No parent"}
-              icon={<Settings2 className="h-4 w-4" />}
-              open={showOverviewSection}
-              onToggle={() => setShowOverviewSection((value) => !value)}
-            >
-              <div className="space-y-2">
-                <div>
-                  <label className="mb-1 block text-[10px] uppercase tracking-wider text-tn-text-muted">Parent</label>
-                  <input
-                    type="text"
-                    value={doc.Parent ?? ""}
-                    onChange={(event) => updateDoc((previous) => ({ ...previous, Parent: event.target.value || undefined }))}
-                    className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
-                    placeholder="Env_Zone1"
-                  />
-                </div>
-
-                {"WaterTint" in doc ? (
-                  <div>
-                    <div className="mb-1 flex items-center justify-between">
-                      <label className="text-[10px] uppercase tracking-wider text-tn-text-muted">Water Tint</label>
-                      <button
-                        type="button"
-                        onClick={() => updateDoc((previous) => {
-                          const next = { ...previous };
-                          delete next.WaterTint;
-                          return next;
-                        })}
-                        className="text-[10px] text-tn-text-muted transition-colors hover:text-red-400"
-                      >
-                        Remove
-                      </button>
-                    </div>
+                  {"WaterTint" in doc ? (
                     <div className="flex items-center gap-2">
                       <label className="relative shrink-0 cursor-pointer">
-                        <div
-                          className="h-7 w-7 rounded border border-tn-border/70"
-                          style={{ backgroundColor: typeof doc.WaterTint === "string" ? doc.WaterTint : "#1983d9" }}
-                        />
-                        <input
-                          type="color"
-                          value={typeof doc.WaterTint === "string" ? doc.WaterTint : "#1983d9"}
-                          onChange={(event) => updateDoc((previous) => ({ ...previous, WaterTint: event.target.value }))}
-                          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                        />
+                        <div className="h-7 w-7 rounded border border-tn-border/70" style={{ backgroundColor: typeof doc.WaterTint === "string" ? doc.WaterTint : "#1983d9" }} />
+                        <input type="color" value={typeof doc.WaterTint === "string" ? doc.WaterTint : "#1983d9"} onChange={(event) => updateDoc((previous) => ({ ...previous, WaterTint: event.target.value }))} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                       </label>
-                      <input
-                        type="text"
-                        value={typeof doc.WaterTint === "string" ? doc.WaterTint : ""}
-                        onChange={(event) => updateDoc((previous) => ({ ...previous, WaterTint: event.target.value }))}
-                        className="min-w-0 flex-1 rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-tn-text"
-                      />
+                      <input type="text" value={typeof doc.WaterTint === "string" ? doc.WaterTint : ""} onChange={(event) => updateDoc((previous) => ({ ...previous, WaterTint: event.target.value }))} className="min-w-0 flex-1 rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-tn-text" />
                     </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => updateDoc((previous) => ({ ...previous, WaterTint: "#1983d9" }))}
-                    className="w-full rounded border border-dashed border-tn-border/60 px-2 py-2 text-[11px] text-tn-text-muted transition-colors hover:border-tn-accent hover:text-tn-accent"
-                  >
-                    Add Water Tint
-                  </button>
-                )}
+                  ) : (
+                    <button type="button" onClick={() => updateDoc((previous) => ({ ...previous, WaterTint: "#1983d9" }))} className="w-full rounded border border-dashed border-tn-border/60 px-2 py-2 text-[11px] text-tn-text-muted hover:border-tn-accent hover:text-tn-accent">Add Water Tint</button>
+                  )}
+                  <p className="text-[10px] text-tn-text-muted">Overrides the water color for this environment.</p>
+                </div>
 
-                {"SpawnDensity" in doc ? (
-                  <div>
-                    <div className="mb-1 flex items-center justify-between">
-                      <label className="text-[10px] uppercase tracking-wider text-tn-text-muted">Spawn Density</label>
-                      <button
-                        type="button"
-                        onClick={() => updateDoc((previous) => {
-                          const next = { ...previous };
-                          delete next.SpawnDensity;
-                          return next;
-                        })}
-                        className="text-[10px] text-tn-text-muted transition-colors hover:text-red-400"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                    <input
-                      type="number"
-                      step={0.05}
-                      value={typeof doc.SpawnDensity === "number" ? doc.SpawnDensity : 0}
-                      onChange={(event) => {
-                        const value = Number.parseFloat(event.target.value);
-                        if (!Number.isFinite(value)) return;
-                        updateDoc((previous) => ({ ...previous, SpawnDensity: value }));
-                      }}
-                      className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text"
-                    />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] uppercase tracking-wider text-tn-text-muted">Spawn Density</label>
+                    {"SpawnDensity" in doc && (
+                      <button type="button" onClick={() => updateDoc((previous) => { const next = { ...previous }; delete next.SpawnDensity; return next; })} className="text-[10px] text-tn-text-muted hover:text-red-400">Remove</button>
+                    )}
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => updateDoc((previous) => ({ ...previous, SpawnDensity: 0.3 }))}
-                    className="w-full rounded border border-dashed border-tn-border/60 px-2 py-2 text-[11px] text-tn-text-muted transition-colors hover:border-tn-accent hover:text-tn-accent"
-                  >
-                    Add Spawn Density
-                  </button>
-                )}
+                  {"SpawnDensity" in doc ? (
+                    <input type="number" step={0.05} value={typeof doc.SpawnDensity === "number" ? doc.SpawnDensity : 0} onChange={(event) => { const value = Number.parseFloat(event.target.value); if (!Number.isFinite(value)) return; updateDoc((previous) => ({ ...previous, SpawnDensity: value })); }} className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text" />
+                  ) : (
+                    <button type="button" onClick={() => updateDoc((previous) => ({ ...previous, SpawnDensity: 0.3 }))} className="w-full rounded border border-dashed border-tn-border/60 px-2 py-2 text-[11px] text-tn-text-muted hover:border-tn-accent hover:text-tn-accent">Add Spawn Density</button>
+                  )}
+                  <p className="text-[10px] text-tn-text-muted">Controls how frequently entities spawn in this environment.</p>
+                </div>
 
-                {"BlockModificationAllowed" in doc ? (
-                  <label className="flex items-center justify-between rounded border border-tn-border/40 bg-tn-bg px-2 py-2">
-                    <span className="text-[11px] text-tn-text">Block Modification Allowed</span>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(doc.BlockModificationAllowed)}
-                      onChange={(event) => updateDoc((previous) => ({ ...previous, BlockModificationAllowed: event.target.checked }))}
-                    />
-                  </label>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => updateDoc((previous) => ({ ...previous, BlockModificationAllowed: false }))}
-                    className="w-full rounded border border-dashed border-tn-border/60 px-2 py-2 text-[11px] text-tn-text-muted transition-colors hover:border-tn-accent hover:text-tn-accent"
-                  >
-                    Add Block Modification Toggle
-                  </button>
-                )}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] uppercase tracking-wider text-tn-text-muted">Block Modification</label>
+                    {"BlockModificationAllowed" in doc && (
+                      <button type="button" onClick={() => updateDoc((previous) => { const next = { ...previous }; delete next.BlockModificationAllowed; return next; })} className="text-[10px] text-tn-text-muted hover:text-red-400">Remove</button>
+                    )}
+                  </div>
+                  {"BlockModificationAllowed" in doc ? (
+                    <label className="flex items-center justify-between rounded border border-tn-border/40 bg-tn-bg px-2 py-2">
+                      <span className="text-[11px] text-tn-text">Block Modification Allowed</span>
+                      <input type="checkbox" checked={Boolean(doc.BlockModificationAllowed)} onChange={(event) => updateDoc((previous) => ({ ...previous, BlockModificationAllowed: event.target.checked }))} />
+                    </label>
+                  ) : (
+                    <button type="button" onClick={() => updateDoc((previous) => ({ ...previous, BlockModificationAllowed: false }))} className="w-full rounded border border-dashed border-tn-border/60 px-2 py-2 text-[11px] text-tn-text-muted hover:border-tn-accent hover:text-tn-accent">Add Block Modification Toggle</button>
+                  )}
+                  <p className="text-[10px] text-tn-text-muted">Whether players can place or break blocks in this environment.</p>
+                </div>
+
+                <div className="space-y-1 md:col-span-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[10px] uppercase tracking-wider text-tn-text-muted">Primary Weather @ {previewHour}:00</label>
+                    <span className="text-[10px] text-tn-text-muted">{primaryForecast ? "Editing current hour default" : "Will create first entry"}</span>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_120px]">
+                    <input type="text" list="environment-weather-options" value={primaryForecast?.WeatherId ?? ""} onChange={(event) => updateDoc((previous) => { const entries = [...readForecastHour(previous, previewHour)]; if (entries.length === 0) { entries.push({ WeatherId: event.target.value, Weight: 100 }); } else { entries[0] = { ...entries[0], WeatherId: event.target.value }; } return { ...previous, WeatherForecasts: { ...(previous.WeatherForecasts ?? {}), [String(previewHour)]: entries } }; })} className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text" placeholder="Zone1_Sunny" />
+                    <input type="number" step={1} value={primaryForecast?.Weight ?? 100} onChange={(event) => { const weight = Number.parseFloat(event.target.value); if (!Number.isFinite(weight)) return; updateDoc((previous) => { const entries = [...readForecastHour(previous, previewHour)]; if (entries.length === 0) { entries.push({ WeatherId: weatherOptions[0]?.id ?? "", Weight: weight }); } else { entries[0] = { ...entries[0], Weight: weight }; } return { ...previous, WeatherForecasts: { ...(previous.WeatherForecasts ?? {}), [String(previewHour)]: entries } }; }); }} className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] font-mono text-right text-tn-text" />
+                  </div>
+                  <p className="text-[10px] text-tn-text-muted">Quick-set the top weather entry for the selected preview hour. Use Hourly Forecasts below for full control.</p>
+                </div>
               </div>
             </CollapsibleEditorSection>
-            )}
 
-            {showAdvancedControls && (
-              <CollapsibleEditorSection
+            <CollapsibleEditorSection
                 title="Tags"
                 description="Optional tag groups for classifying the environment asset."
                 badge={`${tagEntries.length} groups`}
-                icon={<Tags className="h-4 w-4" />}
                 open={showTagsSection}
                 onToggle={() => setShowTagsSection((value) => !value)}
               >
@@ -1056,14 +1043,11 @@ export function EnvironmentEditorView() {
                   ))}
                 </div>
               </CollapsibleEditorSection>
-            )}
-          </section>
 
           <CollapsibleEditorSection
             title="Hourly Forecasts"
             description="Edit weather IDs and weights without keeping all 24 hour cards expanded at once."
             badge={`${displayedForecastHours.length}/${HOURS.length} hours`}
-            icon={<CalendarClock className="h-4 w-4" />}
             open={showForecastSection}
             onToggle={() => setShowForecastSection((value) => !value)}
           >
@@ -1223,12 +1207,11 @@ export function EnvironmentEditorView() {
             </div>
           </CollapsibleEditorSection>
 
-          {showAdvancedControls && extraEntries.length > 0 && (
+          {extraEntries.length > 0 && (
             <CollapsibleEditorSection
               title="Additional Fields"
               description="Raw environment fields that are not yet represented by dedicated controls."
               badge={`${extraEntries.length} fields`}
-              icon={<FileJson className="h-4 w-4" />}
               open={showExtraSection}
               onToggle={() => setShowExtraSection((value) => !value)}
             >

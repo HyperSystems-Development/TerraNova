@@ -1,9 +1,9 @@
-import { useMemo, useRef, useState } from "react";
-import { Clock3, Cloud, Eye, EyeOff, LineChart, Palette, Save, SlidersHorizontal, WandSparkles } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Save } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { writeAssetFile } from "@/utils/ipc";
-import { EditorCalloutSection, EditorTipsSection, type EditorCalloutItem } from "./EditorCallouts";
+import { EditorCalloutSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
 
 interface HourColor {
@@ -614,13 +614,11 @@ export function WeatherEditorView() {
   const isDirty = useProjectStore((state) => state.isDirty);
   const setDirty = useProjectStore((state) => state.setDirty);
   const hasWeatherDoc = rawJsonContent !== null;
-  const previewSectionRef = useRef<HTMLDivElement | null>(null);
   const [previewHour, setPreviewHour] = useState(12);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
-  const [showPreview, setShowPreview] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showQuickEdit, setShowQuickEdit] = useState(true);
   const [showIssueLog, setShowIssueLog] = useState(true);
-  const [showTips, setShowTips] = useState(true);
-  const [showAdvancedControls, setShowAdvancedControls] = useState(false);
   const [showAtmosphereStrip, setShowAtmosphereStrip] = useState(false);
   const [showPreviewTracks, setShowPreviewTracks] = useState(false);
   const [showPreviewSnapshot, setShowPreviewSnapshot] = useState(false);
@@ -713,7 +711,6 @@ export function WeatherEditorView() {
     { label: "Dusk", hour: 18 },
   ] as const;
   const quickPreviewPresetValue = quickPreviewHours.find((preset) => preset.hour === previewHour)?.hour.toString() ?? "custom";
-  const detailPanelMode = showIssueLog ? (showTips ? "both" : "issues") : (showTips ? "tips" : "none");
   const setSimpleColor = (trackKey: ColorTrackKey, color: string) => {
     updateColorTrack(trackKey, upsertColorKeyframe(((doc[trackKey] as HourColor[] | undefined) ?? []), previewHour, color));
   };
@@ -804,21 +801,9 @@ export function WeatherEditorView() {
     return items;
   }, [cloudLayers, doc, extraEntries.length, moons.length, starTexture]);
 
-  const weatherTips = useMemo(() => [
-    "Use the preset hour buttons or the 24h strips to jump quickly between midnight, dawn, noon, and dusk.",
-    "Duplicate hour keys are worth cleaning up before export because they make interpolation ambiguous.",
-    "Cloud layer speed and color keys affect the hero preview immediately, so it is a good fast sanity check before saving.",
-  ], []);
-
   const previewPanel = (
-    <div ref={previewSectionRef} className={sectionClass(false)}>
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Scene Preview</p>
-          <p className="mt-1 text-[11px] text-tn-text-muted">
-            Live atmosphere preview sampled from the current weather tracks.
-          </p>
-        </div>
+    <div>
+      <div className="mb-3 flex items-center justify-end gap-2">
         <span
           className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
           style={{ borderColor: `${daypart.accent}66`, color: daypart.accent, backgroundColor: `${daypart.accent}14` }}
@@ -982,54 +967,11 @@ export function WeatherEditorView() {
         />
       </div>
 
-      {showAdvancedControls ? (
-        <>
-          <div className="mt-3 mb-3 flex flex-wrap items-center gap-2">
-            <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="weather-detail-panels">
-              Detail Panels
-            </label>
-            <select
-              id="weather-detail-panels"
-              value={detailPanelMode}
-              onChange={(event) => {
-                const nextMode = event.target.value;
-                setShowIssueLog(nextMode === "both" || nextMode === "issues");
-                setShowTips(nextMode === "both" || nextMode === "tips");
-              }}
-              className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
-            >
-              <option value="both">Issue log + tips</option>
-              <option value="issues">Issue log only</option>
-              <option value="tips">Tips only</option>
-              <option value="none">Hide both</option>
-            </select>
-          </div>
-
-          {showIssueLog || showTips ? (
-            <div className={`mb-3 grid gap-3 ${showIssueLog && showTips ? "xl:grid-cols-[1.2fr_0.8fr]" : ""}`}>
-              {showIssueLog && (
-                <EditorCalloutSection
-                  title="Issue Log"
-                  items={weatherIssues}
-                  emptyState="No obvious weather file problems were detected in the current preview model."
-                />
-              )}
-              {showTips && <EditorTipsSection title="Tips" tips={weatherTips} />}
-            </div>
-          ) : (
-            <div className="mb-3 rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-3 py-2 text-[11px] text-tn-text-muted">
-              Issue log and tips are hidden.
-            </div>
-          )}
-        </>
-      ) : null}
-
       <div className="mt-3 space-y-3">
         <CollapsibleEditorSection
           title="24h Atmosphere Strip"
           description="A compact day-long sky strip. Click any hour to retime the scene preview."
           badge={`${previewHour}:00`}
-          icon={<Clock3 className="h-4 w-4" />}
           open={showAtmosphereStrip}
           onToggle={() => setShowAtmosphereStrip((value) => !value)}
         >
@@ -1060,7 +1002,6 @@ export function WeatherEditorView() {
           title="Track Preview"
           description="Sampled color and numeric tracks synced to the current preview hour."
           badge={`${colorTrackCount + valueTrackCount} keys`}
-          icon={<LineChart className="h-4 w-4" />}
           open={showPreviewTracks}
           onToggle={() => setShowPreviewTracks((value) => !value)}
         >
@@ -1149,7 +1090,6 @@ export function WeatherEditorView() {
           title="Sampled Values"
           description="Current-hour swatches and numeric readouts pulled from the preview model."
           badge={`${previewHour}:00 snapshot`}
-          icon={<Palette className="h-4 w-4" />}
           open={showPreviewSnapshot}
           onToggle={() => setShowPreviewSnapshot((value) => !value)}
         >
@@ -1170,7 +1110,6 @@ export function WeatherEditorView() {
           title="Asset Breakdown"
           description="Cloud, celestial, and metadata summaries inferred from the loaded weather file."
           badge={`${cloudLayers.length} cloud layers`}
-          icon={<Cloud className="h-4 w-4" />}
           open={showPreviewAssets}
           onToggle={() => setShowPreviewAssets((value) => !value)}
         >
@@ -1252,62 +1191,28 @@ export function WeatherEditorView() {
     </div>
   );
 
+  // previewPanel ends here
+
   return (
     <div className="flex h-full flex-col bg-tn-bg">
       <div className="flex shrink-0 items-center justify-between border-b border-tn-border bg-tn-surface px-4 py-2">
-        <div>
-          <h2 className="text-xs font-semibold text-tn-text">Weather Editor</h2>
-          <p className="mt-0.5 text-[10px] text-tn-text-muted">{currentFile?.split(/[/\\]/).pop() ?? "Untitled"}</p>
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Weather Editor</p>
+          <p className="mt-0.5 truncate text-xs font-medium text-tn-text">{currentFile?.split(/[/\\]/).pop() ?? "Untitled"}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowAdvancedControls((value) => !value)}
-            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
-              showAdvancedControls
-                ? "border-tn-accent/70 bg-tn-accent/15 text-tn-accent"
-                : "border-tn-border/70 bg-tn-bg/70 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-            }`}
-          >
-            <WandSparkles className="h-3.5 w-3.5" />
-            {showAdvancedControls ? "Hide In-Depth Controls" : "In-Depth Controls"}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (showPreview) {
-                setShowPreview(false);
-                return;
-              }
-              setShowPreview(true);
-              window.requestAnimationFrame(() => {
-                previewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-              });
-            }}
-            disabled={!hasWeatherDoc}
-            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
-              !hasWeatherDoc
-                ? "cursor-not-allowed border-tn-border/40 bg-tn-bg/50 text-tn-text-muted/50"
-                : showPreview
-                  ? "border-tn-accent/70 bg-tn-accent/10 text-tn-accent"
-                  : "border-tn-border/70 bg-tn-bg/70 text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-text"
-            }`}
-          >
-            {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            {showPreview ? "Hide Preview" : "Show Preview"}
-          </button>
-          <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${
+        <div className="flex shrink-0 items-center gap-2">
+          <span className={`inline-flex items-center rounded border px-2 py-0.5 text-[10px] font-medium ${
             isDirty
               ? "border-amber-400/40 bg-amber-400/10 text-amber-300"
               : "border-tn-border/60 bg-tn-bg/60 text-tn-text-muted"
           }`}>
-            {isDirty ? "Unsaved changes" : "Saved"}
+            {isDirty ? "Unsaved" : "Saved"}
           </span>
           <button
             type="button"
             onClick={handleSave}
             disabled={!hasWeatherDoc || !currentFile}
-            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors ${
               saveStatus === "saved"
                 ? "border-green-500/60 bg-green-500/10 text-green-300"
                 : saveStatus === "error"
@@ -1315,49 +1220,53 @@ export function WeatherEditorView() {
                   : "border-tn-border/70 bg-tn-bg/70 text-tn-text hover:border-tn-accent hover:text-tn-accent"
             } ${!hasWeatherDoc || !currentFile ? "cursor-not-allowed opacity-50" : ""}`}
           >
-            <Save className="h-3.5 w-3.5" />
-            {saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Retry Save" : "Save"}
+            <Save className="h-3 w-3" />
+            {saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Retry" : "Save"}
           </button>
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="space-y-4 px-4 py-4">
+        <div className="space-y-3 px-4 py-4">
           {!hasWeatherDoc && (
             <div className="rounded border border-dashed border-tn-border/50 bg-tn-surface/20 px-4 py-6 text-center text-sm text-tn-text-muted">
               No weather file loaded.
             </div>
           )}
-          {showPreview ? (
-            <section>{previewPanel}</section>
-          ) : (
-            <section>
-              <div ref={previewSectionRef} className={sectionClass(false)}>
-                <div className="flex min-h-[160px] items-center justify-center rounded-xl border border-dashed border-tn-border/50 bg-tn-surface/20 px-4 py-6 text-center text-[11px] text-tn-text-muted">
-                  Preview hidden. Use <span className="mx-1 font-medium text-tn-text">Show Preview</span> in the header to bring it back without jerking the rest of the editor around.
-                </div>
-              </div>
-            </section>
-          )}
 
           {hasWeatherDoc && (
-            <section className="rounded-lg border border-tn-border/70 bg-tn-surface/45 px-3.5 py-3.5 shadow-sm">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-tn-border/50 bg-tn-bg/70 text-tn-accent">
-                    <SlidersHorizontal className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-tn-text">Simple Controls</p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-tn-text-muted">
-                      Fast default edits at the current preview hour. Use In-Depth Controls for full keyframe editing.
-                    </p>
-                  </div>
-                </div>
-                <span className="rounded border border-tn-border/50 bg-tn-bg/60 px-2 py-0.5 text-[10px] font-mono text-tn-text-muted">
-                  {previewHour}:00
-                </span>
-              </div>
+            <>
+              <CollapsibleEditorSection
+                title="Scene Preview"
+                description="Live atmosphere preview sampled from the current weather tracks."
+                badge={`${previewHour}:00`}
+                open={showPreview}
+                onToggle={() => setShowPreview((v) => !v)}
+              >
+                {previewPanel}
+              </CollapsibleEditorSection>
+
+              <CollapsibleEditorSection
+                title="Issue Log"
+                description="Validation warnings and info for the loaded weather file."
+                badge={weatherIssues.length > 0 ? `${weatherIssues.length}` : undefined}
+                open={showIssueLog}
+                onToggle={() => setShowIssueLog((v) => !v)}
+              >
+                <EditorCalloutSection
+                  title="Issues"
+                  items={weatherIssues}
+                  emptyState="No obvious weather file problems were detected."
+                />
+              </CollapsibleEditorSection>
+
+              <CollapsibleEditorSection
+                title="Quick Edit"
+                description="Fast color and fog edits at the selected preview hour."
+                badge={`${previewHour}:00`}
+                open={showQuickEdit}
+                onToggle={() => setShowQuickEdit((v) => !v)}
+              >
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {([
                   { key: "SkyTopColors", label: "Sky Top", value: skyTop },
@@ -1458,23 +1367,21 @@ export function WeatherEditorView() {
                   </div>
                 </div>
               </div>
-            </section>
-          )}
+              </CollapsibleEditorSection>
 
-          {showAdvancedControls && Array.isArray(doc.FogDistance) && (
-            <CollapsibleEditorSection
-              title="Fog Distance"
-              description="Near and far fog bounds used by the preview volume."
-              badge={Array.isArray(doc.FogDistance) ? `${doc.FogDistance[0]}..${doc.FogDistance[1]}` : undefined}
-              open={showFogSection}
-              onToggle={() => setShowFogSection((value) => !value)}
+              <CollapsibleEditorSection
+                title="Fog Distance"
+                description="Near and far fog bounds used by the preview volume."
+                badge={Array.isArray(doc.FogDistance) ? `${doc.FogDistance[0]}..${doc.FogDistance[1]}` : undefined}
+                open={showFogSection}
+                onToggle={() => setShowFogSection((value) => !value)}
             >
               <div className="flex items-center gap-2">
                 <span className="w-10 shrink-0 text-[10px] text-tn-text-muted">Near</span>
                 <input
                   type="number"
                   step={1}
-                  value={doc.FogDistance[0] ?? -192}
+                  value={(doc.FogDistance as [number, number] | undefined)?.[0] ?? -192}
                   onChange={(event) => {
                     const value = Number.parseFloat(event.target.value);
                     if (!Number.isFinite(value)) return;
@@ -1489,7 +1396,7 @@ export function WeatherEditorView() {
                 <input
                   type="number"
                   step={1}
-                  value={doc.FogDistance[1] ?? 128}
+                  value={(doc.FogDistance as [number, number] | undefined)?.[1] ?? 128}
                   onChange={(event) => {
                     const value = Number.parseFloat(event.target.value);
                     if (!Number.isFinite(value)) return;
@@ -1501,17 +1408,15 @@ export function WeatherEditorView() {
                   className="flex-1 rounded border border-tn-border bg-tn-bg px-2 py-1 text-[10px] font-mono text-right text-tn-text"
                 />
               </div>
-            </CollapsibleEditorSection>
-          )}
+              </CollapsibleEditorSection>
 
-          {showAdvancedControls && (
-            <CollapsibleEditorSection
-              title="Color Tracks"
-              description="Keyframed weather colors. The graph still focuses these editors when nodes are selected."
-              badge={`${COLOR_TRACKS.length} tracks`}
-              open={showColorSections}
-              onToggle={() => setShowColorSections((value) => !value)}
-            >
+              <CollapsibleEditorSection
+                title="Color Tracks"
+                description="Keyframed weather colors."
+                badge={`${COLOR_TRACKS.length} tracks`}
+                open={showColorSections}
+                onToggle={() => setShowColorSections((value) => !value)}
+              >
               <div className="grid gap-3 xl:grid-cols-2">
                 {COLOR_TRACKS.map((track) => {
                   const keyframes = (doc[track.key] as HourColor[] | undefined) ?? [];
@@ -1541,11 +1446,8 @@ export function WeatherEditorView() {
                   );
                 })}
               </div>
-            </CollapsibleEditorSection>
-          )}
+              </CollapsibleEditorSection>
 
-          {showAdvancedControls && (
-            <>
               <CollapsibleEditorSection
                 title="Numeric Tracks"
                 description="Scale, damping, and fog curve editors."
@@ -1645,6 +1547,7 @@ export function WeatherEditorView() {
                   </div>
                 </CollapsibleEditorSection>
               )}
+
             </>
           )}
         </div>
