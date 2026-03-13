@@ -4,8 +4,18 @@ import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
-import { copyFile, createDirectory, exportAssetFile, listDirectory, showInFolder, writeAssetFile, type DirectoryEntryData } from "@/utils/ipc";
+import {
+  copyFile,
+  createDirectory,
+  exportAssetFile,
+  listDirectory,
+  resolveBundledHytaleAssetPath,
+  showInFolder,
+  writeAssetFile,
+  type DirectoryEntryData,
+} from "@/utils/ipc";
 import { useToastStore } from "@/stores/toastStore";
+import mapDirEntry from "@/utils/mapDirEntry";
 import { EditorCalloutSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
 
@@ -159,6 +169,86 @@ function readForecastHour(doc: EnvironmentDoc, hour: number): WeatherForecastEnt
   return Array.isArray(entries) ? entries : [];
 }
 
+function buildDefaultWeatherDoc(weatherId: string) {
+  return {
+    $Comment: `Default weather created by TerraNova for ${weatherId}`,
+    SkyTopColors: [
+      { Hour: 0, Color: "rgba(#0a1628, 1.0)" },
+      { Hour: 6, Color: "rgba(#1e3a5f, 1.0)" },
+      { Hour: 8, Color: "rgba(#4a90d9, 1.0)" },
+      { Hour: 12, Color: "rgba(#5ba3e8, 1.0)" },
+      { Hour: 18, Color: "rgba(#e07b39, 1.0)" },
+      { Hour: 20, Color: "rgba(#1a2a4a, 1.0)" },
+      { Hour: 23, Color: "rgba(#0a1628, 1.0)" },
+    ],
+    SkyBottomColors: [
+      { Hour: 0, Color: "rgba(#050d1a, 1.0)" },
+      { Hour: 6, Color: "rgba(#122540, 1.0)" },
+      { Hour: 8, Color: "rgba(#2d6aa0, 1.0)" },
+      { Hour: 12, Color: "rgba(#3a7fc1, 1.0)" },
+      { Hour: 18, Color: "rgba(#c0582a, 1.0)" },
+      { Hour: 20, Color: "rgba(#0f1e35, 1.0)" },
+      { Hour: 23, Color: "rgba(#050d1a, 1.0)" },
+    ],
+    FogColors: [
+      { Hour: 0, Color: "rgba(#0d1f33, 1.0)" },
+      { Hour: 8, Color: "rgba(#7ab0d4, 0.6)" },
+      { Hour: 12, Color: "rgba(#a8cce0, 0.4)" },
+      { Hour: 20, Color: "rgba(#1a2e45, 0.7)" },
+      { Hour: 23, Color: "rgba(#0d1f33, 1.0)" },
+    ],
+    SunColors: [
+      { Hour: 0, Color: "rgba(#000000, 0.0)" },
+      { Hour: 6, Color: "rgba(#f97316, 1.0)" },
+      { Hour: 8, Color: "rgba(#fde68a, 1.0)" },
+      { Hour: 12, Color: "rgba(#ffffff, 1.0)" },
+      { Hour: 18, Color: "rgba(#f97316, 1.0)" },
+      { Hour: 20, Color: "rgba(#000000, 0.0)" },
+      { Hour: 23, Color: "rgba(#000000, 0.0)" },
+    ],
+    MoonColors: [
+      { Hour: 0, Color: "rgba(#cbd5f5, 1.0)" },
+      { Hour: 6, Color: "rgba(#000000, 0.0)" },
+      { Hour: 20, Color: "rgba(#000000, 0.0)" },
+      { Hour: 22, Color: "rgba(#cbd5f5, 1.0)" },
+      { Hour: 23, Color: "rgba(#cbd5f5, 1.0)" },
+    ],
+    SunlightColors: [
+      { Hour: 0, Color: "rgba(#1a2a4a, 0.3)" },
+      { Hour: 6, Color: "rgba(#f97316, 0.8)" },
+      { Hour: 8, Color: "rgba(#fde68a, 1.0)" },
+      { Hour: 12, Color: "rgba(#ffffff, 1.0)" },
+      { Hour: 18, Color: "rgba(#f97316, 0.8)" },
+      { Hour: 20, Color: "rgba(#1a2a4a, 0.3)" },
+      { Hour: 23, Color: "rgba(#1a2a4a, 0.3)" },
+    ],
+    SunScales: [
+      { Hour: 0, Value: 0.0 },
+      { Hour: 6, Value: 0.8 },
+      { Hour: 8, Value: 1.0 },
+      { Hour: 12, Value: 1.0 },
+      { Hour: 18, Value: 0.8 },
+      { Hour: 20, Value: 0.0 },
+      { Hour: 23, Value: 0.0 },
+    ],
+    MoonScales: [
+      { Hour: 0, Value: 1.0 },
+      { Hour: 6, Value: 0.0 },
+      { Hour: 20, Value: 0.0 },
+      { Hour: 22, Value: 1.0 },
+      { Hour: 23, Value: 1.0 },
+    ],
+    FogDensities: [
+      { Hour: 0, Value: 0.04 },
+      { Hour: 8, Value: 0.01 },
+      { Hour: 12, Value: 0.005 },
+      { Hour: 20, Value: 0.03 },
+      { Hour: 23, Value: 0.04 },
+    ],
+    FogDistance: [64, 512],
+  };
+}
+
 function EnvironmentMetricCard({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
     <div className="rounded border border-tn-border/50 bg-tn-bg/80 px-3 py-2">
@@ -176,6 +266,7 @@ export function EnvironmentEditorView() {
   const projectPath = useProjectStore((state) => state.projectPath);
   const isDirty = useProjectStore((state) => state.isDirty);
   const setDirty = useProjectStore((state) => state.setDirty);
+  const setDirectoryTree = useProjectStore((state) => state.setDirectoryTree);
   const { openFile } = useTauriIO();
   const addToast = useToastStore((state) => state.addToast);
   const hasEnvironmentDoc = rawJsonContent !== null;
@@ -193,6 +284,7 @@ export function EnvironmentEditorView() {
   const [showForecastSection, setShowForecastSection] = useState(true);
   const [showExtraSection, setShowExtraSection] = useState(false);
   const [forecastScope, setForecastScope] = useState<"current" | "daypart" | "all">("current");
+  const [lookupRevision, setLookupRevision] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -202,8 +294,17 @@ export function EnvironmentEditorView() {
     setLookupError(null);
 
     async function scanHytaleAssetWeathers(): Promise<Array<{ id: string; path: string }>> {
-      const hytaleRoots = buildHytaleWeatherCandidates(currentFile, projectPath);
       const allFiles: Array<{ id: string; path: string }> = [];
+
+      try {
+        const bundledWeathersPath = await resolveBundledHytaleAssetPath("Server\\Weathers");
+        const bundledEntries = await listDirectory(bundledWeathersPath);
+        allFiles.push(...collectJsonFiles(bundledEntries));
+      } catch {
+        // Built-in assets are optional during development.
+      }
+
+      const hytaleRoots = buildHytaleWeatherCandidates(currentFile, projectPath);
       for (const savesRoot of hytaleRoots) {
         let saves: DirectoryEntryData[];
         try { saves = await listDirectory(savesRoot); } catch { continue; }
@@ -287,7 +388,7 @@ export function EnvironmentEditorView() {
     return () => {
       active = false;
     };
-  }, [currentFile, projectPath]);
+  }, [currentFile, lookupRevision, projectPath]);
 
   // Determines if a resolved path is from Hytale assets (not inside the current project).
   function isHytaleAssetPath(resolvedPath: string): boolean {
@@ -354,6 +455,7 @@ export function EnvironmentEditorView() {
       }
       if (imported > 0) {
         addToast(`Auto-imported ${imported} Hytale weather(s) into Server\\Weathers.`, "success");
+        await refreshProjectTreeAndLookup();
       }
       if (failed > 0) {
         addToast(`Failed to import ${failed} weather file(s). Use the Import button to retry.`, "warning");
@@ -362,7 +464,7 @@ export function EnvironmentEditorView() {
     void autoImport();
   // Only fire when the set of IDs changes (file switch / lookup complete)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hytaleOnlyIds.join(",")]);
+  }, [currentFile, hytaleOnlyIds.join(","), projectPath]);
 
   // Notify about weathers that couldn't be found anywhere, offer file picker.
   useEffect(() => {
@@ -388,102 +490,87 @@ export function EnvironmentEditorView() {
 
   const isWeatherDirMissing = lookupStatus === "error" && (lookupError?.includes("not found") ?? false);
 
+  const refreshProjectTreeAndLookup = async () => {
+    if (projectPath) {
+      try {
+        const entries = await listDirectory(projectPath);
+        setDirectoryTree(entries.map(mapDirEntry));
+      } catch {
+        // Tree refresh failure is non-fatal.
+      }
+    }
+    setLookupStatus("loading");
+    setLookupError(null);
+    setLookupRevision((value) => value + 1);
+  };
+
+  const materializeReferencedWeatherFiles = async ({
+    importIds,
+    createIds,
+  }: {
+    importIds?: string[];
+    createIds?: string[];
+  }) => {
+    const serverRoot = inferServerRoot(currentFile, projectPath);
+    if (!serverRoot) {
+      addToast("Cannot determine the Server root for weather fixes.", "warning");
+      return;
+    }
+
+    const weathersDir = joinWindowsPath(serverRoot, "Weathers");
+    await createDirectory(weathersDir).catch(() => {});
+
+    let imported = 0;
+    let created = 0;
+    let failed = 0;
+
+    for (const weatherId of importIds ?? []) {
+      const sourcePath = weatherPathIndex[weatherId.toLowerCase()];
+      if (!sourcePath) {
+        failed += 1;
+        continue;
+      }
+      const fileName = sourcePath.split(/[/\\]/).pop() ?? `${weatherId}.json`;
+      try {
+        await copyFile(sourcePath, joinWindowsPath(weathersDir, fileName));
+        imported += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    for (const weatherId of createIds ?? []) {
+      try {
+        await exportAssetFile(
+          joinWindowsPath(weathersDir, `${weatherId}.json`),
+          buildDefaultWeatherDoc(weatherId),
+        );
+        created += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    await refreshProjectTreeAndLookup();
+
+    if (imported > 0) {
+      addToast(`Added ${imported} referenced weather file(s) to Server\\Weathers.`, "success");
+    }
+    if (created > 0) {
+      addToast(`Created ${created} placeholder weather file(s) in Server\\Weathers.`, "success");
+    }
+    if (failed > 0) {
+      addToast(`Failed to materialize ${failed} weather file(s).`, imported > 0 || created > 0 ? "warning" : "error");
+    }
+  };
+
   const handleCreateDefaultWeather = async () => {
     const serverRoot = inferServerRoot(currentFile, projectPath);
     if (!serverRoot) return;
     const filePath = joinWindowsPath(joinWindowsPath(serverRoot, "Weathers"), "Weather_Default.json");
-    const defaultWeather = {
-      $Comment: "Default weather created by TerraNova",
-      SkyTopColors: [
-        { Hour: 0, Color: "rgba(#0a1628, 1.0)" },
-        { Hour: 6, Color: "rgba(#1e3a5f, 1.0)" },
-        { Hour: 8, Color: "rgba(#4a90d9, 1.0)" },
-        { Hour: 12, Color: "rgba(#5ba3e8, 1.0)" },
-        { Hour: 18, Color: "rgba(#e07b39, 1.0)" },
-        { Hour: 20, Color: "rgba(#1a2a4a, 1.0)" },
-        { Hour: 23, Color: "rgba(#0a1628, 1.0)" },
-      ],
-      SkyBottomColors: [
-        { Hour: 0, Color: "rgba(#050d1a, 1.0)" },
-        { Hour: 6, Color: "rgba(#122540, 1.0)" },
-        { Hour: 8, Color: "rgba(#2d6aa0, 1.0)" },
-        { Hour: 12, Color: "rgba(#3a7fc1, 1.0)" },
-        { Hour: 18, Color: "rgba(#c0582a, 1.0)" },
-        { Hour: 20, Color: "rgba(#0f1e35, 1.0)" },
-        { Hour: 23, Color: "rgba(#050d1a, 1.0)" },
-      ],
-      FogColors: [
-        { Hour: 0, Color: "rgba(#0d1f33, 1.0)" },
-        { Hour: 8, Color: "rgba(#7ab0d4, 0.6)" },
-        { Hour: 12, Color: "rgba(#a8cce0, 0.4)" },
-        { Hour: 20, Color: "rgba(#1a2e45, 0.7)" },
-        { Hour: 23, Color: "rgba(#0d1f33, 1.0)" },
-      ],
-      SunColors: [
-        { Hour: 0, Color: "rgba(#000000, 0.0)" },
-        { Hour: 6, Color: "rgba(#f97316, 1.0)" },
-        { Hour: 8, Color: "rgba(#fde68a, 1.0)" },
-        { Hour: 12, Color: "rgba(#ffffff, 1.0)" },
-        { Hour: 18, Color: "rgba(#f97316, 1.0)" },
-        { Hour: 20, Color: "rgba(#000000, 0.0)" },
-        { Hour: 23, Color: "rgba(#000000, 0.0)" },
-      ],
-      MoonColors: [
-        { Hour: 0, Color: "rgba(#cbd5f5, 1.0)" },
-        { Hour: 6, Color: "rgba(#000000, 0.0)" },
-        { Hour: 20, Color: "rgba(#000000, 0.0)" },
-        { Hour: 22, Color: "rgba(#cbd5f5, 1.0)" },
-        { Hour: 23, Color: "rgba(#cbd5f5, 1.0)" },
-      ],
-      SunlightColors: [
-        { Hour: 0, Color: "rgba(#1a2a4a, 0.3)" },
-        { Hour: 6, Color: "rgba(#f97316, 0.8)" },
-        { Hour: 8, Color: "rgba(#fde68a, 1.0)" },
-        { Hour: 12, Color: "rgba(#ffffff, 1.0)" },
-        { Hour: 18, Color: "rgba(#f97316, 0.8)" },
-        { Hour: 20, Color: "rgba(#1a2a4a, 0.3)" },
-        { Hour: 23, Color: "rgba(#1a2a4a, 0.3)" },
-      ],
-      SunScales: [
-        { Hour: 0, Value: 0.0 },
-        { Hour: 6, Value: 0.8 },
-        { Hour: 8, Value: 1.0 },
-        { Hour: 12, Value: 1.0 },
-        { Hour: 18, Value: 0.8 },
-        { Hour: 20, Value: 0.0 },
-        { Hour: 23, Value: 0.0 },
-      ],
-      MoonScales: [
-        { Hour: 0, Value: 1.0 },
-        { Hour: 6, Value: 0.0 },
-        { Hour: 20, Value: 0.0 },
-        { Hour: 22, Value: 1.0 },
-        { Hour: 23, Value: 1.0 },
-      ],
-      FogDensities: [
-        { Hour: 0, Value: 0.04 },
-        { Hour: 8, Value: 0.01 },
-        { Hour: 12, Value: 0.005 },
-        { Hour: 20, Value: 0.03 },
-        { Hour: 23, Value: 0.04 },
-      ],
-      FogDistance: [64, 512],
-    };
     try {
-      await exportAssetFile(filePath, defaultWeather);
-      // Re-trigger the directory lookup by bumping state
-      setLookupStatus("loading");
-      setLookupError(null);
-      const entries = await listDirectory(joinWindowsPath(serverRoot, "Weathers"));
-      const files = collectJsonFiles(entries);
-      const nextIndex: Record<string, string> = {};
-      for (const file of files) {
-        const key = file.id.toLowerCase();
-        if (!nextIndex[key]) nextIndex[key] = file.path;
-      }
-      setWeatherOptions(files);
-      setWeatherPathIndex(nextIndex);
-      setLookupStatus("ready");
+      await exportAssetFile(filePath, buildDefaultWeatherDoc("Weather_Default"));
+      await refreshProjectTreeAndLookup();
     } catch (error) {
       setLookupStatus("error");
       setLookupError(String(error));
@@ -559,9 +646,6 @@ export function EnvironmentEditorView() {
   const environmentIssues = useMemo<EditorCalloutItem[]>(() => {
     const items: EditorCalloutItem[] = [];
     const missingHours = HOURS.filter((hour) => readForecastHour(doc, hour).length === 0);
-    const unresolvedWeatherIds = lookupStatus === "ready"
-      ? uniqueWeatherIds.filter((weatherId) => !weatherPathIndex[weatherId.toLowerCase()])
-      : [];
     const nonPositiveWeights = HOURS.flatMap((hour) => readForecastHour(doc, hour)
       .filter((entry) => entry.Weight <= 0)
       .map((entry) => `${hour}:00 ${entry.WeatherId || "(blank id)"}`));
@@ -594,11 +678,31 @@ export function EnvironmentEditorView() {
       });
     }
 
-    if (unresolvedWeatherIds.length > 0) {
+    if (hytaleOnlyIds.length > 0) {
+      items.push({
+        severity: "info",
+        title: "Referenced weather files are not in this pack yet",
+        detail: hytaleOnlyIds.slice(0, 6).join(", "),
+        fix: {
+          label: "Import files",
+          onFix: () => {
+            void materializeReferencedWeatherFiles({ importIds: hytaleOnlyIds });
+          },
+        },
+      });
+    }
+
+    if (missingIds.length > 0) {
       items.push({
         severity: "warning",
         title: "Some weather IDs do not resolve to files",
-        detail: unresolvedWeatherIds.slice(0, 6).join(", "),
+        detail: missingIds.slice(0, 6).join(", "),
+        fix: {
+          label: "Create files",
+          onFix: () => {
+            void materializeReferencedWeatherFiles({ createIds: missingIds });
+          },
+        },
       });
     }
 
@@ -616,6 +720,14 @@ export function EnvironmentEditorView() {
         severity: isNotFound ? "warning" : "error",
         title: isNotFound ? "Weather directory not found" : "Weather directory lookup failed",
         detail: lookupError ?? "Could not read Server\\Weathers for forecast validation.",
+        fix: isNotFound
+          ? {
+              label: "Create folder",
+              onFix: () => {
+                void handleCreateDefaultWeather();
+              },
+            }
+          : undefined,
       });
     }
 
@@ -636,7 +748,17 @@ export function EnvironmentEditorView() {
     }
 
     return items;
-  }, [doc, extraEntries.length, lookupError, lookupStatus, tagEntries.length, uniqueWeatherIds, weatherPathIndex]);
+  }, [
+    doc,
+    extraEntries.length,
+    handleCreateDefaultWeather,
+    hytaleOnlyIds,
+    lookupError,
+    lookupStatus,
+    materializeReferencedWeatherFiles,
+    missingIds,
+    tagEntries.length,
+  ]);
 
   const displayedForecastHours = useMemo(() => {
     if (forecastScope === "current") {
