@@ -319,7 +319,6 @@ export function EditorCanvas({
     }
 
     return empty;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedHandle, selectedNodeId, edges, hoverTrigger]);
 
   const styledEdges = useMemo(() => {

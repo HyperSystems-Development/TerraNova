@@ -69,19 +69,6 @@ function inferServerRoot(currentFile: string | null, projectPath: string | null)
   return findServerRoot(currentFile) ?? findServerRoot(projectPath) ?? (projectPath ? joinWindowsPath(projectPath, "Server") : null);
 }
 
-function inferUserProfileRoot(path: string | null): string | null {
-  if (!path) return null;
-  const normalized = path.replace(/\//g, "\\");
-  const match = /^[A-Za-z]:\\Users\\[^\\]+/i.exec(normalized);
-  return match ? match[0] : null;
-}
-
-function buildHytaleWeatherCandidates(currentFile: string | null, projectPath: string | null): string[] {
-  const profileRoot = inferUserProfileRoot(currentFile) ?? inferUserProfileRoot(projectPath);
-  if (!profileRoot) return [];
-  return [joinWindowsPath(profileRoot, "AppData\\Roaming\\Hytale\\UserData\\Saves")];
-}
-
 function collectJsonFiles(entries: DirectoryEntryData[]): Array<{ id: string; path: string }> {
   const files: Array<{ id: string; path: string }> = [];
 
@@ -519,25 +506,6 @@ export function EnvironmentEditorView() {
         // Built-in assets are optional during development.
       }
 
-      const hytaleRoots = buildHytaleWeatherCandidates(currentFile, projectPath);
-      for (const savesRoot of hytaleRoots) {
-        let saves: DirectoryEntryData[];
-        try { saves = await listDirectory(savesRoot); } catch { continue; }
-        for (const saveEntry of saves) {
-          if (!saveEntry.is_dir) continue;
-          const modsPath = joinWindowsPath(saveEntry.path, "mods");
-          let mods: DirectoryEntryData[];
-          try { mods = await listDirectory(modsPath); } catch { continue; }
-          for (const modEntry of mods) {
-            if (!modEntry.is_dir) continue;
-            const weathersPath = joinWindowsPath(joinWindowsPath(modEntry.path, "Server"), "Weathers");
-            let weatherEntries: DirectoryEntryData[];
-            try { weatherEntries = await listDirectory(weathersPath); } catch { continue; }
-            const files = collectJsonFiles(weatherEntries);
-            allFiles.push(...files);
-          }
-        }
-      }
       return allFiles;
     }
 
@@ -556,7 +524,7 @@ export function EnvironmentEditorView() {
         }
       }
 
-      // Always supplement with Hytale UserData saves weather files
+      // Always supplement project weather files with bundled Hytale assets.
       const hytaleFiles = await scanHytaleAssetWeathers();
       for (const file of hytaleFiles) {
         allFiles.push(file);
@@ -565,7 +533,7 @@ export function EnvironmentEditorView() {
       if (!active) return;
 
       // Build index: project files were pushed first, so they take priority.
-      // Hytale files fill in any IDs not already covered.
+      // Bundled Hytale files fill in any IDs not already covered.
       const nextIndex: Record<string, string> = {};
       const seen = new Set<string>();
       const deduped: Array<{ id: string; path: string }> = [];
@@ -576,7 +544,7 @@ export function EnvironmentEditorView() {
           deduped.push(file);
           nextIndex[key] = file.path;
         }
-        // first occurrence wins — project files are always pushed before Hytale files
+        // First occurrence wins: project files are always pushed before bundled Hytale files.
       }
 
       deduped.sort((a, b) => a.id.localeCompare(b.id));
@@ -586,12 +554,12 @@ export function EnvironmentEditorView() {
       if (!serverRoot) {
         setLookupStatus("error");
         setLookupError(hytaleFiles.length > 0
-          ? `Server\\Weathers not found — showing ${hytaleFiles.length} file(s) from Hytale assets.`
+          ? `Server\\Weathers not found - showing ${hytaleFiles.length} file(s) from bundled Hytale assets.`
           : "Could not infer the Server root for weather lookup.");
       } else if (!projectWeathersFound) {
         setLookupStatus("error");
         setLookupError(hytaleFiles.length > 0
-          ? `Server\\Weathers directory not found. Showing ${hytaleFiles.length} file(s) from Hytale assets. Create the folder or click "Create Default Weather".`
+          ? `Server\\Weathers directory not found. Showing ${hytaleFiles.length} file(s) from bundled Hytale assets. Create the folder or click "Create Default Weather".`
           : "Server\\Weathers directory not found. Create the folder or open a file inside the Server directory.");
       } else {
         setLookupStatus("ready");
@@ -625,7 +593,6 @@ export function EnvironmentEditorView() {
       const p = weatherPathIndex[id.toLowerCase()];
       return p && isHytaleAssetPath(p);
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawJsonContent, weatherPathIndex, projectPath]);
 
   // Weather IDs referenced but not found anywhere (not in project, not in Hytale assets).
@@ -637,7 +604,6 @@ export function EnvironmentEditorView() {
       for (const e of entries) if (e.WeatherId) allIds.add(e.WeatherId);
     }
     return [...allIds].filter((id) => !weatherPathIndex[id.toLowerCase()]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawJsonContent, weatherPathIndex, lookupStatus]);
 
   // Auto-copy Hytale weather assets into the project's Server\Weathers folder on file open.
@@ -667,8 +633,7 @@ export function EnvironmentEditorView() {
       }
     }
     void autoImport();
-  // Only fire when the set of IDs changes (file switch / lookup complete)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Only fire when the set of IDs changes (file switch / lookup complete).
   }, [currentFile, hytaleOnlyIds.join(","), projectPath]);
 
   const doc = rawJsonContent ?? ({} as EnvironmentDoc);
@@ -1327,91 +1292,6 @@ export function EnvironmentEditorView() {
                       />
                     );
                   })}
-                  {false && activeForecasts.map((entry) => {
-                    const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];
-                    const maxWeight = activeForecasts[0]?.Weight ?? 1;
-                    const isHytale = weatherPath ? isHytaleAssetPath(weatherPath) : false;
-                    const serverRoot = inferServerRoot(currentFile, projectPath);
-                    return (
-                      <div
-                        key={`${previewHour}-${entry.WeatherId}`}
-                        className="rounded border border-tn-border/40 bg-tn-bg/70 px-3 py-2"
-                      >
-                        {/* Weight bar */}
-                        <div className="mb-1.5 h-1.5 rounded-full bg-black/20">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${Math.max(6, (entry.Weight / Math.max(1, maxWeight)) * 100)}%`,
-                              backgroundColor: hashColor(entry.WeatherId),
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: hashColor(entry.WeatherId) }} />
-                          <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-tn-text">{entry.WeatherId}</p>
-                          <span className="shrink-0 text-[10px] font-mono text-tn-text-muted">{entry.Weight}</span>
-                          <button
-                            type="button"
-                            onClick={() => weatherPath && openFile(weatherPath)}
-                            disabled={!weatherPath}
-                            title={weatherPath ? `Open ${entry.WeatherId}` : "File not found in project or Hytale assets"}
-                            className={`shrink-0 rounded border px-2 py-0.5 text-[10px] transition-colors ${
-                              weatherPath
-                                ? "border-tn-border/60 text-tn-text-muted hover:border-tn-accent hover:text-tn-accent"
-                                : "cursor-not-allowed border-tn-border/30 text-tn-text-muted/40"
-                            }`}
-                          >
-                            Open
-                          </button>
-                          {isHytale && serverRoot && (
-                            <button
-                              type="button"
-                              title={`Copy ${entry.WeatherId} from Hytale assets into project`}
-                              onClick={async () => {
-                                try {
-                                  await createDirectory(`${serverRoot}\\Weathers`);
-                                  await copyFile(weatherPath, `${serverRoot}\\Weathers\\${entry.WeatherId}.json`);
-                                  addToast(`Imported ${entry.WeatherId}`, "success");
-                                } catch (e) {
-                                  addToast(`Import failed: ${e}`, "error");
-                                }
-                              }}
-                              className="shrink-0 rounded border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/20"
-                            >
-                              Import
-                            </button>
-                          )}
-                          {!weatherPath && (
-                            <button
-                              type="button"
-                              title={`Locate "${entry.WeatherId}" — pick file to copy into project`}
-                              onClick={async () => {
-                                const selected = await openFileDialog({
-                                  title: `Locate weather file for "${entry.WeatherId}"`,
-                                  filters: [{ name: "JSON", extensions: ["json"] }],
-                                });
-                                if (!selected || typeof selected !== "string") return;
-                                const destDir = serverRoot ? `${serverRoot}\\Weathers` : null;
-                                if (!destDir) { addToast("Cannot resolve Server\\Weathers path", "error"); return; }
-                                try {
-                                  await createDirectory(destDir);
-                                  const fileName = selected.split(/[/\\]/).pop() ?? `${entry.WeatherId}.json`;
-                                  await copyFile(selected, `${destDir}\\${fileName}`);
-                                  addToast(`Copied ${fileName} into Server\\Weathers`, "success");
-                                } catch (e) {
-                                  addToast(`Failed to copy file: ${e}`, "error");
-                                }
-                              }}
-                              className="shrink-0 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-300 transition-colors hover:border-amber-400/60 hover:bg-amber-500/20"
-                            >
-                              Locate…
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
 
@@ -1755,139 +1635,6 @@ export function EnvironmentEditorView() {
                             onLocate={!weatherPath ? () => { void handleLocateForecastWeather(entry.WeatherId); } : undefined}
                             onRemove={() => removeForecastEntry(hour, index)}
                           />
-                        );
-                      })}
-
-                      {false && entries.length === 0 && (
-                        <p className="text-[11px] text-tn-text-muted">No forecasts configured for this hour.</p>
-                      )}
-
-                      {false && entries.map((entry, index) => {
-                        const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];
-                        const isHytale = weatherPath ? isHytaleAssetPath(weatherPath) : false;
-                        const serverRoot = inferServerRoot(currentFile, projectPath);
-                        return (
-                          <div
-                            key={`${hour}-${index}-${entry.WeatherId}`}
-                            className="flex items-center gap-1.5 rounded border border-tn-border/40 bg-tn-surface px-2 py-1.5"
-                          >
-                            {/* Color dot */}
-                            <div
-                              className="h-2.5 w-2.5 shrink-0 rounded-full"
-                              style={{ backgroundColor: hashColor(entry.WeatherId || `hour-${hour}-${index}`) }}
-                            />
-                            {/* Weather ID */}
-                            <input
-                              type="text"
-                              list="environment-weather-options"
-                              value={entry.WeatherId}
-                              onChange={(event) => updateDoc((previous) => ({
-                                ...previous,
-                                WeatherForecasts: {
-                                  ...(previous.WeatherForecasts ?? {}),
-                                  [String(hour)]: readForecastHour(previous, hour).map((item, itemIndex) => (
-                                    itemIndex === index ? { ...item, WeatherId: event.target.value } : item
-                                  )),
-                                },
-                              }))}
-                              className="min-w-0 flex-1 rounded border border-tn-border/60 bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
-                              placeholder="Zone1_Sunny"
-                            />
-                            {/* Weight */}
-                            <input
-                              type="number"
-                              step={1}
-                              min={0}
-                              value={entry.Weight}
-                              onChange={(event) => {
-                                const weight = Number.parseFloat(event.target.value);
-                                if (!Number.isFinite(weight)) return;
-                                updateDoc((previous) => ({
-                                  ...previous,
-                                  WeatherForecasts: {
-                                    ...(previous.WeatherForecasts ?? {}),
-                                    [String(hour)]: readForecastHour(previous, hour).map((item, itemIndex) => (
-                                      itemIndex === index ? { ...item, Weight: weight } : item
-                                    )),
-                                  },
-                                }));
-                              }}
-                              className="w-14 shrink-0 rounded border border-tn-border/60 bg-tn-bg px-1.5 py-1 text-[11px] font-mono text-right text-tn-text"
-                              title="Weight"
-                            />
-                            {/* Action buttons */}
-                            <button
-                              type="button"
-                              onClick={() => weatherPath && openFile(weatherPath)}
-                              disabled={!weatherPath}
-                              title={weatherPath ? `Open ${entry.WeatherId}` : "File not found"}
-                              className={`shrink-0 rounded border px-2 py-1 text-[10px] transition-colors ${
-                                weatherPath
-                                  ? "border-tn-border/60 text-tn-text-muted hover:border-tn-accent hover:text-tn-accent"
-                                  : "cursor-not-allowed border-tn-border/30 text-tn-text-muted/40"
-                              }`}
-                            >
-                              Open
-                            </button>
-                            {isHytale && serverRoot && (
-                              <button
-                                type="button"
-                                title={`Copy ${entry.WeatherId} from Hytale assets into project`}
-                                onClick={async () => {
-                                  try {
-                                    await createDirectory(`${serverRoot}\\Weathers`);
-                                    await copyFile(weatherPath, `${serverRoot}\\Weathers\\${entry.WeatherId}.json`);
-                                    addToast(`Imported ${entry.WeatherId}`, "success");
-                                  } catch (e) {
-                                    addToast(`Import failed: ${e}`, "error");
-                                  }
-                                }}
-                                className="shrink-0 rounded border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-[10px] text-sky-300 transition-colors hover:border-sky-400/60 hover:bg-sky-500/20"
-                              >
-                                Import
-                              </button>
-                            )}
-                            {!weatherPath && (
-                              <button
-                                type="button"
-                                title={`Locate "${entry.WeatherId}" — pick file to copy into project`}
-                                onClick={async () => {
-                                  const selected = await openFileDialog({
-                                    title: `Locate weather file for "${entry.WeatherId}"`,
-                                    filters: [{ name: "JSON", extensions: ["json"] }],
-                                  });
-                                  if (!selected || typeof selected !== "string") return;
-                                  const destDir = serverRoot ? `${serverRoot}\\Weathers` : null;
-                                  if (!destDir) { addToast("Cannot resolve Server\\Weathers path", "error"); return; }
-                                  try {
-                                    await createDirectory(destDir);
-                                    const fileName = selected.split(/[/\\]/).pop() ?? `${entry.WeatherId}.json`;
-                                    await copyFile(selected, `${destDir}\\${fileName}`);
-                                    addToast(`Copied ${fileName} into Server\\Weathers`, "success");
-                                  } catch (e) {
-                                    addToast(`Failed to copy file: ${e}`, "error");
-                                  }
-                                }}
-                                className="shrink-0 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[10px] text-amber-300 transition-colors hover:border-amber-400/60 hover:bg-amber-500/20"
-                              >
-                                Locate…
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              title="Remove this forecast entry"
-                              onClick={() => updateDoc((previous) => ({
-                                ...previous,
-                                WeatherForecasts: {
-                                  ...(previous.WeatherForecasts ?? {}),
-                                  [String(hour)]: readForecastHour(previous, hour).filter((_, itemIndex) => itemIndex !== index),
-                                },
-                              }))}
-                              className="shrink-0 rounded border border-tn-border/40 px-2 py-1 text-[10px] text-tn-text-muted/60 transition-colors hover:border-red-500/50 hover:text-red-400"
-                            >
-                              ✕
-                            </button>
-                          </div>
                         );
                       })}
                     </div>

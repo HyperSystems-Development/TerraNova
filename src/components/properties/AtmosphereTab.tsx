@@ -477,7 +477,6 @@ export function AtmosphereTab({
     return () => {
       if (animIntervalRef.current) clearInterval(animIntervalRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animating, animSpeed]);
 
   function syncStore(next: AtmosphereState) {
@@ -757,7 +756,6 @@ export function AtmosphereTab({
   // Sync tint to previewStore whenever biomeConfig changes
   useEffect(() => {
     setTintColors({ color1: tintColor1, color2: tintColor2, color3: tintColor3 });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tintColor1, tintColor2, tintColor3]);
 
   function handleTintChange(field: "color1" | "color2" | "color3" | "constant", value: string) {

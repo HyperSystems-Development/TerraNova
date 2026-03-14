@@ -65,14 +65,14 @@ describe("EnvironmentEditorView", () => {
     });
 
     expect(screen.queryByRole("button", { name: "Graph Disabled" })).toBeNull();
-    expect(screen.getAllByRole("button", { name: "Add Weather" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Add Weather" })).toHaveLength(2);
 
     fireEvent.change(screen.getByLabelText("Scope"), { target: { value: "all" } });
-    expect(screen.getAllByRole("button", { name: "Add Weather" })).toHaveLength(24);
+    expect(screen.getAllByRole("button", { name: "Add Weather" })).toHaveLength(25);
 
     fireEvent.click(screen.getByText("8:00 - 11:00").closest("button") as HTMLButtonElement);
     fireEvent.change(screen.getByLabelText("Scope"), { target: { value: "daypart" } });
-    expect(screen.getAllByRole("button", { name: "Add Weather" })).toHaveLength(4);
+    expect(screen.getAllByRole("button", { name: "Add Weather" })).toHaveLength(5);
   });
 
   it("can transition from no file to a loaded environment document without changing hook order", async () => {

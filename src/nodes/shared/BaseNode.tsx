@@ -86,7 +86,6 @@ function isLabelSignificant(label: string): boolean {
 
 export interface BaseNodeData extends Record<string, unknown> {
   type: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- field values are mixed primitives displayed in JSX
   fields: Record<string, any>;
 }
 

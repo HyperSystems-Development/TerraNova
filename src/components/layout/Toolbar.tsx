@@ -29,32 +29,33 @@ export function Toolbar() {
 
   return (
     <>
-      <div className="flex items-center h-10 px-2 bg-tn-surface border-b border-tn-border shrink-0">
+      <div className="flex h-10 items-center border-b border-tn-border bg-tn-surface px-2 shrink-0">
         <div className="flex items-center gap-1">
           <button
-            className="px-2 py-1 text-[11px] hover:bg-tn-surface rounded text-tn-text-muted"
+            className="rounded px-2 py-1 text-[11px] text-tn-text-muted hover:bg-tn-surface"
             onClick={() => handleAutoLayout(reactFlow)}
             title="Auto Layout All (L)"
           >
-            ⊞ Layout All
+            Layout All
           </button>
           <button
-            className={`px-2 py-1 text-[11px] rounded ${selectedCount < 2
-              ? "text-tn-text-muted/40 cursor-default"
-              : "hover:bg-tn-surface text-tn-text-muted"
-              }`}
+            className={`rounded px-2 py-1 text-[11px] ${
+              selectedCount < 2
+                ? "cursor-default text-tn-text-muted/40"
+                : "text-tn-text-muted hover:bg-tn-surface"
+            }`}
             onClick={handleAutoLayoutSelected}
             disabled={selectedCount < 2}
             title="Auto Layout Selected (Shift+L)"
           >
-            ⊞ Layout Selected
+            Layout Selected
           </button>
           <button
-            className="px-2 py-1 text-[11px] hover:bg-tn-surface rounded text-tn-text-muted"
+            className="rounded px-2 py-1 text-[11px] text-tn-text-muted hover:bg-tn-surface"
             onClick={handleTidyUp}
             title="Tidy Up (Ctrl+Shift+L)"
           >
-            ⊞ Tidy Up
+            Tidy Up
           </button>
         </div>
 

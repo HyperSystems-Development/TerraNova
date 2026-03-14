@@ -25,9 +25,9 @@ describe("WeatherEditorView", () => {
 
     render(<WeatherEditorView />);
 
-    expect(screen.getByText("24h Atmosphere Strip")).toBeTruthy();
+    expect(screen.getByText("Scene Preview")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Graph Disabled" })).toBeNull();
-    expect(screen.getByText("24h Atmosphere Strip")).toBeTruthy();
+    expect(screen.getByText("Quick Edit")).toBeTruthy();
   });
 
   it("can transition from no file to a loaded weather document without changing hook order", async () => {
@@ -50,6 +50,6 @@ describe("WeatherEditorView", () => {
       });
     });
 
-    expect(screen.getByText("24h Atmosphere Strip")).toBeTruthy();
+    expect(screen.getByText("Scene Preview")).toBeTruthy();
   });
 });

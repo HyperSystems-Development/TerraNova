@@ -107,15 +107,28 @@ pub fn list_directory(path: String) -> Result<Vec<DirectoryEntry>, String> {
     DirectoryEntry::scan(&dir_path).map_err(|e| e.to_string())
 }
 
-/// Resolve a bundled Hytale asset directory or file path.
+/// Resolve a cached Hytale asset directory or file path.
 #[tauri::command]
-pub fn resolve_bundled_hytale_asset_path(
-    app: tauri::AppHandle,
-    relative_path: String,
-) -> Result<String, String> {
-    let resource_dir = app.path().resource_dir().ok();
-    crate::io::hytale_assets::resolve_hytale_asset_path(&relative_path, resource_dir)
+pub fn resolve_bundled_hytale_asset_path(relative_path: String) -> Result<String, String> {
+    crate::io::hytale_assets::resolve_hytale_asset_path(&relative_path)
         .map(|path| path.to_string_lossy().to_string())
+        .map_err(|e| e.to_string())
+}
+
+/// Return the managed local Hytale asset cache root used by TerraNova.
+#[tauri::command]
+pub fn get_hytale_asset_cache_root() -> Result<String, String> {
+    crate::io::hytale_assets::ensure_hytale_assets_root()
+        .map(|path| path.to_string_lossy().to_string())
+        .map_err(|e| e.to_string())
+}
+
+/// Sync Hytale assets into TerraNova's local cache from a release directory or Assets.zip.
+#[tauri::command]
+pub fn sync_hytale_assets(
+    source_path: String,
+) -> Result<crate::io::hytale_assets::HytaleAssetSyncResult, String> {
+    crate::io::hytale_assets::sync_hytale_assets_from_source(Path::new(&source_path))
         .map_err(|e| e.to_string())
 }
 

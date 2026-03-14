@@ -80,6 +80,21 @@ export async function resolveBundledHytaleAssetPath(relativePath: string): Promi
   return invoke<string>("resolve_bundled_hytale_asset_path", { relativePath });
 }
 
+export interface HytaleAssetSyncResult {
+  cacheRoot: string;
+  sourcePath: string;
+  sourceKind: string;
+  filesWritten: number;
+}
+
+export async function getHytaleAssetCacheRoot(): Promise<string> {
+  return invoke<string>("get_hytale_asset_cache_root");
+}
+
+export async function syncHytaleAssets(sourcePath: string): Promise<HytaleAssetSyncResult> {
+  return invoke<HytaleAssetSyncResult>("sync_hytale_assets", { sourcePath });
+}
+
 export async function createFromTemplate(
   templateName: string,
   targetPath: string,

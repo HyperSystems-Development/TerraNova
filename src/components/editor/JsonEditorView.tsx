@@ -85,7 +85,6 @@ export function JsonEditorView({ content, onChange }: JsonEditorViewProps) {
       view.destroy();
       viewRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jsonText]);
 
   if (!jsonObj) {
