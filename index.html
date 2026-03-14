@@ -5,8 +5,38 @@
     <link rel="icon" type="image/svg+xml" href="/icons/terranova.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TerraNova</title>
+    <style>
+      /* Initial splash shown before React mounts to avoid white flash. Kept minimal and inline. */
+      #initial-splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0b1220;
+        color: #e6e6e6;
+        z-index: 99999;
+        -webkit-font-smoothing: antialiased;
+      }
+      #splash-inner { width: 320px; max-width: 90%; text-align: center; }
+      #splash-logo { width: 64px; height: 64px; margin: 0 auto 12px; display: block; }
+      .splash-title { font-weight: 600; margin-bottom: 8px; font-size: 18px; color: #f5f5f5; }
+      .splash-bar { height: 10px; background: #1f2937; border-radius: 6px; overflow: hidden; position: relative; }
+      .splash-progress { position: absolute; left: -40%; top: 0; bottom: 0; width: 40%; background: #f59e0b; animation: splash-slide 1.2s linear infinite; }
+      @keyframes splash-slide { from { left: -40%; } to { left: 140%; } }
+      .splash-msg { margin-top: 8px; font-size: 12px; color: #9CA3AF; }
+      #initial-splash.fade-out { opacity: 0; transition: opacity 260ms ease; pointer-events: none; }
+    </style>
   </head>
   <body class="bg-tn-bg text-tn-text overflow-hidden">
+    <div id="initial-splash" aria-hidden="true">
+      <div id="splash-inner">
+        <img id="splash-logo" src="/icons/terranova.svg" alt="" />
+        <div class="splash-title">TerraNova</div>
+        <div class="splash-bar"><div class="splash-progress"></div></div>
+        <div class="splash-msg">Starting application…</div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

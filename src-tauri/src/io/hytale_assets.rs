@@ -4,8 +4,7 @@ use std::io;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use zip::ZipArchive;
-use tauri::Window;
-use serde::Serialize;
+use tauri::{Emitter, Window};
 
 const SYNC_MANIFEST_NAME: &str = "sync-manifest.json";
 
@@ -371,10 +370,16 @@ fn extract_assets_zip(zip_path: &Path, cache_root: &Path) -> Result<u64, Box<dyn
     for index in 0..archive.len() {
         let mut entry = archive.by_index(index)?;
         let entry_path = sanitize_archive_entry_path(entry.name())?;
-        let entry_path_str = entry_path.to_string_lossy();
-        let lower = entry_path_str.to_ascii_lowercase();
-        if !(lower.starts_with("common\\") || lower.starts_with("server\\")) {
-            continue;
+        // Only extract entries that live under Common/ or Server/ at the root of the archive.
+        // Use the sanitized PathBuf to check the first component so we handle both '/' and '\\'.
+        match entry_path.components().next() {
+            Some(Component::Normal(first)) => {
+                let first_lower = first.to_string_lossy().to_ascii_lowercase();
+                if !(first_lower == "common" || first_lower == "server") {
+                    continue;
+                }
+            }
+            _ => continue,
         }
 
         let output_path = cache_root.join(&entry_path);
@@ -496,10 +501,15 @@ fn extract_assets_zip_with_progress(
     for index in 0..archive.len() {
         let mut entry = archive.by_index(index)?;
         let entry_path = sanitize_archive_entry_path(entry.name())?;
-        let entry_path_str = entry_path.to_string_lossy();
-        let lower = entry_path_str.to_ascii_lowercase();
-        if !(lower.starts_with("common\\") || lower.starts_with("server\\")) {
-            continue;
+        // Only extract entries that live under Common/ or Server/ at the root of the archive.
+        match entry_path.components().next() {
+            Some(Component::Normal(first)) => {
+                let first_lower = first.to_string_lossy().to_ascii_lowercase();
+                if !(first_lower == "common" || first_lower == "server") {
+                    continue;
+                }
+            }
+            _ => continue,
         }
 
         let output_path = cache_root.join(&entry_path);
@@ -546,10 +556,23 @@ pub fn sync_hytale_assets_from_source_with_progress(
 
     // Determine total file count for progress if possible
     let total_files_opt = if source_path.is_file() {
-        // Zip: use archive length
+        // Zip: count only files under Common/ or Server/ so progress is meaningful.
         let file = File::open(source_path)?;
-        let archive = ZipArchive::new(file)?;
-        Some(archive.len() as u64)
+        let mut archive = ZipArchive::new(file)?;
+        let mut count: u64 = 0;
+        for i in 0..archive.len() {
+            let entry = archive.by_index(i)?;
+            // sanitize path and check first component
+            if let Ok(entry_path) = sanitize_archive_entry_path(entry.name()) {
+                if let Some(Component::Normal(first)) = entry_path.components().next() {
+                    let first_lower = first.to_string_lossy().to_ascii_lowercase();
+                    if (first_lower == "common" || first_lower == "server") && !entry.is_dir() {
+                        count += 1;
+                    }
+                }
+            }
+        }
+        Some(count)
     } else if source_path.is_dir() {
         let mut total = 0u64;
         total += count_files_in_dir(&source_path.join("Common")).unwrap_or(0);

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 import { ReactFlowProvider } from "@xyflow/react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getVersion } from "@tauri-apps/api/app";
@@ -31,6 +32,43 @@ import { useGlobalKeyboardShortcuts } from "@/hooks/useGlobalKeyboardShortcuts";
 type PendingAction = "window-close" | "close-project";
 
 export default function App() {
+  // Remove the initial splash overlay inserted in index.html as soon as the
+  // frontend is ready or when the Tauri backend signals readiness.
+  useEffect(() => {
+    const removeSplash = () => {
+      const el = document.getElementById("initial-splash");
+      if (!el) return;
+      try {
+        el.classList.add("fade-out");
+        window.setTimeout(() => el.remove(), 320);
+      } catch {
+        // ignore DOM removal failures
+        try { el.remove(); } catch {};
+      }
+    };
+
+    // Try to listen for the Tauri 'tauri://ready' event; if that fails
+    // (web-only dev), fall back to a short timeout.
+    (async () => {
+      try {
+        const evt = await import("@tauri-apps/api/event");
+        const unlisten: UnlistenFn = await evt.listen("tauri://ready", () => {
+          removeSplash();
+          // unlisten will remove the handler
+          unlisten();
+        });
+      } catch (e) {
+        // Not in Tauri env — remove splash after a short delay so the app
+        // has time to paint its first frame.
+        setTimeout(removeSplash, 600);
+      }
+    })();
+
+    // Safety fallback: ensure the splash is removed eventually.
+    const timer = setTimeout(removeSplash, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const projectPath = useProjectStore((s) => s.projectPath);
 
   const [showDialog, setShowDialog] = useState(false);
