@@ -9,7 +9,7 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
-    version: "0.1.5 QoL 1-3",
+    version: "1.5.9 McCal's QoL",
     date: "2026-03",
     highlights: [
       {

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { ChangelogDialog } from "./ChangelogDialog";
 
-const CURRENT_VERSION = "0.1.5-qol1-3";
-const CURRENT_VERSION_LABEL = "0.1.5 QoL 1-3";
+const CURRENT_VERSION = "1.5.9";
+const CURRENT_VERSION_LABEL = "1.5.9 McCal's QoL";
 const STORAGE_KEY = "terranova:whats-new-seen";
 const SUPPRESS_KEY = "terranova:whats-new-suppress";
 
@@ -268,7 +268,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
                   {view === "changelog" ? "Full Changelog" : "What's new in TerraNova"}
                 </h2>
                 <p className="text-[11px] text-tn-text-muted mt-0.5">
-                  Quality-of-life update - v{CURRENT_VERSION_LABEL}
+                  v{CURRENT_VERSION_LABEL}
                 </p>
               </div>
             </div>

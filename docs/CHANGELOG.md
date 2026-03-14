@@ -2,7 +2,7 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystemsDev/TerraNova) are documented in this file.
 
-## [0.1.5-qol1-3] - 2026-03-12
+## [1.5.9 McCal's QoL] - 2026-03-14
 
 ### Added
 
