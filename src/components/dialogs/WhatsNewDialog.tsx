@@ -8,113 +8,96 @@ const SUPPRESS_KEY = "terranova:whats-new-suppress";
 
 export function useWhatsNew() {
   let seen = false;
-  let suppressed = false;
-  try {
-    seen = localStorage.getItem(STORAGE_KEY) === CURRENT_VERSION;
-    suppressed = localStorage.getItem(SUPPRESS_KEY) === "true";
-  } catch {
-    // localStorage unavailable
-  }
-  function dismiss(suppress: boolean) {
-    try {
-      localStorage.setItem(STORAGE_KEY, CURRENT_VERSION);
-      if (suppress) {
-        localStorage.setItem(SUPPRESS_KEY, "true");
-      } else {
-        localStorage.removeItem(SUPPRESS_KEY);
-      }
-    } catch {
-      // ignore
-    }
-  }
-  return { shouldShow: !seen && !suppressed, dismiss };
-}
-
-interface ChangeItem {
-  label: string;
-  description: string;
-}
-
-interface Section {
-  title: string;
-  items: ChangeItem[];
-}
-
-const HIGHLIGHTS: Section[] = [
-  {
-    title: "What to try",
-    items: [
-      {
-        label: "Hytale-accurate tint bands",
-        description:
-          "DensityDelimited TintProvider bands now keep real Hytale-style ranges, Tint.Type: Constant, and a valid default density node when needed.",
-      },
-      {
-        label: "Weather files in a dedicated editor",
-        description:
-          "Open a JSON file from Server\\Weathers to get a real scene preview, quick controls, collapsible track summaries, and direct save support instead of a raw JSON fallback.",
-      },
-      {
-        label: "Environment files in a dedicated editor",
-        description:
-          "Open a JSON file from Server\\Environments to inspect hourly forecasts, edit a primary weather for the current hour, and open linked weather files directly.",
-      },
-      {
-        label: "Simple Controls vs In-Depth Controls",
-        description:
-          "Both editors now default to a simpler control layer for fast edits, while the in-depth mode keeps the full weather tracks, tags, and raw-field tooling out of the way until you need them.",
-      },
-      {
-        label: "Preview drawers you can expand on demand",
-        description:
-          "The weather preview stack is now broken into collapsible sections for the 24h strip, track previews, sampled values, and asset breakdown so the scene card stays visible.",
-      },
-      {
-        label: "Issue log and tips panels",
-        description:
-          "In in-depth mode, both editors expose issue logs and tips behind a compact detail-panel selector instead of keeping those callouts permanently expanded.",
-      },
-      {
-        label: "Clickable asset file paths",
-        description:
-          "Environment and weather file references in the Atmosphere workflow now open directly in the editor so you can move from biome setup into the dedicated file editors quickly.",
-      },
-      {
-        label: "Biome browser and validation QoL",
-        description:
-          "Biome search, richer template entries, material autocomplete, legacy node fixes, and one-click validation fixes are all still part of this combined QoL pass.",
-      },
-      {
-        label: "Cleaner editor chrome",
-        description:
-          "Section headers, simple control cards, and header actions now share the same stronger styling and icon treatment so the weather and environment editors read more clearly.",
-      },
-    ],
-  },
-  {
-    title: "Known limitations",
-    items: [
-      {
-        label: "Weather/environment graph routes remain disabled",
-        description:
-          "The dedicated file editors are active, but graph mode for weather, environment, and tint stays disabled until the true Hytale-native provider graph work is ready.",
-      },
-    ],
-  },
-];
-
-const FULL_CHANGELOG: Section[] = [
-  {
-    title: "Hytale asset accuracy",
-    items: [
-      {
-        label: "DensityDelimited tint Range fields",
-        description: "Tint delimiters now preserve Hytale-accurate Range values and keep Tint.Type set to Constant during export.",
-      },
-      {
-        label: "Default tint density injection",
-        description: "When a DensityDelimited TintProvider is missing Density, TerraNova injects the canonical SimplexNoise2D node with the Hytale-aligned Octaves value.",
-      },
+  const FULL_CHANGELOG: Section[] = [
+    {
+      title: "Features",
+      items: [
+        {
+          label: "Hytale-accurate tint workflow",
+          description: "DensityDelimited tint bands now preserve Hytale-style Range values and export with Tint.Type set to Constant. Default density injection ensures valid exports when missing.",
+        },
+        {
+          label: "Dedicated weather file editor",
+          description: "Weather JSON files open into a preview-driven editor with save support, sampled track summaries, cloud breakdowns, and direct sampling at the selected hour.",
+        },
+        {
+          label: "Dedicated environment file editor",
+          description: "Environment JSON files open into a forecast-focused editor with current-hour controls, hourly weather entries, and direct links into the matching weather file.",
+        },
+        {
+          label: "Simple Controls and In-Depth Controls",
+          description: "Both editors default to a simpler control layer for fast edits while keeping the full track/tag/raw-field tooling behind an explicit in-depth toggle.",
+        },
+        {
+          label: "Collapsible preview drawers",
+          description: "The preview stack is broken into collapsible sections (24h strip, track previews, sampled values, asset breakdown) to keep the scene card visible.",
+        },
+      ],
+    },
+    {
+      title: "Quality of life",
+      items: [
+        {
+          label: "Clickable asset file paths",
+          description: "Environment and weather file references in the Atmosphere workflow now open directly in the editor for faster navigation.",
+        },
+        {
+          label: "Biome browser and validation",
+          description: "Searchable biome browser, richer template entries, material autocomplete, and one-click validation fixes improve day-to-day editing workflows.",
+        },
+        {
+          label: "Cleaner editor chrome",
+          description: "Section headers, simple control cards, and header actions share a stronger styling and icon treatment for better readability.",
+        },
+        {
+          label: "Issue log and tips panels",
+          description: "Issue logs and tips are now available behind a compact detail-panel selector instead of being permanently expanded.",
+        },
+      ],
+    },
+    {
+      title: "Bug fixes",
+      items: [
+        {
+          label: "Environment inheritance handling",
+          description: "Files that inherit forecasts from parents no longer appear broken when local WeatherForecasts are absent.",
+        },
+        {
+          label: "Update-depth guard in asset graph bridge",
+          description: "Graph bridge no longer pushes state back into the editor store on every render, preventing maximum update depth loops.",
+        },
+        {
+          label: "Stable hook order on empty load states",
+          description: "Editors keep hook order stable when opening from an empty state, avoiding render crash scenarios.",
+        },
+        {
+          label: "Tint export stability",
+          description: "Edited tint bands now round-trip correctly with stable delimiter IDs and consistent exported fields.",
+        },
+      ],
+    },
+    {
+      title: "Potential bugs / known limitations",
+      items: [
+        {
+          label: "Graph mode disabled",
+          description: "Weather/environment graph routes remain disabled until the Hytale-native provider graph work is ready.",
+        },
+        {
+          label: "Dev HMR adjustments",
+          description: "React Fast Refresh was temporarily disabled in development to avoid HMR issues; dev hot-reload behavior may differ until a full refactor is applied.",
+        },
+        {
+          label: "Large asset cache",
+          description: "The Hytale asset cache can reach multiple gigabytes; ensure disk space before syncing and monitor progress in the Sync modal.",
+        },
+        {
+          label: "TypeScript / dev warnings",
+          description: "Some dev-only TypeScript warnings and minor edge cases remain — run the full typecheck (pnpm exec tsc --noEmit) as part of release validation.",
+        },
+      ],
+    },
+  ];
       {
         label: "Tint band editing in the property panel",
         description: "DensityDelimited tint bands can be edited inline with color pickers, range inputs, and add/remove controls.",

@@ -4,34 +4,34 @@ All notable changes to [TerraNova](https://github.com/HyperSystemsDev/TerraNova)
 
 ## [1.5.9 McCal's QoL] - 2026-03-14
 
-### Added
+### Features
 
-- **Hytale-accurate tint workflow** - DensityDelimited tint bands now preserve Hytale-style Range values, keep `Tint.Type: "Constant"`, and inject a valid default density node when missing
-- **Dedicated weather editor** - Weather JSON files now open into a preview-driven editor with save support, sampled track summaries, and collapsible preview drawers instead of a raw JSON fallback
-- **Dedicated environment editor** - Environment JSON files now open into a forecast-focused editor with current-hour controls, hourly weather editing, and direct open actions for linked weather files
-- **Simple Controls and In-Depth Controls** - Weather and environment editors now default to a simpler control layer while keeping the heavier track, tag, and raw-field tools behind an explicit in-depth toggle
-- **Issue log and tips toggles** - Both editors now let you show or hide issue logs and tips from compact detail-panel controls
-- **Biome browser and validation QoL** - Biome search, richer template entries, Hytale template packs, material autocomplete, and one-click validation fixes are all part of the combined QoL release
+- **Hytale-accurate tint workflow** — DensityDelimited tint bands now preserve Hytale-style Range values, write `Tint.Type: "Constant"` on export, and inject a valid default density node when missing
+- **Dedicated weather editor** — Weather JSON files open into a preview-driven editor with save support, sampled track summaries, and collapsible preview drawers
+- **Dedicated environment editor** — Environment JSON files open into a forecast-focused editor with current-hour controls, hourly weather editing, and direct links to linked weather files
+- **Simple Controls and In-Depth Controls** — Editors default to a simpler control layer for quick edits while keeping advanced track/tag/raw-field tooling behind an explicit in-depth toggle
+- **Collapsible preview drawers** — The preview stack is split into collapsible drawers (24h strip, track preview, sampled values, asset breakdown) so the main scene preview remains visible
 
-### Changed
+### Quality of life
 
-- **Weather preview layout cleanup** - The 24h atmosphere strip, track preview, sampled values, and asset breakdown are now collapsible drawers so the main scene preview stays visible
-- **Editor section styling** - Simple control cards, collapsible sections, and header action buttons now share one stronger icon-forward visual language
-- **Real asset lookup paths** - Weather and environment asset references resolve directly against `Server\\Weathers` and `Server\\Environments`
-- **Atmosphere workflow navigation** - Clickable environment/weather file paths in the Atmosphere workflow now jump directly into the dedicated editors
+- **Clickable asset file paths** — Environment and weather file references in Atmosphere workflows now open directly in the editor
+- **Cleaner editor chrome** — Section headers, simple control cards, and header actions share stronger icon-forward styling for improved clarity
+- **Biome browser & validation** — Biome search, richer template entries, material autocomplete, and one-click validation fixes
+- **Issue log and tips toggles** — Issue logs and tips can be shown or hidden from compact detail-panel controls
 
-### Fixed
+### Bug fixes
 
-- **Environment inheritance handling** - Environment files that inherit forecasts from a parent are no longer treated like broken files just because they do not define local `WeatherForecasts`
-- **Maximum update depth crash** - Asset graph bridge updates are now guarded so weather/environment graph scaffolding does not loop state back into the store every render
-- **Rendered-more-hooks crash** - Weather and environment editors now keep hook order stable when opening from an empty state into a loaded file
-- **Tint export stability** - Edited tint bands now keep stable delimiter export fields when round-tripping back into Hytale-shaped JSON
+- **Environment inheritance handling** — Files that inherit forecasts from parents are no longer treated as broken
+- **Guard against update-depth loops** — Asset graph bridge no longer triggers maximum update depth crashes
+- **Stable hook order on empty loads** — Editors preserve hook order when loading from empty state to avoid render crashes
+- **Tint export stability** — Edited tint bands now round-trip with stable delimiter IDs and consistent export fields
 
-### Tests
+### Potential bugs / known limitations
 
-- Added regression coverage for `WeatherEditorView`, `EnvironmentEditorView`, and `AssetGraphCanvasBridge`
-- Added tint export coverage for `Range`, `Tint.Type: Constant`, and default density injection
-- `pnpm exec tsc -b --pretty false` passes after the editor polish changes
+- **Graph mode disabled** — Weather/environment graph routes (Hytale-native provider graph) remain disabled in this release
+- **Dev HMR adjustments** — React Fast Refresh was temporarily disabled in development to avoid HMR issues; hot-reload behavior may differ until refactors are applied
+- **Large asset cache** — Hytale asset cache can reach multiple GB; ensure disk space before syncing and monitor in the Sync modal
+- **Dev warnings** — Some TypeScript/dev-only warnings and edge cases may still appear; run the full typecheck (pnpm exec tsc --noEmit) during release validation
 
 ## [0.1.5] — 2026-02-16
 

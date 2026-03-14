@@ -10,7 +10,7 @@ import { useUpdateStore } from "@/stores/updateStore";
 import { checkForUpdates, downloadAndInstall, restartToUpdate } from "@/utils/updater";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import type { FlowDirection } from "@/constants";
-import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, syncHytaleAssets, countHytaleAssetsToSync, type AssetStalenessInfo } from "@/utils/ipc";
+import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, syncHytaleAssets, type AssetStalenessInfo } from "@/utils/ipc";
 import { useToastStore } from "@/stores/toastStore";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { WhatsNewDialog } from "./WhatsNewDialog";
@@ -173,16 +173,9 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       return;
     }
     try {
-      const toSync = await countHytaleAssetsToSync(activeHytaleSourcePath, hytaleCommonAssetsEnabled ? hytaleCommonAssetsPath : null);
-      if (toSync === 0) {
-        addToast("Cache is up to date — nothing to sync", "info");
-        // Refresh staleness info
-        void checkHytaleAssetStaleness(activeHytaleSourcePath)
-          .then(setStalenessInfo)
-          .catch(() => setStalenessInfo(null));
-        return;
-      }
-
+      // Start the sync in the background immediately. The Rust side will
+      // emit a quick completion event if there are zero files to write, so
+      // we avoid doing a potentially expensive pre-count on the UI thread.
       setSyncingHytaleAssets(true);
 
       const result = await syncHytaleAssets(
