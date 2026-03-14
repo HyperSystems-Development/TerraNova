@@ -5,6 +5,12 @@ use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use zip::ZipArchive;
 use tauri::{Emitter, Window};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+// Cancellation flag used to abort long-running sync operations from another
+// thread/command. Set to `true` by the cancel command and checked frequently
+// inside the copying/unzipping loops.
+static CANCEL_SYNC: AtomicBool = AtomicBool::new(false);
 
 const SYNC_MANIFEST_NAME: &str = "sync-manifest.json";
 
@@ -317,6 +323,10 @@ fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<u64, Bo
 
     for entry in fs::read_dir(source)? {
         let entry = entry?;
+        // Check for cancellation request
+        if CANCEL_SYNC.load(Ordering::SeqCst) {
+            return Err("sync cancelled by user".into());
+        }
         let source_path = entry.path();
         let destination_path = destination.join(entry.file_name());
 
@@ -370,6 +380,10 @@ fn extract_assets_zip(zip_path: &Path, cache_root: &Path) -> Result<u64, Box<dyn
     let mut files_written = 0;
 
     for index in 0..archive.len() {
+        // Check for cancellation request
+        if CANCEL_SYNC.load(Ordering::SeqCst) {
+            return Err("sync cancelled by user".into());
+        }
         let mut entry = archive.by_index(index)?;
         let entry_path = sanitize_archive_entry_path(entry.name())?;
         // Only extract entries that live under Common/ or Server/ at the root of the archive.
@@ -475,7 +489,7 @@ fn copy_directory_recursive_with_progress(
             *files_written += 1;
 
             // Emit progress
-            let percent = total_files_opt.map(|total| ((*files_written as f32) / (total as f32) * 100.0));
+            let percent = total_files_opt.map(|total| (*files_written as f32) / (total as f32) * 100.0);
             let _ = window.emit(
                 "hytale-sync-progress",
                 &SyncProgressEvent {
@@ -585,7 +599,8 @@ pub fn sync_hytale_assets_from_source_with_progress(
         None
     };
 
-    // Emit start
+    // Clear any previous cancellation request and emit start
+    CANCEL_SYNC.store(false, Ordering::SeqCst);
     let _ = window.emit("hytale-sync-start", &serde_json::json!({ "total_files": total_files_opt }));
 
     let mut files_written = 0u64;
@@ -629,6 +644,13 @@ pub fn sync_hytale_assets_from_source_with_progress(
     let _ = window.emit("hytale-sync-complete", &result);
 
     Ok(result)
+}
+
+/// Request cancellation of any active sync. This sets a shared flag which is
+/// checked by the progress-aware helpers.
+pub fn cancel_hytale_assets_sync() -> Result<(), Box<dyn std::error::Error>> {
+    CANCEL_SYNC.store(true, Ordering::SeqCst);
+    Ok(())
 }
 
 #[allow(dead_code)]

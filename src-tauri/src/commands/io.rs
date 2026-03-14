@@ -143,6 +143,13 @@ pub fn sync_hytale_assets(
     .map_err(|e| e.to_string())
 }
 
+/// Cancel any in-progress Hytale asset sync operation.
+#[tauri::command]
+pub fn cancel_hytale_assets_sync() -> Result<(), String> {
+    crate::io::hytale_assets::cancel_hytale_assets_sync()
+        .map_err(|e| e.to_string())
+}
+
 /// Return true if the given path exists on disk (file or directory).
 #[tauri::command]
 pub fn path_exists(path: String) -> bool {
