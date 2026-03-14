@@ -59,6 +59,42 @@ This is especially useful for:
 - `Server\Weathers`
 - `Common\Sky`
 
+### Manual Cache Setup
+
+If you want TerraNova to use Hytale assets already installed on your machine, open `Settings -> Hytale Asset Cache` and point TerraNova at your local asset source.
+
+Common setups:
+
+- Pre-release:
+
+```text
+C:\Users\<you>\AppData\Roaming\Hytale\install\pre-release\package\game\latest\Assets.zip
+```
+
+- Release:
+
+```text
+C:\Users\<you>\AppData\Roaming\Hytale\install\release\package\game\latest
+```
+
+You can also point the release source directly at the `Assets.zip` inside `latest`.
+
+If you want extra material art, block PNGs, and related shared textures, enable the external `Common` source in TerraNova settings and point it at:
+
+```text
+C:\Users\<you>\Desktop\Assets\Common
+```
+
+or any parent folder that contains `Common`.
+
+The sync flow is:
+
+1. choose `Pre-release` or `Release`
+2. point TerraNova at `Assets.zip` or the `latest` folder on your computer
+3. optionally layer in an external `Common` source
+4. press `Sync Now`
+5. use `Add Hytale Asset`, the Issue Log, or the Asset Tools pane against the cached files
+
 ---
 
 ## Making Your Own Environment

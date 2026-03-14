@@ -417,6 +417,32 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               </button>
             </div>
           </div>
+
+          <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">
+              Manual Setup
+            </p>
+            <div className="mt-2 flex flex-col gap-2 text-[11px] leading-relaxed text-tn-text-muted">
+              <p>
+                If you want to load Hytale assets manually, just point TerraNova at the asset source already on your computer and press <span className="font-medium text-tn-text">Sync Now</span>.
+              </p>
+              <p>
+                <span className="font-medium text-tn-text">Pre-release:</span> target the `Assets.zip` file directly.
+              </p>
+              <p className="rounded border border-tn-border/40 bg-tn-panel/40 px-2 py-1 font-mono text-[10px] text-tn-text">
+                C:\Users\wolft\AppData\Roaming\Hytale\install\pre-release\package\game\latest\Assets.zip
+              </p>
+              <p>
+                <span className="font-medium text-tn-text">Release:</span> target the `latest` folder or its `Assets.zip`.
+              </p>
+              <p className="rounded border border-tn-border/40 bg-tn-panel/40 px-2 py-1 font-mono text-[10px] text-tn-text">
+                C:\Users\wolft\AppData\Roaming\Hytale\install\release\package\game\latest
+              </p>
+              <p>
+                <span className="font-medium text-tn-text">Extra Common textures/materials:</span> point the external Common source at `Common` directly, or a parent folder containing `Common`, if you want block PNGs, sky textures, and related material art merged into the cache.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col gap-1">

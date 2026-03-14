@@ -2,6 +2,28 @@
 
 ---
 
+## Hytale Asset Icon Pass
+
+**TODO:** Add more asset-specific icons and thumbnails across the editors so references read more like Hytale content and less like plain text rows.
+
+**Targets:**
+- weather/editor asset rows for stars, moons, cloud textures, and sky textures
+- environment weather references in the Issue Log and Asset Tools pane
+- file-tree entries for major Hytale asset families such as `Environments`, `Weathers`, `Common\Sky`, `Blocks`, and `BlockTextures`
+- reusable icon helpers so cached Hytale assets and pack-local assets share the same visual treatment
+
+**Good first pass:**
+- use lightweight semantic icons for environment/weather/sky references
+- use thumbnail previews where a PNG exists and a text icon where it does not
+- reuse the existing material/block icon path where possible instead of inventing a second system
+
+**Later pass:**
+- distinguish cached Hytale assets vs in-pack assets visually
+- show moon/cloud/star icons directly inside weather fix actions and reference lists
+- add icon mapping for broader TerraNova asset types beyond weather/environment
+
+---
+
 ## Environment Parent Inheritance Docs
 
 **TODO:** Add a short tutorial/help entry explaining how Hytale uses `Parent` on environment assets.
