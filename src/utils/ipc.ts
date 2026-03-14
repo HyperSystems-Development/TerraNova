@@ -101,9 +101,45 @@ export async function syncHytaleAssets(
   sourcePath: string,
   commonOverlayPath?: string | null,
 ): Promise<HytaleAssetSyncResult> {
-  return invoke<HytaleAssetSyncResult>("sync_hytale_assets", {
+  // Start the sync in the background on the Rust side. This returns once the
+  // background thread is spawned; actual progress/completion is delivered via
+  // Tauri events which we listen for below.
+  await invoke("start_hytale_assets_sync", {
     sourcePath,
     commonOverlayPath: commonOverlayPath ?? null,
+  });
+
+  // Wait for either completion or error event and resolve/reject accordingly.
+  const ev = await import("@tauri-apps/api/event");
+  return new Promise<HytaleAssetSyncResult>((resolve, reject) => {
+    let unlistenComplete: (() => void) | null = null;
+    let unlistenError: (() => void) | null = null;
+
+    const cleanup = () => {
+      try {
+        if (unlistenComplete) unlistenComplete();
+      } catch {}
+      try {
+        if (unlistenError) unlistenError();
+      } catch {}
+    };
+
+    (async () => {
+      try {
+        unlistenComplete = await ev.once("hytale-sync-complete", (e: any) => {
+          cleanup();
+          resolve(e.payload as HytaleAssetSyncResult);
+        });
+
+        unlistenError = await ev.once("hytale-sync-error", (e: any) => {
+          cleanup();
+          reject(e.payload ?? e);
+        });
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    })();
   });
 }
 

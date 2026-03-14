@@ -491,6 +491,15 @@ fn copy_directory_recursive_with_progress(
             if let Some(parent) = destination_path.parent() {
                 fs::create_dir_all(parent)?;
             }
+            // Skip copying if destination exists and appears identical (same size).
+            if destination_path.exists() {
+                if let (Ok(src_meta), Ok(dst_meta)) = (fs::metadata(&source_path), fs::metadata(&destination_path)) {
+                    if src_meta.len() == dst_meta.len() {
+                        // identical — skip
+                        continue;
+                    }
+                }
+            }
             fs::copy(&source_path, &destination_path)?;
             *files_written += 1;
 
@@ -550,6 +559,15 @@ fn extract_assets_zip_with_progress(
             fs::create_dir_all(parent)?;
         }
 
+        // Skip extraction if destination exists and appears identical (same size).
+        if output_path.exists() {
+            if let Ok(dst_meta) = output_path.metadata() {
+                if dst_meta.len() == entry.size() {
+                    continue;
+                }
+            }
+        }
+
         let mut output = File::create(&output_path)?;
         io::copy(&mut entry, &mut output)?;
         *files_written += 1;
@@ -580,32 +598,84 @@ pub fn sync_hytale_assets_from_source_with_progress(
     }
 
     let cache_root = ensure_hytale_assets_root()?;
-    clear_cached_asset_subtrees(&cache_root)?;
 
-    // Determine total file count for progress if possible
-    let total_files_opt = if source_path.is_file() {
-        // Zip: count only files under Common/ or Server/ so progress is meaningful.
-        let file = File::open(source_path)?;
+    // Determine total file count for progress if possible — but count only files
+    // that actually need to be written (new or changed) so progress is
+    // meaningful and we avoid re-downloading identical files.
+    // Resolve overlay root early so we can include it in the total.
+    let overlay_root_opt = if let Some(p) = common_overlay_path {
+        Some(resolve_common_overlay_root(p)?)
+    } else {
+        None
+    };
+
+    // Helper: count changed files inside a zip (only Common/ or Server/ entries).
+    fn count_changed_files_in_zip(zip_path: &Path, cache_root: &Path) -> Result<u64, Box<dyn std::error::Error>> {
+        let file = File::open(zip_path)?;
         let mut archive = ZipArchive::new(file)?;
-        let mut count: u64 = 0;
+        let mut changed: u64 = 0;
         for i in 0..archive.len() {
             let entry = archive.by_index(i)?;
-            // sanitize path and check first component
-            if let Ok(entry_path) = sanitize_archive_entry_path(entry.name()) {
-                if let Some(Component::Normal(first)) = entry_path.components().next() {
-                    let first_lower = first.to_string_lossy().to_ascii_lowercase();
-                    if (first_lower == "common" || first_lower == "server") && !entry.is_dir() {
-                        count += 1;
-                    }
+            let entry_path = sanitize_archive_entry_path(entry.name())?;
+            if let Some(Component::Normal(first)) = entry_path.components().next() {
+                let first_lower = first.to_string_lossy().to_ascii_lowercase();
+                if !(first_lower == "common" || first_lower == "server") { continue; }
+            } else { continue; }
+            if entry.is_dir() { continue; }
+            let output_path = cache_root.join(&entry_path);
+            if output_path.exists() {
+                if let Ok(meta) = output_path.metadata() {
+                    if meta.len() == entry.size() { continue; }
                 }
             }
+            changed += 1;
         }
-        Some(count)
+        Ok(changed)
+    }
+
+    // Helper: count changed files under a source subtree relative to a dest root.
+    fn count_changed_files_in_subdir(src: &Path, dest_root: &Path) -> Result<u64, Box<dyn std::error::Error>> {
+        if !src.exists() { return Ok(0); }
+        let mut changed: u64 = 0;
+        let mut stack = vec![src.to_path_buf()];
+        while let Some(current) = stack.pop() {
+            let Ok(entries) = fs::read_dir(&current) else { continue };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() { stack.push(path); continue; }
+                let rel = path.strip_prefix(src).unwrap_or(&path);
+                let dest = dest_root.join(rel);
+                if dest.exists() {
+                    if let (Ok(smeta), Ok(dmeta)) = (path.metadata(), dest.metadata()) {
+                        if smeta.len() == dmeta.len() { continue; }
+                    }
+                }
+                changed += 1;
+            }
+        }
+        Ok(changed)
+    }
+
+    let total_files_opt = if source_path.is_file() {
+        // Zip source: count only changed entries inside the archive.
+        Some(count_changed_files_in_zip(source_path, &cache_root)?)
     } else if source_path.is_dir() {
         let mut total = 0u64;
-        total += count_files_in_dir(&source_path.join("Common")).unwrap_or(0);
-        total += count_files_in_dir(&source_path.join("Server")).unwrap_or(0);
+        total += count_changed_files_in_subdir(&source_path.join("Common"), &cache_root.join("Common")).unwrap_or(0);
+        total += count_changed_files_in_subdir(&source_path.join("Server"), &cache_root.join("Server")).unwrap_or(0);
         Some(total)
+    } else {
+        None
+    };
+
+    // Include overlay files in the total if present
+    let total_files_opt = if let Some(mut base) = total_files_opt {
+        if let Some(overlay_root) = &overlay_root_opt {
+            base += count_changed_files_in_subdir(overlay_root, &cache_root.join("Common")).unwrap_or(0);
+        }
+        Some(base)
+    } else if let Some(overlay_root) = &overlay_root_opt {
+        Some(count_changed_files_in_subdir(overlay_root, &cache_root.join("Common")).unwrap_or(0))
     } else {
         None
     };

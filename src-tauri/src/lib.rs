@@ -33,6 +33,8 @@ pub fn run() {
             io_commands::resolve_bundled_hytale_asset_path,
             io_commands::get_hytale_asset_cache_root,
             io_commands::sync_hytale_assets,
+            io_commands::start_hytale_assets_sync,
+            io_commands::cancel_hytale_assets_sync,
             io_commands::check_hytale_asset_staleness,
             io_commands::create_from_template,
             io_commands::list_template_biomes,

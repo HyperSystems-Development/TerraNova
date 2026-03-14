@@ -3,7 +3,7 @@ use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 /// Open an asset pack directory and parse all JSON files.
 #[tauri::command]
@@ -141,6 +141,32 @@ pub fn sync_hytale_assets(
         &window,
     )
     .map_err(|e| e.to_string())
+}
+
+/// Start a background Hytale assets sync and return immediately. Progress and
+/// completion are emitted to the caller window via events.
+#[tauri::command]
+pub fn start_hytale_assets_sync(
+    window: tauri::Window,
+    source_path: String,
+    common_overlay_path: Option<String>,
+) -> Result<(), String> {
+    let win = window.clone();
+    let src = source_path.clone();
+    let overlay = common_overlay_path.clone();
+
+    std::thread::spawn(move || {
+        let res = crate::io::hytale_assets::sync_hytale_assets_from_source_with_progress(
+            Path::new(&src),
+            overlay.as_deref().filter(|v| !v.trim().is_empty()).map(Path::new),
+            &win,
+        );
+        if let Err(e) = res {
+            let _ = win.emit("hytale-sync-error", &e.to_string());
+        }
+    });
+
+    Ok(())
 }
 
 /// Cancel any in-progress Hytale asset sync operation.
