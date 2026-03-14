@@ -143,6 +143,24 @@ pub fn sync_hytale_assets(
     .map_err(|e| e.to_string())
 }
 
+/// Count how many files would be written by a Hytale assets sync without
+/// performing any IO. This allows the frontend to avoid starting a sync when
+/// there is nothing to do.
+#[tauri::command]
+pub fn count_hytale_assets_to_sync(
+    source_path: String,
+    common_overlay_path: Option<String>,
+) -> Result<u64, String> {
+    crate::io::hytale_assets::count_changed_hytale_assets_from_source(
+        Path::new(&source_path),
+        common_overlay_path
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .map(Path::new),
+    )
+    .map_err(|e| e.to_string())
+}
+
 /// Start a background Hytale assets sync and return immediately. Progress and
 /// completion are emitted to the caller window via events.
 #[tauri::command]

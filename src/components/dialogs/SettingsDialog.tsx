@@ -10,7 +10,7 @@ import { useUpdateStore } from "@/stores/updateStore";
 import { checkForUpdates, downloadAndInstall, restartToUpdate } from "@/utils/updater";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import type { FlowDirection } from "@/constants";
-import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, syncHytaleAssets, type AssetStalenessInfo } from "@/utils/ipc";
+import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, syncHytaleAssets, countHytaleAssetsToSync, type AssetStalenessInfo } from "@/utils/ipc";
 import { useToastStore } from "@/stores/toastStore";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { WhatsNewDialog } from "./WhatsNewDialog";
@@ -172,8 +172,19 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       addToast("Choose a Common asset overlay path or turn it off.", "warning");
       return;
     }
-    setSyncingHytaleAssets(true);
     try {
+      const toSync = await countHytaleAssetsToSync(activeHytaleSourcePath, hytaleCommonAssetsEnabled ? hytaleCommonAssetsPath : null);
+      if (toSync === 0) {
+        addToast("Cache is up to date — nothing to sync", "info");
+        // Refresh staleness info
+        void checkHytaleAssetStaleness(activeHytaleSourcePath)
+          .then(setStalenessInfo)
+          .catch(() => setStalenessInfo(null));
+        return;
+      }
+
+      setSyncingHytaleAssets(true);
+
       const result = await syncHytaleAssets(
         activeHytaleSourcePath,
         hytaleCommonAssetsEnabled ? hytaleCommonAssetsPath : null,

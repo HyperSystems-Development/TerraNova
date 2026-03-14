@@ -33,6 +33,7 @@ pub fn run() {
             io_commands::resolve_bundled_hytale_asset_path,
             io_commands::get_hytale_asset_cache_root,
             io_commands::sync_hytale_assets,
+            io_commands::count_hytale_assets_to_sync,
             io_commands::start_hytale_assets_sync,
             io_commands::cancel_hytale_assets_sync,
             io_commands::check_hytale_asset_staleness,

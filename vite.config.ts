@@ -5,7 +5,10 @@ import path from "path";
 const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
-  plugins: [react()],
+  // Disable Fast Refresh to avoid HMR incompatibility warnings during
+  // development. This is a temporary workaround — consider refactoring
+  // re-exports from component modules to fix the underlying cause.
+  plugins: [react({ fastRefresh: false })],
   worker: {
     format: "es",
   },

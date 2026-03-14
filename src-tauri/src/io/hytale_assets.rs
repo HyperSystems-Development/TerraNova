@@ -461,6 +461,76 @@ fn count_files_in_dir(dir: &Path) -> Result<u64, Box<dyn std::error::Error>> {
     Ok(count)
 }
 
+/// Count changed files inside a zip archive (only Common/ or Server/ entries).
+fn count_changed_files_in_zip(zip_path: &Path, cache_root: &Path) -> Result<u64, Box<dyn std::error::Error>> {
+    let file = File::open(zip_path)?;
+    let mut archive = ZipArchive::new(file)?;
+    let mut changed: u64 = 0;
+    for i in 0..archive.len() {
+        let entry = archive.by_index(i)?;
+        let entry_path = sanitize_archive_entry_path(entry.name())?;
+        if let Some(Component::Normal(first)) = entry_path.components().next() {
+            let first_lower = first.to_string_lossy().to_ascii_lowercase();
+            if !(first_lower == "common" || first_lower == "server") { continue; }
+        } else { continue; }
+        if entry.is_dir() { continue; }
+        let output_path = cache_root.join(&entry_path);
+        if output_path.exists() {
+            if let Ok(meta) = output_path.metadata() {
+                if meta.len() == entry.size() { continue; }
+            }
+        }
+        changed += 1;
+    }
+    Ok(changed)
+}
+
+/// Count changed files under a source subtree relative to a dest root.
+fn count_changed_files_in_subdir(src: &Path, dest_root: &Path) -> Result<u64, Box<dyn std::error::Error>> {
+    if !src.exists() { return Ok(0); }
+    let mut changed: u64 = 0;
+    let mut stack = vec![src.to_path_buf()];
+    while let Some(current) = stack.pop() {
+        let Ok(entries) = fs::read_dir(&current) else { continue };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() { stack.push(path); continue; }
+            let rel = path.strip_prefix(src).unwrap_or(&path);
+            let dest = dest_root.join(rel);
+            if dest.exists() {
+                if let (Ok(smeta), Ok(dmeta)) = (path.metadata(), dest.metadata()) {
+                    if smeta.len() == dmeta.len() { continue; }
+                }
+            }
+            changed += 1;
+        }
+    }
+    Ok(changed)
+}
+
+/// Public helper to count changed Hytale asset files for a given source and optional overlay.
+pub fn count_changed_hytale_assets_from_source(
+    source_path: &Path,
+    common_overlay_path: Option<&Path>,
+) -> Result<u64, Box<dyn std::error::Error>> {
+    let cache_root = ensure_hytale_assets_root()?;
+
+    let mut total: u64 = 0;
+    if source_path.is_file() {
+        total = count_changed_files_in_zip(source_path, &cache_root)?;
+    } else if source_path.is_dir() {
+        total += count_changed_files_in_subdir(&source_path.join("Common"), &cache_root.join("Common")).unwrap_or(0);
+        total += count_changed_files_in_subdir(&source_path.join("Server"), &cache_root.join("Server")).unwrap_or(0);
+    }
+
+    if let Some(overlay) = common_overlay_path {
+        let overlay_root = resolve_common_overlay_root(overlay)?;
+        total += count_changed_files_in_subdir(&overlay_root, &cache_root.join("Common")).unwrap_or(0);
+    }
+
+    Ok(total)
+}
+
 fn copy_directory_recursive_with_progress(
     source: &Path,
     destination: &Path,
@@ -679,6 +749,23 @@ pub fn sync_hytale_assets_from_source_with_progress(
     } else {
         None
     };
+
+    // If we've determined there are zero files that need writing, skip the
+    // sync entirely to avoid showing the progress modal and performing any
+    // unnecessary work. Emit a completion event so frontends waiting for a
+    // result (via the start wrapper) will resume cleanly.
+    if let Some(0) = total_files_opt {
+        let result = HytaleAssetSyncResult {
+            cache_root: cache_root.to_string_lossy().to_string(),
+            source_path: source_path.to_string_lossy().to_string(),
+            source_kind: "none".into(),
+            files_written: 0,
+            common_overlay_path: None,
+            common_overlay_files_written: 0,
+        };
+        let _ = window.emit("hytale-sync-complete", &result);
+        return Ok(result);
+    }
 
     // Clear any previous cancellation request and emit start
     CANCEL_SYNC.store(false, Ordering::SeqCst);

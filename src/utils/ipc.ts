@@ -97,6 +97,16 @@ export async function getHytaleAssetCacheRoot(): Promise<string> {
   return invoke<string>("get_hytale_asset_cache_root");
 }
 
+export async function countHytaleAssetsToSync(
+  sourcePath: string,
+  commonOverlayPath?: string | null,
+): Promise<number> {
+  return invoke<number>("count_hytale_assets_to_sync", {
+    sourcePath,
+    commonOverlayPath: commonOverlayPath ?? null,
+  });
+}
+
 export async function syncHytaleAssets(
   sourcePath: string,
   commonOverlayPath?: string | null,
