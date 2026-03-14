@@ -731,10 +731,10 @@ export function WeatherEditorView() {
     }
 
     if (copied > 0) {
-      addToast(`Added ${copied} built-in asset file(s) to the pack.`, "success");
+      addToast(`Added ${copied} cached Hytale asset file(s) to the pack.`, "success");
     }
     if (failed > 0) {
-      addToast(`Failed to add ${failed} built-in asset file(s).`, copied > 0 ? "warning" : "error");
+      addToast(`Failed to add ${failed} cached Hytale asset file(s).`, copied > 0 ? "warning" : "error");
     }
   };
 

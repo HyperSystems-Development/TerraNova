@@ -36,8 +36,7 @@
       "../templates/forest-hills/",
       "../templates/shattered-archipelago/",
       "../templates/tropical-pirate-islands/",
-      "../templates/eldritch-spirelands/",
-      "../hytale-assets/"
+      "../templates/eldritch-spirelands/"
     ],
     "icon": [
       "icons/icon.icns",

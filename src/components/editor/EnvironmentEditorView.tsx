@@ -321,7 +321,7 @@ function getForecastResolution(
   return {
     status: "built-in",
     label: "Built-In",
-    detail: `Resolved to bundled Hytale asset ${fileName}. Import it into Server\\Weathers to include it in the pack.`,
+    detail: `Resolved to cached Hytale asset ${fileName}. Import it into Server\\Weathers to include it in the pack.`,
   };
 }
 
@@ -524,7 +524,7 @@ export function EnvironmentEditorView() {
         }
       }
 
-      // Always supplement project weather files with bundled Hytale assets.
+      // Always supplement project weather files with cached Hytale assets.
       const hytaleFiles = await scanHytaleAssetWeathers();
       for (const file of hytaleFiles) {
         allFiles.push(file);
@@ -533,7 +533,7 @@ export function EnvironmentEditorView() {
       if (!active) return;
 
       // Build index: project files were pushed first, so they take priority.
-      // Bundled Hytale files fill in any IDs not already covered.
+      // Cached Hytale files fill in any IDs not already covered.
       const nextIndex: Record<string, string> = {};
       const seen = new Set<string>();
       const deduped: Array<{ id: string; path: string }> = [];
@@ -544,7 +544,7 @@ export function EnvironmentEditorView() {
           deduped.push(file);
           nextIndex[key] = file.path;
         }
-        // First occurrence wins: project files are always pushed before bundled Hytale files.
+        // First occurrence wins: project files are always pushed before cached Hytale files.
       }
 
       deduped.sort((a, b) => a.id.localeCompare(b.id));
@@ -554,12 +554,12 @@ export function EnvironmentEditorView() {
       if (!serverRoot) {
         setLookupStatus("error");
         setLookupError(hytaleFiles.length > 0
-          ? `Server\\Weathers not found - showing ${hytaleFiles.length} file(s) from bundled Hytale assets.`
+          ? `Server\\Weathers not found - showing ${hytaleFiles.length} file(s) from the cached Hytale assets.`
           : "Could not infer the Server root for weather lookup.");
       } else if (!projectWeathersFound) {
         setLookupStatus("error");
         setLookupError(hytaleFiles.length > 0
-          ? `Server\\Weathers directory not found. Showing ${hytaleFiles.length} file(s) from bundled Hytale assets. Create the folder or click "Create Default Weather".`
+          ? `Server\\Weathers directory not found. Showing ${hytaleFiles.length} file(s) from the cached Hytale assets. Create the folder or click "Create Default Weather".`
           : "Server\\Weathers directory not found. Create the folder or open a file inside the Server directory.");
       } else {
         setLookupStatus("ready");

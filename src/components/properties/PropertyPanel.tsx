@@ -1047,7 +1047,7 @@ export function PropertyPanel() {
                 <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Folder Notes</p>
                 <p className="mt-1 text-[11px] text-tn-text-muted">
                   {isWeatherAsset
-                    ? "Store weather JSON in Server\\Weathers. Import a built-in Hytale weather to start fast, then keep referenced sky textures under Common\\Sky."
+                    ? "Store weather JSON in Server\\Weathers. Import a cached Hytale weather to start fast, then keep referenced sky textures under Common\\Sky."
                     : "Store environment JSON in Server\\Environments. Start from a Hytale asset or create your own, then point Parent at a shared base such as Env_Zone1, Env_Zone1_Caves, or another family root."}
                 </p>
               </div>
@@ -1092,7 +1092,7 @@ export function PropertyPanel() {
           <CollapsibleEditorSection
             title="Asset Tools"
             description={isWeatherAsset
-              ? "Track missing sky textures and pull bundled Hytale assets into the pack's Common folder."
+              ? "Track missing sky textures and pull cached Hytale assets into the pack's Common folder."
               : "Resolve referenced weather IDs without leaving the editor by opening, importing, or creating files."}
             badge={`${filteredAssetInspectorEntries.length}/${assetInspectorEntries.length}`}
             open={assetInspectorToolsOpen}
@@ -1102,7 +1102,7 @@ export function PropertyPanel() {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex flex-wrap gap-1 text-[10px]">
                   <span className={`rounded border px-2 py-1 ${statusClass("in-pack")}`}>{inPackEntries.length} in pack</span>
-                  <span className={`rounded border px-2 py-1 ${statusClass("built-in")}`}>{builtInEntries.length} built-in</span>
+                  <span className={`rounded border px-2 py-1 ${statusClass("built-in")}`}>{builtInEntries.length} cached</span>
                   <span className={`rounded border px-2 py-1 ${statusClass("missing")}`}>{missingEntries.length} missing</span>
                 </div>
               </div>
@@ -1224,7 +1224,7 @@ export function PropertyPanel() {
                       {builtInEntries.length + missingEntries.length} referenced weather file(s) still need attention
                     </p>
                     <p className="mt-1 text-[11px] text-tn-text-muted">
-                      Import built-ins first, then create placeholders only for custom weather IDs that do not exist anywhere.
+                      Import cached Hytale assets first, then create placeholders only for custom weather IDs that do not exist anywhere.
                     </p>
                   </div>
                 </div>
@@ -1284,7 +1284,7 @@ export function PropertyPanel() {
                             <div className="flex items-center gap-2">
                               <p className="truncate text-sm font-medium text-tn-text">{entry.label}</p>
                               <span className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wider ${statusClass(entry.status)}`}>
-                                {entry.status === "in-pack" ? "In Pack" : entry.status === "built-in" ? "Built-In" : "Missing"}
+                                {entry.status === "in-pack" ? "In Pack" : entry.status === "built-in" ? "Cached" : "Missing"}
                               </span>
                             </div>
                             <p className="mt-1 break-all text-[11px] text-tn-text-muted">{entry.detail}</p>

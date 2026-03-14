@@ -149,7 +149,7 @@ function getBundledAssetRelativePath(projectPath: string | null, targetPath: str
 }
 
 function getBundledAssetSourceLabel(relativePath: string): string {
-  return relativePath ? `Built-in\\${relativePath}` : "Built-in";
+  return relativePath ? `Hytale Cache\\${relativePath}` : "Hytale Cache";
 }
 
 function isQuickPickAsset(name: string): boolean {
@@ -437,7 +437,7 @@ function ContextMenu({
     try {
       defaultPath = await resolveBundledHytaleAssetPath(bundledAssetRelativePath);
     } catch {
-      addToast("No built-in Hytale assets are bundled for this folder yet.", "warning");
+      addToast("No cached Hytale assets are available for this folder yet. Sync them in Settings first.", "warning");
       onClose();
       return;
     }
@@ -547,7 +547,7 @@ function ContextMenu({
               </>
             ) : (
               <div className="px-3 py-2 text-[11px] text-tn-text-muted">
-                {assetChoiceError ? "No direct file picks here. Use Browse..." : "No bundled files in this folder."}
+                {assetChoiceError ? "No direct file picks here. Use Browse..." : "No cached files in this folder."}
               </div>
             )}
 
