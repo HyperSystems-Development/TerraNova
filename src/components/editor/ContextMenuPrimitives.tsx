@@ -1,3 +1,29 @@
+import { useState } from "react";
+interface ContextMenuSubmenuProps {
+  label: string;
+  children: React.ReactNode;
+}
+
+export function ContextMenuSubmenu({ label, children }: ContextMenuSubmenuProps) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      className="relative group"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button className="w-full text-left px-3 py-1.5 flex justify-between gap-4 text-tn-text hover:bg-tn-accent/20">
+        <span>{label}</span>
+        <span className="text-tn-text-muted text-[10px]">▶</span>
+      </button>
+      {open && (
+        <div className="absolute left-full top-0 bg-tn-surface border border-tn-border rounded-lg shadow-xl py-1 min-w-[180px] z-[101]">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 import { useEffect, useRef, type ReactNode } from "react";
 
 interface ContextMenuOverlayProps {

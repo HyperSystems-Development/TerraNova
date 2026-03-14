@@ -10,6 +10,7 @@ import { PanelLayout } from "@/components/layout/PanelLayout";
 import { DragGhost } from "@/components/editor/DragGhost";
 import { HomeScreen } from "@/components/home/HomeScreen";
 import { Toast } from "@/components/ui/Toast";
+import { LoadingDialog } from "@/components/ui/LoadingDialog";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { NewProjectDialog } from "@/components/dialogs/NewProjectDialog";
@@ -180,6 +181,7 @@ export default function App() {
         <SimpleTitleBar />
         <HomeScreen />
         {dialog}
+        <LoadingDialog open={loading} message="Loading, please wait..." />
         <Toast />
       </div>
     );
@@ -201,6 +203,7 @@ export default function App() {
         setShowExportSvg={setShowExportSvg}
         dialog={dialog}
       />
+      <LoadingDialog open={loading} message="Loading, please wait..." />
     </ReactFlowProvider>
   );
 }
