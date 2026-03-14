@@ -131,7 +131,9 @@ export default function SyncProgressModal() {
     }
   }
 
-  const modalClass = `pointer-events-auto w-11/12 max-w-xl p-4 bg-tn-card border border-tn-border rounded-lg shadow-lg transform transition-all duration-200 ${
+  // Use the same opaque panel styling as other app modals (Settings, etc.)
+  // so the sync modal doesn't feel transparent or 'glass-like'.
+  const modalClass = `pointer-events-auto w-11/12 max-w-xl p-4 bg-tn-panel border border-tn-border rounded-lg shadow-xl transform transition-all duration-200 ${
     visible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-2 scale-95"
   }`;
 
@@ -145,9 +147,9 @@ export default function SyncProgressModal() {
       }}
       tabIndex={-1}
     >
-      {/* Backdrop (click to request cancel) */}
+      {/* Backdrop (click to request cancel) — make it opaque like other dialogs */}
       <div
-        className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60"
         onClick={() => {
           if (inProgress) setShowCancelConfirm(true);
         }}
