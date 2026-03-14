@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TerraNova</title>
     <style>
-      /* Splash styled to match TerraNova UI tokens (copied from tailwind config). */
+      /* Splash styled to match TerraNova UI tokens (copied from tailwind config).
+         Added shimmer and leading-edge animations for a livelier progress bar. */
       :root{
         --tn-bg: #1c1a17; /* tn.bg */
         --tn-panel: #312d28; /* tn.panel */
@@ -39,6 +40,13 @@
         display:flex;
         gap:16px;
         align-items:center;
+        transform-origin: center;
+        animation: splash-drop 420ms cubic-bezier(.2,.9,.2,1) both;
+      }
+      @keyframes splash-drop {
+        0% { transform: translateY(12px) scale(0.98); opacity: 0 }
+        60% { transform: translateY(-6px) scale(1.003); opacity: 1 }
+        100% { transform: translateY(0) scale(1); opacity: 1 }
       }
       #splash-logo{width:56px;height:56px;border-radius:8px;background:var(--tn-panel);display:flex;align-items:center;justify-content:center;padding:8px}
       #splash-logo img{width:40px;height:40px}
@@ -46,7 +54,39 @@
       .splash-title{font-size:18px;font-weight:700;color:var(--tn-text);margin-bottom:6px}
       .splash-sub{font-size:13px;color:var(--tn-text-muted);margin-bottom:12px}
       .splash-bar{height:10px;background:var(--tn-panel);border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,0.02)}
-      .splash-progress{height:100%;width:0%;background:linear-gradient(90deg,var(--tn-accent),#d8b06a);transition:width 160ms linear;box-shadow:0 4px 10px rgba(181,146,76,0.12)}
+      .splash-progress{height:100%;width:0%;background:linear-gradient(90deg,var(--tn-accent),#d8b06a);transition:width 160ms linear;box-shadow:0 4px 10px rgba(181,146,76,0.12);position:relative;overflow:hidden}
+
+      /* Moving sheen across the filled portion */
+      .splash-progress::before{
+        content: "";
+        position: absolute;
+        left: -60%;
+        top: 0;
+        height: 100%;
+        width: 60%;
+        background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.16), rgba(255,255,255,0));
+        transform: skewX(-18deg);
+        animation: splash-shimmer 1.6s linear infinite;
+      }
+      @keyframes splash-shimmer { from { left: -60% } to { left: 160% } }
+
+      /* Soft glowing leading edge that stays at the bar's end */
+      .splash-progress::after{
+        content: "";
+        position: absolute;
+        right: -6px;
+        top: -6px;
+        width: 16px;
+        height: 22px;
+        background: radial-gradient(circle at center, rgba(255,255,255,0.9), rgba(255,255,255,0));
+        border-radius: 50%;
+        filter: blur(6px);
+        opacity: 0.9;
+        transform-origin: center;
+        animation: splash-lead 1.6s linear infinite;
+      }
+      @keyframes splash-lead { 0% { transform: translateY(0) scale(1); } 50% { transform: translateY(-1px) scale(1.02); } 100% { transform: translateY(0) scale(1); } }
+
       .splash-actions{display:flex;gap:8px;align-items:center;margin-top:12px}
       .splash-small{font-size:12px;color:var(--tn-text-muted)}
       #initial-splash.fade-out{opacity:0;transition:opacity 260ms ease;pointer-events:none}

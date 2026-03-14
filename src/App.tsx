@@ -40,10 +40,16 @@ export default function App() {
     const messages = [
       "Getting it together...",
       "Hoping that Simon notices me...",
+      "Plastic is Fantastic, just dont consume on a daily basis",
+      "Good luck in the Modding Contest!",
       "Loading assets...",
       "Warming up the map...",
       "Assembling blocks...",
       "Summoning terrain spirits...",
+      "Polishing the sky...",
+      "Feeding the pixel dragons...",
+      "Tuning the grass color...",
+      "Checking for missing cookies...",
     ];
 
     let msgIdx = 0;
