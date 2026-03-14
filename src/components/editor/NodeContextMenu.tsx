@@ -50,6 +50,7 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
   // Use reactive selectors instead of getState() snapshot to avoid stale data
   const nodes = useEditorStore((s) => s.nodes);
   const edges = useEditorStore((s) => s.edges);
+  const confirmOnNodeDelete = useSettingsStore((s) => s.confirmOnNodeDelete);
 
   const selectedNodes = nodes.filter((n) => n.selected);
   const selectedIds = new Set(selectedNodes.map((n) => n.id));
@@ -99,6 +100,7 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         label="Delete"
         shortcut="Del"
         onClick={() => {
+          if (confirmOnNodeDelete && !window.confirm(`Delete ${selectedIds.size} node${selectedIds.size === 1 ? "" : "s"}?`)) return;
           useEditorStore.getState().removeNodes([...selectedIds]);
           onClose();
         }}

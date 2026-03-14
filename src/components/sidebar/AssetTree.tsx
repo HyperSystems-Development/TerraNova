@@ -12,6 +12,7 @@ import {
 } from "@/utils/ipc";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { useToastStore } from "@/stores/toastStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -335,6 +336,8 @@ function ContextMenu({
   const ref = useRef<HTMLDivElement>(null);
   const projectPath = useProjectStore((s) => s.projectPath);
   const addToast = useToastStore((s) => s.addToast);
+  const hytaleAssetSyncEnabled = useSettingsStore((s) => s.hytaleAssetSyncEnabled);
+  const assetsImported = hytaleAssetSyncEnabled;
   const [showFolderSubmenu, setShowFolderSubmenu] = useState(false);
   const [showAssetSubmenu, setShowAssetSubmenu] = useState(false);
   const [assetChoices, setAssetChoices] = useState<DirectoryEntryData[] | null>(null);
@@ -477,8 +480,10 @@ function ContextMenu({
 
       <div className="relative">
         <button
-          className="flex w-full items-center justify-between px-3 py-1.5 text-left text-tn-text transition-colors hover:bg-white/[0.06]"
-          onMouseEnter={() => setShowFolderSubmenu(true)}
+          disabled={!assetsImported}
+          title={!assetsImported ? "Sync Hytale assets in Settings › Assets first" : undefined}
+          className="flex w-full items-center justify-between px-3 py-1.5 text-left text-tn-text transition-colors hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed"
+          onMouseEnter={() => { if (assetsImported) setShowFolderSubmenu(true); }}
           onMouseLeave={() => setShowFolderSubmenu(false)}
         >
           <span className="text-[13px]">Add Hytale Folder</span>
@@ -508,8 +513,11 @@ function ContextMenu({
 
       <div className="relative">
         <button
-          className="flex w-full items-center justify-between px-3 py-1.5 text-left text-tn-text transition-colors hover:bg-white/[0.06]"
+          disabled={!assetsImported}
+          title={!assetsImported ? "Sync Hytale assets in Settings › Assets first" : undefined}
+          className="flex w-full items-center justify-between px-3 py-1.5 text-left text-tn-text transition-colors hover:bg-white/[0.06] disabled:opacity-40 disabled:cursor-not-allowed"
           onMouseEnter={() => {
+            if (!assetsImported) return;
             setShowAssetSubmenu(true);
             if (assetChoices === null) {
               void loadAssetChoices();

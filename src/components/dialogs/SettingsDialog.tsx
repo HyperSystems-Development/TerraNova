@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
+import { useSettingsStore } from "@/stores/settingsStore";
 import {
-  DEFAULT_HYTALE_COMMON_ASSETS_PATH,
-  DEFAULT_HYTALE_PRERELEASE_ASSETS_PATH,
-  DEFAULT_HYTALE_RELEASE_ASSETS_PATH,
-  useSettingsStore,
-} from "@/stores/settingsStore";
+  resolveDefaultPreReleaseAssetsPath,
+  resolveDefaultReleaseAssetsPath,
+  resolveDefaultCommonAssetsPath,
+} from "@/utils/hytaleDefaultPaths";
 import { useUpdateStore } from "@/stores/updateStore";
 import { checkForUpdates, downloadAndInstall, restartToUpdate } from "@/utils/updater";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import type { FlowDirection } from "@/constants";
 import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, syncHytaleAssets, type AssetStalenessInfo } from "@/utils/ipc";
 import { useToastStore } from "@/stores/toastStore";
+import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { WhatsNewDialog } from "./WhatsNewDialog";
 import { ChangelogDialog } from "./ChangelogDialog";
 
@@ -62,6 +63,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const setFlowDirection = useSettingsStore((s) => s.setFlowDirection);
   const autoLayoutOnOpen = useSettingsStore((s) => s.autoLayoutOnOpen);
   const setAutoLayoutOnOpen = useSettingsStore((s) => s.setAutoLayoutOnOpen);
+  const confirmOnNodeDelete = useSettingsStore((s) => s.confirmOnNodeDelete);
+  const setConfirmOnNodeDelete = useSettingsStore((s) => s.setConfirmOnNodeDelete);
   const exportPath = useSettingsStore((s) => s.exportPath);
   const setExportPath = useSettingsStore((s) => s.setExportPath);
   const autoCheckUpdates = useSettingsStore((s) => s.autoCheckUpdates);
@@ -79,6 +82,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const hytaleCommonAssetsPath = useSettingsStore((s) => s.hytaleCommonAssetsPath);
   const setHytaleCommonAssetsPath = useSettingsStore((s) => s.setHytaleCommonAssetsPath);
   const addToast = useToastStore((s) => s.addToast);
+  const recentProjects = useRecentProjectsStore((s) => s.projects);
+  const clearRecentProjects = useRecentProjectsStore((s) => s.clearAll);
 
   const updateStatus = useUpdateStore((s) => s.status);
   const updateVersion = useUpdateStore((s) => s.version);
@@ -93,9 +98,13 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [syncingHytaleAssets, setSyncingHytaleAssets] = useState(false);
   const [stalenessInfo, setStalenessInfo] = useState<AssetStalenessInfo | null>(null);
   const [checkingStaleness, setCheckingStaleness] = useState(false);
+  const [examplePreReleasePath, setExamplePreReleasePath] = useState("");
+  const [exampleReleasePath, setExampleReleasePath] = useState("");
 
   useEffect(() => {
     getVersion().then(setAppVersion);
+    void resolveDefaultPreReleaseAssetsPath().then(setExamplePreReleasePath);
+    void resolveDefaultReleaseAssetsPath().then(setExampleReleasePath);
   }, []);
 
   useEffect(() => {
@@ -289,6 +298,36 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     </button>
                   </div>
                 </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Node Deletion</label>
+                  <button
+                    onClick={() => setConfirmOnNodeDelete(!confirmOnNodeDelete)}
+                    className={`text-left px-3 py-2 rounded border text-sm ${
+                      confirmOnNodeDelete
+                        ? "border-tn-accent bg-tn-accent/10"
+                        : "border-tn-border bg-tn-bg hover:bg-tn-surface"
+                    }`}
+                  >
+                    <span className="font-medium">Confirm before deleting nodes</span>
+                    <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{confirmOnNodeDelete ? "On" : "Off"}</span>
+                    <p className="text-xs text-tn-text-muted mt-0.5">Show a confirmation prompt when deleting nodes via the context menu</p>
+                  </button>
+                </div>
+
+                <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
+                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Recent Projects</label>
+                  <div className="flex items-center justify-between px-3 py-2 rounded border border-tn-border bg-tn-bg">
+                    <span className="text-sm text-tn-text-muted">{recentProjects.length} project{recentProjects.length === 1 ? "" : "s"} in history</span>
+                    <button
+                      onClick={() => { clearRecentProjects(); addToast("Recent projects cleared", "success"); }}
+                      disabled={recentProjects.length === 0}
+                      className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Clear History
+                    </button>
+                  </div>
+                </div>
               </>
             )}
 
@@ -364,7 +403,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                       />
                       <button onClick={handleBrowseHytaleAssetSource} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap">Browse...</button>
                       <button
-                        onClick={() => setActiveHytaleSourcePath(hytaleAssetSourceChannel === "pre-release" ? DEFAULT_HYTALE_PRERELEASE_ASSETS_PATH : DEFAULT_HYTALE_RELEASE_ASSETS_PATH)}
+                        onClick={() => {
+                          const resolve = hytaleAssetSourceChannel === "pre-release"
+                            ? resolveDefaultPreReleaseAssetsPath
+                            : resolveDefaultReleaseAssetsPath;
+                          void resolve().then(setActiveHytaleSourcePath);
+                        }}
                         className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap"
                       >
                         Default
@@ -399,7 +443,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                         className="flex-1 rounded border border-tn-border bg-tn-bg px-3 py-1.5 text-sm text-tn-text disabled:cursor-not-allowed disabled:opacity-60"
                       />
                       <button onClick={handleBrowseCommonAssetsSource} disabled={!hytaleCommonAssetsEnabled} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Browse...</button>
-                      <button onClick={() => setHytaleCommonAssetsPath(DEFAULT_HYTALE_COMMON_ASSETS_PATH)} disabled={!hytaleCommonAssetsEnabled} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Default</button>
+                      <button onClick={() => { void resolveDefaultCommonAssetsPath().then(setHytaleCommonAssetsPath); }} disabled={!hytaleCommonAssetsEnabled} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Default</button>
                     </div>
                     <p className="text-xs text-tn-text-muted">
                       Point this at `Common` directly, or a parent folder that contains `Common`. Block/material PNGs will be merged into the cache after sync.
@@ -459,11 +503,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                       <p>Point TerraNova at the asset source on your computer and press <span className="font-medium text-tn-text">Sync Now</span>.</p>
                       <p><span className="font-medium text-tn-text">Pre-release:</span> target the `Assets.zip` file directly.</p>
                       <p className="rounded border border-tn-border/40 bg-tn-panel/40 px-2 py-1 font-mono text-[10px] text-tn-text">
-                        C:\Users\wolft\AppData\Roaming\Hytale\install\pre-release\package\game\latest\Assets.zip
+                        {examplePreReleasePath || "Resolving path…"}
                       </p>
                       <p><span className="font-medium text-tn-text">Release:</span> target the `latest` folder or its `Assets.zip`.</p>
                       <p className="rounded border border-tn-border/40 bg-tn-panel/40 px-2 py-1 font-mono text-[10px] text-tn-text">
-                        C:\Users\wolft\AppData\Roaming\Hytale\install\release\package\game\latest
+                        {exampleReleasePath || "Resolving path…"}
                       </p>
                     </div>
                   </div>

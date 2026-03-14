@@ -5,9 +5,9 @@ const STORAGE_KEY = "tn-settings";
 
 export type HytaleAssetSourceChannel = "pre-release" | "release";
 
-export const DEFAULT_HYTALE_PRERELEASE_ASSETS_PATH = "C:\\Users\\wolft\\AppData\\Roaming\\Hytale\\install\\pre-release\\package\\game\\latest\\Assets.zip";
-export const DEFAULT_HYTALE_RELEASE_ASSETS_PATH = "C:\\Users\\wolft\\AppData\\Roaming\\Hytale\\install\\release\\package\\game\\latest";
-export const DEFAULT_HYTALE_COMMON_ASSETS_PATH = "C:\\Users\\wolft\\Desktop\\Assets\\Common";
+// Default path constants removed — use resolveDefaultPreReleaseAssetsPath(),
+// resolveDefaultReleaseAssetsPath(), resolveDefaultCommonAssetsPath() from
+// src/utils/hytaleDefaultPaths.ts to get OS/user-correct paths at runtime.
 
 function getStoredSettingsObject(): Record<string, unknown> | null {
   try {
@@ -32,6 +32,14 @@ function getStoredAutoLayoutOnOpen(): boolean {
   const parsed = getStoredSettingsObject();
   if (typeof parsed?.autoLayoutOnOpen === "boolean") {
     return parsed.autoLayoutOnOpen;
+  }
+  return false;
+}
+
+function getStoredConfirmOnNodeDelete(): boolean {
+  const parsed = getStoredSettingsObject();
+  if (typeof parsed?.confirmOnNodeDelete === "boolean") {
+    return parsed.confirmOnNodeDelete;
   }
   return false;
 }
@@ -79,7 +87,7 @@ function getStoredHytalePreReleaseAssetsPath(): string {
   if (typeof parsed?.hytalePreReleaseAssetsPath === "string" && parsed.hytalePreReleaseAssetsPath.trim()) {
     return parsed.hytalePreReleaseAssetsPath;
   }
-  return DEFAULT_HYTALE_PRERELEASE_ASSETS_PATH;
+  return "";
 }
 
 function getStoredHytaleReleaseAssetsPath(): string {
@@ -87,7 +95,7 @@ function getStoredHytaleReleaseAssetsPath(): string {
   if (typeof parsed?.hytaleReleaseAssetsPath === "string" && parsed.hytaleReleaseAssetsPath.trim()) {
     return parsed.hytaleReleaseAssetsPath;
   }
-  return DEFAULT_HYTALE_RELEASE_ASSETS_PATH;
+  return "";
 }
 
 function getStoredHytaleCommonAssetsEnabled(): boolean {
@@ -103,12 +111,13 @@ function getStoredHytaleCommonAssetsPath(): string {
   if (typeof parsed?.hytaleCommonAssetsPath === "string" && parsed.hytaleCommonAssetsPath.trim()) {
     return parsed.hytaleCommonAssetsPath;
   }
-  return DEFAULT_HYTALE_COMMON_ASSETS_PATH;
+  return "";
 }
 
 function persistSettings(settings: {
   flowDirection: FlowDirection;
   autoLayoutOnOpen: boolean;
+  confirmOnNodeDelete: boolean;
   autoCheckUpdates: boolean;
   keybindingOverrides: Record<string, string>;
   exportPath: string | null;
@@ -129,6 +138,7 @@ function persistSettings(settings: {
 interface SettingsState {
   flowDirection: FlowDirection;
   autoLayoutOnOpen: boolean;
+  confirmOnNodeDelete: boolean;
   autoCheckUpdates: boolean;
   keybindingOverrides: Record<string, string>;
   exportPath: string | null;
@@ -141,6 +151,7 @@ interface SettingsState {
   setFlowDirection: (dir: FlowDirection) => void;
   setAutoLayoutOnOpen: (value: boolean) => void;
   setAutoCheckUpdates: (value: boolean) => void;
+  setConfirmOnNodeDelete: (value: boolean) => void;
   setKeybindingOverride: (id: string, key: string) => void;
   resetKeybinding: (id: string) => void;
   resetAllKeybindings: () => void;
@@ -157,6 +168,7 @@ function getAllSettings(state: SettingsState) {
   return {
     flowDirection: state.flowDirection,
     autoLayoutOnOpen: state.autoLayoutOnOpen,
+    confirmOnNodeDelete: state.confirmOnNodeDelete,
     autoCheckUpdates: state.autoCheckUpdates,
     keybindingOverrides: state.keybindingOverrides,
     exportPath: state.exportPath,
@@ -172,6 +184,7 @@ function getAllSettings(state: SettingsState) {
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   flowDirection: getStoredFlowDirection(),
   autoLayoutOnOpen: getStoredAutoLayoutOnOpen(),
+  confirmOnNodeDelete: getStoredConfirmOnNodeDelete(),
   autoCheckUpdates: getStoredAutoCheckUpdates(),
   keybindingOverrides: getStoredKeybindingOverrides(),
   exportPath: getStoredExportPath(),
@@ -190,6 +203,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setAutoLayoutOnOpen: (value) => {
     set({ autoLayoutOnOpen: value });
     persistSettings(getAllSettings({ ...get(), autoLayoutOnOpen: value }));
+  },
+
+  setConfirmOnNodeDelete: (value) => {
+    set({ confirmOnNodeDelete: value });
+    persistSettings(getAllSettings({ ...get(), confirmOnNodeDelete: value }));
   },
 
   setAutoCheckUpdates: (value) => {
