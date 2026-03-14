@@ -467,20 +467,26 @@ fn copy_directory_recursive_with_progress(
     window: &Window,
     total_files_opt: Option<u64>,
     files_written: &mut u64,
-) -> Result<u64, Box<dyn std::error::Error>> {
+ ) -> Result<(), Box<dyn std::error::Error>> {
     if !source.exists() {
-        return Ok(0);
+        return Ok(());
     }
 
     fs::create_dir_all(destination)?;
 
     for entry in fs::read_dir(source)? {
         let entry = entry?;
+        // Check for cancellation request
+        if CANCEL_SYNC.load(Ordering::SeqCst) {
+            let _ = window.emit("hytale-sync-cancelled", &serde_json::json!({ "files_written": *files_written }));
+            return Err("sync cancelled by user".into());
+        }
         let source_path = entry.path();
         let destination_path = destination.join(entry.file_name());
 
         if source_path.is_dir() {
-            *files_written += copy_directory_recursive_with_progress(&source_path, &destination_path, window, total_files_opt, files_written)?;
+            // Recursive call updates the shared `files_written` counter directly.
+            copy_directory_recursive_with_progress(&source_path, &destination_path, window, total_files_opt, files_written)?;
         } else {
             if let Some(parent) = destination_path.parent() {
                 fs::create_dir_all(parent)?;
@@ -502,7 +508,7 @@ fn copy_directory_recursive_with_progress(
         }
     }
 
-    Ok(*files_written)
+    Ok(())
 }
 
 fn extract_assets_zip_with_progress(
@@ -511,11 +517,16 @@ fn extract_assets_zip_with_progress(
     window: &Window,
     total_files: u64,
     files_written: &mut u64,
-) -> Result<u64, Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error>> {
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
 
     for index in 0..archive.len() {
+        // Check for cancellation request
+        if CANCEL_SYNC.load(Ordering::SeqCst) {
+            let _ = window.emit("hytale-sync-cancelled", &serde_json::json!({ "files_written": *files_written }));
+            return Err("sync cancelled by user".into());
+        }
         let mut entry = archive.by_index(index)?;
         let entry_path = sanitize_archive_entry_path(entry.name())?;
         // Only extract entries that live under Common/ or Server/ at the root of the archive.
@@ -555,7 +566,7 @@ fn extract_assets_zip_with_progress(
         );
     }
 
-    Ok(*files_written)
+    Ok(())
 }
 
 /// Sync Hytale assets with progress events emitted to the provided window.
@@ -613,14 +624,19 @@ pub fn sync_hytale_assets_from_source_with_progress(
         if !is_zip {
             return Err("Expected a .zip file or a directory containing Assets.zip".into());
         }
-        (extract_assets_zip_with_progress(source_path, &cache_root, window, total_files_opt.unwrap_or(0), &mut files_written)?, "zip".into())
+        extract_assets_zip_with_progress(source_path, &cache_root, window, total_files_opt.unwrap_or(0), &mut files_written)?;
+        (files_written, "zip".into())
     } else {
-        (copy_directory_recursive_with_progress(&source_path.join("Common"), &cache_root.join("Common"), window, total_files_opt, &mut files_written)? + copy_directory_recursive_with_progress(&source_path.join("Server"), &cache_root.join("Server"), window, total_files_opt, &mut files_written)?, "directory".into())
+        copy_directory_recursive_with_progress(&source_path.join("Common"), &cache_root.join("Common"), window, total_files_opt, &mut files_written)?;
+        copy_directory_recursive_with_progress(&source_path.join("Server"), &cache_root.join("Server"), window, total_files_opt, &mut files_written)?;
+        (files_written, "directory".into())
     };
 
     let (common_overlay_path_str, common_overlay_files_written) = if let Some(overlay_path) = common_overlay_path {
         let overlay_root = resolve_common_overlay_root(overlay_path)?;
-        let files = copy_directory_recursive_with_progress(&overlay_root, &cache_root.join("Common"), window, total_files_opt, &mut files_written)?;
+        let before_overlay = files_written;
+        copy_directory_recursive_with_progress(&overlay_root, &cache_root.join("Common"), window, total_files_opt, &mut files_written)?;
+        let files = files_written.saturating_sub(before_overlay);
         (
             Some(overlay_root.to_string_lossy().to_string()),
             files,

@@ -13,6 +13,7 @@ import { HomeScreen } from "@/components/home/HomeScreen";
 import { Toast } from "@/components/ui/Toast";
 import { LoadingDialog } from "@/components/ui/LoadingDialog";
 import { GlobalLoader } from "@/components/ui/GlobalLoader";
+import SyncProgressModal from "@/components/ui/SyncProgressModal";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { NewProjectDialog } from "@/components/dialogs/NewProjectDialog";
@@ -290,6 +291,7 @@ export default function App() {
         {dialog}
         <LoadingDialog open={loading} message="Loading, please wait..." />
         <GlobalLoader />
+        <SyncProgressModal />
         <Toast />
       </div>
     );
@@ -313,6 +315,7 @@ export default function App() {
       />
       <LoadingDialog open={loading} message="Loading, please wait..." />
       <GlobalLoader />
+      <SyncProgressModal />
     </ReactFlowProvider>
   );
 }
