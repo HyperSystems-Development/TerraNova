@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import {
+  DEFAULT_HYTALE_COMMON_ASSETS_PATH,
   DEFAULT_HYTALE_PRERELEASE_ASSETS_PATH,
   DEFAULT_HYTALE_RELEASE_ASSETS_PATH,
   useSettingsStore,
@@ -53,6 +54,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const setHytalePreReleaseAssetsPath = useSettingsStore((s) => s.setHytalePreReleaseAssetsPath);
   const hytaleReleaseAssetsPath = useSettingsStore((s) => s.hytaleReleaseAssetsPath);
   const setHytaleReleaseAssetsPath = useSettingsStore((s) => s.setHytaleReleaseAssetsPath);
+  const hytaleCommonAssetsEnabled = useSettingsStore((s) => s.hytaleCommonAssetsEnabled);
+  const setHytaleCommonAssetsEnabled = useSettingsStore((s) => s.setHytaleCommonAssetsEnabled);
+  const hytaleCommonAssetsPath = useSettingsStore((s) => s.hytaleCommonAssetsPath);
+  const setHytaleCommonAssetsPath = useSettingsStore((s) => s.setHytaleCommonAssetsPath);
   const addToast = useToastStore((s) => s.addToast);
 
   const updateStatus = useUpdateStore((s) => s.status);
@@ -117,6 +122,17 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     }
   }
 
+  async function handleBrowseCommonAssetsSource() {
+    const selected = await openDialog({
+      directory: true,
+      defaultPath: hytaleCommonAssetsPath,
+    });
+
+    if (typeof selected === "string") {
+      setHytaleCommonAssetsPath(selected);
+    }
+  }
+
   async function handleSyncHytaleAssets() {
     if (!hytaleAssetSyncEnabled) {
       addToast("Enable managed Hytale assets in Settings before syncing.", "warning");
@@ -128,11 +144,25 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       return;
     }
 
+    if (hytaleCommonAssetsEnabled && !hytaleCommonAssetsPath.trim()) {
+      addToast("Choose a Common asset overlay path or turn it off.", "warning");
+      return;
+    }
+
     setSyncingHytaleAssets(true);
     try {
-      const result = await syncHytaleAssets(activeHytaleSourcePath);
+      const result = await syncHytaleAssets(
+        activeHytaleSourcePath,
+        hytaleCommonAssetsEnabled ? hytaleCommonAssetsPath : null,
+      );
       setHytaleAssetCacheRoot(result.cacheRoot);
-      addToast(`Synced ${result.filesWritten} Hytale asset files into the TerraNova cache.`, "success");
+      const overlaySummary = result.commonOverlayFilesWritten > 0
+        ? ` plus ${result.commonOverlayFilesWritten} Common overlay file${result.commonOverlayFilesWritten === 1 ? "" : "s"}`
+        : "";
+      addToast(
+        `Synced ${result.filesWritten} Hytale asset file${result.filesWritten === 1 ? "" : "s"}${overlaySummary} into the TerraNova cache.`,
+        "success",
+      );
     } catch (error) {
       addToast(`Failed to sync Hytale assets: ${error}`, "error");
     } finally {
@@ -312,6 +342,53 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             </div>
             <p className="text-xs text-tn-text-muted">
               Pre-release can point straight at `Assets.zip`. Release can point at the `latest` folder or a zip file inside it.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setHytaleCommonAssetsEnabled(!hytaleCommonAssetsEnabled)}
+            className={`text-left px-3 py-2 rounded border text-sm ${
+              hytaleCommonAssetsEnabled
+                ? "border-tn-accent bg-tn-accent/10"
+                : "border-tn-border bg-tn-bg hover:bg-tn-surface"
+            }`}
+          >
+            <span className="font-medium">Include external Common assets</span>
+            <span className="ml-2 text-[10px] font-medium text-tn-text-muted">
+              {hytaleCommonAssetsEnabled ? "On" : "Off"}
+            </span>
+            <p className="mt-0.5 text-xs text-tn-text-muted">
+              Layer an extra `Common` source over the synced cache for block textures, material PNGs, sky art, and other TerraNova references.
+            </p>
+          </button>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-tn-text-muted">External Common asset source</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={hytaleCommonAssetsPath}
+                onChange={(event) => setHytaleCommonAssetsPath(event.target.value)}
+                disabled={!hytaleCommonAssetsEnabled}
+                className="flex-1 rounded border border-tn-border bg-tn-bg px-3 py-1.5 text-sm text-tn-text disabled:cursor-not-allowed disabled:opacity-60"
+              />
+              <button
+                onClick={handleBrowseCommonAssetsSource}
+                disabled={!hytaleCommonAssetsEnabled}
+                className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Browse...
+              </button>
+              <button
+                onClick={() => setHytaleCommonAssetsPath(DEFAULT_HYTALE_COMMON_ASSETS_PATH)}
+                disabled={!hytaleCommonAssetsEnabled}
+                className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Default
+              </button>
+            </div>
+            <p className="text-xs text-tn-text-muted">
+              Point this at `Common` directly, or a parent folder that contains `Common`. Your block/material PNGs in `Blocks`, `BlockTextures`, and related folders will be merged into the cache after the selected release channel sync.
             </p>
           </div>
 

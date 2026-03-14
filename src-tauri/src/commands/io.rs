@@ -127,9 +127,16 @@ pub fn get_hytale_asset_cache_root() -> Result<String, String> {
 #[tauri::command]
 pub fn sync_hytale_assets(
     source_path: String,
+    common_overlay_path: Option<String>,
 ) -> Result<crate::io::hytale_assets::HytaleAssetSyncResult, String> {
-    crate::io::hytale_assets::sync_hytale_assets_from_source(Path::new(&source_path))
-        .map_err(|e| e.to_string())
+    crate::io::hytale_assets::sync_hytale_assets_from_source(
+        Path::new(&source_path),
+        common_overlay_path
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .map(Path::new),
+    )
+    .map_err(|e| e.to_string())
 }
 
 /// Create a blank project with the minimal HytaleGenerator folder structure.

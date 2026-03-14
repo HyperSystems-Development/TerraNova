@@ -85,14 +85,22 @@ export interface HytaleAssetSyncResult {
   sourcePath: string;
   sourceKind: string;
   filesWritten: number;
+  commonOverlayPath: string | null;
+  commonOverlayFilesWritten: number;
 }
 
 export async function getHytaleAssetCacheRoot(): Promise<string> {
   return invoke<string>("get_hytale_asset_cache_root");
 }
 
-export async function syncHytaleAssets(sourcePath: string): Promise<HytaleAssetSyncResult> {
-  return invoke<HytaleAssetSyncResult>("sync_hytale_assets", { sourcePath });
+export async function syncHytaleAssets(
+  sourcePath: string,
+  commonOverlayPath?: string | null,
+): Promise<HytaleAssetSyncResult> {
+  return invoke<HytaleAssetSyncResult>("sync_hytale_assets", {
+    sourcePath,
+    commonOverlayPath: commonOverlayPath ?? null,
+  });
 }
 
 export async function createFromTemplate(

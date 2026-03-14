@@ -7,6 +7,7 @@ export type HytaleAssetSourceChannel = "pre-release" | "release";
 
 export const DEFAULT_HYTALE_PRERELEASE_ASSETS_PATH = "C:\\Users\\wolft\\AppData\\Roaming\\Hytale\\install\\pre-release\\package\\game\\latest\\Assets.zip";
 export const DEFAULT_HYTALE_RELEASE_ASSETS_PATH = "C:\\Users\\wolft\\AppData\\Roaming\\Hytale\\install\\release\\package\\game\\latest";
+export const DEFAULT_HYTALE_COMMON_ASSETS_PATH = "C:\\Users\\wolft\\Desktop\\Assets\\Common";
 
 function getStoredSettingsObject(): Record<string, unknown> | null {
   try {
@@ -89,6 +90,22 @@ function getStoredHytaleReleaseAssetsPath(): string {
   return DEFAULT_HYTALE_RELEASE_ASSETS_PATH;
 }
 
+function getStoredHytaleCommonAssetsEnabled(): boolean {
+  const parsed = getStoredSettingsObject();
+  if (typeof parsed?.hytaleCommonAssetsEnabled === "boolean") {
+    return parsed.hytaleCommonAssetsEnabled;
+  }
+  return true;
+}
+
+function getStoredHytaleCommonAssetsPath(): string {
+  const parsed = getStoredSettingsObject();
+  if (typeof parsed?.hytaleCommonAssetsPath === "string" && parsed.hytaleCommonAssetsPath.trim()) {
+    return parsed.hytaleCommonAssetsPath;
+  }
+  return DEFAULT_HYTALE_COMMON_ASSETS_PATH;
+}
+
 function persistSettings(settings: {
   flowDirection: FlowDirection;
   autoLayoutOnOpen: boolean;
@@ -99,6 +116,8 @@ function persistSettings(settings: {
   hytaleAssetSourceChannel: HytaleAssetSourceChannel;
   hytalePreReleaseAssetsPath: string;
   hytaleReleaseAssetsPath: string;
+  hytaleCommonAssetsEnabled: boolean;
+  hytaleCommonAssetsPath: string;
 }) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -117,6 +136,8 @@ interface SettingsState {
   hytaleAssetSourceChannel: HytaleAssetSourceChannel;
   hytalePreReleaseAssetsPath: string;
   hytaleReleaseAssetsPath: string;
+  hytaleCommonAssetsEnabled: boolean;
+  hytaleCommonAssetsPath: string;
   setFlowDirection: (dir: FlowDirection) => void;
   setAutoLayoutOnOpen: (value: boolean) => void;
   setAutoCheckUpdates: (value: boolean) => void;
@@ -128,6 +149,8 @@ interface SettingsState {
   setHytaleAssetSourceChannel: (value: HytaleAssetSourceChannel) => void;
   setHytalePreReleaseAssetsPath: (value: string) => void;
   setHytaleReleaseAssetsPath: (value: string) => void;
+  setHytaleCommonAssetsEnabled: (value: boolean) => void;
+  setHytaleCommonAssetsPath: (value: string) => void;
 }
 
 function getAllSettings(state: SettingsState) {
@@ -141,6 +164,8 @@ function getAllSettings(state: SettingsState) {
     hytaleAssetSourceChannel: state.hytaleAssetSourceChannel,
     hytalePreReleaseAssetsPath: state.hytalePreReleaseAssetsPath,
     hytaleReleaseAssetsPath: state.hytaleReleaseAssetsPath,
+    hytaleCommonAssetsEnabled: state.hytaleCommonAssetsEnabled,
+    hytaleCommonAssetsPath: state.hytaleCommonAssetsPath,
   };
 }
 
@@ -154,6 +179,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   hytaleAssetSourceChannel: getStoredHytaleAssetSourceChannel(),
   hytalePreReleaseAssetsPath: getStoredHytalePreReleaseAssetsPath(),
   hytaleReleaseAssetsPath: getStoredHytaleReleaseAssetsPath(),
+  hytaleCommonAssetsEnabled: getStoredHytaleCommonAssetsEnabled(),
+  hytaleCommonAssetsPath: getStoredHytaleCommonAssetsPath(),
 
   setFlowDirection: (dir) => {
     set({ flowDirection: dir });
@@ -211,5 +238,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setHytaleReleaseAssetsPath: (value) => {
     set({ hytaleReleaseAssetsPath: value });
     persistSettings(getAllSettings({ ...get(), hytaleReleaseAssetsPath: value }));
+  },
+
+  setHytaleCommonAssetsEnabled: (value) => {
+    set({ hytaleCommonAssetsEnabled: value });
+    persistSettings(getAllSettings({ ...get(), hytaleCommonAssetsEnabled: value }));
+  },
+
+  setHytaleCommonAssetsPath: (value) => {
+    set({ hytaleCommonAssetsPath: value });
+    persistSettings(getAllSettings({ ...get(), hytaleCommonAssetsPath: value }));
   },
 }));

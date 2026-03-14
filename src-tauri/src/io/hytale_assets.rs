@@ -11,6 +11,8 @@ pub struct HytaleAssetSyncResult {
     pub source_path: String,
     pub source_kind: String,
     pub files_written: u64,
+    pub common_overlay_path: Option<String>,
+    pub common_overlay_files_written: u64,
 }
 
 fn default_hytale_assets_root() -> Result<PathBuf, Box<dyn std::error::Error>> {
@@ -142,6 +144,35 @@ fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<u64, Bo
     Ok(files_written)
 }
 
+fn resolve_common_overlay_root(source_path: &Path) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    if !source_path.exists() {
+        return Err(format!(
+            "External Common asset source not found: {}",
+            source_path.display()
+        )
+        .into());
+    }
+
+    if source_path.is_file() {
+        return Err("External Common asset source must be a directory".into());
+    }
+
+    let direct_name = source_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default();
+    if direct_name.eq_ignore_ascii_case("Common") {
+        return Ok(source_path.to_path_buf());
+    }
+
+    let common_child = source_path.join("Common");
+    if common_child.is_dir() {
+        return Ok(common_child);
+    }
+
+    Err("External Common asset source must point to a Common folder or a folder containing Common".into())
+}
+
 fn extract_assets_zip(zip_path: &Path, cache_root: &Path) -> Result<u64, Box<dyn std::error::Error>> {
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
@@ -194,6 +225,7 @@ fn sync_from_directory(source_dir: &Path, cache_root: &Path) -> Result<(u64, Str
 
 pub fn sync_hytale_assets_from_source(
     source_path: &Path,
+    common_overlay_path: Option<&Path>,
 ) -> Result<HytaleAssetSyncResult, Box<dyn std::error::Error>> {
     if !source_path.exists() {
         return Err(format!("Hytale asset source not found: {}", source_path.display()).into());
@@ -217,10 +249,23 @@ pub fn sync_hytale_assets_from_source(
         return Err("Unsupported Hytale asset source path".into());
     };
 
+    let (common_overlay_path, common_overlay_files_written) = if let Some(overlay_path) = common_overlay_path {
+        let overlay_root = resolve_common_overlay_root(overlay_path)?;
+        let files_written = copy_directory_recursive(&overlay_root, &cache_root.join("Common"))?;
+        (
+            Some(overlay_root.to_string_lossy().to_string()),
+            files_written,
+        )
+    } else {
+        (None, 0)
+    };
+
     Ok(HytaleAssetSyncResult {
         cache_root: cache_root.to_string_lossy().to_string(),
         source_path: source_path.to_string_lossy().to_string(),
         source_kind,
         files_written,
+        common_overlay_path,
+        common_overlay_files_written,
     })
 }
