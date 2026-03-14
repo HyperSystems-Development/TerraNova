@@ -12,15 +12,42 @@
 - file-tree entries for major Hytale asset families such as `Environments`, `Weathers`, `Common\Sky`, `Blocks`, and `BlockTextures`
 - reusable icon helpers so cached Hytale assets and pack-local assets share the same visual treatment
 
-**Good first pass:**
-- use lightweight semantic icons for environment/weather/sky references
-- use thumbnail previews where a PNG exists and a text icon where it does not
-- reuse the existing material/block icon path where possible instead of inventing a second system
+**Good first pass (next up — start here):**
+
+*Pass 1A — Asset Tools "Referenced Assets" rows (PropertyPanel.tsx ~L1272)*
+Each entry row already has a colored status dot. Replace/supplement it with a semantic lucide-react icon
+that encodes the entry *kind* so type is readable at a glance without the badge:
+- `entry.kind === "environment-weather"` → `<Cloud />` (or `<CloudSun />`) in tn-text-muted
+- `entry.kind === "weather-texture" && entry.label.startsWith("Moon")` → `<Moon />` in tn-text-muted
+- `entry.kind === "weather-texture" && entry.label.startsWith("Cloud")` → `<Cloud />` in tn-text-muted
+- `entry.kind === "weather-texture" && (entry.label === "Stars" || entry.label === "StarMap")` → `<Star />` in tn-text-muted
+- `entry.kind === "weather-texture"` fallback → `<Image />` in tn-text-muted
+Place the icon between the status dot and the label text. Keep icon size at 14 px (h-3.5 w-3.5).
+
+*Pass 1B — File tree folder icons (AssetTree.tsx ~L586–L630)*
+`getFileColor()` already maps filenames to colors. Add a parallel `getFileIcon()` that returns a lucide
+icon component based on the same filename patterns:
+- `environment` / `environ` → `<TreePine />` (or `<Globe />`)
+- `weather` → `<CloudRain />`
+- `biome` → `<Mountain />`
+- `material` → `<Layers />`
+- `density` / `terrain` → `<AreaChart />` (or `<Waves />`)
+- `worldstructure` / `world_structure` / `structure` → `<Building2 />`
+- `assignment` → `<ListChecks />`
+- `prefab` / `instance` → `<Box />`
+- `settings` / `config` / `manifest` → `<Settings />`
+- fallback → keep current plain `<FileIcon>` SVG
+Render it at h-4 w-4, same slot as the existing FileIcon.
+
+*Key constraint:* All target icons already exist in lucide-react 0.563 (installed). No new deps needed.
+Reuse the existing `FolderIcon` / `ChevronIcon` pattern—no wrapper component needed, just a helper function
+that returns a `<LucideIconComponent className="h-4 w-4 shrink-0 text-[color]" />`.
 
 **Later pass:**
-- distinguish cached Hytale assets vs in-pack assets visually
-- show moon/cloud/star icons directly inside weather fix actions and reference lists
+- distinguish cached Hytale assets vs in-pack assets visually (different icon fill/stroke)
+- show moon/cloud/star icons directly inside weather fix action buttons
 - add icon mapping for broader TerraNova asset types beyond weather/environment
+- thumbnail previews where a PNG exists under `public/icons/` for the asset name
 
 ---
 
