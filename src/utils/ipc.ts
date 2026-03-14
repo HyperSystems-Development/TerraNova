@@ -103,6 +103,25 @@ export async function syncHytaleAssets(
   });
 }
 
+export interface AssetStalenessInfo {
+  /** ISO-8601 UTC string of the last successful sync, or null if never synced. */
+  syncedAt: string | null;
+  /** Source path recorded in the sync manifest. */
+  sourcePath: string | null;
+  /** True if any source file is newer than the last sync timestamp. */
+  isStale: boolean;
+  /** Path of the newest file found in the source tree (diagnostic). */
+  newestSourceFile: string | null;
+  /** Unix seconds of the newest source file. */
+  newestSourceSecs: number | null;
+  /** Unix seconds of the last sync timestamp. */
+  syncedAtSecs: number | null;
+}
+
+export async function checkHytaleAssetStaleness(sourcePath: string): Promise<AssetStalenessInfo> {
+  return invoke<AssetStalenessInfo>("check_hytale_asset_staleness", { sourcePath });
+}
+
 export async function createFromTemplate(
   templateName: string,
   targetPath: string,

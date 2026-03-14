@@ -10,7 +10,7 @@ import { useUpdateStore } from "@/stores/updateStore";
 import { checkForUpdates, downloadAndInstall, restartToUpdate } from "@/utils/updater";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import type { FlowDirection } from "@/constants";
-import { getHytaleAssetCacheRoot, showInFolder, syncHytaleAssets } from "@/utils/ipc";
+import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, syncHytaleAssets, type AssetStalenessInfo } from "@/utils/ipc";
 import { useToastStore } from "@/stores/toastStore";
 import { WhatsNewDialog } from "./WhatsNewDialog";
 import { ChangelogDialog } from "./ChangelogDialog";
@@ -35,6 +35,19 @@ const FLOW_DIRECTIONS: { id: FlowDirection; label: string; description: string }
 interface SettingsDialogProps {
   open: boolean;
   onClose: () => void;
+}
+
+function formatSyncedAt(syncedAt: string): string {
+  // syncedAt is YYYY-MM-DDTHH:MM:SSZ
+  const secs = Date.parse(syncedAt) / 1000;
+  if (Number.isNaN(secs)) return syncedAt;
+  const nowSecs = Date.now() / 1000;
+  const diff = Math.floor(nowSecs - secs);
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  const days = Math.floor(diff / 86400);
+  return days === 1 ? "1 day ago" : `${days} days ago`;
 }
 
 export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
@@ -70,6 +83,9 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [showChangelog, setShowChangelog] = useState(false);
   const [hytaleAssetCacheRoot, setHytaleAssetCacheRoot] = useState("");
   const [syncingHytaleAssets, setSyncingHytaleAssets] = useState(false);
+  const [stalenessInfo, setStalenessInfo] = useState<AssetStalenessInfo | null>(null);
+  const [checkingStaleness, setCheckingStaleness] = useState(false);
+
   useEffect(() => {
     getVersion().then(setAppVersion);
   }, []);
@@ -94,6 +110,15 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const activeHytaleSourcePath = hytaleAssetSourceChannel === "pre-release"
     ? hytalePreReleaseAssetsPath
     : hytaleReleaseAssetsPath;
+
+  useEffect(() => {
+    if (!open || !activeHytaleSourcePath.trim()) return;
+    setCheckingStaleness(true);
+    void checkHytaleAssetStaleness(activeHytaleSourcePath)
+      .then(setStalenessInfo)
+      .catch(() => setStalenessInfo(null))
+      .finally(() => setCheckingStaleness(false));
+  }, [open, activeHytaleSourcePath]);
 
   function setActiveHytaleSourcePath(path: string) {
     if (hytaleAssetSourceChannel === "pre-release") {
@@ -156,6 +181,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         hytaleCommonAssetsEnabled ? hytaleCommonAssetsPath : null,
       );
       setHytaleAssetCacheRoot(result.cacheRoot);
+      // Refresh staleness after a successful sync so the indicator clears immediately.
+      void checkHytaleAssetStaleness(activeHytaleSourcePath)
+        .then(setStalenessInfo)
+        .catch(() => setStalenessInfo(null));
       const overlaySummary = result.commonOverlayFilesWritten > 0
         ? ` plus ${result.commonOverlayFilesWritten} Common overlay file${result.commonOverlayFilesWritten === 1 ? "" : "s"}`
         : "";
@@ -417,6 +446,31 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
               </button>
             </div>
           </div>
+
+          {activeHytaleSourcePath.trim() && (
+            <div className={`flex items-center gap-2 rounded border px-3 py-2 text-[11px] ${
+              checkingStaleness
+                ? "border-tn-border/50 text-tn-text-muted"
+                : stalenessInfo?.isStale
+                  ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
+                  : stalenessInfo?.syncedAt
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                    : "border-tn-border/50 text-tn-text-muted"
+            }`}>
+              <span className="shrink-0 text-base leading-none">
+                {checkingStaleness ? "⏳" : stalenessInfo?.isStale ? "⚠️" : stalenessInfo?.syncedAt ? "✓" : "–"}
+              </span>
+              <span>
+                {checkingStaleness
+                  ? "Checking source for updates…"
+                  : stalenessInfo?.isStale
+                    ? <>Source has files newer than your cache — <button onClick={() => { void handleSyncHytaleAssets(); }} className="underline hover:no-underline">Sync Now</button></>
+                    : stalenessInfo?.syncedAt
+                      ? `Cache is up to date · Last synced ${formatSyncedAt(stalenessInfo.syncedAt)}`
+                      : "Not synced yet — press Sync Now to build the cache"}
+              </span>
+            </div>
+          )}
 
           <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-3">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">

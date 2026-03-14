@@ -1,8 +1,196 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io;
 use std::path::{Component, Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 use zip::ZipArchive;
+
+const SYNC_MANIFEST_NAME: &str = "sync-manifest.json";
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncManifest {
+    pub synced_at: String,
+    pub source_path: String,
+    pub files_written: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AssetStalenessInfo {
+    /// ISO-8601 timestamp of the last successful sync, or null if never synced.
+    pub synced_at: Option<String>,
+    /// Source path recorded in the manifest.
+    pub source_path: Option<String>,
+    /// Whether the source folder contains files newer than the last sync.
+    pub is_stale: bool,
+    /// The path of the newest file found in the source (for debugging).
+    pub newest_source_file: Option<String>,
+    /// Unix timestamp (seconds) of the newest source file, or null.
+    pub newest_source_secs: Option<u64>,
+    /// Unix timestamp (seconds) of the last sync, or null.
+    pub synced_at_secs: Option<u64>,
+}
+
+fn now_iso8601() -> String {
+    // Simple ISO-8601 UTC string without external crate: YYYY-MM-DDTHH:MM:SSZ
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let s = secs % 60;
+    let m = (secs / 60) % 60;
+    let h = (secs / 3600) % 24;
+    let total_days = secs / 86400;
+    // Days since 1970-01-01
+    let (year, month, day) = days_to_ymd(total_days);
+    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", year, month, day, h, m, s)
+}
+
+fn days_to_ymd(mut days: u64) -> (u64, u64, u64) {
+    let mut year = 1970u64;
+    loop {
+        let leap = is_leap(year);
+        let days_in_year = if leap { 366 } else { 365 };
+        if days < days_in_year {
+            break;
+        }
+        days -= days_in_year;
+        year += 1;
+    }
+    let month_days: [u64; 12] = [31, if is_leap(year) { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let mut month = 1u64;
+    for &md in &month_days {
+        if days < md {
+            break;
+        }
+        days -= md;
+        month += 1;
+    }
+    (year, month, days + 1)
+}
+
+fn is_leap(year: u64) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+}
+
+fn write_sync_manifest(cache_root: &Path, source_path: &Path, files_written: u64) {
+    let manifest = SyncManifest {
+        synced_at: now_iso8601(),
+        source_path: source_path.to_string_lossy().to_string(),
+        files_written,
+    };
+    if let Ok(json) = serde_json::to_string_pretty(&manifest) {
+        let _ = fs::write(cache_root.join(SYNC_MANIFEST_NAME), json);
+    }
+}
+
+fn read_sync_manifest(cache_root: &Path) -> Option<SyncManifest> {
+    let path = cache_root.join(SYNC_MANIFEST_NAME);
+    let content = fs::read_to_string(&path).ok()?;
+    serde_json::from_str(&content).ok()
+}
+
+fn parse_iso8601_to_secs(ts: &str) -> Option<u64> {
+    // Expects YYYY-MM-DDTHH:MM:SSZ
+    let ts = ts.trim_end_matches('Z');
+    let parts: Vec<&str> = ts.splitn(2, 'T').collect();
+    if parts.len() != 2 {
+        return None;
+    }
+    let date_parts: Vec<u64> = parts[0].split('-').filter_map(|p| p.parse().ok()).collect();
+    let time_parts: Vec<u64> = parts[1].split(':').filter_map(|p| p.parse().ok()).collect();
+    if date_parts.len() != 3 || time_parts.len() != 3 {
+        return None;
+    }
+    let (y, mo, d) = (date_parts[0], date_parts[1], date_parts[2]);
+    let (h, mi, s) = (time_parts[0], time_parts[1], time_parts[2]);
+    // Count days from epoch
+    let mut total_days: u64 = 0;
+    for yr in 1970..y {
+        total_days += if is_leap(yr) { 366 } else { 365 };
+    }
+    let month_days: [u64; 12] = [31, if is_leap(y) { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    for mi_idx in 0..(mo.saturating_sub(1)) as usize {
+        total_days += month_days[mi_idx];
+    }
+    total_days += d.saturating_sub(1);
+    Some(total_days * 86400 + h * 3600 + mi * 60 + s)
+}
+
+/// Walk a directory tree and return the newest mtime in seconds since epoch.
+fn newest_mtime_in_dir(dir: &Path) -> Option<(u64, PathBuf)> {
+    let mut newest_secs = 0u64;
+    let mut newest_path = PathBuf::new();
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(current) = stack.pop() {
+        let Ok(entries) = fs::read_dir(&current) else { continue };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if let Ok(meta) = entry.metadata() {
+                if let Ok(modified) = meta.modified() {
+                    let secs = modified.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+                    if secs > newest_secs {
+                        newest_secs = secs;
+                        newest_path = path;
+                    }
+                }
+            }
+        }
+    }
+    if newest_secs > 0 { Some((newest_secs, newest_path)) } else { None }
+}
+
+pub fn check_asset_staleness(source_path: &str) -> AssetStalenessInfo {
+    let cache_root = match get_hytale_assets_root() {
+        Ok(p) => p,
+        Err(_) => return AssetStalenessInfo {
+            synced_at: None,
+            source_path: None,
+            is_stale: false,
+            newest_source_file: None,
+            newest_source_secs: None,
+            synced_at_secs: None,
+        },
+    };
+
+    let manifest = read_sync_manifest(&cache_root);
+    let synced_at = manifest.as_ref().map(|m| m.synced_at.clone());
+    let manifest_source = manifest.as_ref().map(|m| m.source_path.clone());
+    let synced_at_secs = synced_at.as_deref().and_then(parse_iso8601_to_secs);
+
+    let source_dir = Path::new(source_path);
+    // For a zip source, check the zip file mtime directly.
+    let (newest_secs, newest_path) = if source_dir.is_file() {
+        source_dir
+            .metadata()
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+            .map(|d| (d.as_secs(), source_dir.to_path_buf()))
+            .unwrap_or((0, PathBuf::new()))
+    } else if source_dir.is_dir() {
+        newest_mtime_in_dir(source_dir).unwrap_or((0, PathBuf::new()))
+    } else {
+        (0, PathBuf::new())
+    };
+
+    let is_stale = match (synced_at_secs, newest_secs) {
+        (Some(synced), src) if src > 0 => src > synced,
+        _ => false,
+    };
+
+    AssetStalenessInfo {
+        synced_at,
+        source_path: manifest_source,
+        is_stale,
+        newest_source_file: if newest_secs > 0 { Some(newest_path.to_string_lossy().to_string()) } else { None },
+        newest_source_secs: if newest_secs > 0 { Some(newest_secs) } else { None },
+        synced_at_secs,
+    }
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -259,6 +447,9 @@ pub fn sync_hytale_assets_from_source(
     } else {
         (None, 0)
     };
+
+    let total_written = files_written + common_overlay_files_written;
+    write_sync_manifest(&cache_root, source_path, total_written);
 
     Ok(HytaleAssetSyncResult {
         cache_root: cache_root.to_string_lossy().to_string(),

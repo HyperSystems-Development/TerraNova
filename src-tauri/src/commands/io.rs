@@ -139,6 +139,14 @@ pub fn sync_hytale_assets(
     .map_err(|e| e.to_string())
 }
 
+/// Check whether the Hytale asset cache is stale relative to the source path.
+#[tauri::command]
+pub fn check_hytale_asset_staleness(
+    source_path: String,
+) -> crate::io::hytale_assets::AssetStalenessInfo {
+    crate::io::hytale_assets::check_asset_staleness(&source_path)
+}
+
 /// Create a blank project with the minimal HytaleGenerator folder structure.
 #[tauri::command]
 pub fn create_blank_project(target_path: String) -> Result<(), String> {
