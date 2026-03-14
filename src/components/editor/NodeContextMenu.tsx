@@ -1,7 +1,12 @@
+import React from "react";
+import { getAvailableHytaleAssetFolders } from "@/utils/hytaleAssetFolders";
 import { ContextMenuOverlay, ContextMenuItem, ContextMenuSeparator } from "./ContextMenuPrimitives";
+import { ContextMenuSubmenu } from "./ContextMenuPrimitives";
+import { getHytaleAssetsInFolder } from "@/utils/getHytaleAssetsInFolder";
 import { useEditorStore } from "@/stores/editorStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useLoadingStore } from "@/stores/loadingStore";
 import { resolveKeybinding } from "@/config/keybindings";
 import { ask } from "@tauri-apps/plugin-dialog";
 import type { Node, Edge } from "@xyflow/react";
@@ -52,6 +57,70 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
   const nodes = useEditorStore((s) => s.nodes);
   const edges = useEditorStore((s) => s.edges);
   const confirmOnNodeDelete = useSettingsStore((s) => s.confirmOnNodeDelete);
+  const rightClickedNode = nodes.find((n) => n.id === nodeId);
+
+  // Hytale asset context menu logic
+  const hytaleBasePath = "hytale-assets";
+  const [availableFolders, setAvailableFolders] = React.useState<string[]>([]);
+  const [hytaleAssets, setHytaleAssets] = React.useState<string[]>([]);
+  const [assetsLoading, setAssetsLoading] = React.useState(false);
+  const [assetsError, setAssetsError] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    getAvailableHytaleAssetFolders(hytaleBasePath).then(setAvailableFolders);
+  }, [hytaleBasePath]);
+  // Determine the correct folder for this node
+  const nodeTypeToFolder: Record<string, string> = {
+    Block: "Common/Blocks",
+    BlockTexture: "Common/BlockTextures",
+    Character: "Common/Characters",
+    Item: "Common/Items",
+    Icon: "Common/Icons",
+    Language: "Common/Languages",
+    Music: "Common/Music",
+    NotificationIcon: "Common/NotificationIcons",
+    NPC: "Common/NPC",
+    Particle: "Common/Particles",
+    Resource: "Common/Resources",
+    ScreenEffect: "Common/ScreenEffects",
+    Sky: "Common/Sky",
+    Sound: "Common/Sounds",
+    TintGradient: "Common/TintGradients",
+    Trail: "Common/Trails",
+    UI: "Common/UI",
+    VFX: "Common/VFX",
+    // Add more mappings as needed
+  };
+  const correctFolder = nodeTypeToFolder[rightClickedNode?.type ?? ""];
+  const canAddHytaleAsset = correctFolder && availableFolders.includes(correctFolder);
+  React.useEffect(() => {
+    let active = true;
+    if (canAddHytaleAsset && correctFolder) {
+      setAssetsLoading(true);
+      setAssetsError(null);
+      // show global loader while listing assets
+      useLoadingStore.getState().start("Loading Hytale assets...");
+      getHytaleAssetsInFolder(hytaleBasePath, correctFolder)
+        .then((assets) => {
+          if (!active) return;
+          setHytaleAssets(assets);
+        })
+        .catch((err) => {
+          if (!active) return;
+          setAssetsError("Failed to load assets");
+          useToastStore.getState().addToast("Failed to load Hytale assets", "error");
+        })
+        .finally(() => {
+          if (!active) return;
+          setAssetsLoading(false);
+          useLoadingStore.getState().stop();
+        });
+    } else {
+      setHytaleAssets([]);
+    }
+    return () => {
+      active = false;
+    };
+  }, [canAddHytaleAsset, correctFolder, hytaleBasePath]);
 
   const selectedNodes = nodes.filter((n) => n.selected);
   const selectedIds = new Set(selectedNodes.map((n) => n.id));
@@ -61,7 +130,6 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
     selectedIds.add(nodeId);
   }
 
-  const rightClickedNode = nodes.find((n) => n.id === nodeId);
   const isGroup = rightClickedNode?.type === "group";
   const isRootNode = rightClickedNode?.type === "Root";
   const rootNode = nodes.find((n) => n.type === "Root");
@@ -71,6 +139,38 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
 
   return (
     <ContextMenuOverlay x={x} y={y} onClose={onClose}>
+      {canAddHytaleAsset && (
+        <ContextMenuSubmenu label={`Add Hytale Asset (${correctFolder.split("/").pop()})`}>
+          {assetsLoading && (
+            <div className="px-3 py-2 text-sm text-tn-text-muted">Loading assets...</div>
+          )}
+          {assetsError && (
+            <div className="px-3 py-2 text-sm text-red-500">{assetsError}</div>
+          )}
+          {!assetsLoading && !assetsError && hytaleAssets.length > 0 && (
+            <>
+              {hytaleAssets.map((asset) => (
+                <ContextMenuItem
+                  key={asset}
+                  label={asset}
+                  onClick={() => {
+                    useToastStore.getState().addToast(`Added Hytale asset: ${asset}`, "success");
+                    onClose();
+                  }}
+                />
+              ))}
+              <ContextMenuSeparator />
+            </>
+          )}
+          <ContextMenuItem
+            label="Browse..."
+            onClick={() => {
+              useToastStore.getState().addToast(`Browse Hytale asset folder: ${correctFolder}`, "info");
+              onClose();
+            }}
+          />
+        </ContextMenuSubmenu>
+      )}
       <ContextMenuItem
         label="Cut"
         shortcut="Ctrl+X"

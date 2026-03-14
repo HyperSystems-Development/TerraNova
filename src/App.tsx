@@ -11,6 +11,7 @@ import { DragGhost } from "@/components/editor/DragGhost";
 import { HomeScreen } from "@/components/home/HomeScreen";
 import { Toast } from "@/components/ui/Toast";
 import { LoadingDialog } from "@/components/ui/LoadingDialog";
+import { GlobalLoader } from "@/components/ui/GlobalLoader";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { NewProjectDialog } from "@/components/dialogs/NewProjectDialog";
@@ -182,6 +183,7 @@ export default function App() {
         <HomeScreen />
         {dialog}
         <LoadingDialog open={loading} message="Loading, please wait..." />
+        <GlobalLoader />
         <Toast />
       </div>
     );
@@ -204,6 +206,7 @@ export default function App() {
         dialog={dialog}
       />
       <LoadingDialog open={loading} message="Loading, please wait..." />
+      <GlobalLoader />
     </ReactFlowProvider>
   );
 }
