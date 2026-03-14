@@ -99,7 +99,9 @@ export default function SyncProgressModal() {
   const pct = percent != null ? Math.max(0, Math.min(100, Math.round(percent * 10) / 10)) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm" />
       <div className="pointer-events-auto w-11/12 max-w-xl p-4 bg-tn-card border border-tn-border rounded-lg shadow-lg">
         <div className="flex items-center justify-between mb-3">
           <div className="text-lg font-semibold">Syncing Hytale assets</div>
