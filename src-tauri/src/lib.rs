@@ -9,13 +9,8 @@ use commands::{bridge as bridge_commands, hardware, io as io_commands, preview, 
 
 // Hint Windows to prefer the discrete GPU when available (NVIDIA / AMD)
 // These exported symbols are read by GPU drivers to prefer high-performance adapter.
-#[cfg(target_os = "windows")]
-#[no_mangle]
-pub static NvOptimusEnablement: u32 = 0x00000001;
-
-#[cfg(target_os = "windows")]
-#[no_mangle]
-pub static AmdPowerXpressRequestHighPerformance: u32 = 0x00000001;
+// NOTE: GPU affinity exports are defined in the application binary (`main.rs`)
+// so they reliably appear in the final executable. See `src-tauri/src/main.rs`.
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

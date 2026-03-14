@@ -32,41 +32,103 @@ import { useGlobalKeyboardShortcuts } from "@/hooks/useGlobalKeyboardShortcuts";
 type PendingAction = "window-close" | "close-project";
 
 export default function App() {
-  // Remove the initial splash overlay inserted in index.html as soon as the
-  // frontend is ready or when the Tauri backend signals readiness.
+  // Animate and update the initial splash overlay until the app is ready.
   useEffect(() => {
-    const removeSplash = () => {
+    const progressEl = document.getElementById("splash-progress") as HTMLElement | null;
+    const statusEl = document.getElementById("splash-status") as HTMLElement | null;
+
+    const messages = [
+      "Getting it together...",
+      "Hoping that Simon notices me...",
+      "Loading assets...",
+      "Warming up the map...",
+      "Assembling blocks...",
+      "Summoning terrain spirits...",
+    ];
+
+    let msgIdx = 0;
+    let isReady = false;
+    let unlistenFn: UnlistenFn | null = null;
+
+    const setStatus = (text: string) => {
+      if (statusEl) statusEl.textContent = text;
+    };
+
+    // Initialize progress from DOM or default.
+    let progress = 14;
+    if (progressEl) {
+      const w = parseFloat(progressEl.style.width || "");
+      if (!Number.isNaN(w)) progress = w;
+    }
+
+    // Progress tick: advance slowly toward 92% until ready, then finish.
+    const tickInterval = 140;
+    const tick = () => {
+      if (!progressEl) return;
+      const targetMax = isReady ? 100 : 92;
+      const remaining = Math.max(0, targetMax - progress);
+      // smaller steps as we approach the target
+      const step = Math.max(0.2, Math.random() * (0.6 + remaining / 150));
+      progress = Math.min(progress + step, targetMax);
+      progressEl.style.width = `${Math.round(progress * 10) / 10}%`;
+    };
+
+    const tickId = window.setInterval(tick, tickInterval);
+
+    // Rotate playful status messages.
+    setStatus(messages[0]);
+    const msgId = window.setInterval(() => {
+      setStatus(messages[msgIdx % messages.length]);
+      msgIdx += 1;
+    }, 2400);
+
+    const removeSplash = (fast = false) => {
       const el = document.getElementById("initial-splash");
       if (!el) return;
       try {
+        if (progressEl) progressEl.style.width = "100%";
         el.classList.add("fade-out");
-        window.setTimeout(() => el.remove(), 320);
+        window.setTimeout(() => el.remove(), fast ? 180 : 320);
       } catch {
-        // ignore DOM removal failures
-        try { el.remove(); } catch {};
+        try { el.remove(); } catch {}
       }
     };
 
-    // Try to listen for the Tauri 'tauri://ready' event; if that fails
-    // (web-only dev), fall back to a short timeout.
+    // Listen for Tauri ready. In web dev mode this will throw and we fall back.
     (async () => {
       try {
         const evt = await import("@tauri-apps/api/event");
-        const unlisten: UnlistenFn = await evt.listen("tauri://ready", () => {
-          removeSplash();
-          // unlisten will remove the handler
-          unlisten();
+        unlistenFn = await evt.listen("tauri://ready", () => {
+          isReady = true;
+          setStatus("Ready — launching...");
+          if (progressEl) progressEl.style.width = "100%";
+          setTimeout(() => removeSplash(true), 120);
+          if (unlistenFn) unlistenFn();
         });
       } catch (e) {
-        // Not in Tauri env — remove splash after a short delay so the app
-        // has time to paint its first frame.
-        setTimeout(removeSplash, 600);
+        // Not in a Tauri environment — finalize after a short delay so the
+        // user sees the animated progress on web/dev runs.
+        setTimeout(() => {
+          isReady = true;
+          setStatus("Ready — launching...");
+          removeSplash();
+        }, 800);
       }
     })();
 
     // Safety fallback: ensure the splash is removed eventually.
-    const timer = setTimeout(removeSplash, 3000);
-    return () => clearTimeout(timer);
+    const safety = window.setTimeout(() => {
+      isReady = true;
+      setStatus("Finalizing...");
+      removeSplash();
+    }, 5000);
+
+    return () => {
+      clearInterval(tickId);
+      clearInterval(msgId);
+      clearTimeout(safety);
+      if (unlistenFn) unlistenFn();
+    };
   }, []);
 
   const projectPath = useProjectStore((s) => s.projectPath);

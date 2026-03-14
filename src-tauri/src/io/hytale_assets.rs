@@ -305,6 +305,7 @@ fn sanitize_archive_entry_path(entry_name: &str) -> Result<PathBuf, Box<dyn std:
     Ok(sanitized)
 }
 
+#[allow(dead_code)]
 fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<u64, Box<dyn std::error::Error>> {
     let mut files_written = 0;
 
@@ -362,6 +363,7 @@ fn resolve_common_overlay_root(source_path: &Path) -> Result<PathBuf, Box<dyn st
     Err("External Common asset source must point to a Common folder or a folder containing Common".into())
 }
 
+#[allow(dead_code)]
 fn extract_assets_zip(zip_path: &Path, cache_root: &Path) -> Result<u64, Box<dyn std::error::Error>> {
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
@@ -400,6 +402,7 @@ fn extract_assets_zip(zip_path: &Path, cache_root: &Path) -> Result<u64, Box<dyn
     Ok(files_written)
 }
 
+#[allow(dead_code)]
 fn sync_from_directory(source_dir: &Path, cache_root: &Path) -> Result<(u64, String), Box<dyn std::error::Error>> {
     let embedded_zip = source_dir.join("Assets.zip");
     if embedded_zip.is_file() {
@@ -628,6 +631,7 @@ pub fn sync_hytale_assets_from_source_with_progress(
     Ok(result)
 }
 
+#[allow(dead_code)]
 pub fn sync_hytale_assets_from_source(
     source_path: &Path,
     common_overlay_path: Option<&Path>,
