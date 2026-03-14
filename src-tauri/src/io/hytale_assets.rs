@@ -4,6 +4,8 @@ use std::io;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use zip::ZipArchive;
+use tauri::Window;
+use serde::Serialize;
 
 const SYNC_MANIFEST_NAME: &str = "sync-manifest.json";
 
@@ -409,6 +411,198 @@ fn sync_from_directory(source_dir: &Path, cache_root: &Path) -> Result<(u64, Str
     }
 
     Ok((files_written, "directory".into()))
+}
+
+#[derive(Serialize)]
+struct SyncProgressEvent {
+    files_written: u64,
+    total_files: Option<u64>,
+    current_file: Option<String>,
+    percent: Option<f32>,
+}
+
+/// Count non-directory files under a path (recursively).
+fn count_files_in_dir(dir: &Path) -> Result<u64, Box<dyn std::error::Error>> {
+    let mut count: u64 = 0;
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(current) = stack.pop() {
+        let Ok(entries) = fs::read_dir(&current) else { continue };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+            } else {
+                count += 1;
+            }
+        }
+    }
+    Ok(count)
+}
+
+fn copy_directory_recursive_with_progress(
+    source: &Path,
+    destination: &Path,
+    window: &Window,
+    total_files_opt: Option<u64>,
+    files_written: &mut u64,
+) -> Result<u64, Box<dyn std::error::Error>> {
+    if !source.exists() {
+        return Ok(0);
+    }
+
+    fs::create_dir_all(destination)?;
+
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let source_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+
+        if source_path.is_dir() {
+            *files_written += copy_directory_recursive_with_progress(&source_path, &destination_path, window, total_files_opt, files_written)?;
+        } else {
+            if let Some(parent) = destination_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::copy(&source_path, &destination_path)?;
+            *files_written += 1;
+
+            // Emit progress
+            let percent = total_files_opt.map(|total| ((*files_written as f32) / (total as f32) * 100.0));
+            let _ = window.emit(
+                "hytale-sync-progress",
+                &SyncProgressEvent {
+                    files_written: *files_written,
+                    total_files: total_files_opt,
+                    current_file: Some(source_path.to_string_lossy().to_string()),
+                    percent,
+                },
+            );
+        }
+    }
+
+    Ok(*files_written)
+}
+
+fn extract_assets_zip_with_progress(
+    zip_path: &Path,
+    cache_root: &Path,
+    window: &Window,
+    total_files: u64,
+    files_written: &mut u64,
+) -> Result<u64, Box<dyn std::error::Error>> {
+    let file = File::open(zip_path)?;
+    let mut archive = ZipArchive::new(file)?;
+
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index)?;
+        let entry_path = sanitize_archive_entry_path(entry.name())?;
+        let entry_path_str = entry_path.to_string_lossy();
+        let lower = entry_path_str.to_ascii_lowercase();
+        if !(lower.starts_with("common\\") || lower.starts_with("server\\")) {
+            continue;
+        }
+
+        let output_path = cache_root.join(&entry_path);
+        if entry.is_dir() {
+            fs::create_dir_all(&output_path)?;
+            continue;
+        }
+
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        let mut output = File::create(&output_path)?;
+        io::copy(&mut entry, &mut output)?;
+        *files_written += 1;
+
+        let percent = if total_files > 0 { Some((*files_written as f32) / (total_files as f32) * 100.0) } else { None };
+        let _ = window.emit(
+            "hytale-sync-progress",
+            &SyncProgressEvent {
+                files_written: *files_written,
+                total_files: Some(total_files),
+                current_file: Some(entry_path.to_string_lossy().to_string()),
+                percent,
+            },
+        );
+    }
+
+    Ok(*files_written)
+}
+
+/// Sync Hytale assets with progress events emitted to the provided window.
+pub fn sync_hytale_assets_from_source_with_progress(
+    source_path: &Path,
+    common_overlay_path: Option<&Path>,
+    window: &Window,
+) -> Result<HytaleAssetSyncResult, Box<dyn std::error::Error>> {
+    if !source_path.exists() {
+        return Err(format!("Hytale asset source not found: {}", source_path.display()).into());
+    }
+
+    let cache_root = ensure_hytale_assets_root()?;
+    clear_cached_asset_subtrees(&cache_root)?;
+
+    // Determine total file count for progress if possible
+    let total_files_opt = if source_path.is_file() {
+        // Zip: use archive length
+        let file = File::open(source_path)?;
+        let archive = ZipArchive::new(file)?;
+        Some(archive.len() as u64)
+    } else if source_path.is_dir() {
+        let mut total = 0u64;
+        total += count_files_in_dir(&source_path.join("Common")).unwrap_or(0);
+        total += count_files_in_dir(&source_path.join("Server")).unwrap_or(0);
+        Some(total)
+    } else {
+        None
+    };
+
+    // Emit start
+    let _ = window.emit("hytale-sync-start", &serde_json::json!({ "total_files": total_files_opt }));
+
+    let mut files_written = 0u64;
+    let (files_written_inner, source_kind) = if source_path.is_file() {
+        // ensure it's zip
+        let is_zip = source_path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"));
+        if !is_zip {
+            return Err("Expected a .zip file or a directory containing Assets.zip".into());
+        }
+        (extract_assets_zip_with_progress(source_path, &cache_root, window, total_files_opt.unwrap_or(0), &mut files_written)?, "zip".into())
+    } else {
+        (copy_directory_recursive_with_progress(&source_path.join("Common"), &cache_root.join("Common"), window, total_files_opt, &mut files_written)? + copy_directory_recursive_with_progress(&source_path.join("Server"), &cache_root.join("Server"), window, total_files_opt, &mut files_written)?, "directory".into())
+    };
+
+    let (common_overlay_path_str, common_overlay_files_written) = if let Some(overlay_path) = common_overlay_path {
+        let overlay_root = resolve_common_overlay_root(overlay_path)?;
+        let files = copy_directory_recursive_with_progress(&overlay_root, &cache_root.join("Common"), window, total_files_opt, &mut files_written)?;
+        (
+            Some(overlay_root.to_string_lossy().to_string()),
+            files,
+        )
+    } else {
+        (None, 0)
+    };
+
+    let total_written = files_written_inner + common_overlay_files_written;
+    write_sync_manifest(&cache_root, source_path, total_written);
+
+    let result = HytaleAssetSyncResult {
+        cache_root: cache_root.to_string_lossy().to_string(),
+        source_path: source_path.to_string_lossy().to_string(),
+        source_kind,
+        files_written: total_written,
+        common_overlay_path: common_overlay_path_str,
+        common_overlay_files_written: common_overlay_files_written,
+    };
+
+    let _ = window.emit("hytale-sync-complete", &result);
+
+    Ok(result)
 }
 
 pub fn sync_hytale_assets_from_source(

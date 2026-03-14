@@ -124,17 +124,21 @@ pub fn get_hytale_asset_cache_root() -> Result<String, String> {
 }
 
 /// Sync Hytale assets into TerraNova's local cache from a release directory or Assets.zip.
+/// This command forwards a window reference so the IO layer can emit progress events
+/// (hytale-sync-start, hytale-sync-progress, hytale-sync-complete) to the caller.
 #[tauri::command]
 pub fn sync_hytale_assets(
+    window: tauri::Window,
     source_path: String,
     common_overlay_path: Option<String>,
 ) -> Result<crate::io::hytale_assets::HytaleAssetSyncResult, String> {
-    crate::io::hytale_assets::sync_hytale_assets_from_source(
+    crate::io::hytale_assets::sync_hytale_assets_from_source_with_progress(
         Path::new(&source_path),
         common_overlay_path
             .as_deref()
             .filter(|value| !value.trim().is_empty())
             .map(Path::new),
+        &window,
     )
     .map_err(|e| e.to_string())
 }
