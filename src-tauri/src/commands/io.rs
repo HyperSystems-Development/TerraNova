@@ -139,6 +139,12 @@ pub fn sync_hytale_assets(
     .map_err(|e| e.to_string())
 }
 
+/// Return true if the given path exists on disk (file or directory).
+#[tauri::command]
+pub fn path_exists(path: String) -> bool {
+    Path::new(&path).exists()
+}
+
 /// Check whether the Hytale asset cache is stale relative to the source path.
 #[tauri::command]
 pub fn check_hytale_asset_staleness(

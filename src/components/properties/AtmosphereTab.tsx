@@ -2,7 +2,7 @@
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { usePreviewStore } from "@/stores/previewStore";
-import { writeTextFile, listDirectory, listTemplateBiomes, type TemplateBiomeEntry } from "@/utils/ipc";
+import { writeTextFile, pathExists, listDirectory, listTemplateBiomes, type TemplateBiomeEntry } from "@/utils/ipc";
 import { jsonToGraph } from "@/utils/jsonToGraph";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import {
@@ -362,6 +362,9 @@ export function AtmosphereTab({
     storeAtm.sunAngle,
   ]);
   const environmentProviderSignature = JSON.stringify(biomeConfig?.EnvironmentProvider ?? null);
+  const environmentProviderIsEmpty =
+    biomeConfig?.EnvironmentProvider !== undefined &&
+    Object.keys(biomeConfig.EnvironmentProvider as object).length === 0;
 
   const resolveAssetWeather = useCallback(
     async (requestedHour: number, applyToPreview: boolean): Promise<ResolveBiomeAtmosphereMetadata | null> => {
@@ -691,6 +694,15 @@ export function AtmosphereTab({
 
     const environmentName = `Env_${name}`;
     const filePath = joinWindowsPath(environmentDir, `${environmentName}.json`);
+
+    const alreadyExists = await pathExists(filePath);
+    if (alreadyExists) {
+      setExportStatus("err");
+      setExportMsg(`${environmentName}.json already exists — choose a different name or delete the existing file first.`);
+      setTimeout(() => setExportStatus("idle"), 5000);
+      return;
+    }
+
     const zoneKey = extractZoneKeyFromEnvironmentDir(environmentDir);
     const tagLabel = name.replace(/^.*_/, "");
 
@@ -890,7 +902,13 @@ export function AtmosphereTab({
       </SectionCard>
 
       <SectionCard label="Weather">
-        <WeatherInfoRow label="Environment" value={weatherInfo.environmentName ?? "—"} />
+        <WeatherInfoRow
+          label="Environment"
+          value={
+            weatherInfo.environmentName
+            ?? (environmentProviderIsEmpty ? "uses server default" : "—")
+          }
+        />
         <WeatherInfoRow label="Weather" value={weatherInfo.weatherId ?? "—"} />
         {weatherInfo.environmentPath && (
           <WeatherInfoRow

@@ -64,6 +64,10 @@ export async function writeTextFile(path: string, content: string): Promise<void
   return invoke("write_text_file", { path, content });
 }
 
+export async function pathExists(path: string): Promise<boolean> {
+  return invoke<boolean>("path_exists", { path });
+}
+
 export async function copyFile(source: string, destination: string): Promise<void> {
   return invoke("copy_file", { source, destination });
 }

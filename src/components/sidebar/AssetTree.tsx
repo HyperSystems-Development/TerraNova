@@ -366,6 +366,12 @@ function ContextMenu({
     onClose();
   }
 
+  function handleCopyPath() {
+    navigator.clipboard.writeText(menu.path).catch(() => {});
+    addToast("Path copied to clipboard", "success");
+    onClose();
+  }
+
   function handleNewFolder() {
     onRequestNewFolder(targetDirectory);
     onClose();
@@ -463,6 +469,7 @@ function ContextMenu({
       style={{ left: menu.x, top: menu.y }}
     >
       <ContextMenuItem label="Reveal in Explorer" onClick={handleReveal} />
+      <ContextMenuItem label="Copy Path" onClick={handleCopyPath} />
 
       <ContextMenuDivider />
 
