@@ -3,6 +3,7 @@ import { useEditorStore } from "@/stores/editorStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { resolveKeybinding } from "@/config/keybindings";
+import { ask } from "@tauri-apps/plugin-dialog";
 import type { Node, Edge } from "@xyflow/react";
 
 interface NodeContextMenuProps {
@@ -99,11 +100,17 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
       <ContextMenuItem
         label="Delete"
         shortcut="Del"
-        onClick={() => {
-          if (confirmOnNodeDelete && !window.confirm(`Delete ${selectedIds.size} node${selectedIds.size === 1 ? "" : "s"}?`)) return;
+        onClick={() => { void (async () => {
+          if (confirmOnNodeDelete) {
+            const yes = await ask(
+              `Delete ${selectedIds.size} node${selectedIds.size === 1 ? "" : "s"}?`,
+              { title: "Confirm Delete", kind: "warning" },
+            );
+            if (!yes) return;
+          }
           useEditorStore.getState().removeNodes([...selectedIds]);
           onClose();
-        }}
+        })(); }}
       />
       <ContextMenuSeparator />
       <ContextMenuItem
