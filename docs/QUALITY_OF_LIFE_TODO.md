@@ -5,6 +5,14 @@
 - Add one-click auto-fixes for safe diagnostics like delimiter sorting, missing defaults, and simple ref cleanup.
 - Show section/field targets in validation entries so the navigation intent is obvious.
 
+## Project-wide legacy node scanner (optional)
+Per-file legacy node detection already works for the open file. This would extend it across the whole pack.
+- New Rust command `scan_legacy_nodes(pack_root)` — walks every `.json` under `HytaleGenerator/Biomes/`, finds any `"Type"` field matching `LEGACY_TYPE_KEYS`, returns a list of `{ file, nodeType, replacement | null }` hits. Read-only, no writes.
+- New IPC wrapper `scanLegacyNodes(packRoot)` in `ipc.ts`.
+- Validation panel gets a collapsible "Project-wide" section showing total legacy count with a per-file breakdown. Clicking a row opens that file so the existing per-node Replace/Remove buttons can do the actual fix.
+- Optional: small amber dot badge on file tree entries that have hits.
+- **Do not add bulk cross-file replace** — too risky without the graph editor's validation pass. Phase 2 is open-and-fix per file only.
+
 ## Weather forecast editor
 - UI to visualize and edit hourly weather patterns for each environment.
 - Drag-and-drop timeline for weather types (rain, sun, fog, etc.).

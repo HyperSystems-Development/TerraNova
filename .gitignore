@@ -28,6 +28,9 @@ src-tauri/gen/
 # TerraNova drafts
 .terranova/
 
+# Hytale asset cache (synced locally per-machine, not committed)
+hytale-assets/
+
 # AI agent workspace
 .serena/
 

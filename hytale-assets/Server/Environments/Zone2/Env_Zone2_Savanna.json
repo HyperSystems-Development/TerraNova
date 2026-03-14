@@ -1,9 +1,0 @@
-{
-  "Parent": "Env_Zone2",
-  "SpawnDensity": 0.5,
-  "Tags": {
-    "Zone2": [
-      "Savanna"
-    ]
-  }
-}
