@@ -1,8 +1,23 @@
 import type { NodeHandler } from "../evalContext";
 import { fbm2D, fbm3D, ridgeFbm2D, ridgeFbm3D } from "../fbm";
 
+/**
+ * Resolve the Scale field, with backward-compatible fallback to the legacy
+ * Frequency field.  Frequency was a multiplier (higher = finer detail) while
+ * Scale is a divisor (higher = coarser detail), so when falling back we
+ * invert: Scale = 1 / Frequency.  A Frequency of 0 is treated as Scale 1.
+ */
+function resolveScale(fields: Record<string, unknown>, fallback = 1.0): number {
+  if (fields.Scale != null) return Number(fields.Scale);
+  if (fields.Frequency != null) {
+    const freq = Number(fields.Frequency);
+    return freq !== 0 ? 1.0 / freq : fallback;
+  }
+  return fallback;
+}
+
 const handleSimplexNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) => {
-  const scale = Number(fields.Scale ?? fields.Frequency ?? 1.0);
+  const scale = resolveScale(fields);
   const amp = Number(fields.Amplitude ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const octaves = Math.max(1, Number(fields.Octaves ?? 1));
@@ -13,7 +28,7 @@ const handleSimplexNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) => {
 };
 
 const handleSimplexNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) => {
-  const scaleXZ = Number(fields.ScaleXZ ?? fields.Scale ?? fields.Frequency ?? 1.0);
+  const scaleXZ = resolveScale({ Scale: fields.ScaleXZ ?? fields.Scale, Frequency: fields.Frequency });
   const scaleY = Number(fields.ScaleY ?? scaleXZ);
   const amp = Number(fields.Amplitude ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
@@ -25,7 +40,7 @@ const handleSimplexNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) => {
 };
 
 const handleSimplexRidgeNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) => {
-  const scale = Number(fields.Scale ?? fields.Frequency ?? 1.0);
+  const scale = resolveScale(fields);
   const amp = Number(fields.Amplitude ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const octaves = Math.max(1, Number(fields.Octaves ?? 1));
@@ -36,7 +51,7 @@ const handleSimplexRidgeNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) 
 };
 
 const handleSimplexRidgeNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) => {
-  const scaleXZ = Number(fields.ScaleXZ ?? fields.Scale ?? fields.Frequency ?? 1.0);
+  const scaleXZ = resolveScale({ Scale: fields.ScaleXZ ?? fields.Scale, Frequency: fields.Frequency });
   const scaleY = Number(fields.ScaleY ?? scaleXZ);
   const amp = Number(fields.Amplitude ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
@@ -48,7 +63,7 @@ const handleSimplexRidgeNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) =
 };
 
 const handleVoronoiNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const scale = Number(fields.Scale ?? fields.Frequency ?? 1.0);
+  const scale = resolveScale(fields);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const cellType = (fields.CellType as string) ?? "Euclidean";
   const jitter = Number(fields.Jitter ?? 0.5);
@@ -72,7 +87,7 @@ const handleVoronoiNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 };
 
 const handleVoronoiNoise3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const scale = Number(fields.Scale ?? fields.Frequency ?? 1.0);
+  const scale = resolveScale(fields);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const cellType = (fields.CellType as string) ?? "Euclidean";
   const jitter = Number(fields.Jitter ?? 0.5);
@@ -97,7 +112,7 @@ const handleVoronoiNoise3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 };
 
 const handleFractalNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) => {
-  const scale = Number(fields.Scale ?? fields.Frequency ?? 1.0);
+  const scale = resolveScale(fields);
   const octaves = Math.max(1, Number(fields.Octaves ?? 1));
   const lacunarity = Number(fields.Lacunarity ?? 1.0);
   const gain = Number(fields.Gain ?? fields.Persistence ?? 1.0);
@@ -107,7 +122,7 @@ const handleFractalNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) => {
 };
 
 const handleFractalNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) => {
-  const scaleXZ = Number(fields.ScaleXZ ?? fields.Scale ?? fields.Frequency ?? 1.0);
+  const scaleXZ = resolveScale({ Scale: fields.ScaleXZ ?? fields.Scale, Frequency: fields.Frequency });
   const scaleY = Number(fields.ScaleY ?? scaleXZ);
   const octaves = Math.max(1, Number(fields.Octaves ?? 1));
   const lacunarity = Number(fields.Lacunarity ?? 1.0);

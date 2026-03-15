@@ -86,7 +86,7 @@ function StatRow({ label, value }: { label: string; value: number }) {
   return (
     <>
       <span className="text-tn-text-muted">{label}</span>
-      <span className="text-tn-text font-mono text-right">{value.toFixed(4)}</span>
+      <span className="text-tn-text font-mono text-right">{(value ?? 0).toFixed(4)}</span>
     </>
   );
 }
