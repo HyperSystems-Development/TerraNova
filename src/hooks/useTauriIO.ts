@@ -9,6 +9,7 @@ import {
   listDirectory,
   createFromTemplate,
   createBlankProject,
+  createDirectory,
 } from "@/utils/ipc";
 import type { DirectoryEntryData } from "@/utils/ipc";
 import { jsonToGraph } from "@/utils/jsonToGraph";
@@ -1064,11 +1065,14 @@ export function useTauriIO() {
       const projectPath = useProjectStore.getState().projectPath;
       if (!projectPath) return;
       const instancesDir = `${projectPath}/Server/Instances`;
-      const filePath = await save({
-        defaultPath: `${instancesDir}/instance.bson`,
-        filters: [{ name: "BSON", extensions: ["bson"] }],
+      // User picks the folder name; the dialog "filename" is the folder name
+      const folderPath = await save({
+        defaultPath: `${instancesDir}/NewInstance`,
       });
-      if (!filePath) return;
+      if (!folderPath) return;
+      // Create the instance folder and write instance.bson inside it
+      await createDirectory(folderPath);
+      const filePath = `${folderPath}/instance.bson`;
       const instance = {
         $Comment: "New instance created by TerraNova",
         RequiredPlugins: {},
@@ -1103,7 +1107,7 @@ export function useTauriIO() {
       // Open the new file
       await handleOpenFile(filePath);
     } catch (err) {
-      setLastError(`Failed to create instance: ${err}`);
+      setLastError(`Failed to create instance folder: ${err}`);
     }
   }, [setLastError, setDirectoryTree, handleOpenFile]);
 

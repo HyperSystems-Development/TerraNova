@@ -209,6 +209,10 @@ export async function showInFolder(path: string): Promise<void> {
   return invoke("show_in_folder", { path });
 }
 
+export async function openUrl(url: string): Promise<void> {
+  return invoke("open_url", { url });
+}
+
 export async function evaluateDensity(request: EvaluateRequest): Promise<EvaluateResponse> {
   return invoke<EvaluateResponse>("evaluate_density", { request });
 }
