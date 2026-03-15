@@ -56,7 +56,8 @@ const handleVoronoiNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const lacunarity = Number(fields.Lacunarity ?? 2.0);
   const gain = Number(fields.Gain ?? fields.Persistence ?? 0.5);
   const returnType = (fields.ReturnType as string) ?? "Distance";
-  const noise = ctx.getVoronoi2D(seed, cellType, jitter);
+  const distFunc = (fields.DistanceFunction as string) ?? "Euclidean";
+  const noise = ctx.getVoronoi2D(seed, cellType, jitter, returnType, distFunc);
   const sx = scale !== 0 ? x / scale : x;
   const sz = scale !== 0 ? z / scale : z;
   let raw = octaves > 1
@@ -79,7 +80,8 @@ const handleVoronoiNoise3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const lacunarity = Number(fields.Lacunarity ?? 2.0);
   const gain = Number(fields.Gain ?? fields.Persistence ?? 0.5);
   const returnType = (fields.ReturnType as string) ?? "Distance";
-  const noise = ctx.getVoronoi3D(seed, cellType, jitter);
+  const distFunc = (fields.DistanceFunction as string) ?? "Euclidean";
+  const noise = ctx.getVoronoi3D(seed, cellType, jitter, returnType, distFunc);
   const sx = scale !== 0 ? x / scale : x;
   const sy = scale !== 0 ? y / scale : y;
   const sz = scale !== 0 ? z / scale : z;

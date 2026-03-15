@@ -1,17 +1,18 @@
 import type { NodeHandler } from "../evalContext";
 
 const handlePositionsCellNoise: NodeHandler = (ctx, fields, _inputs, x, _y, z) => {
-  const maxDist = Number(fields.MaxDistance ?? 0);
-  const freq = maxDist > 0 ? 1 / maxDist : Number(fields.Frequency ?? 0.01);
+  const scale = Number(fields.Scale ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const returnType = (fields.ReturnType as string) ?? "Distance";
   const distFn = (fields.DistanceFunction as string) ?? "Euclidean";
-  const noise = ctx.getVoronoi2D(seed, distFn, 1.0);
-  let raw = noise(x * freq, z * freq);
-  if (returnType === "Distance2Div") {
-    raw = Math.abs(raw);
-  }
-  ctx.cellWallDist = Math.max(0, 0.5 - Math.abs(raw));
+  // V2 CellNoiseField doubles jitter: jitter *= 2.0
+  const jitter = Number(fields.Jitter ?? 0.5) * 2.0;
+  const noise = ctx.getVoronoi2D(seed, distFn, jitter, returnType, distFn);
+  const sx = scale !== 0 ? x / scale : x;
+  const sz = scale !== 0 ? z / scale : z;
+  const raw = noise(sx, sz);
+  // Approximate cell wall distance from the raw value
+  ctx.cellWallDist = Math.max(0, 0.5 - Math.abs(raw + 0.5));
   return raw;
 };
 
@@ -23,10 +24,16 @@ const handleCellWallDistance: NodeHandler = (ctx) => {
 };
 
 const handlePositions3D: NodeHandler = (ctx, fields, _inputs, x, y, z) => {
-  const freq = Number(fields.Frequency ?? 0.01);
+  const scale = Number(fields.Scale ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
-  const noise = ctx.getVoronoi3D(seed, "Euclidean", 1.0);
-  return noise(x * freq, y * freq, z * freq);
+  const returnType = (fields.ReturnType as string) ?? "Distance";
+  const distFn = (fields.DistanceFunction as string) ?? "Euclidean";
+  const jitter = Number(fields.Jitter ?? 0.5) * 2.0;
+  const noise = ctx.getVoronoi3D(seed, distFn, jitter, returnType, distFn);
+  const sx = scale !== 0 ? x / scale : x;
+  const sy = scale !== 0 ? y / scale : y;
+  const sz = scale !== 0 ? z / scale : z;
+  return noise(sx, sy, sz);
 };
 
 export function buildCellNoiseHandlers(): Map<string, NodeHandler> {
