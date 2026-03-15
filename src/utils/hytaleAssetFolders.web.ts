@@ -45,7 +45,7 @@ export const hytaleAssetFolders = [
   "Server/World"
 ];
 
-export async function getAvailableHytaleAssetFolders(basePath: string): Promise<string[]> {
+export async function getAvailableHytaleAssetFolders(_basePath: string): Promise<string[]> {
   // Web fallback: no Tauri API, so return empty array
   return [];
 }

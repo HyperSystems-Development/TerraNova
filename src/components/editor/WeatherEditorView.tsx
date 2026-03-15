@@ -5,7 +5,7 @@ import { useProjectStore } from "@/stores/projectStore";
 import { useToastStore } from "@/stores/toastStore";
 import { copyFile, listDirectory, resolveBundledHytaleAssetPath, writeAssetFile } from "@/utils/ipc";
 import mapDirEntry from "@/utils/mapDirEntry";
-import { joinPath, findServerRoot, normalizePath } from "@/utils/pathUtils";
+import { joinPath, findServerRoot } from "@/utils/pathUtils";
 import { EditorCalloutSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
 

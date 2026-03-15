@@ -6,9 +6,27 @@ const CURRENT_VERSION_LABEL = "1.5.9 McCal's QoL";
 const STORAGE_KEY = "terranova:whats-new-seen";
 const SUPPRESS_KEY = "terranova:whats-new-suppress";
 
+interface Section {
+  title: string;
+  items: { label: string; description: string }[];
+}
+
 export function useWhatsNew() {
-  let seen = false;
-  const FULL_CHANGELOG: Section[] = [
+  const seen = typeof localStorage !== "undefined" && localStorage.getItem(STORAGE_KEY) === CURRENT_VERSION;
+  const suppressed = typeof localStorage !== "undefined" && localStorage.getItem(SUPPRESS_KEY) === "true";
+  return {
+    shouldShow: !seen && !suppressed,
+    dismiss(suppress: boolean) {
+      try {
+        localStorage.setItem(STORAGE_KEY, CURRENT_VERSION);
+        if (suppress) localStorage.setItem(SUPPRESS_KEY, "true");
+        else localStorage.removeItem(SUPPRESS_KEY);
+      } catch {}
+    },
+  };
+}
+
+const FULL_CHANGELOG: Section[] = [
     {
       title: "Features",
       items: [
@@ -97,7 +115,12 @@ export function useWhatsNew() {
         },
       ],
     },
-  ];
+];
+
+const HIGHLIGHTS: Section[] = [
+  {
+    title: "Tint and export",
+    items: [
       {
         label: "Tint band editing in the property panel",
         description: "DensityDelimited tint bands can be edited inline with color pickers, range inputs, and add/remove controls.",

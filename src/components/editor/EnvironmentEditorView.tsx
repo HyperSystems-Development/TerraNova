@@ -19,7 +19,7 @@ import mapDirEntry from "@/utils/mapDirEntry";
 import { loadKnownEnvironmentNames } from "@/utils/environmentAssetLookup";
 import { EditorCalloutSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
-import { joinPath, inferServerRoot, normalizePath } from "@/utils/pathUtils";
+import { joinPath, inferServerRoot } from "@/utils/pathUtils";
 
 interface WeatherForecastEntry {
   WeatherId: string;

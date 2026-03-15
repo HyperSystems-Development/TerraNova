@@ -1,5 +1,5 @@
 import { listDirectory, readAssetFile, type DirectoryEntryData } from "@/utils/ipc";
-import { joinPath, findServerRoot, normalizePath, getDirname, inferServerRoot } from "@/utils/pathUtils";
+import { joinPath, normalizePath, getDirname, inferServerRoot } from "@/utils/pathUtils";
 
 export interface AssetReferenceCollection {
   names: string[];

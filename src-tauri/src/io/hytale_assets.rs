@@ -451,6 +451,7 @@ struct SyncProgressEvent {
 }
 
 /// Count non-directory files under a path (recursively).
+#[allow(dead_code)]
 fn count_files_in_dir(dir: &Path) -> Result<u64, Box<dyn std::error::Error>> {
     let mut count: u64 = 0;
     let mut stack = vec![dir.to_path_buf()];
