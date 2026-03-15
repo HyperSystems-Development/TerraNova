@@ -27,6 +27,7 @@ mod tests {
             bridge_version: "1.0.0".into(),
             player_count: 5,
             port: 7854,
+            singleplayer: false,
         };
         let json = serde_json::to_string(&original).unwrap();
         let parsed: ServerStatus = serde_json::from_str(&json).unwrap();
@@ -163,16 +164,40 @@ mod tests {
 
     #[test]
     fn client_new_builds_base_url() {
-        let client = BridgeClient::new("127.0.0.1", 7854, "test-token");
+        let client = BridgeClient::new("127.0.0.1", 7854, "test-token").unwrap();
         assert_eq!(client.base_url, "http://127.0.0.1:7854");
         assert_eq!(client.auth_token, "test-token");
     }
 
     #[test]
-    fn client_new_custom_host_port() {
-        let client = BridgeClient::new("192.168.1.100", 9999, "abc123");
-        assert_eq!(client.base_url, "http://192.168.1.100:9999");
+    fn client_new_accepts_localhost() {
+        let client = BridgeClient::new("localhost", 9999, "abc123").unwrap();
+        assert_eq!(client.base_url, "http://localhost:9999");
         assert_eq!(client.auth_token, "abc123");
+    }
+
+    #[test]
+    fn client_new_accepts_ipv6_loopback() {
+        let client = BridgeClient::new("::1", 7854, "token").unwrap();
+        assert_eq!(client.base_url, "http://::1:7854");
+    }
+
+    #[test]
+    fn client_new_rejects_non_loopback() {
+        let result = BridgeClient::new("192.168.1.100", 9999, "abc123");
+        match result {
+            Err(e) => assert!(e.contains("loopback"), "unexpected error: {}", e),
+            Ok(_) => panic!("expected loopback rejection"),
+        }
+    }
+
+    #[test]
+    fn client_new_rejects_external_host() {
+        let result = BridgeClient::new("evil.example.com", 80, "token");
+        match result {
+            Err(e) => assert!(e.contains("loopback"), "unexpected error: {}", e),
+            Ok(_) => panic!("expected loopback rejection"),
+        }
     }
 
     // ── BridgeState ──────────────────────────────────────────────────
