@@ -1,14 +1,14 @@
 import { memo } from "react";
 import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
-import { positionInput, positionOutput, densityInput } from "@/nodes/shared/handles";
+import { positionInput, positionOutput, densityInput, vectorInput } from "@/nodes/shared/handles";
 import { safeDisplay } from "@/nodes/shared/displayUtils";
 import { useCompoundHandles } from "@/hooks/useCompoundHandles";
 
 // ── Hoisted handle arrays ───────────────────────────────────────────────
 const POSITION_OUTPUT_HANDLES = [positionOutput()];
 const POSITION_PASSTHROUGH_HANDLES = [positionInput("PositionProvider", "Positions"), positionOutput()];
-const SCALER_HANDLES = [positionInput("Positions", "Positions"), positionOutput()];
+const SCALER_HANDLES = [positionInput("Positions", "Positions"), vectorInput("Scale", "Scale"), positionOutput()];
 const JITTER_HANDLES = [positionInput("Positions", "Positions"), positionOutput()];
 const CLUSTERS_HANDLES = [positionInput("Distributor", "Distributor"), positionInput("Cluster", "Cluster"), positionOutput()];
 const FIELD_FUNCTION_POSITION_HANDLES = [
@@ -282,12 +282,16 @@ export const EmptyPositionNode = memo(function EmptyPositionNode(props: TypedNod
 
 export const ScalerPositionNode = memo(function ScalerPositionNode(props: TypedNodeProps) {
   const data = props.data;
+  // Only show inline Scale value when no Vector:Constant is connected to the Scale handle
+  const hasInlineScale = data.fields.Scale && typeof data.fields.Scale === "object" && "x" in (data.fields.Scale as Record<string, unknown>);
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={SCALER_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Scale</span>
-        <span>{formatVec3(data.fields.Scale)}</span>
-      </div>
+      {hasInlineScale && (
+        <div className="flex justify-between">
+          <span className="text-tn-text-muted">Scale</span>
+          <span>{formatVec3(data.fields.Scale)}</span>
+        </div>
+      )}
     </BaseNode>
   );
 });

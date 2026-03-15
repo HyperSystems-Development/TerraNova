@@ -1118,6 +1118,24 @@ function transformNodeToInternal(
       continue;
     }
 
+    // Named-map of nested assets (V2 StringCodecMapCodec: { "key1": {Type:...}, "key2": {Type:...} })
+    // Convert to array and recursively transform each entry.
+    if (
+      value && typeof value === "object" && !Array.isArray(value) &&
+      !("Type" in (value as Record<string, unknown>))
+    ) {
+      const entries = Object.values(value as Record<string, unknown>);
+      if (
+        entries.length > 0 &&
+        entries.every((e) => e && typeof e === "object" && "Type" in (e as Record<string, unknown>))
+      ) {
+        output[key] = entries.map((item) =>
+          transformNodeToInternal(item as Record<string, unknown>, { ...ctx, parentField: key }, metadata),
+        );
+        continue;
+      }
+    }
+
     // Pass through — strip $NodeId from non-typed nested structures
     if (Array.isArray(value)) {
       output[key] = stripNodeIds(value);
@@ -1154,6 +1172,7 @@ function inferCategoryFromParent(parentField: string): string {
     Low: "material",
     High: "material",
     Material: "material",
+    Materials: "material",
     Curve: "curve",
     Pattern: "pattern",
     SubPattern: "pattern",

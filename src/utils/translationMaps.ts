@@ -220,6 +220,7 @@ export const FIELD_TO_CATEGORY: Record<string, string> = {
   Low: "material",
   High: "material",
   Material: "material",
+  Materials: "material",
   Curve: "curve",
   Pattern: "pattern",
   SubPattern: "pattern",

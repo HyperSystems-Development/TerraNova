@@ -304,7 +304,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Position:SquareGrid3d": [positionOutput()],
   "Position:TriangularGrid2d": [positionOutput()],
   "Position:Empty": [positionOutput()],
-  "Position:Scaler": [positionInput("Positions", "Positions"), positionOutput()],
+  "Position:Scaler": [positionInput("Positions", "Positions"), vectorInput("Scale", "Scale"), positionOutput()],
   "Position:Jitter2d": [positionInput("Positions", "Positions"), positionOutput()],
   "Position:Jitter3d": [positionInput("Positions", "Positions"), positionOutput()],
   "Position:Clusters": [positionInput("Distributor", "Distributor"), positionInput("Cluster", "Cluster"), positionOutput()],

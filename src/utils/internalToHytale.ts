@@ -1278,7 +1278,6 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     return {
       $NodeId: generateNodeId("SpaceAndDepthMaterialProvider"),
       Type: "SpaceAndDepth",
-      Skip: false,
       ...layerFields,
     };
   }
@@ -1478,10 +1477,38 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     transformedFields = transformDensityBasedFields(transformedFields);
   }
 
+  // SimpleHorizontal: Materials[] → Material (V2 uses singular Material port, not array)
+  if (internalType === "SimpleHorizontal" &&
+      "Materials" in transformedFields && Array.isArray(transformedFields.Materials)) {
+    const materials = transformedFields.Materials as unknown[];
+    if (materials.length > 0) {
+      transformedFields.Material = materials[0];
+    }
+    delete transformedFields.Materials;
+  }
+
   // PositionsCellNoise: ReturnCurve → Curve (reverse of import normalization)
   if (internalType === "PositionsCellNoise" && "ReturnCurve" in transformedFields) {
     transformedFields.Curve = transformedFields.ReturnCurve;
     delete transformedFields.ReturnCurve;
+  }
+
+  // PositionsCellNoise: wrap DistanceFunction/ReturnType strings → objects for V2 codec
+  // V2 expects { Type: "Euclidean" }, not bare "Euclidean"
+  if (internalType === "PositionsCellNoise") {
+    if (typeof transformedFields.DistanceFunction === "string") {
+      transformedFields.DistanceFunction = { Type: transformedFields.DistanceFunction };
+    }
+    if (typeof transformedFields.ReturnType === "string") {
+      const rtType = transformedFields.ReturnType as string;
+      const rtObj: Record<string, unknown> = { Type: rtType };
+      // When ReturnType is "Curve", embed the Curve asset inside the ReturnType object
+      if (rtType === "Curve" && "Curve" in transformedFields) {
+        rtObj.Curve = transformedFields.Curve;
+        delete transformedFields.Curve;
+      }
+      transformedFields.ReturnType = rtObj;
+    }
   }
 
   // SimplexRidgeNoise2D/3D → Abs(SimplexNoise2D/3D) compound node

@@ -283,7 +283,7 @@ export const POSITION_DEFAULTS: Record<PositionProviderType, DefaultFields> = {
   Framework: {},
   SquareGrid2d: {},
   SquareGrid3d: {},
-  Scaler: { Scale: { x: 40, y: 40, z: 40 } },
+  Scaler: {},
   Jitter2d: { Magnitude: 14.0, Seed: "A" },
   Jitter3d: { Magnitude: 14.0, Seed: "A" },
   TriangularGrid2d: {},
