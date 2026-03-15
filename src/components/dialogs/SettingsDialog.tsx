@@ -67,6 +67,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const setConfirmOnNodeDelete = useSettingsStore((s) => s.setConfirmOnNodeDelete);
   const exportPath = useSettingsStore((s) => s.exportPath);
   const setExportPath = useSettingsStore((s) => s.setExportPath);
+  const instantSaveEnabled = useSettingsStore((s) => s.instantSaveEnabled);
+  const setInstantSaveEnabled = useSettingsStore((s) => s.setInstantSaveEnabled);
+  const instantSaveDebounceMs = useSettingsStore((s) => s.instantSaveDebounceMs);
+  const setInstantSaveDebounceMs = useSettingsStore((s) => s.setInstantSaveDebounceMs);
   const autoCheckUpdates = useSettingsStore((s) => s.autoCheckUpdates);
   const setAutoCheckUpdates = useSettingsStore((s) => s.setAutoCheckUpdates);
   const hytaleAssetSyncEnabled = useSettingsStore((s) => s.hytaleAssetSyncEnabled);
@@ -317,6 +321,39 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                     <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{confirmOnNodeDelete ? "On" : "Off"}</span>
                     <p className="text-xs text-tn-text-muted mt-0.5">Show a confirmation prompt when deleting nodes via the context menu</p>
                   </button>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Instant Save</label>
+                  <button
+                    onClick={() => setInstantSaveEnabled(!instantSaveEnabled)}
+                    className={`text-left px-3 py-2 rounded border text-sm ${
+                      instantSaveEnabled
+                        ? "border-tn-accent bg-tn-accent/10"
+                        : "border-tn-border bg-tn-bg hover:bg-tn-surface"
+                    }`}
+                  >
+                    <span className="font-medium">Auto-save on every edit</span>
+                    <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{instantSaveEnabled ? "On" : "Off"}</span>
+                    <p className="text-xs text-tn-text-muted mt-0.5">Automatically write changes to disk after each edit. Toggle with Ctrl+Shift+I.</p>
+                  </button>
+                  {instantSaveEnabled && (
+                    <div className="flex items-center gap-3 px-3 py-2 rounded border border-tn-border bg-tn-bg">
+                      <label className="text-sm text-tn-text-muted whitespace-nowrap">Debounce</label>
+                      <input
+                        type="number"
+                        min={100}
+                        step={50}
+                        value={instantSaveDebounceMs}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          if (!Number.isNaN(v)) setInstantSaveDebounceMs(v);
+                        }}
+                        className="w-20 px-2 py-1 rounded border border-tn-border bg-tn-panel text-sm text-tn-text text-center"
+                      />
+                      <span className="text-xs text-tn-text-muted">ms (min 100)</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
