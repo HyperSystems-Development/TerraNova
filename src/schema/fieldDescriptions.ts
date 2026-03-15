@@ -536,16 +536,16 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   // MATERIAL — New Types
   // ═══════════════════════════════════════════════════════════════════════════
   DownwardDepth: {
-    MaxDepth: "Maximum depth in blocks to measure downward from the surface. Limits how deep the measurement goes.",
+    Depth: "Depth in blocks to measure downward from the surface.",
   },
   UpwardDepth: {
-    MaxDepth: "Maximum depth in blocks to measure upward from the ceiling. Limits how high the measurement goes.",
+    Depth: "Depth in blocks to measure upward from the ceiling.",
   },
   DownwardSpace: {
-    MaxSpace: "Maximum distance in blocks to measure open space downward. Counts air blocks below the surface.",
+    Space: "Distance in blocks to measure open space downward.",
   },
   UpwardSpace: {
-    MaxSpace: "Maximum distance in blocks to measure open space upward. Counts air blocks above the floor.",
+    Space: "Distance in blocks to measure open space upward.",
   },
   Striped: {
     Thickness: "Thickness of each material stripe in blocks. Alternating stripes of connected materials.",

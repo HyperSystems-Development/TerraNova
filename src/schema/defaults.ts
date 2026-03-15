@@ -204,19 +204,19 @@ export const MATERIAL_DEFAULTS: Record<MaterialProviderType, DefaultFields> = {
   Queue: {},
   FieldFunction: {},
   Solidity: {},
-  DownwardDepth: { MaxDepth: 16 },
-  UpwardDepth: { MaxDepth: 16 },
-  DownwardSpace: { MaxSpace: 16 },
-  UpwardSpace: { MaxSpace: 16 },
+  DownwardDepth: { Depth: 1 },
+  UpwardDepth: { Depth: 1 },
+  DownwardSpace: { Space: 1 },
+  UpwardSpace: { Space: 1 },
   SimpleHorizontal: { Spacing: 4 },
   Striped: { Thickness: 1, Seed: "A" },
   TerrainDensity: {},
   Imported: { Name: "" },
   Exported: { Name: "" },
   // Layer sub-asset types
-  ConstantThickness: { Thickness: 3 },
+  ConstantThickness: { Thickness: 1 },
   NoiseThickness: {},
-  RangeThickness: { RangeMin: 1, RangeMax: 5, Seed: "" },
+  RangeThickness: { RangeMin: 1, RangeMax: 3, Seed: "" },
   WeightedThickness: { PossibleThicknesses: [{ Weight: 1, Thickness: 3 }], Seed: "" },
 };
 
@@ -371,7 +371,7 @@ export const ASSIGNMENT_DEFAULTS: Record<AssignmentType, DefaultFields> = {
 
 export const VECTOR_DEFAULTS: Record<VectorProviderType, DefaultFields> = {
   Constant: { Value: { x: 0, y: 1, z: 0 } },
-  DensityGradient: {},
+  DensityGradient: { SampleDistance: 1.0 },
   Cache: {},
   Exported: { Name: "" },
   Imported: { Name: "" },
