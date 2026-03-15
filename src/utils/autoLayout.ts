@@ -63,25 +63,42 @@ export function tidyUp(nodes: Node[], gridSize: number = 20): Node[] {
 let dagreLib: typeof import("@dagrejs/dagre") | null = null;
 
 /**
- * Lazily import dagre and graphlib, then wire graphlib in directly.
- * No window.require polyfill needed — works in all environments.
+ * Lazily import dagre and graphlib with a temporary require polyfill.
+ *
+ * @dagrejs/dagre's ESM bundle contains a CJS require() shim that throws
+ * "Dynamic require of '@dagrejs/graphlib' is not supported" in browser
+ * environments. The shim fires during module evaluation (at import time),
+ * so we must make graphlib available via globalThis.require *before*
+ * importing dagre.
  */
 async function ensureDagre() {
   if (dagreLib) return dagreLib;
 
-  const [graphlibMod, dagreMod] = await Promise.all([
-    import("@dagrejs/graphlib"),
-    import("@dagrejs/dagre"),
-  ]);
-
-  const dagre = (dagreMod as any).default ?? dagreMod;
+  // 1. Load graphlib first (separate chunk from dagre)
+  const graphlibMod = await import("@dagrejs/graphlib");
   const graphlib = (graphlibMod as any).default ?? graphlibMod;
 
-  // Inject graphlib directly so dagre.graphlib.Graph() works
-  dagre.graphlib = graphlib;
+  // 2. Temporarily polyfill require so dagre's CJS shim can resolve graphlib
+  const prevRequire = (globalThis as any).require;
+  (globalThis as any).require = (id: string) => {
+    if (id === "@dagrejs/graphlib") return graphlib;
+    if (prevRequire) return prevRequire(id);
+    throw new Error(`Dynamic require of "${id}" is not supported`);
+  };
 
-  dagreLib = dagre;
-  return dagreLib;
+  try {
+    // 3. Now import dagre — its shim will find graphlib via our polyfill
+    const dagreMod = await import("@dagrejs/dagre");
+    const dagre = (dagreMod as any).default ?? dagreMod;
+    dagre.graphlib = graphlib;
+    dagreLib = dagre;
+  } finally {
+    // 4. Restore original state
+    if (prevRequire === undefined) delete (globalThis as any).require;
+    else (globalThis as any).require = prevRequire;
+  }
+
+  return dagreLib!;
 }
 
 /**
