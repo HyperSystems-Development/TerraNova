@@ -31,6 +31,7 @@ import { useLanguage } from "@/languages/useLanguage";
 import { useToastStore } from "@/stores/toastStore";
 import { copyFile, createDirectory, exportAssetFile, listDirectory, resolveBundledHytaleAssetPath, showInFolder } from "@/utils/ipc";
 import mapDirEntry from "@/utils/mapDirEntry";
+import { joinPath, normalizePath, getDirname } from "@/utils/pathUtils";
 import {
   type DelimiterValidationIssue,
   readDelimiterRangeMin,
@@ -160,25 +161,11 @@ interface AssetInspectorEntry {
   kind: "weather-texture" | "environment-weather";
 }
 
-function normalizeWindowsPath(path: string): string {
-  return path.replace(/\//g, "\\").replace(/\\+$/, "");
-}
-
-function joinWindowsPath(base: string, child: string): string {
-  return `${base.replace(/[\\/]+$/, "")}\\${child.replace(/^[\\/]+/, "").replace(/\//g, "\\")}`;
-}
-
-function getWindowsDirname(path: string): string {
-  const normalized = normalizeWindowsPath(path);
-  const lastSeparator = normalized.lastIndexOf("\\");
-  return lastSeparator >= 0 ? normalized.slice(0, lastSeparator) : normalized;
-}
-
 function toRelativeDisplayPath(root: string | null, path: string): string {
-  const normalizedPath = normalizeWindowsPath(path);
+  const normalizedPath = normalizePath(path);
   if (!root) return normalizedPath;
-  const normalizedRoot = normalizeWindowsPath(root);
-  const prefix = `${normalizedRoot}\\`.toLowerCase();
+  const normalizedRoot = normalizePath(root);
+  const prefix = `${normalizedRoot}/`.toLowerCase();
   return normalizedPath.toLowerCase().startsWith(prefix)
     ? normalizedPath.slice(normalizedRoot.length + 1)
     : normalizedPath;
@@ -208,14 +195,14 @@ function getFileStem(path: string): string {
 }
 
 function referenceToBundledCommonPath(referencePath: string): string {
-  const normalized = referencePath.replace(/\//g, "\\").replace(/^\\+/, "");
-  return normalized.toLowerCase().startsWith("common\\") ? normalized : `Common\\${normalized}`;
+  const normalized = referencePath.replace(/\\/g, "/").replace(/^\/+/, "");
+  return normalized.toLowerCase().startsWith("common/") ? normalized : `Common/${normalized}`;
 }
 
 function referenceToProjectCommonPath(projectRoot: string, referencePath: string): string {
-  const normalized = referencePath.replace(/\//g, "\\").replace(/^\\+/, "");
-  const relativePath = normalized.toLowerCase().startsWith("common\\") ? normalized : `Common\\${normalized}`;
-  return joinWindowsPath(projectRoot, relativePath);
+  const normalized = referencePath.replace(/\\/g, "/").replace(/^\/+/, "");
+  const relativePath = normalized.toLowerCase().startsWith("common/") ? normalized : `Common/${normalized}`;
+  return joinPath(projectRoot, relativePath);
 }
 
 function collectWeatherTextureReferences(doc: Record<string, unknown>): Array<{ label: string; referencePath: string }> {
@@ -479,7 +466,7 @@ export function PropertyPanel() {
 
     for (const entry of importableEntries) {
       try {
-        await createDirectory(getWindowsDirname(entry.projectPath)).catch(() => {});
+        await createDirectory(getDirname(entry.projectPath)).catch(() => {});
         await copyFile(entry.bundledPath, entry.projectPath);
         imported += 1;
       } catch {
@@ -512,7 +499,7 @@ export function PropertyPanel() {
 
     for (const entry of creatableEntries) {
       try {
-        await createDirectory(getWindowsDirname(entry.projectPath)).catch(() => {});
+        await createDirectory(getDirname(entry.projectPath)).catch(() => {});
         await exportAssetFile(entry.projectPath, buildDefaultWeatherDoc(entry.label));
         created += 1;
       } catch {
@@ -523,7 +510,7 @@ export function PropertyPanel() {
     await refreshAssetInspectorTree();
 
     if (created > 0) {
-      addToast(`Created ${created} placeholder weather file${created === 1 ? "" : "s"} in Server\\Weathers.`, "success");
+      addToast(`Created ${created} placeholder weather file${created === 1 ? "" : "s"} in Server/Weathers.`, "success");
     }
     if (failed > 0) {
       addToast(`Failed to create ${failed} placeholder weather file${failed === 1 ? "" : "s"}.`, created > 0 ? "warning" : "error");
@@ -557,13 +544,13 @@ export function PropertyPanel() {
       try {
         const doc = rawJsonContent as Record<string, unknown>;
         const projectFiles = collectDirectoryFilePaths(Array.isArray(directoryTree) ? directoryTree : []);
-        const projectFileIndex = new Set(projectFiles.map((path) => normalizeWindowsPath(path).toLowerCase()));
+        const projectFileIndex = new Set(projectFiles.map((path) => normalizePath(path).toLowerCase()));
 
         if (assetInspectorMode === "weather") {
           const textureEntries = await Promise.all(
             collectWeatherTextureReferences(doc).map(async ({ label, referencePath }) => {
               const targetPath = referenceToProjectCommonPath(projectPath, referencePath);
-              const inPack = projectFileIndex.has(normalizeWindowsPath(targetPath).toLowerCase());
+              const inPack = projectFileIndex.has(normalizePath(targetPath).toLowerCase());
               let bundledPath: string | null = null;
 
               if (!inPack) {
@@ -577,7 +564,7 @@ export function PropertyPanel() {
               return {
                 key: `weather-texture:${referencePath}`.toLowerCase(),
                 label,
-                detail: referencePath.replace(/\//g, "\\"),
+                detail: referencePath.replace(/\\/g, "/"),
                 status: inPack ? "in-pack" : bundledPath ? "built-in" : "missing",
                 projectPath: targetPath,
                 bundledPath,
@@ -594,7 +581,7 @@ export function PropertyPanel() {
 
         const projectWeatherIndex = new Map<string, string>();
         for (const filePath of projectFiles) {
-          const normalizedFilePath = normalizeWindowsPath(filePath);
+          const normalizedFilePath = normalizePath(filePath);
           if (!normalizedFilePath.toLowerCase().endsWith(".json")) continue;
           if (!isAssetFileInFolder(normalizedFilePath, "Server/Weathers")) continue;
           projectWeatherIndex.set(getFileStem(normalizedFilePath).toLowerCase(), normalizedFilePath);
@@ -602,11 +589,11 @@ export function PropertyPanel() {
 
         const bundledWeatherIndex = new Map<string, string>();
         try {
-          const bundledWeathersPath = await resolveBundledHytaleAssetPath("Server\\Weathers");
+          const bundledWeathersPath = await resolveBundledHytaleAssetPath("Server/Weathers");
           const bundledEntries = await listDirectory(bundledWeathersPath);
           const bundledFiles = collectDirectoryFilePaths(bundledEntries.map(mapDirEntry));
           for (const filePath of bundledFiles) {
-            const normalizedFilePath = normalizeWindowsPath(filePath);
+            const normalizedFilePath = normalizePath(filePath);
             if (!normalizedFilePath.toLowerCase().endsWith(".json")) continue;
             bundledWeatherIndex.set(getFileStem(normalizedFilePath).toLowerCase(), normalizedFilePath);
           }
@@ -619,16 +606,16 @@ export function PropertyPanel() {
           const existingProjectPath = projectWeatherIndex.get(weatherKey) ?? null;
           const bundledPath = existingProjectPath ? null : bundledWeatherIndex.get(weatherKey) ?? null;
           const targetFileName = bundledPath
-            ? (normalizeWindowsPath(bundledPath).split("\\").pop() ?? `${weatherId}.json`)
+            ? (normalizePath(bundledPath).split("/").pop() ?? `${weatherId}.json`)
             : `${weatherId}.json`;
-          const targetPath = existingProjectPath ?? joinWindowsPath(projectPath, `Server\\Weathers\\${targetFileName}`);
+          const targetPath = existingProjectPath ?? joinPath(projectPath, `Server/Weathers/${targetFileName}`);
 
           return {
             key: `environment-weather:${weatherKey}`,
             label: weatherId,
             detail: existingProjectPath
               ? toRelativeDisplayPath(projectPath, existingProjectPath)
-              : `Server\\Weathers\\${targetFileName}`,
+              : `Server/Weathers/${targetFileName}`,
             status: existingProjectPath ? "in-pack" : bundledPath ? "built-in" : "missing",
             projectPath: targetPath,
             bundledPath,
@@ -943,7 +930,7 @@ export function PropertyPanel() {
         ? inferSuggestedEnvironmentParent(currentFile, [...FIELD_SUGGESTIONS.Environment])
         : null;
       const projectAssetFolder = projectPath
-        ? joinWindowsPath(projectPath, isWeatherAsset ? "Common\\Sky" : "Server\\Weathers")
+        ? joinPath(projectPath, isWeatherAsset ? "Common/Sky" : "Server/Weathers")
         : null;
       const summaryRows = isWeatherAsset
         ? [
@@ -1047,15 +1034,15 @@ export function PropertyPanel() {
                 <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Folder Notes</p>
                 <p className="mt-1 text-[11px] text-tn-text-muted">
                   {isWeatherAsset
-                    ? "Store weather JSON in Server\\Weathers. Import a cached Hytale weather to start fast, then keep referenced sky textures under Common\\Sky."
-                    : "Store environment JSON in Server\\Environments. Start from a Hytale asset or create your own, then point Parent at a shared base such as Env_Zone1, Env_Zone1_Caves, or another family root."}
+                    ? "Store weather JSON in Server/Weathers. Import a cached Hytale weather to start fast, then keep referenced sky textures under Common/Sky."
+                    : "Store environment JSON in Server/Environments. Start from a Hytale asset or create your own, then point Parent at a shared base such as Env_Zone1, Env_Zone1_Caves, or another family root."}
                 </p>
               </div>
               {!isWeatherAsset && (
                 <div className="rounded border border-tn-border/50 bg-tn-bg/60 p-3">
                   <p className="text-[10px] uppercase tracking-wider text-tn-text-muted">Zone Folder Pattern</p>
                   <p className="mt-1 text-[11px] text-tn-text-muted">
-                    Mirror Hytale by grouping environments into folders like Server\\Environments\\Zone1, Zone2, Zone3, Zone4, Zone0, and Unique. Keep a shared base such as Env_Zone1 or Env_Zone1_Caves alongside the child variants in that family.
+                    Mirror Hytale by grouping environments into folders like Server/Environments/Zone1, Zone2, Zone3, Zone4, Zone0, and Unique. Keep a shared base such as Env_Zone1 or Env_Zone1_Caves alongside the child variants in that family.
                   </p>
                 </div>
               )}

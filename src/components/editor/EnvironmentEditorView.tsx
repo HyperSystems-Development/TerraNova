@@ -19,6 +19,7 @@ import mapDirEntry from "@/utils/mapDirEntry";
 import { loadKnownEnvironmentNames } from "@/utils/environmentAssetLookup";
 import { EditorCalloutSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
+import { joinPath, inferServerRoot, normalizePath } from "@/utils/pathUtils";
 
 interface WeatherForecastEntry {
   WeatherId: string;
@@ -47,27 +48,6 @@ const DAYPARTS = [
   { id: "late", label: "Late", start: 20, end: 23, accent: "#0f172a" },
 ] as const;
 
-function joinWindowsPath(base: string, child: string): string {
-  return `${base.replace(/[\\/]+$/, "")}\\${child}`;
-}
-
-function findServerRoot(path: string | null): string | null {
-  if (!path) return null;
-  const normalized = path.replace(/\\/g, "/");
-  const marker = "/server/";
-  const markerIndex = normalized.toLowerCase().lastIndexOf(marker);
-  if (markerIndex >= 0) {
-    return normalized.slice(0, markerIndex + marker.length - 1).replace(/\//g, "\\");
-  }
-  if (normalized.toLowerCase().endsWith("/server")) {
-    return normalized.replace(/\//g, "\\");
-  }
-  return null;
-}
-
-function inferServerRoot(currentFile: string | null, projectPath: string | null): string | null {
-  return findServerRoot(currentFile) ?? findServerRoot(projectPath) ?? (projectPath ? joinWindowsPath(projectPath, "Server") : null);
-}
 
 function collectJsonFiles(entries: DirectoryEntryData[]): Array<{ id: string; path: string }> {
   const files: Array<{ id: string; path: string }> = [];
@@ -321,7 +301,7 @@ function getForecastResolution(
   return {
     status: "built-in",
     label: "Built-In",
-    detail: `Resolved to cached Hytale asset ${fileName}. Import it into Server\\Weathers to include it in the pack.`,
+    detail: `Resolved to cached Hytale asset ${fileName}. Import it into Server/Weathers to include it in the pack.`,
   };
 }
 
@@ -499,7 +479,7 @@ export function EnvironmentEditorView() {
       const allFiles: Array<{ id: string; path: string }> = [];
 
       try {
-        const bundledWeathersPath = await resolveBundledHytaleAssetPath("Server\\Weathers");
+        const bundledWeathersPath = await resolveBundledHytaleAssetPath("Server/Weathers");
         const bundledEntries = await listDirectory(bundledWeathersPath);
         allFiles.push(...collectJsonFiles(bundledEntries));
       } catch {
@@ -515,7 +495,7 @@ export function EnvironmentEditorView() {
 
       if (serverRoot) {
         try {
-          const entries = await listDirectory(joinWindowsPath(serverRoot, "Weathers"));
+          const entries = await listDirectory(joinPath(serverRoot, "Weathers"));
           const files = collectJsonFiles(entries);
           allFiles.push(...files);
           projectWeathersFound = true;
@@ -554,13 +534,13 @@ export function EnvironmentEditorView() {
       if (!serverRoot) {
         setLookupStatus("error");
         setLookupError(hytaleFiles.length > 0
-          ? `Server\\Weathers not found - showing ${hytaleFiles.length} file(s) from the cached Hytale assets.`
+          ? `Server/Weathers not found - showing ${hytaleFiles.length} file(s) from the cached Hytale assets.`
           : "Could not infer the Server root for weather lookup.");
       } else if (!projectWeathersFound) {
         setLookupStatus("error");
         setLookupError(hytaleFiles.length > 0
-          ? `Server\\Weathers directory not found. Showing ${hytaleFiles.length} file(s) from the cached Hytale assets. Create the folder or click "Create Default Weather".`
-          : "Server\\Weathers directory not found. Create the folder or open a file inside the Server directory.");
+          ? `Server/Weathers directory not found. Showing ${hytaleFiles.length} file(s) from the cached Hytale assets. Create the folder or click "Create Default Weather".`
+          : "Server/Weathers directory not found. Create the folder or open a file inside the Server directory.");
       } else {
         setLookupStatus("ready");
       }
@@ -612,7 +592,7 @@ export function EnvironmentEditorView() {
     if (hytaleOnlyIds.length === 0) return;
     const serverRoot = inferServerRoot(currentFile, projectPath);
     if (!serverRoot) return;
-    const weathersDir = joinWindowsPath(serverRoot, "Weathers");
+    const weathersDir = joinPath(serverRoot, "Weathers");
     async function autoImport() {
       let imported = 0;
       await createDirectory(weathersDir).catch(() => {});
@@ -620,7 +600,7 @@ export function EnvironmentEditorView() {
         const srcPath = weatherPathIndex[id.toLowerCase()];
         if (!srcPath) continue;
         const fileName = srcPath.split(/[/\\]/).pop() ?? `${id}.json`;
-        const destPath = joinWindowsPath(weathersDir, fileName);
+        const destPath = joinPath(weathersDir, fileName);
         try {
           await copyFile(srcPath, destPath);
           imported += 1;
@@ -703,7 +683,7 @@ export function EnvironmentEditorView() {
       return;
     }
 
-    const weathersDir = joinWindowsPath(serverRoot, "Weathers");
+    const weathersDir = joinPath(serverRoot, "Weathers");
     await createDirectory(weathersDir).catch(() => {});
 
     let imported = 0;
@@ -718,7 +698,7 @@ export function EnvironmentEditorView() {
       }
       const fileName = sourcePath.split(/[/\\]/).pop() ?? `${weatherId}.json`;
       try {
-        await copyFile(sourcePath, joinWindowsPath(weathersDir, fileName));
+        await copyFile(sourcePath, joinPath(weathersDir, fileName));
         imported += 1;
       } catch {
         failed += 1;
@@ -728,7 +708,7 @@ export function EnvironmentEditorView() {
     for (const weatherId of createIds ?? []) {
       try {
         await exportAssetFile(
-          joinWindowsPath(weathersDir, `${weatherId}.json`),
+          joinPath(weathersDir, `${weatherId}.json`),
           buildDefaultWeatherDoc(weatherId),
         );
         created += 1;
@@ -740,10 +720,10 @@ export function EnvironmentEditorView() {
     await refreshProjectTreeAndLookup();
 
     if (imported > 0) {
-      addToast(`Added ${imported} referenced weather file(s) to Server\\Weathers.`, "success");
+      addToast(`Added ${imported} referenced weather file(s) to Server/Weathers.`, "success");
     }
     if (created > 0) {
-      addToast(`Created ${created} placeholder weather file(s) in Server\\Weathers.`, "success");
+      addToast(`Created ${created} placeholder weather file(s) in Server/Weathers.`, "success");
     }
     if (failed > 0) {
       addToast(`Failed to materialize ${failed} weather file(s).`, imported > 0 || created > 0 ? "warning" : "error");
@@ -753,7 +733,7 @@ export function EnvironmentEditorView() {
   const handleCreateDefaultWeather = async () => {
     const serverRoot = inferServerRoot(currentFile, projectPath);
     if (!serverRoot) return;
-    const filePath = joinWindowsPath(joinWindowsPath(serverRoot, "Weathers"), "Weather_Default.json");
+    const filePath = joinPath(joinPath(serverRoot, "Weathers"), "Weather_Default.json");
     try {
       await exportAssetFile(filePath, buildDefaultWeatherDoc("Weather_Default"));
       await refreshProjectTreeAndLookup();
@@ -765,7 +745,7 @@ export function EnvironmentEditorView() {
 
   const weathersDirPath = (() => {
     const serverRoot = inferServerRoot(currentFile, projectPath);
-    return serverRoot ? joinWindowsPath(serverRoot, "Weathers") : null;
+    return serverRoot ? joinPath(serverRoot, "Weathers") : null;
   })();
 
   const handleLocateWeathers = async () => {
@@ -830,13 +810,13 @@ export function EnvironmentEditorView() {
 
   const handleImportForecastWeather = async (weatherId: string, sourcePath: string) => {
     if (!weathersDirPath) {
-      addToast("Cannot resolve Server\\Weathers path", "error");
+      addToast("Cannot resolve Server/Weathers path", "error");
       return;
     }
     try {
       await createDirectory(weathersDirPath);
       const fileName = sourcePath.split(/[/\\]/).pop() ?? `${weatherId}.json`;
-      await copyFile(sourcePath, joinWindowsPath(weathersDirPath, fileName));
+      await copyFile(sourcePath, joinPath(weathersDirPath, fileName));
       await refreshProjectTreeAndLookup();
       addToast(`Imported ${weatherId}`, "success");
     } catch (error) {
@@ -851,15 +831,15 @@ export function EnvironmentEditorView() {
     });
     if (!selected || typeof selected !== "string") return;
     if (!weathersDirPath) {
-      addToast("Cannot resolve Server\\Weathers path", "error");
+      addToast("Cannot resolve Server/Weathers path", "error");
       return;
     }
     try {
       await createDirectory(weathersDirPath);
       const fileName = selected.split(/[/\\]/).pop() ?? `${weatherId}.json`;
-      await copyFile(selected, joinWindowsPath(weathersDirPath, fileName));
+      await copyFile(selected, joinPath(weathersDirPath, fileName));
       await refreshProjectTreeAndLookup();
-      addToast(`Copied ${fileName} into Server\\Weathers`, "success");
+      addToast(`Copied ${fileName} into Server/Weathers`, "success");
     } catch (error) {
       addToast(`Failed to copy file: ${error}`, "error");
     }
@@ -994,7 +974,7 @@ export function EnvironmentEditorView() {
       items.push({
         severity: isNotFound ? "warning" : "error",
         title: isNotFound ? "Weather directory not found" : "Weather directory lookup failed",
-        detail: lookupError ?? "Could not read Server\\Weathers for forecast validation.",
+        detail: lookupError ?? "Could not read Server/Weathers for forecast validation.",
         fix: isNotFound
           ? {
               label: "Create folder",
@@ -1058,7 +1038,7 @@ export function EnvironmentEditorView() {
             type="button"
             onClick={() => { void handleLocateWeathers(); }}
             disabled={!hasEnvironmentDoc}
-            title={weathersDirPath ?? "Locate or create Server\\Weathers folder"}
+            title={weathersDirPath ?? "Locate or create Server/Weathers folder"}
             className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
               !hasEnvironmentDoc
                 ? "cursor-not-allowed border-tn-border/40 bg-tn-bg/50 text-tn-text-muted/50"
@@ -1179,12 +1159,12 @@ export function EnvironmentEditorView() {
                         <div>
                           <p className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted">Forecast Strip</p>
                           <p className="mt-1 text-[11px] text-tn-text-muted">
-                            Weather IDs are loaded directly from `Server\\Weathers`, not guessed from HytaleGenerator.
+                            Weather IDs are loaded directly from `Server/Weathers`, not guessed from HytaleGenerator.
                           </p>
                         </div>
                         <div className="text-right text-[10px] text-tn-text-muted">
                           {lookupStatus === "ready" && <p>{weatherOptions.length} weather files indexed</p>}
-                          {lookupStatus === "loading" && <p>Loading Server\\Weathers...</p>}
+                          {lookupStatus === "loading" && <p>Loading Server/Weathers...</p>}
                           {lookupStatus === "error" && <p className="text-amber-300">{lookupError ?? "Weather lookup failed."}</p>}
                         </div>
                       </div>

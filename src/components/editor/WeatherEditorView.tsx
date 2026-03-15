@@ -5,6 +5,7 @@ import { useProjectStore } from "@/stores/projectStore";
 import { useToastStore } from "@/stores/toastStore";
 import { copyFile, listDirectory, resolveBundledHytaleAssetPath, writeAssetFile } from "@/utils/ipc";
 import mapDirEntry from "@/utils/mapDirEntry";
+import { joinPath, findServerRoot, normalizePath } from "@/utils/pathUtils";
 import { EditorCalloutSection, type EditorCalloutItem } from "./EditorCallouts";
 import { CollapsibleEditorSection } from "./CollapsibleEditorSection";
 
@@ -87,44 +88,18 @@ interface BundledAssetSource {
 }
 
 const DEFAULT_CELESTIAL_ASSETS: BundledAssetSource[] = [
-  { bundledPath: "Common\\Sky\\Stars.png", referencePath: "Sky/Stars.png" },
-  { bundledPath: "Common\\Sky\\MoonCycle\\Moon_Full.png", referencePath: "Sky/MoonCycle/Moon_Full.png" },
-  { bundledPath: "Common\\Sky\\MoonCycle\\Moon_Gibbous.png", referencePath: "Sky/MoonCycle/Moon_Gibbous.png" },
-  { bundledPath: "Common\\Sky\\MoonCycle\\Moon_Half.png", referencePath: "Sky/MoonCycle/Moon_Half.png" },
-  { bundledPath: "Common\\Sky\\MoonCycle\\Moon_Crescent.png", referencePath: "Sky/MoonCycle/Moon_Crescent.png" },
-  { bundledPath: "Common\\Sky\\MoonCycle\\Moon_New.png", referencePath: "Sky/MoonCycle/Moon_New.png" },
+  { bundledPath: "Common/Sky/Stars.png", referencePath: "Sky/Stars.png" },
+  { bundledPath: "Common/Sky/MoonCycle/Moon_Full.png", referencePath: "Sky/MoonCycle/Moon_Full.png" },
+  { bundledPath: "Common/Sky/MoonCycle/Moon_Gibbous.png", referencePath: "Sky/MoonCycle/Moon_Gibbous.png" },
+  { bundledPath: "Common/Sky/MoonCycle/Moon_Half.png", referencePath: "Sky/MoonCycle/Moon_Half.png" },
+  { bundledPath: "Common/Sky/MoonCycle/Moon_Crescent.png", referencePath: "Sky/MoonCycle/Moon_Crescent.png" },
+  { bundledPath: "Common/Sky/MoonCycle/Moon_New.png", referencePath: "Sky/MoonCycle/Moon_New.png" },
 ];
 
 const DEFAULT_CLOUD_ASSETS: BundledAssetSource[] = [
-  { bundledPath: "Common\\Sky\\Clouds\\Light_Base.png", referencePath: "Sky/Clouds/Light_Base.png" },
-  { bundledPath: "Common\\Sky\\Clouds\\Light_Highlights.png", referencePath: "Sky/Clouds/Light_Highlights.png" },
+  { bundledPath: "Common/Sky/Clouds/Light_Base.png", referencePath: "Sky/Clouds/Light_Base.png" },
+  { bundledPath: "Common/Sky/Clouds/Light_Highlights.png", referencePath: "Sky/Clouds/Light_Highlights.png" },
 ];
-
-function normalizeWindowsPath(path: string): string {
-  return path.replace(/\//g, "\\").replace(/\\+$/, "");
-}
-
-function joinWindowsPath(base: string, child: string): string {
-  return `${base.replace(/[\\/]+$/, "")}\\${child.replace(/^[\\/]+/, "").replace(/\//g, "\\")}`;
-}
-
-function inferProjectRoot(projectPath: string | null, currentFile: string | null): string | null {
-  if (projectPath) {
-    return normalizeWindowsPath(projectPath);
-  }
-  if (!currentFile) {
-    return null;
-  }
-
-  const normalizedCurrentFile = normalizeWindowsPath(currentFile);
-  const serverMarker = "\\server\\";
-  const serverIndex = normalizedCurrentFile.toLowerCase().lastIndexOf(serverMarker);
-  if (serverIndex >= 0) {
-    return normalizedCurrentFile.slice(0, serverIndex);
-  }
-
-  return normalizedCurrentFile.replace(/\\[^\\]+$/, "");
-}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -700,7 +675,7 @@ export function WeatherEditorView() {
   };
 
   const syncBundledAssetsToProject = async (assets: BundledAssetSource[]) => {
-    const projectRoot = inferProjectRoot(projectPath, currentFile);
+    const projectRoot = findServerRoot(currentFile) ?? findServerRoot(projectPath);
     if (!projectRoot) {
       addToast("Cannot determine the project root to add the referenced asset files.", "warning");
       return;
@@ -713,7 +688,7 @@ export function WeatherEditorView() {
     for (const asset of uniqueAssets) {
       try {
         const sourcePath = await resolveBundledHytaleAssetPath(asset.bundledPath);
-        const destinationPath = joinWindowsPath(projectRoot, asset.bundledPath);
+        const destinationPath = joinPath(projectRoot, asset.bundledPath);
         await copyFile(sourcePath, destinationPath);
         copied += 1;
       } catch {

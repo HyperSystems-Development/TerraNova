@@ -13,6 +13,7 @@ import {
 import mapDirEntry from "@/utils/mapDirEntry";
 import { useToastStore } from "@/stores/toastStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { normalizePath } from "@/utils/pathUtils";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -117,17 +118,13 @@ interface NewFolderDialogState {
 }
 
 const HYTALE_FOLDERS = [
-  { label: "Weathers", path: "Server\\Weathers" },
-  { label: "Environments", path: "Server\\Environments" },
-  { label: "Biomes", path: "Server\\HytaleGenerator\\Biomes" },
-  { label: "WorldStructures", path: "Server\\HytaleGenerator\\WorldStructures" },
+  { label: "Weathers", path: "Server/Weathers" },
+  { label: "Environments", path: "Server/Environments" },
+  { label: "Biomes", path: "Server/HytaleGenerator/Biomes" },
+  { label: "WorldStructures", path: "Server/HytaleGenerator/WorldStructures" },
 ];
 const QUICK_PICK_EXTENSIONS = new Set([".json", ".png", ".jpg", ".jpeg", ".dds", ".bson"]);
 const QUICK_PICK_LIMIT = 12;
-
-function normalizeWindowsPath(path: string): string {
-  return path.replace(/\//g, "\\").replace(/\\+$/, "");
-}
 
 function getTargetDirectory(menu: ContextMenuState): string {
   return menu.isDir ? menu.path : menu.path.replace(/[/\\][^/\\]+$/, "");
@@ -136,21 +133,21 @@ function getTargetDirectory(menu: ContextMenuState): string {
 function getBundledAssetRelativePath(projectPath: string | null, targetPath: string): string {
   if (!projectPath) return "";
 
-  const normalizedProjectPath = normalizeWindowsPath(projectPath);
-  const normalizedTargetPath = normalizeWindowsPath(targetPath);
+  const normalizedProjectPath = normalizePath(projectPath);
+  const normalizedTargetPath = normalizePath(targetPath);
   if (!normalizedTargetPath.startsWith(normalizedProjectPath)) {
     return "";
   }
 
   const relativePath = normalizedTargetPath
     .slice(normalizedProjectPath.length)
-    .replace(/^\\+/, "");
+    .replace(/^\/+/, "");
 
   return relativePath;
 }
 
 function getBundledAssetSourceLabel(relativePath: string): string {
-  return relativePath ? `Hytale Cache\\${relativePath}` : "Hytale Cache";
+  return relativePath ? `Hytale Cache/${relativePath}` : "Hytale Cache";
 }
 
 function isQuickPickAsset(name: string): boolean {
@@ -386,7 +383,7 @@ function ContextMenu({
       return;
     }
 
-    const fullPath = `${projectPath}\\${folderRelPath}`;
+    const fullPath = `${normalizePath(projectPath)}/${folderRelPath}`;
     try {
       await createDirectory(fullPath);
       onRefresh();
@@ -403,7 +400,7 @@ function ContextMenu({
       );
       const seedAsset = await findSeedAssetFile(sourceDir);
       if (seedAsset) {
-        await copyFile(seedAsset.path, `${fullPath}\\${seedAsset.name}`);
+        await copyFile(seedAsset.path, `${fullPath}/${seedAsset.name}`);
         onRefresh();
         addToast(`Added default asset: ${seedAsset.name}`, "success");
       }
@@ -415,7 +412,7 @@ function ContextMenu({
   }
 
   async function copyBundledAsset(sourcePath: string, fileName: string) {
-    const destination = `${targetDirectory}\\${fileName}`;
+    const destination = `${normalizePath(targetDirectory)}/${fileName}`;
     try {
       await copyFile(sourcePath, destination);
       onRefresh();
@@ -711,7 +708,7 @@ export function AssetTree() {
     setCreatingFolder(true);
     setNewFolderError(null);
     const folderName = newFolderName.trim();
-    const newPath = `${newFolderDialog.targetDirectory}\\${folderName}`;
+    const newPath = `${normalizePath(newFolderDialog.targetDirectory)}/${folderName}`;
     try {
       await createDirectory(newPath);
       await handleRefresh();

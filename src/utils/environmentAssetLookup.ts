@@ -1,4 +1,5 @@
 import { listDirectory, readAssetFile, type DirectoryEntryData } from "@/utils/ipc";
+import { joinPath, findServerRoot, normalizePath, getDirname, inferServerRoot } from "@/utils/pathUtils";
 
 export interface AssetReferenceCollection {
   names: string[];
@@ -9,8 +10,8 @@ const ENVIRONMENT_LOOKUP_CACHE = new Map<string, Promise<AssetReferenceCollectio
 const PROJECT_ASSET_LOOKUP_CACHE = new Map<string, Promise<AssetReferenceCollection>>();
 const WORKSPACE_ENVIRONMENT_HINT_CACHE = new Map<string, Promise<string[]>>();
 const WORKSPACE_FILE_NAME = "_Workspace.json";
-const WORKSPACE_SUFFIX = "Client\\NodeEditor\\Workspaces\\HytaleGenerator Java";
-const ROAMING_WORKSPACE_SUFFIX = `AppData\\Roaming\\Hytale\\install\\pre-release\\package\\game\\latest\\${WORKSPACE_SUFFIX}`;
+const WORKSPACE_SUFFIX = "Client/NodeEditor/Workspaces/HytaleGenerator Java";
+const ROAMING_WORKSPACE_SUFFIX = `AppData/Roaming/Hytale/install/pre-release/package/game/latest/${WORKSPACE_SUFFIX}`;
 
 export type AssetReferenceKind = "environment" | "tint" | "material" | "prop";
 export type AssetValidationLookupSource = "project-server" | "workspace-schema";
@@ -50,56 +51,20 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-function findServerRoot(path: string | null): string | null {
-  if (!path) return null;
-  const normalized = path.replace(/\\/g, "/");
-  const marker = "/server/";
-  const markerIndex = normalized.toLowerCase().lastIndexOf(marker);
-  if (markerIndex >= 0) {
-    return normalized.slice(0, markerIndex + marker.length - 1).replace(/\//g, "\\");
-  }
-  if (normalized.toLowerCase().endsWith("/server")) {
-    return normalized.replace(/\//g, "\\");
-  }
-  return null;
-}
-
-function getParentPath(path: string): string | null {
-  const normalized = path.replace(/\\/g, "/");
-  const index = normalized.lastIndexOf("/");
-  if (index <= 0) return null;
-  return normalized.slice(0, index).replace(/\//g, "\\");
-}
-
-function joinWindowsPath(base: string, child: string): string {
-  return `${base.replace(/[\\/]+$/, "")}\\${child}`;
-}
-
-function inferServerRoot(currentFile: string | null, projectPath: string | null): string | null {
-  const fromCurrentFile = findServerRoot(currentFile);
-  if (fromCurrentFile) return fromCurrentFile;
-
-  const fromProjectPath = findServerRoot(projectPath);
-  if (fromProjectPath) return fromProjectPath;
-
-  if (!projectPath) return null;
-  if (projectPath.toLowerCase().endsWith("\\hytalegenerator")) {
-    return getParentPath(projectPath);
-  }
-  return joinWindowsPath(projectPath, "Server");
-}
-
+// Windows-only: Hytale is currently a Windows title, so user profile paths
+// are always under C:\Users\<name>.  If Hytale ships on other platforms this
+// regex should be extended to match /home/<name> or /Users/<name>.
 function inferUserProfileRoot(path: string | null): string | null {
   if (!path) return null;
-  const normalized = path.replace(/\//g, "\\");
-  const match = /^[A-Za-z]:\\Users\\[^\\]+/i.exec(normalized);
+  const normalized = normalizePath(path);
+  const match = /^[A-Za-z]:\/Users\/[^/]+/i.exec(normalized);
   return match ? match[0] : null;
 }
 
 function deriveWorkspacePathFromServerRoot(serverRoot: string): string | null {
-  const gameRoot = getParentPath(serverRoot);
+  const gameRoot = getDirname(serverRoot);
   if (!gameRoot) return null;
-  return joinWindowsPath(gameRoot, WORKSPACE_SUFFIX);
+  return joinPath(gameRoot, WORKSPACE_SUFFIX);
 }
 
 function buildWorkspaceCandidates(
@@ -111,7 +76,7 @@ function buildWorkspaceCandidates(
   const seen = new Set<string>();
   const pushCandidate = (candidate: string | null) => {
     if (!candidate) return;
-    const normalized = candidate.replace(/\//g, "\\").replace(/[\\/]+$/, "");
+    const normalized = normalizePath(candidate);
     const key = normalized.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
@@ -124,7 +89,7 @@ function buildWorkspaceCandidates(
     inferUserProfileRoot(currentFile)
     ?? inferUserProfileRoot(projectPath);
   if (profileRoot) {
-    pushCandidate(joinWindowsPath(profileRoot, ROAMING_WORKSPACE_SUFFIX));
+    pushCandidate(joinPath(profileRoot, ROAMING_WORKSPACE_SUFFIX));
   }
 
   return candidates;
@@ -132,19 +97,19 @@ function buildWorkspaceCandidates(
 
 export function deriveServerRootFromWorkspacePath(workspacePath: string): string | null {
   if (!workspacePath) return null;
-  const normalized = workspacePath.replace(/\//g, "\\").replace(/[\\/]+$/, "");
+  const normalized = normalizePath(workspacePath);
   const lower = normalized.toLowerCase();
-  const marker = `\\${WORKSPACE_SUFFIX.toLowerCase()}`;
+  const marker = `/${WORKSPACE_SUFFIX.toLowerCase()}`;
   const markerIndex = lower.lastIndexOf(marker);
   if (markerIndex >= 0) {
-    return `${normalized.slice(0, markerIndex)}\\Server`;
+    return `${normalized.slice(0, markerIndex)}/Server`;
   }
 
-  const workspacesDir = getParentPath(normalized);
-  const nodeEditorDir = workspacesDir ? getParentPath(workspacesDir) : null;
-  const clientDir = nodeEditorDir ? getParentPath(nodeEditorDir) : null;
-  const gameRoot = clientDir ? getParentPath(clientDir) : null;
-  return gameRoot ? joinWindowsPath(gameRoot, "Server") : null;
+  const workspacesDir = getDirname(normalized);
+  const nodeEditorDir = workspacesDir ? getDirname(workspacesDir) : null;
+  const clientDir = nodeEditorDir ? getDirname(nodeEditorDir) : null;
+  const gameRoot = clientDir ? getDirname(clientDir) : null;
+  return gameRoot ? joinPath(gameRoot, "Server") : null;
 }
 
 export function extractWorkspaceEnvironmentTypeHints(workspaceDoc: unknown): string[] {
@@ -164,7 +129,7 @@ async function loadWorkspaceEnvironmentTypeHints(workspacePath: string): Promise
   const existing = WORKSPACE_ENVIRONMENT_HINT_CACHE.get(cacheKey);
   if (existing) return existing;
 
-  const pending = readAssetFile(joinWindowsPath(workspacePath, WORKSPACE_FILE_NAME))
+  const pending = readAssetFile(joinPath(workspacePath, WORKSPACE_FILE_NAME))
     .then((workspaceDoc) => extractWorkspaceEnvironmentTypeHints(workspaceDoc))
     .catch((error) => {
       WORKSPACE_ENVIRONMENT_HINT_CACHE.delete(cacheKey);
@@ -297,7 +262,7 @@ async function loadEnvironmentNames(serverRoot: string): Promise<AssetReferenceC
   const existing = ENVIRONMENT_LOOKUP_CACHE.get(cacheKey);
   if (existing) return existing;
 
-  const pending = listDirectory(joinWindowsPath(serverRoot, "Environments"))
+  const pending = listDirectory(joinPath(serverRoot, "Environments"))
     .then((entries) => collectEnvironmentNames(entries))
     .catch((error) => {
       ENVIRONMENT_LOOKUP_CACHE.delete(cacheKey);
@@ -320,7 +285,7 @@ async function loadProjectAssetNames(
 
     for (const candidate of candidates) {
       try {
-        const directEntries = await listDirectory(joinWindowsPath(serverRoot, candidate));
+        const directEntries = await listDirectory(joinPath(serverRoot, candidate));
         return collectAssetReferenceNames(directEntries);
       } catch {
         // Try the next candidate path.
