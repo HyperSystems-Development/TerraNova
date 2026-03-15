@@ -1,4 +1,5 @@
 import type { NodeHandler } from "../evalContext";
+import { domainWarpProgressive2D, domainWarpProgressive3D } from "../fastNoiseLiteWarp";
 
 const handlePositionsPinch: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const strength = Number(fields.Strength ?? 1.0);
@@ -16,26 +17,27 @@ const handlePositionsTwist: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 };
 
 const handleGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const warpFactor = Number(fields.WarpFactor ?? fields.WarpScale ?? 1.0);
-  const eps = Number(fields.SampleRange ?? 1.0);
+  const warpFactor = Number(fields.WarpFactor ?? 1.0);
+  const slopeRange = Number(fields.SlopeRange ?? fields.SampleRange ?? 1.0);
   const is2D = fields.Is2D === true;
-  const yFor2D = Number(fields.YFor2D ?? 0.0);
-  const inv2e = 1.0 / (2.0 * eps);
-  const sampleY = is2D ? yFor2D : y;
 
-  const dfdx = (ctx.getInput(inputs, "WarpSource", x + eps, sampleY, z)
-              - ctx.getInput(inputs, "WarpSource", x - eps, sampleY, z)) * inv2e;
-  const dfdz = (ctx.getInput(inputs, "WarpSource", x, sampleY, z + eps)
-              - ctx.getInput(inputs, "WarpSource", x, sampleY, z - eps)) * inv2e;
+  // V2: forward difference — sample at origin and at origin + slopeRange.
+  // NOTE: V2's GradientWarpDensity.java line 55 has a decompiler bug where
+  // the deltaZ sample uses (x, z, z+slopeRange) instead of (x, y, z+slopeRange).
+  // We intentionally use the mathematically correct formula here.
+  const valueAtOrigin = ctx.getInput(inputs, "WarpSource", x, y, z);
 
-  let wx = x + warpFactor * dfdx;
+  const deltaX = ctx.getInput(inputs, "WarpSource", x + slopeRange, y, z) - valueAtOrigin;
+  const deltaZ = ctx.getInput(inputs, "WarpSource", x, y, z + slopeRange) - valueAtOrigin;
+
+  const invRange = 1.0 / slopeRange;
+  let wx = x + warpFactor * deltaX * invRange;
   let wy = y;
-  let wz = z + warpFactor * dfdz;
+  let wz = z + warpFactor * deltaZ * invRange;
 
   if (!is2D) {
-    const dfdy = (ctx.getInput(inputs, "WarpSource", x, sampleY + eps, z)
-                - ctx.getInput(inputs, "WarpSource", x, sampleY - eps, z)) * inv2e;
-    wy = y + warpFactor * dfdy;
+    const deltaY = ctx.getInput(inputs, "WarpSource", x, y + slopeRange, z) - valueAtOrigin;
+    wy = y + warpFactor * deltaY * invRange;
   }
 
   return ctx.getInput(inputs, "Input", wx, wy, wz);
@@ -65,48 +67,29 @@ const handleVectorWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 
 const handleFastGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const warpFactor = Number(fields.WarpFactor ?? 1.0);
-  const warpSeed = ctx.hashSeed(fields.WarpSeed as string | number | undefined);
-  const warpScale = Number(fields.WarpScale ?? 0.01);
+  const warpSeed = ctx.hashSeed((fields.WarpSeed ?? fields.Seed) as string | number | undefined);
+  const warpScale = Number(fields.WarpScale ?? 1.0);
+  // V2 asset inverts WarpScale to frequency: freq = 1.0 / warpScale
+  const warpFreq = warpScale !== 0 ? 1.0 / warpScale : 1.0;
   const warpOctaves = Math.max(1, Number(fields.WarpOctaves ?? 3));
   const warpLacunarity = Number(fields.WarpLacunarity ?? 2.0);
   const warpPersistence = Number(fields.WarpPersistence ?? 0.5);
   const is2D = fields.Is2D === true;
 
-  let gx = 0, gy = 0, gz = 0;
-
   if (is2D) {
-    let amp = 1.0;
-    let freq = warpScale;
-    for (let i = 0; i < warpOctaves; i++) {
-      const noiseFn = ctx.createNoise2DWithGradient(warpSeed + i);
-      const r = noiseFn(x * freq, z * freq);
-      gx += amp * r.dx * freq;
-      gz += amp * r.dy * freq;
-      amp *= warpPersistence;
-      freq *= warpLacunarity;
-    }
-    return ctx.getInput(inputs, "Input",
-      x + warpFactor * gx,
-      y,
-      z + warpFactor * gz,
+    const warped = domainWarpProgressive2D(
+      warpSeed, warpFactor, warpFreq,
+      warpOctaves, warpLacunarity, warpPersistence,
+      x, z,
     );
+    return ctx.getInput(inputs, "Input", warped.x, y, warped.y);
   } else {
-    let amp = 1.0;
-    let freq = warpScale;
-    for (let i = 0; i < warpOctaves; i++) {
-      const noiseFn = ctx.createNoise3DWithGradient(warpSeed + i);
-      const r = noiseFn(x * freq, y * freq, z * freq);
-      gx += amp * r.dx * freq;
-      gy += amp * r.dy * freq;
-      gz += amp * r.dz * freq;
-      amp *= warpPersistence;
-      freq *= warpLacunarity;
-    }
-    return ctx.getInput(inputs, "Input",
-      x + warpFactor * gx,
-      y + warpFactor * gy,
-      z + warpFactor * gz,
+    const warped = domainWarpProgressive3D(
+      warpSeed, warpFactor, warpFreq,
+      warpOctaves, warpLacunarity, warpPersistence,
+      x, y, z,
     );
+    return ctx.getInput(inputs, "Input", warped.x, warped.y, warped.z);
   }
 };
 

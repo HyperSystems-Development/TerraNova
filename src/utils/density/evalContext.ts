@@ -16,6 +16,10 @@ export interface DensityGridResult {
   values: Float32Array;
   minValue: number;
   maxValue: number;
+  /** 2nd percentile value for robust normalization */
+  p02Value: number;
+  /** 98th percentile value for robust normalization */
+  p98Value: number;
 }
 
 export interface EvaluationOptions {
@@ -41,8 +45,8 @@ export interface EvalCtx {
   // Noise caches
   getNoise2D: (seed: number) => (x: number, y: number) => number;
   getNoise3D: (seed: number) => (x: number, y: number, z: number) => number;
-  getVoronoi2D: (seed: number, cellType?: string, jitter?: number) => (x: number, y: number) => number;
-  getVoronoi3D: (seed: number, cellType?: string, jitter?: number) => (x: number, y: number, z: number) => number;
+  getVoronoi2D: (seed: number, cellType?: string, jitter?: number, returnType?: string, distanceFunction?: string) => (x: number, y: number) => number;
+  getVoronoi3D: (seed: number, cellType?: string, jitter?: number, returnType?: string, distanceFunction?: string) => (x: number, y: number, z: number) => number;
 
   // Gradient noise (with analytic derivatives)
   createNoise2DWithGradient: (seed: number) => (x: number, y: number) => { value: number; dx: number; dy: number };
@@ -137,23 +141,23 @@ export function createEvaluationContext(
     return fn;
   }
 
-  function getVoronoi2D(seed: number, cellType: string = "Euclidean", jitter: number = 1.0): (x: number, y: number) => number {
-    const key = `${seed}:${cellType}:${jitter}`;
+  function getVoronoi2D(seed: number, cellType: string = "Euclidean", jitter: number = 1.0, returnType: string = "Distance", distanceFunction: string = "Euclidean"): (x: number, y: number) => number {
+    const key = `${seed}:${cellType}:${jitter}:${returnType}:${distanceFunction}`;
     let fn = voronoi2DCache.get(key);
     if (!fn) {
       const rng = mulberry32(seed);
-      fn = voronoiNoise2D(rng, cellType, jitter);
+      fn = voronoiNoise2D(rng, cellType, jitter, returnType, distanceFunction, seed);
       voronoi2DCache.set(key, fn);
     }
     return fn;
   }
 
-  function getVoronoi3D(seed: number, cellType: string = "Euclidean", jitter: number = 1.0): (x: number, y: number, z: number) => number {
-    const key = `${seed}:${cellType}:${jitter}`;
+  function getVoronoi3D(seed: number, cellType: string = "Euclidean", jitter: number = 1.0, returnType: string = "Distance", distanceFunction: string = "Euclidean"): (x: number, y: number, z: number) => number {
+    const key = `${seed}:${cellType}:${jitter}:${returnType}:${distanceFunction}`;
     let fn = voronoi3DCache.get(key);
     if (!fn) {
       const rng = mulberry32(seed);
-      fn = voronoiNoise3D(rng, cellType, jitter);
+      fn = voronoiNoise3D(rng, cellType, jitter, returnType, distanceFunction, seed);
       voronoi3DCache.set(key, fn);
     }
     return fn;

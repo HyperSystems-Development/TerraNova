@@ -18,6 +18,8 @@ export interface DensityWorkerResponse {
   values: Float32Array;
   minValue: number;
   maxValue: number;
+  p02Value: number;
+  p98Value: number;
 }
 
 export interface DensityWorkerError {
@@ -31,7 +33,7 @@ self.onmessage = (e: MessageEvent<DensityWorkerRequest>) => {
     const result = evaluateDensityGrid(nodes, edges, resolution, rangeMin, rangeMax, yLevel, rootNodeId, options);
     // Transfer the Float32Array buffer for zero-copy
     (self as unknown as Worker).postMessage(
-      { values: result.values, minValue: result.minValue, maxValue: result.maxValue } satisfies DensityWorkerResponse,
+      { values: result.values, minValue: result.minValue, maxValue: result.maxValue, p02Value: result.p02Value, p98Value: result.p98Value } satisfies DensityWorkerResponse,
       [result.values.buffer],
     );
   } catch (err) {

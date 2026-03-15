@@ -2,9 +2,13 @@ import type { NodeHandler } from "../evalContext";
 
 const handleClamp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const v = ctx.getInput(inputs, "Input", x, y, z);
-  const min = Number(fields.Min ?? -Infinity);
-  const max = Number(fields.Max ?? Infinity);
-  return Math.max(min, Math.min(max, v));
+  const wallA = Number(fields.Min ?? fields.WallA ?? -Infinity);
+  const wallB = Number(fields.Max ?? fields.WallB ?? Infinity);
+  // V2: auto-sort walls so either order works; if equal, return constant
+  if (wallA === wallB) return wallA;
+  const lo = Math.min(wallA, wallB);
+  const hi = Math.max(wallA, wallB);
+  return Math.max(lo, Math.min(hi, v));
 };
 
 const handleClampToIndex: NodeHandler = (ctx, fields, inputs, x, y, z) => {
@@ -18,10 +22,11 @@ const handleNormalizer: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const v = ctx.getInput(inputs, "Input", x, y, z);
   const src = fields.SourceRange as { Min?: number; Max?: number } | undefined;
   const tgt = fields.TargetRange as { Min?: number; Max?: number } | undefined;
-  const srcMin = Number(src?.Min ?? -1);
-  const srcMax = Number(src?.Max ?? 1);
-  const tgtMin = Number(tgt?.Min ?? 0);
-  const tgtMax = Number(tgt?.Max ?? 1);
+  // V2 defaults: FromMin=0, FromMax=1, ToMin=0, ToMax=1 (identity)
+  const srcMin = Number(fields.FromMin ?? src?.Min ?? 0);
+  const srcMax = Number(fields.FromMax ?? src?.Max ?? 1);
+  const tgtMin = Number(fields.ToMin ?? tgt?.Min ?? 0);
+  const tgtMax = Number(fields.ToMax ?? tgt?.Max ?? 1);
   const range = srcMax - srcMin;
   const t = range === 0 ? 0 : (v - srcMin) / range;
   return tgtMin + t * (tgtMax - tgtMin);

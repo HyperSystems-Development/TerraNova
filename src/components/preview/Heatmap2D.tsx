@@ -12,6 +12,8 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
   const resolution = usePreviewStore((s) => s.resolution);
   const minValue = usePreviewStore((s) => s.minValue);
   const maxValue = usePreviewStore((s) => s.maxValue);
+  const p02Value = usePreviewStore((s) => s.p02Value);
+  const p98Value = usePreviewStore((s) => s.p98Value);
   const rangeMin = usePreviewStore((s) => s.rangeMin);
   const rangeMax = usePreviewStore((s) => s.rangeMax);
   const colormap = usePreviewStore((s) => s.colormap);
@@ -57,15 +59,18 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
 
     const cm = getColormap(colormap);
     const imageData = ctx.createImageData(n, n);
-    const isFlat = maxValue === minValue;
-    const range = maxValue - minValue || 1;
+    // Use percentile-based range for outlier resistance
+    const lo = p02Value ?? minValue;
+    const hi = p98Value ?? maxValue;
+    const isFlat = Math.abs(hi - lo) < 1e-8;
+    const range = hi - lo || 1;
 
     // Pre-compute normalized height grid for hill-shading
     let normalized: Float32Array | null = null;
     if (showHillShade && !isFlat) {
       normalized = new Float32Array(values.length);
       for (let i = 0; i < values.length; i++) {
-        normalized[i] = (values[i] - minValue) / range;
+        normalized[i] = Math.max(0, Math.min(1, (values[i] - lo) / range));
       }
     }
 
@@ -82,19 +87,23 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
     for (let row = 0; row < n; row++) {
       for (let col = 0; col < n; col++) {
         const i = row * n + col;
-        const norm = isFlat ? 0.5 : (values[i] - minValue) / range;
+        const norm = isFlat ? 0.5 : Math.max(0, Math.min(1, (values[i] - lo) / range));
         const [r, g, b] = cm.ramp(norm);
         const pixel = i * 4;
 
         if (normalized && showHillShade) {
-          // Central differences for gradient
-          const colL = Math.max(0, col - 1);
-          const colR = Math.min(n - 1, col + 1);
-          const rowU = Math.max(0, row - 1);
-          const rowD = Math.min(n - 1, row + 1);
+          // Central differences with proper one-sided fallback at boundaries
+          const colL = col > 0 ? col - 1 : col;
+          const colR = col < n - 1 ? col + 1 : col;
+          const rowU = row > 0 ? row - 1 : row;
+          const rowD = row < n - 1 ? row + 1 : row;
 
-          const dx = (normalized[row * n + colR] - normalized[row * n + colL]) * reliefScale;
-          const dz = (normalized[rowD * n + col] - normalized[rowU * n + col]) * reliefScale;
+          // Adjust divisor for edge cells (one-sided vs two-sided difference)
+          const dxDiv = colR - colL || 1;
+          const dzDiv = rowD - rowU || 1;
+
+          const dx = (normalized[row * n + colR] - normalized[row * n + colL]) / dxDiv * reliefScale;
+          const dz = (normalized[rowD * n + col] - normalized[rowU * n + col]) / dzDiv * reliefScale;
 
           // Surface normal from gradient: (-dx, 1, -dz) then normalize
           const nx = -dx;
@@ -122,7 +131,7 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
     }
 
     ctx.putImageData(imageData, 0, 0);
-  }, [values, resolution, minValue, maxValue, colormap, showHillShade]);
+  }, [values, resolution, minValue, maxValue, p02Value, p98Value, colormap, showHillShade]);
 
   // ── Memoize contour data separately from drawing ──
   const contourData = useMemo(
