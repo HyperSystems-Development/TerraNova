@@ -7,31 +7,43 @@
 
 **Offline design studio for Hytale World Generation V2.** Visual node editor, live terrain preview, and validated JSON export — no server required.
 
-**[Releases](https://github.com/HyperSystems-Development/TerraNova/releases)** | **[Discord](https://discord.gg/NHPzsjkQeu)** | **[Changelog](docs/CHANGELOG.md)**
+**[Releases](https://github.com/HyperSystems-Development/TerraNova/releases)** | **[Discord](https://discord.gg/NHPzsjkQeu)**
 
 ![TerraNova](docs/images/header.webp)
 
 ## Features
 
-**Node-Based Editor** — Drag-and-drop all 200+ V2 types with category-colored nodes. Auto-layout via dagre, minimap navigation, node search, copy/paste, snap-to-grid, and full undo/redo with descriptive history labels.
+**Node-Based Editor** — Drag-and-drop all 200+ V2 types with category-colored nodes. Auto-layout via dagre, minimap navigation, node search, copy/paste, snap-to-grid, layout presets, and full undo/redo with descriptive history labels. SVG export for sharing node graphs.
 
-**Live Preview** — Real-time 2D heatmaps with contour lines, cross-sections, and position overlays. 3D voxel heightfield preview with SSAO post-processing. Five colormaps (Blue-Red, Grayscale, Terrain, Viridis, Red-Black) with configurable bounds.
+**Live Preview** — Real-time 2D heatmaps with contour lines, cross-sections, and position overlays. 3D voxel heightfield preview with SSAO post-processing. Five colormaps (Blue-Red, Grayscale, Terrain, Viridis, Red-Black) with configurable bounds. Vertical split preview layout.
 
 **Comparison View** — Side-by-side before/after preview for iterating on terrain changes. See exactly what your edits do without leaving the editor.
 
-**Biome Editor** — Edit Terrain, Material, Pattern, Position, and Prop sections within a single biome file. Per-section undo history, noise range editor for biome boundaries, and a rich dashboard with material layer overview and prop summary.
+**Biome Editor** — Edit Terrain, Material, Pattern, Position, and Prop sections within a single biome file. Per-section undo history, noise range editor for biome boundaries, and a rich dashboard with material layer overview and prop summary. Atmosphere tab with sun angle, fog controls, tint providers, and weather resolution. Material autocomplete, one-click validation fixes, and biome browser search.
+
+**Weather Editor** — Visual editor for weather files with preview, track summaries, cloud breakdowns, and collapsible preview drawers. Simple Controls and In-Depth Controls split for different levels of detail. Issue logging with suggested fixes.
+
+**Environment Editor** — Edit environment files with forecast tools, parent-environment inference, weather forecast management, and environment delimiter validation.
+
+**Instance Editor** — Edit instance files with WorldStructure discovery. Create new instances as folders with instance.bson inside.
 
 **Curve Editor** — Interactive canvas with draggable control points for Manual curves. Read-only computed previews for all built-in types (SquareBump, InverseLerp, etc.). Snap-to-grid, interpolation modes, presets, and mini curve previews in node bodies.
 
-**Material Layers** — Visual stack editor for material providers with layer ordering and full V2 SpaceAndDepth specification support.
+**Material Layers** — Visual stack editor for material providers with layer ordering and full V2 SpaceAndDepth specification support. All layers preserved on import and export regardless of entry count.
 
-**Template System** — 10 bundled templates (Void, Forest, Forest Hills, Desert, Mountains, Floating Islands, Eldritch Spirelands, Shattered Archipelago, Tropical Pirate Islands) plus snippet templates for common node patterns. Create and share your own.
+**JSON View Mode** — CodeMirror-based JSON editor for all file types. Edit raw JSON directly and save changes back to the graph representation.
 
-**Schema Validation** — Real-time diagnostics on type errors, missing fields, and invalid ranges. Error, warning, and info badges appear directly on nodes so you know exactly what to fix before exporting.
+**Template System** — 5 bundled templates (Void, Forest Hills, Eldritch Spirelands, Shattered Archipelago, Tropical Pirate Islands) plus snippet templates for common node patterns. Create and share your own.
+
+**Schema Validation** — Real-time diagnostics on type errors, missing fields, and invalid ranges. Error, warning, and info badges appear directly on nodes. Legacy node detection with suggested replacements.
+
+**Hytale Asset Sync** — Sync assets from your Hytale installation with progress tracking, cancellation support, and staleness detection. Browse and reference assets directly from the editor.
 
 **Bridge Integration** — Connect to a running Hytale server and push exported asset packs directly. Design offline, deploy in one click.
 
-**Full V2 Coverage** — 68 density types, 14 material providers, 19 curves, plus patterns, positions, props, scanners, vectors, environments, assignments, tints, block masks, and world structures.
+**Full V2 Coverage** — 68+ density types, 14+ material providers, 19 curves, plus patterns, positions, props, scanners, vectors, environments, assignments, tints, block masks, and world structures. Includes MultiMix, Queue, Offset, Framework nodes, and other recent V2 additions.
+
+**Session Restore and Instant Save** — Session state persists across page reloads. Instant save (Ctrl+Shift+I) with debounce and status bar indicator.
 
 **Offline-First** — No server, no internet, no telemetry. Under 15MB install. All data stays on your machine.
 
@@ -73,6 +85,7 @@ Then launch normally.
 |----------|--------|
 | `Ctrl+Z` / `Ctrl+Y` | Undo / Redo |
 | `Ctrl+S` | Save |
+| `Ctrl+Shift+I` | Instant save |
 | `Ctrl+F` | Search nodes |
 | `Ctrl+A` | Select all |
 | `Delete` | Delete selected |
@@ -206,7 +219,6 @@ TerraNova/
 ## Links
 
 - [Releases](https://github.com/HyperSystems-Development/TerraNova/releases) — Downloads
-- [Changelog](docs/CHANGELOG.md) — Version history
 - [Discord](https://discord.gg/NHPzsjkQeu) — Support & community
 - [Issues](https://github.com/HyperSystems-Development/TerraNova/issues) — Bug reports & features
 - [HyperSystems-Development](https://github.com/HyperSystems-Development) — Organization
