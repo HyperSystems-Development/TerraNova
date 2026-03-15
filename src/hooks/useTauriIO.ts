@@ -1004,15 +1004,15 @@ export function useTauriIO() {
         }
 
         if (templateName) {
-          await createFromTemplate(templateName, path);
+          await createFromTemplate(templateName, path!);
         } else {
-          await createBlankProject(path);
+          await createBlankProject(path!);
         }
-        setProjectPath(path);
+        setProjectPath(path!);
 
-        const entries = await listDirectory(path);
+        const entries = await listDirectory(path!);
         setDirectoryTree(entries.map(mapDirEntry));
-        useRecentProjectsStore.getState().addProject(path, templateName);
+        useRecentProjectsStore.getState().addProject(path!, templateName);
       } catch (err) {
         setLastError(`Failed to create project: ${err}`);
         throw err;

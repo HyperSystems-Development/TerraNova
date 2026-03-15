@@ -1,4 +1,3 @@
-import React from "react";
 import { loadingTips } from "../../utils/loadingTips";
 export function LoadingDialog({ open, message }: { open: boolean; message?: string }) {
   if (!open) return null;

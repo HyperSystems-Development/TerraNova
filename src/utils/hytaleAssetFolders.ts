@@ -1,4 +1,4 @@
-import * as tauriApi from "@tauri-apps/api";
+import { exists } from "@tauri-apps/api/fs";
 
 declare global {
   interface Window {
@@ -56,7 +56,7 @@ export const hytaleAssetFolders = [
 export async function getAvailableHytaleAssetFolders(basePath: string): Promise<string[]> {
   const checks = await Promise.all(
     hytaleAssetFolders.map(async (folder) => {
-      const folderExists = await tauriApi.fs.exists(`${basePath}/${folder}`);
+      const folderExists = await exists(`${basePath}/${folder}`);
       return folderExists ? folder : null;
     })
   );
