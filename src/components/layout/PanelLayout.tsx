@@ -10,6 +10,8 @@ import { HistoryPanel } from "@/components/editor/HistoryPanel";
 import { ValidationPanel } from "@/components/editor/ValidationPanel";
 import { Toolbar } from "@/components/layout/Toolbar";
 import { useGraphDiagnostics } from "@/hooks/useGraphDiagnostics";
+import { useSessionRestoreFile } from "@/hooks/useSessionRestore";
+import { useTauriIO } from "@/hooks/useTauriIO";
 import { useUIStore, type SidebarSectionId } from "@/stores/uiStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
@@ -288,6 +290,10 @@ export function PanelLayout() {
 
   // Drive diagnostics computation (debounced, pushes to diagnosticsStore)
   useGraphDiagnostics();
+
+  // Restore previously open file after session reload (Phase 2)
+  const { openFile } = useTauriIO();
+  useSessionRestoreFile(openFile);
 
   // Persist widths to localStorage when they change
   useEffect(() => {

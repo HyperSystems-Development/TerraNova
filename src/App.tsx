@@ -30,6 +30,7 @@ import type { SvgExportOptions } from "@/utils/exportSvg";
 import { useReactFlow } from "@xyflow/react";
 import { useGlobalKeyboardShortcuts } from "@/hooks/useGlobalKeyboardShortcuts";
 import { useInstantSave } from "@/hooks/useInstantSave";
+import { useSessionRestore } from "@/hooks/useSessionRestore";
 
 type PendingAction = "window-close" | "close-project";
 
@@ -138,6 +139,9 @@ export default function App() {
       if (unlistenFn) unlistenFn();
     };
   }, []);
+
+  // Restore previous session (project path) on app mount
+  useSessionRestore();
 
   const projectPath = useProjectStore((s) => s.projectPath);
 
