@@ -924,17 +924,17 @@ describe("YOverride", () => {
 /* ── Anchor ──────────────────────────────────────────────────────── */
 
 describe("Anchor", () => {
-  it("evaluates child at origin (0,0,0)", () => {
+  it("passes through original position when no anchor is set", () => {
     const nodes = [
       makeNode("cx", "CoordinateX"),
       makeNode("anchor", "Anchor"),
     ];
     const edges = [makeEdge("cx", "anchor", "Input")];
     const result = evalSingle(nodes, edges, "anchor");
-    // CoordinateX at origin should be 0
-    for (let i = 0; i < result.values.length; i++) {
-      expect(result.values[i]).toBe(0);
-    }
+    // V2: when no anchor set, passes through original coords (not origin)
+    // CoordinateX returns the X coordinate, which varies across the grid
+    const unique = new Set(result.values);
+    expect(unique.size).toBeGreaterThan(1);
   });
 });
 
@@ -1093,30 +1093,30 @@ describe("SplineFunction — non-[0,1] x-range", () => {
 /* ── VoronoiNoise2D with CellType ────────────────────────────────── */
 
 describe("VoronoiNoise2D CellType", () => {
-  it("Euclidean produces values in [-1, 1] range", () => {
+  it("Euclidean Distance produces varied values", () => {
     const nodes = [makeNode("v", "VoronoiNoise2D", {
-      Frequency: 0.1, Seed: "test", CellType: "Euclidean",
+      Scale: 10, Seed: "test", ReturnType: "Distance", DistanceFunction: "Euclidean",
     })];
     const result = evalSingle(nodes, []);
     const unique = new Set(result.values);
     expect(unique.size).toBeGreaterThan(1);
   });
 
-  it("Distance2Div produces values in [-1, 1] range", () => {
+  it("Distance2Div produces varied values", () => {
     const nodes = [makeNode("v", "VoronoiNoise2D", {
-      Frequency: 0.1, Seed: "test", CellType: "Distance2Div",
+      Scale: 10, Seed: "test", ReturnType: "Distance2Div", DistanceFunction: "Euclidean",
     })];
     const result = evalSingle(nodes, []);
     const unique = new Set(result.values);
     expect(unique.size).toBeGreaterThan(1);
   });
 
-  it("Distance2Sub produces different output than Euclidean", () => {
+  it("Distance2Sub produces different output than Distance", () => {
     const nodesE = [makeNode("v", "VoronoiNoise2D", {
-      Frequency: 0.1, Seed: "test", CellType: "Euclidean",
+      Scale: 10, Seed: "test", ReturnType: "Distance", DistanceFunction: "Euclidean",
     })];
     const nodesD = [makeNode("v", "VoronoiNoise2D", {
-      Frequency: 0.1, Seed: "test", CellType: "Distance2Sub",
+      Scale: 10, Seed: "test", ReturnType: "Distance2Sub", DistanceFunction: "Euclidean",
     })];
     const rE = evalSingle(nodesE, []);
     const rD = evalSingle(nodesD, []);
@@ -1129,10 +1129,10 @@ describe("VoronoiNoise2D CellType", () => {
 
   it("supports Octaves > 1 for FBM", () => {
     const nodes1 = [makeNode("v", "VoronoiNoise2D", {
-      Frequency: 0.1, Seed: "test", CellType: "Euclidean", Octaves: 1,
+      Scale: 10, Seed: "test", ReturnType: "Distance", Octaves: 1,
     })];
     const nodes4 = [makeNode("v", "VoronoiNoise2D", {
-      Frequency: 0.1, Seed: "test", CellType: "Euclidean", Octaves: 4,
+      Scale: 10, Seed: "test", ReturnType: "Distance", Octaves: 4,
     })];
     const r1 = evalSingle(nodes1, []);
     const r4 = evalSingle(nodes4, []);
