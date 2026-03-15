@@ -44,6 +44,22 @@ function getStoredConfirmOnNodeDelete(): boolean {
   return false;
 }
 
+function getStoredInstantSaveEnabled(): boolean {
+  const parsed = getStoredSettingsObject();
+  if (typeof parsed?.instantSaveEnabled === "boolean") {
+    return parsed.instantSaveEnabled;
+  }
+  return false;
+}
+
+function getStoredInstantSaveDebounceMs(): number {
+  const parsed = getStoredSettingsObject();
+  if (typeof parsed?.instantSaveDebounceMs === "number" && parsed.instantSaveDebounceMs >= 100) {
+    return parsed.instantSaveDebounceMs;
+  }
+  return 200;
+}
+
 function getStoredExportPath(): string | null {
   const parsed = getStoredSettingsObject();
   if (typeof parsed?.exportPath === "string") return parsed.exportPath;
@@ -120,6 +136,8 @@ function persistSettings(settings: {
   confirmOnNodeDelete: boolean;
   autoCheckUpdates: boolean;
   keybindingOverrides: Record<string, string>;
+  instantSaveEnabled: boolean;
+  instantSaveDebounceMs: number;
   exportPath: string | null;
   hytaleAssetSyncEnabled: boolean;
   hytaleAssetSourceChannel: HytaleAssetSourceChannel;
@@ -141,6 +159,8 @@ interface SettingsState {
   confirmOnNodeDelete: boolean;
   autoCheckUpdates: boolean;
   keybindingOverrides: Record<string, string>;
+  instantSaveEnabled: boolean;
+  instantSaveDebounceMs: number;
   exportPath: string | null;
   hytaleAssetSyncEnabled: boolean;
   hytaleAssetSourceChannel: HytaleAssetSourceChannel;
@@ -155,6 +175,9 @@ interface SettingsState {
   setKeybindingOverride: (id: string, key: string) => void;
   resetKeybinding: (id: string) => void;
   resetAllKeybindings: () => void;
+  setInstantSaveEnabled: (value: boolean) => void;
+  toggleInstantSave: () => void;
+  setInstantSaveDebounceMs: (ms: number) => void;
   setExportPath: (path: string | null) => void;
   setHytaleAssetSyncEnabled: (value: boolean) => void;
   setHytaleAssetSourceChannel: (value: HytaleAssetSourceChannel) => void;
@@ -171,6 +194,8 @@ function getAllSettings(state: SettingsState) {
     confirmOnNodeDelete: state.confirmOnNodeDelete,
     autoCheckUpdates: state.autoCheckUpdates,
     keybindingOverrides: state.keybindingOverrides,
+    instantSaveEnabled: state.instantSaveEnabled,
+    instantSaveDebounceMs: state.instantSaveDebounceMs,
     exportPath: state.exportPath,
     hytaleAssetSyncEnabled: state.hytaleAssetSyncEnabled,
     hytaleAssetSourceChannel: state.hytaleAssetSourceChannel,
@@ -187,6 +212,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   confirmOnNodeDelete: getStoredConfirmOnNodeDelete(),
   autoCheckUpdates: getStoredAutoCheckUpdates(),
   keybindingOverrides: getStoredKeybindingOverrides(),
+  instantSaveEnabled: getStoredInstantSaveEnabled(),
+  instantSaveDebounceMs: getStoredInstantSaveDebounceMs(),
   exportPath: getStoredExportPath(),
   hytaleAssetSyncEnabled: getStoredHytaleAssetSyncEnabled(),
   hytaleAssetSourceChannel: getStoredHytaleAssetSourceChannel(),
@@ -231,6 +258,23 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   resetAllKeybindings: () => {
     set({ keybindingOverrides: {} });
     persistSettings(getAllSettings({ ...get(), keybindingOverrides: {} }));
+  },
+
+  setInstantSaveEnabled: (value) => {
+    set({ instantSaveEnabled: value });
+    persistSettings(getAllSettings({ ...get(), instantSaveEnabled: value }));
+  },
+
+  toggleInstantSave: () => {
+    const value = !get().instantSaveEnabled;
+    set({ instantSaveEnabled: value });
+    persistSettings(getAllSettings({ ...get(), instantSaveEnabled: value }));
+  },
+
+  setInstantSaveDebounceMs: (ms) => {
+    const clamped = Math.max(100, Math.round(ms));
+    set({ instantSaveDebounceMs: clamped });
+    persistSettings(getAllSettings({ ...get(), instantSaveDebounceMs: clamped }));
   },
 
   setExportPath: (path) => {

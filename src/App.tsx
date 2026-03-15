@@ -29,6 +29,7 @@ import { useToastStore } from "@/stores/toastStore";
 import type { SvgExportOptions } from "@/utils/exportSvg";
 import { useReactFlow } from "@xyflow/react";
 import { useGlobalKeyboardShortcuts } from "@/hooks/useGlobalKeyboardShortcuts";
+import { useInstantSave } from "@/hooks/useInstantSave";
 
 type PendingAction = "window-close" | "close-project";
 
@@ -354,6 +355,9 @@ function ProjectEditor({
     onSettings: () => setShowSettings(true),
     onExportSvg: () => setShowExportSvg(true),
   });
+
+  // Auto-save on edit when instant save is enabled
+  useInstantSave();
 
   return (
     <>

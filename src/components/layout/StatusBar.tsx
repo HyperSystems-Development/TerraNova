@@ -5,6 +5,7 @@ import { useEditorStore } from "@/stores/editorStore";
 import { useBridgeStore } from "@/stores/bridgeStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { useUIStore } from "@/stores/uiStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import { useUpdateStore } from "@/stores/updateStore";
 import { downloadAndInstall, restartToUpdate } from "@/utils/updater";
 import { useStore } from "@xyflow/react";
@@ -17,6 +18,7 @@ export function StatusBar() {
   const bridgeConnected = useBridgeStore((s) => s.connected);
   const bridgeConnecting = useBridgeStore((s) => s.connecting);
   const viewMode = usePreviewStore((s) => s.viewMode);
+  const instantSaveEnabled = useSettingsStore((s) => s.instantSaveEnabled);
 
   // Node/edge/selection counts
   const nodeCount = useEditorStore((s) => s.nodes.length);
@@ -113,6 +115,17 @@ export function StatusBar() {
       >
         <span className={bridgeColor}>●</span>
         <span>Bridge</span>
+      </button>
+
+      {/* Instant Save indicator */}
+      <button
+        onClick={() => useSettingsStore.getState().toggleInstantSave()}
+        className={`px-1.5 rounded text-[10px] font-medium ${
+          instantSaveEnabled ? "text-sky-400" : "text-tn-text-muted/40"
+        } hover:bg-sky-400/10`}
+        title={`Instant Save ${instantSaveEnabled ? "enabled" : "disabled"} (Ctrl+Shift+I)`}
+      >
+        INSTANT
       </button>
 
       {/* Save state */}
