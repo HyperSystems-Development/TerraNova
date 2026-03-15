@@ -344,8 +344,19 @@ function reverseSpaceAndDepthFields(
   const result = { ...asset };
   if ("Layers" in result && Array.isArray(result.Layers)) {
     const layers = result.Layers as Record<string, unknown>[];
-    if (layers.length >= 2) {
-      // First layer = Empty (surface), Second layer = Solid (deep)
+
+    if (layers.length > 2) {
+      // 3+ layers: preserve the original data as opaque passthrough.
+      // Store the raw Layers array, LayerContext, and MaxExpectedDepth
+      // so the export path can emit them verbatim.
+      result.__rawLayers = result.Layers;
+      result.__rawLayerContext = result.LayerContext;
+      result.__rawMaxExpectedDepth = result.MaxExpectedDepth;
+      delete result.Layers;
+      delete result.LayerContext;
+      delete result.MaxExpectedDepth;
+    } else if (layers.length >= 2) {
+      // 2-layer case: flatten to DepthThreshold/Empty/Solid as before
       const emptyLayer = layers[0];
       const solidLayer = layers[1];
       result.DepthThreshold = (emptyLayer.Thickness as number) ?? 2;
@@ -364,11 +375,17 @@ function reverseSpaceAndDepthFields(
       } else {
         result.Solid = unwrapMaterial(solidMat) ?? solidMat;
       }
+
+      // Preserve the actual MaxExpectedDepth instead of discarding it
+      if ("MaxExpectedDepth" in result) {
+        result.__originalMaxExpectedDepth = result.MaxExpectedDepth;
+      }
+
+      delete result.Layers;
+      delete result.LayerContext;
+      delete result.MaxExpectedDepth;
     }
-    delete result.Layers;
   }
-  delete result.LayerContext;
-  delete result.MaxExpectedDepth;
   return result;
 }
 
