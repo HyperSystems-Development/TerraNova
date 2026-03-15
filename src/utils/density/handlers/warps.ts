@@ -17,26 +17,24 @@ const handlePositionsTwist: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 };
 
 const handleGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const warpFactor = Number(fields.WarpFactor ?? fields.WarpScale ?? 1.0);
-  const eps = Number(fields.SampleRange ?? 1.0);
+  const warpFactor = Number(fields.WarpFactor ?? 1.0);
+  const slopeRange = Number(fields.SlopeRange ?? fields.SampleRange ?? 1.0);
   const is2D = fields.Is2D === true;
-  const yFor2D = Number(fields.YFor2D ?? 0.0);
-  const inv2e = 1.0 / (2.0 * eps);
-  const sampleY = is2D ? yFor2D : y;
 
-  const dfdx = (ctx.getInput(inputs, "WarpSource", x + eps, sampleY, z)
-              - ctx.getInput(inputs, "WarpSource", x - eps, sampleY, z)) * inv2e;
-  const dfdz = (ctx.getInput(inputs, "WarpSource", x, sampleY, z + eps)
-              - ctx.getInput(inputs, "WarpSource", x, sampleY, z - eps)) * inv2e;
+  // V2: forward difference — sample at origin and at origin + slopeRange
+  const valueAtOrigin = ctx.getInput(inputs, "WarpSource", x, y, z);
 
-  let wx = x + warpFactor * dfdx;
+  const deltaX = ctx.getInput(inputs, "WarpSource", x + slopeRange, y, z) - valueAtOrigin;
+  const deltaZ = ctx.getInput(inputs, "WarpSource", x, y, z + slopeRange) - valueAtOrigin;
+
+  const invRange = 1.0 / slopeRange;
+  let wx = x + warpFactor * deltaX * invRange;
   let wy = y;
-  let wz = z + warpFactor * dfdz;
+  let wz = z + warpFactor * deltaZ * invRange;
 
   if (!is2D) {
-    const dfdy = (ctx.getInput(inputs, "WarpSource", x, sampleY + eps, z)
-                - ctx.getInput(inputs, "WarpSource", x, sampleY - eps, z)) * inv2e;
-    wy = y + warpFactor * dfdy;
+    const deltaY = ctx.getInput(inputs, "WarpSource", x, y + slopeRange, z) - valueAtOrigin;
+    wy = y + warpFactor * deltaY * invRange;
   }
 
   return ctx.getInput(inputs, "Input", wx, wy, wz);
