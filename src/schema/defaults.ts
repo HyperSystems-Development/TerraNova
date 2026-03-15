@@ -17,12 +17,12 @@ type DefaultFields = Record<string, unknown>;
 
 export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   // Core noise
-  SimplexNoise2D: { Frequency: 1.0, Amplitude: 1.0, Seed: "A", Octaves: 4, Lacunarity: 2.0, Gain: 0.5 },
-  SimplexNoise3D: { Frequency: 1.0, Amplitude: 1.0, Seed: "A", Octaves: 4, Lacunarity: 2.0, Gain: 0.5 },
-  SimplexRidgeNoise2D: { Frequency: 0.01, Amplitude: 1.0, Seed: "A", Octaves: 1 },
-  SimplexRidgeNoise3D: { Frequency: 0.01, Amplitude: 1.0, Seed: "A", Octaves: 1 },
-  VoronoiNoise2D: { Frequency: 0.01, Seed: "A" },
-  VoronoiNoise3D: { Frequency: 0.01, Seed: "A" },
+  SimplexNoise2D: { Scale: 1.0, Amplitude: 1.0, Seed: "A", Octaves: 1, Lacunarity: 1.0, Persistence: 1.0 },
+  SimplexNoise3D: { Scale: 1.0, Amplitude: 1.0, Seed: "A", Octaves: 1, Lacunarity: 1.0, Persistence: 1.0 },
+  SimplexRidgeNoise2D: { Scale: 100.0, Amplitude: 1.0, Seed: "A", Octaves: 1, Lacunarity: 1.0, Persistence: 1.0 },
+  SimplexRidgeNoise3D: { Scale: 100.0, Amplitude: 1.0, Seed: "A", Octaves: 1, Lacunarity: 1.0, Persistence: 1.0 },
+  VoronoiNoise2D: { Scale: 100.0, Seed: "A" },
+  VoronoiNoise3D: { Scale: 100.0, Seed: "A" },
   // Arithmetic
   Sum: {},
   SumSelf: { Count: 2 },
@@ -85,15 +85,15 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   BeardDensity: {},
   ColumnDensity: {},
   CaveDensity: { Radius: 4.0 },
-  FractalNoise2D: { Frequency: 1.0, Octaves: 4, Lacunarity: 2.0, Gain: 0.5 },
-  FractalNoise3D: { Frequency: 1.0, Octaves: 4, Lacunarity: 2.0, Gain: 0.5 },
+  FractalNoise2D: { Scale: 1.0, Octaves: 1, Lacunarity: 1.0, Persistence: 1.0 },
+  FractalNoise3D: { Scale: 1.0, Octaves: 1, Lacunarity: 1.0, Persistence: 1.0 },
   DomainWarp2D: { Amplitude: 1.0 },
   DomainWarp3D: { Amplitude: 1.0 },
   // Smooth operations
   SmoothClamp: { Min: 0.0, Max: 1.0, Smoothness: 0.1 },
   SmoothFloor: { Threshold: 0.0, Smoothness: 0.1 },
-  SmoothMin: { Smoothness: 0.1 },
-  SmoothMax: { Smoothness: 0.1 },
+  SmoothMin: { Smoothness: 1.0 },
+  SmoothMax: { Smoothness: 1.0 },
   // Additional math
   AmplitudeConstant: { Value: 1.0 },
   Pow: { Exponent: 2.0 },
@@ -178,8 +178,8 @@ export const CURVE_DEFAULTS: Record<CurveType, DefaultFields> = {
   SmoothClamp: { Min: 0.0, Max: 1.0, Smoothness: 0.1 },
   Min: {},
   Max: {},
-  SmoothMin: { Smoothness: 0.1 },
-  SmoothMax: { Smoothness: 0.1 },
+  SmoothMin: { Smoothness: 1.0 },
+  SmoothMax: { Smoothness: 1.0 },
   Imported: { Name: "" },
   Exported: { Name: "" },
 };

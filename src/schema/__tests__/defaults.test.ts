@@ -4,18 +4,18 @@ import { DENSITY_DEFAULTS, CURVE_DEFAULTS } from "../defaults";
 describe("V2 CODEC default alignment", () => {
   it("SimplexNoise2D defaults match V2", () => {
     const d = DENSITY_DEFAULTS.SimplexNoise2D;
-    expect(d.Lacunarity).toBe(2.0);
-    expect(d.Gain).toBe(0.5);
-    expect(d.Frequency).toBe(1.0);
-    expect(d.Octaves).toBe(4);
+    expect(d.Lacunarity).toBe(1.0);
+    expect(d.Persistence).toBe(1.0);
+    expect(d.Scale).toBe(1.0);
+    expect(d.Octaves).toBe(1);
   });
 
   it("SimplexNoise3D defaults match V2", () => {
     const d = DENSITY_DEFAULTS.SimplexNoise3D;
-    expect(d.Lacunarity).toBe(2.0);
-    expect(d.Gain).toBe(0.5);
-    expect(d.Frequency).toBe(1.0);
-    expect(d.Octaves).toBe(4);
+    expect(d.Lacunarity).toBe(1.0);
+    expect(d.Persistence).toBe(1.0);
+    expect(d.Scale).toBe(1.0);
+    expect(d.Octaves).toBe(1);
   });
 
   it("Clamp defaults are JSON-safe large sentinels", () => {
@@ -33,17 +33,22 @@ describe("V2 CODEC default alignment", () => {
 
   it("FractalNoise2D defaults match V2", () => {
     const d = DENSITY_DEFAULTS.FractalNoise2D;
-    expect(d.Frequency).toBe(1.0);
-    expect(d.Lacunarity).toBe(2.0);
-    expect(d.Gain).toBe(0.5);
-    expect(d.Octaves).toBe(4);
+    expect(d.Scale).toBe(1.0);
+    expect(d.Lacunarity).toBe(1.0);
+    expect(d.Persistence).toBe(1.0);
+    expect(d.Octaves).toBe(1);
   });
 
   it("FractalNoise3D defaults match V2", () => {
     const d = DENSITY_DEFAULTS.FractalNoise3D;
-    expect(d.Frequency).toBe(1.0);
-    expect(d.Lacunarity).toBe(2.0);
-    expect(d.Gain).toBe(0.5);
-    expect(d.Octaves).toBe(4);
+    expect(d.Scale).toBe(1.0);
+    expect(d.Lacunarity).toBe(1.0);
+    expect(d.Persistence).toBe(1.0);
+    expect(d.Octaves).toBe(1);
+  });
+
+  it("SmoothMin/SmoothMax defaults match V2", () => {
+    expect(DENSITY_DEFAULTS.SmoothMin.Smoothness).toBe(1.0);
+    expect(DENSITY_DEFAULTS.SmoothMax.Smoothness).toBe(1.0);
   });
 });

@@ -21,22 +21,22 @@ const handleGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const slopeRange = Number(fields.SlopeRange ?? fields.SampleRange ?? 1.0);
   const is2D = fields.Is2D === true;
 
-  // V2: forward difference — sample at origin and at origin + slopeRange.
-  // NOTE: V2's GradientWarpDensity.java line 55 has a decompiler bug where
-  // the deltaZ sample uses (x, z, z+slopeRange) instead of (x, y, z+slopeRange).
-  // We intentionally use the mathematically correct formula here.
-  const valueAtOrigin = ctx.getInput(inputs, "WarpSource", x, y, z);
+  // V2: central finite differences — sample at ± slopeRange from origin.
+  // gradient ≈ (f(x+e) - f(x-e)) / (2e) for each axis.
+  const invRange = 1.0 / (2.0 * slopeRange);
 
-  const deltaX = ctx.getInput(inputs, "WarpSource", x + slopeRange, y, z) - valueAtOrigin;
-  const deltaZ = ctx.getInput(inputs, "WarpSource", x, y, z + slopeRange) - valueAtOrigin;
+  const deltaX = ctx.getInput(inputs, "WarpSource", x + slopeRange, y, z)
+               - ctx.getInput(inputs, "WarpSource", x - slopeRange, y, z);
+  const deltaZ = ctx.getInput(inputs, "WarpSource", x, y, z + slopeRange)
+               - ctx.getInput(inputs, "WarpSource", x, y, z - slopeRange);
 
-  const invRange = 1.0 / slopeRange;
   let wx = x + warpFactor * deltaX * invRange;
   let wy = y;
   let wz = z + warpFactor * deltaZ * invRange;
 
   if (!is2D) {
-    const deltaY = ctx.getInput(inputs, "WarpSource", x, y + slopeRange, z) - valueAtOrigin;
+    const deltaY = ctx.getInput(inputs, "WarpSource", x, y + slopeRange, z)
+                 - ctx.getInput(inputs, "WarpSource", x, y - slopeRange, z);
     wy = y + warpFactor * deltaY * invRange;
   }
 
@@ -96,7 +96,12 @@ const handleFastGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 const handleDomainWarp2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const amp = Number(fields.Amplitude ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
-  const freq = Number(fields.Frequency ?? 0.01);
+  // Scale (V2 codec) is a divisor; legacy Frequency is a multiplier.
+  // Convert Scale to frequency: freq = 1/Scale.
+  const scale = Number(fields.Scale ?? 1.0);
+  const freq = fields.Scale != null
+    ? (scale !== 0 ? 1.0 / scale : 1.0)
+    : Number(fields.Frequency ?? 0.01);
   const noiseX = ctx.getNoise2D(seed);
   const noiseZ = ctx.getNoise2D(seed + 1);
   const warpX = noiseX(x * freq, z * freq) * amp;
@@ -107,7 +112,10 @@ const handleDomainWarp2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 const handleDomainWarp3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const amp = Number(fields.Amplitude ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
-  const freq = Number(fields.Frequency ?? 0.01);
+  const scale = Number(fields.Scale ?? 1.0);
+  const freq = fields.Scale != null
+    ? (scale !== 0 ? 1.0 / scale : 1.0)
+    : Number(fields.Frequency ?? 0.01);
   const noiseX = ctx.getNoise3D(seed);
   const noiseY = ctx.getNoise3D(seed + 1);
   const noiseZ = ctx.getNoise3D(seed + 2);
