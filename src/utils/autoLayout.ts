@@ -1,5 +1,19 @@
 import type { Node, Edge } from "@xyflow/react";
 import { NODE_WIDTH, NODE_HEIGHT } from "@/constants";
+import * as _graphlibModule from "@dagrejs/graphlib";
+
+// @dagrejs/dagre's ESM bundle contains a CJS require() shim that throws
+// "Dynamic require of '@dagrejs/graphlib' is not supported" in browsers.
+// The shim fires during module evaluation, so we must polyfill require()
+// before dagre is ever imported. Static import of graphlib above guarantees
+// it's available here at module scope.
+const _graphlib = (_graphlibModule as any).default ?? _graphlibModule;
+if (!(globalThis as any).require) {
+  (globalThis as any).require = (id: string) => {
+    if (id === "@dagrejs/graphlib") return _graphlib;
+    throw new Error(`Dynamic require of "${id}" is not supported`);
+  };
+}
 
 /**
  * Tidy up node positions by snapping to grid and resolving overlaps.
@@ -63,23 +77,15 @@ export function tidyUp(nodes: Node[], gridSize: number = 20): Node[] {
 let dagreLib: typeof import("@dagrejs/dagre") | null = null;
 
 /**
- * Lazily import dagre and graphlib, then wire graphlib in directly.
- * No window.require polyfill needed — works in all environments.
+ * Lazily import dagre. The require polyfill is already set up at module
+ * scope above, so dagre's CJS shim will find graphlib when it evaluates.
  */
 async function ensureDagre() {
   if (dagreLib) return dagreLib;
 
-  const [graphlibMod, dagreMod] = await Promise.all([
-    import("@dagrejs/graphlib"),
-    import("@dagrejs/dagre"),
-  ]);
-
+  const dagreMod = await import("@dagrejs/dagre");
   const dagre = (dagreMod as any).default ?? dagreMod;
-  const graphlib = (graphlibMod as any).default ?? graphlibMod;
-
-  // Inject graphlib directly so dagre.graphlib.Graph() works
-  dagre.graphlib = graphlib;
-
+  dagre.graphlib = _graphlib;
   dagreLib = dagre;
   return dagreLib;
 }
