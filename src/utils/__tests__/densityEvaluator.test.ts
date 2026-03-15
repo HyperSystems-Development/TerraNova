@@ -297,10 +297,9 @@ describe("Coordinate readers", () => {
   it("CoordinateX returns x value", () => {
     const nodes = [makeNode("cx", "CoordinateX")];
     const result = evalSingle(nodes, []);
-    // First column should be rangeMin, last column approaching rangeMax
-    const step = (RANGE_MAX - RANGE_MIN) / RES;
+    // Grid now covers [rangeMin, rangeMax] inclusive with step = range / (n-1)
     expect(result.values[0]).toBeCloseTo(RANGE_MIN); // row 0, col 0
-    expect(result.values[RES - 1]).toBeCloseTo(RANGE_MIN + (RES - 1) * step); // row 0, last col
+    expect(result.values[RES - 1]).toBeCloseTo(RANGE_MAX); // row 0, last col = rangeMax
   });
 
   it("CoordinateY returns yLevel", () => {
@@ -314,9 +313,8 @@ describe("Coordinate readers", () => {
   it("CoordinateZ varies across rows", () => {
     const nodes = [makeNode("cz", "CoordinateZ")];
     const result = evalSingle(nodes, []);
-    const step = (RANGE_MAX - RANGE_MIN) / RES;
     expect(result.values[0]).toBeCloseTo(RANGE_MIN); // row 0
-    expect(result.values[RES * (RES - 1)]).toBeCloseTo(RANGE_MIN + (RES - 1) * step); // last row
+    expect(result.values[RES * (RES - 1)]).toBeCloseTo(RANGE_MAX); // last row = rangeMax
   });
 });
 
@@ -365,7 +363,7 @@ describe("TranslatedPosition", () => {
     ];
     const edges = [makeEdge("cx", "tr", "Input")];
     const result = evalSingle(nodes, edges, "tr");
-    const step = (RANGE_MAX - RANGE_MIN) / RES;
+    const step = (RANGE_MAX - RANGE_MIN) / (RES - 1);
     // First cell: x = RANGE_MIN, translated to RANGE_MIN - 10
     expect(result.values[0]).toBeCloseTo(RANGE_MIN - 10);
     // Second cell

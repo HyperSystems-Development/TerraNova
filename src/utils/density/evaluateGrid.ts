@@ -19,7 +19,7 @@ export function evaluateDensityGrid(
     return { values, minValue: 0, maxValue: 0 };
   }
 
-  const step = (rangeMax - rangeMin) / n;
+  const step = n > 1 ? (rangeMax - rangeMin) / (n - 1) : 0;
   let minVal = Infinity;
   let maxVal = -Infinity;
 
