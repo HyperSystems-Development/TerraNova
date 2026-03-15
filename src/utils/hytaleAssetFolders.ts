@@ -1,10 +1,5 @@
-import * as tauriApi from "@tauri-apps/api";
-
-declare global {
-  interface Window {
-    __TAURI__?: any;
-  }
-}
+import { pathExists } from "./ipc";
+import { joinPath } from "./pathUtils";
 
 export const hytaleAssetFolders = [
   "Common/Blocks",
@@ -50,15 +45,15 @@ export const hytaleAssetFolders = [
   "Server/TagPatterns",
   "Server/Weathers",
   "Server/WordLists",
-  "Server/World"
+  "Server/World",
 ];
 
 export async function getAvailableHytaleAssetFolders(basePath: string): Promise<string[]> {
   const checks = await Promise.all(
     hytaleAssetFolders.map(async (folder) => {
-      const folderExists = await tauriApi.fs.exists(`${basePath}/${folder}`);
-      return folderExists ? folder : null;
-    })
+      const exists = await pathExists(joinPath(basePath, folder)).catch(() => false);
+      return exists ? folder : null;
+    }),
   );
   return checks.filter((f): f is string => !!f);
 }

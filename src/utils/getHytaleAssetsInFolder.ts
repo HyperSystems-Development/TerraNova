@@ -1,12 +1,12 @@
-import * as tauriApi from "@tauri-apps/api";
+import { listDirectory } from "./ipc";
+import { joinPath } from "./pathUtils";
 
 export async function getHytaleAssetsInFolder(basePath: string, folder: string): Promise<string[]> {
   try {
-    const fullPath = `${basePath}/${folder}`;
-    const entries = await tauriApi.fs.readDir(fullPath);
+    const entries = await listDirectory(joinPath(basePath, folder));
     return entries
       .filter((entry) => entry.name && !entry.name.startsWith("."))
-      .map((entry) => entry.name!);
+      .map((entry) => entry.name);
   } catch {
     return [];
   }
