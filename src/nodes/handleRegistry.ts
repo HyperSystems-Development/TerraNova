@@ -283,7 +283,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Position:SimpleHorizontal": [positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Imported": [positionOutput()],
 
-  "Position:Occurrence": [positionInput("PositionProvider", "Positions"), positionOutput()],
+  "Position:Occurrence": [densityInput("FieldFunction", "Field Fn"), positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Offset": [positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Cache": [positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:SurfaceProjection": [positionInput("PositionProvider", "Positions"), positionOutput()],
@@ -296,7 +296,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Position:DensityBased": [densityInput("DensityFunction", "Density"), positionOutput()],
 
   // Additional position types
-  "Position:BaseHeight": [positionOutput()],
+  "Position:BaseHeight": [positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Anchor": [positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Bound": [positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Framework": [positionOutput()],
