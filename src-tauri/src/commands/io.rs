@@ -547,8 +547,8 @@ fn collect_biome_files_inner(
 pub fn open_url(url: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        Command::new("explorer")
-            .arg(&url)
+        Command::new("cmd")
+            .args(["/c", "start", "", &url])
             .spawn()
             .map_err(|e| e.to_string())?;
     }
