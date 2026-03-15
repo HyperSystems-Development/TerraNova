@@ -1,4 +1,5 @@
 import type { NodeHandler } from "../evalContext";
+import { domainWarpProgressive2D, domainWarpProgressive3D } from "../fastNoiseLiteWarp";
 
 const handlePositionsPinch: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const strength = Number(fields.Strength ?? 1.0);
@@ -65,48 +66,29 @@ const handleVectorWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 
 const handleFastGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const warpFactor = Number(fields.WarpFactor ?? 1.0);
-  const warpSeed = ctx.hashSeed(fields.WarpSeed as string | number | undefined);
-  const warpScale = Number(fields.WarpScale ?? 0.01);
+  const warpSeed = ctx.hashSeed((fields.WarpSeed ?? fields.Seed) as string | number | undefined);
+  const warpScale = Number(fields.WarpScale ?? 1.0);
+  // V2: passes 1.0 / warpScale as frequency to FastNoiseLite
+  const warpFreq = warpScale !== 0 ? 1.0 / warpScale : 1.0;
   const warpOctaves = Math.max(1, Number(fields.WarpOctaves ?? 3));
   const warpLacunarity = Number(fields.WarpLacunarity ?? 2.0);
   const warpPersistence = Number(fields.WarpPersistence ?? 0.5);
   const is2D = fields.Is2D === true;
 
-  let gx = 0, gy = 0, gz = 0;
-
   if (is2D) {
-    let amp = 1.0;
-    let freq = warpScale;
-    for (let i = 0; i < warpOctaves; i++) {
-      const noiseFn = ctx.createNoise2DWithGradient(warpSeed + i);
-      const r = noiseFn(x * freq, z * freq);
-      gx += amp * r.dx * freq;
-      gz += amp * r.dy * freq;
-      amp *= warpPersistence;
-      freq *= warpLacunarity;
-    }
-    return ctx.getInput(inputs, "Input",
-      x + warpFactor * gx,
-      y,
-      z + warpFactor * gz,
+    const warped = domainWarpProgressive2D(
+      warpSeed, warpFactor, warpFreq,
+      warpOctaves, warpLacunarity, warpPersistence,
+      x, z,
     );
+    return ctx.getInput(inputs, "Input", warped.x, y, warped.y);
   } else {
-    let amp = 1.0;
-    let freq = warpScale;
-    for (let i = 0; i < warpOctaves; i++) {
-      const noiseFn = ctx.createNoise3DWithGradient(warpSeed + i);
-      const r = noiseFn(x * freq, y * freq, z * freq);
-      gx += amp * r.dx * freq;
-      gy += amp * r.dy * freq;
-      gz += amp * r.dz * freq;
-      amp *= warpPersistence;
-      freq *= warpLacunarity;
-    }
-    return ctx.getInput(inputs, "Input",
-      x + warpFactor * gx,
-      y + warpFactor * gy,
-      z + warpFactor * gz,
+    const warped = domainWarpProgressive3D(
+      warpSeed, warpFactor, warpFreq,
+      warpOctaves, warpLacunarity, warpPersistence,
+      x, y, z,
     );
+    return ctx.getInput(inputs, "Input", warped.x, warped.y, warped.z);
   }
 };
 

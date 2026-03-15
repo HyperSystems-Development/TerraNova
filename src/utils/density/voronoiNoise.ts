@@ -37,7 +37,7 @@ function fnlHash3(seed: number, xPrimed: number, yPrimed: number, zPrimed: numbe
 // ── RandVecs2D (512 floats = 256 unit-length 2D vectors, indexed as hash & 510) ──
 
 // prettier-ignore
-const RandVecs2D = new Float32Array([
+export const RandVecs2D = new Float32Array([
   -0.2700222,-0.9628541,0.38630927,-0.9223693,0.04444859,-0.9990117,-0.59925234,-0.80056024,
   -0.781928,0.62336874,0.9464672,0.32279992,-0.6514147,-0.7587219,0.93784726,0.34704837,
   -0.8497876,-0.52712524,-0.87904257,0.47674325,-0.8923003,-0.45144236,-0.37984443,-0.9250504,
@@ -107,7 +107,7 @@ const RandVecs2D = new Float32Array([
 // ── randVecs3D (1024 floats = 256 4-component vectors, 4th always 0.0, indexed as hash & 1020) ──
 
 // prettier-ignore
-const randVecs3D = new Float32Array([
+export const randVecs3D = new Float32Array([
   -0.7292737,-0.66184396,0.17355819,0.0,0.7902921,-0.5480887,-0.2739291,0.0,
   0.7217579,0.62262124,-0.3023381,0.0,0.5656831,-0.8208298,-0.079000026,0.0,
   0.76004905,-0.55559796,-0.33709997,0.0,0.37139457,0.50112647,0.78162545,0.0,
