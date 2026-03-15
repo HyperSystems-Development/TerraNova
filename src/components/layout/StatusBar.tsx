@@ -118,15 +118,15 @@ export function StatusBar() {
       </button>
 
       {/* Instant Save indicator */}
-      {instantSaveEnabled && (
-        <button
-          onClick={() => useSettingsStore.getState().toggleInstantSave()}
-          className="px-1.5 rounded text-[10px] font-medium text-sky-400 hover:bg-sky-400/10"
-          title="Instant Save enabled (Ctrl+Shift+I)"
-        >
-          INSTANT
-        </button>
-      )}
+      <button
+        onClick={() => useSettingsStore.getState().toggleInstantSave()}
+        className={`px-1.5 rounded text-[10px] font-medium ${
+          instantSaveEnabled ? "text-sky-400" : "text-tn-text-muted/40"
+        } hover:bg-sky-400/10`}
+        title={`Instant Save ${instantSaveEnabled ? "enabled" : "disabled"} (Ctrl+Shift+I)`}
+      >
+        INSTANT
+      </button>
 
       {/* Save state */}
       <span className="mx-1">

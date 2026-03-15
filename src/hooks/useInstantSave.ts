@@ -46,9 +46,19 @@ export function useInstantSave() {
 
         savingRef.current = true;
         try {
+          // handleSaveFile() calls setDirty(false) on success, which does NOT
+          // emit "editor:dirty", so there is no feedback loop.
           await saveRef.current();
         } finally {
           savingRef.current = false;
+          // If edits arrived while saving, schedule another save
+          if (
+            useProjectStore.getState().isDirty &&
+            useSettingsStore.getState().instantSaveEnabled &&
+            useProjectStore.getState().currentFile
+          ) {
+            handleDirty();
+          }
         }
       }, instantSaveDebounceMs);
     }
