@@ -136,9 +136,7 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   // ═══════════════════════════════════════════════════════════════════════════
   // DENSITY — Additional Math
   // ═══════════════════════════════════════════════════════════════════════════
-  AmplitudeConstant: {
-    Value: "Constant multiplier applied to the input. Output = Input * Value. Use to scale a density signal by a fixed amount.",
-  },
+  AmplitudeConstant: {},
   Pow: {
     Exponent: "Power to raise the input to. Sign is preserved: output = sign(x) * |x|^Exponent. Values > 1 steepen, values < 1 flatten.",
   },
@@ -431,11 +429,10 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     Threshold: "Minimum density value required to keep a position. Positions with density below this are discarded.",
   },
   Occurrence: {
-    Chance: "Probability (0 to 1) that each position is kept. 0.5 means roughly half of positions are randomly removed.",
+    Seed: "Random seed for deterministic position filtering.",
   },
   SimpleHorizontal: {
-    Spacing: "Distance in blocks between positions on the horizontal grid.",
-    Jitter: "Random horizontal offset applied to each position (0 = uniform grid, higher = more random).",
+    RangeY: "Vertical range {Min, Max} constraining positions to a Y band.",
   },
   DensityBased: {
     Threshold: "Minimum density value required for a position to be placed. Higher values are more selective.",
@@ -556,8 +553,7 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   // POSITION — New Types
   // ═══════════════════════════════════════════════════════════════════════════
   Bound: {
-    Min: "Lower corner {x, y, z} of the bounding box. Positions outside this are discarded.",
-    Max: "Upper corner {x, y, z} of the bounding box. Positions outside this are discarded.",
+    Bounds: "Bounding box with MinX/MaxX/MinY/MaxY/MinZ/MaxZ. Positions outside are discarded.",
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -580,9 +576,7 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   // ═══════════════════════════════════════════════════════════════════════════
   // DENSITY — New Pre-Release Types
   // ═══════════════════════════════════════════════════════════════════════════
-  OffsetConstant: {
-    Value: "Constant offset added to the input. Output = Input + Value. Use to shift a density signal by a fixed amount.",
-  },
+  OffsetConstant: {},
   Angle: {
     Vector: "Static reference vector {x, y, z} for angle computation.",
     VectorProvider: "Optional dynamic vector provider that overrides the static Vector.",
@@ -602,8 +596,8 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     Height: "Total height of the cylinder along the Y axis.",
   },
   Plane: {
-    Normal: "Unit normal vector defining the plane orientation.",
-    Distance: "Signed distance of the plane from the origin along the normal.",
+    Normal: "Unit normal vector defining the plane orientation (exported as PlaneNormal).",
+    IsAnchored: "When true, the plane passes through the anchor position instead of the origin.",
   },
   Shell: {
     InnerRadius: "Inner radius of the spherical shell.",

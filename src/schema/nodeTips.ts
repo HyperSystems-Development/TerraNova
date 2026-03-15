@@ -263,7 +263,7 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   Gradient: [
     {
       message:
-        "Creates a vertical gradient from FromY to ToY. Values transition linearly — commonly used as the base terrain shape.",
+        "Computes the directional derivative of the input density along the Axis direction using finite differences.",
       severity: "info",
     },
   ],
@@ -1019,7 +1019,7 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   Occurrence: [
     {
       message:
-        "Randomly keeps or discards each position based on Chance (0 to 1). A Chance of 0.3 means ~30% of positions are kept.",
+        "Filters positions using a density FieldFunction and a Seed for deterministic randomization.",
       severity: "info",
     },
   ],
@@ -1027,7 +1027,7 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   SimpleHorizontal: [
     {
       message:
-        "Generates positions on a regular horizontal grid with the given Spacing. Jitter adds random horizontal offset.",
+        "Constrains a child position provider to positions within the specified RangeY vertical band.",
       severity: "info",
     },
   ],
@@ -1357,28 +1357,28 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   DownwardDepth: [
     {
       message:
-        "Measures how many solid blocks exist downward from the current position. Returns a material based on the depth. MaxDepth limits the scan range.",
+        "Measures how many solid blocks exist downward from the current position. Returns a material based on the Depth.",
       severity: "info",
     },
   ],
   UpwardDepth: [
     {
       message:
-        "Measures how many solid blocks exist upward from the current position. Returns a material based on the ceiling depth. MaxDepth limits the scan range.",
+        "Measures how many solid blocks exist upward from the current position. Returns a material based on the ceiling Depth.",
       severity: "info",
     },
   ],
   DownwardSpace: [
     {
       message:
-        "Measures how many air blocks exist below the current position. Useful for detecting open caves or voids beneath. MaxSpace limits the scan range.",
+        "Measures how many air blocks exist below the current position. Useful for detecting open caves or voids beneath.",
       severity: "info",
     },
   ],
   UpwardSpace: [
     {
       message:
-        "Measures how many air blocks exist above the current position. Useful for detecting open sky or cave height. MaxSpace limits the scan range.",
+        "Measures how many air blocks exist above the current position. Useful for detecting open sky or cave height.",
       severity: "info",
     },
   ],

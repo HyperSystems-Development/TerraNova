@@ -63,8 +63,8 @@ export const PlaneNode = memo(function PlaneNode(props: TypedNodeProps) {
           <span>{Number(n?.x ?? 0).toFixed(1)}, {Number(n?.y ?? 1).toFixed(1)}, {Number(n?.z ?? 0).toFixed(1)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-tn-text-muted">Distance</span>
-          <span>{Number(data.fields.Distance ?? 0).toFixed(2)}</span>
+          <span className="text-tn-text-muted">Anchored</span>
+          <span>{data.fields.IsAnchored ? "Yes" : "No"}</span>
         </div>
       </div>
     </BaseNode>

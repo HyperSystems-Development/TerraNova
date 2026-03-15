@@ -61,7 +61,8 @@ export interface FieldFunctionPosition extends PositionProviderFields {
 
 export interface OccurrencePosition extends PositionProviderFields {
   Type: "Occurrence";
-  Chance?: number;
+  Seed?: string;
+  FieldFunction?: unknown;
   PositionProvider?: PositionProviderFields;
 }
 
