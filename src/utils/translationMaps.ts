@@ -96,7 +96,6 @@ export const DENSITY_NAMED_TO_ARRAY: Record<string, string[]> = {
   ZOverride: ["Input"],
   Floor: ["Input"],
   Ceiling: ["Input"],
-  AmplitudeConstant: ["Input"],
   Pow: ["Input"],
   SmoothCeiling: ["Input"],
   SmoothFloor: ["Input"],
@@ -108,7 +107,6 @@ export const DENSITY_NAMED_TO_ARRAY: Record<string, string[]> = {
   YGradient: ["Input"],
   ClampToIndex: ["Input"],
   DoubleNormalizer: ["Input"],
-  OffsetConstant: ["Input"],
   Cache2D: ["Input"],
   // 2-input types (Sum uses Inputs[] natively via compound handles)
   Offset: ["Input", "Offset"],

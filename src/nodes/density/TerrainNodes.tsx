@@ -239,16 +239,17 @@ export const DistanceNode = memo(function DistanceNode(props: TypedNodeProps) {
 
 export const GradientNode = memo(function GradientNode(props: TypedNodeProps) {
   const data = props.data;
+  const axis = data.fields.Axis as { x: number; y: number; z: number } | undefined;
   return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
+    <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
       <div className="space-y-1">
         <div className="flex justify-between">
-          <span className="text-tn-text-muted">From Y</span>
-          <span>{safeDisplay(data.fields.FromY, 0)}</span>
+          <span className="text-tn-text-muted">Axis</span>
+          <span>{axis ? `(${axis.x}, ${axis.y}, ${axis.z})` : "(0, 1, 0)"}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-tn-text-muted">To Y</span>
-          <span>{safeDisplay(data.fields.ToY, 256)}</span>
+          <span className="text-tn-text-muted">Range</span>
+          <span>{safeDisplay(data.fields.SampleRange, 1.0)}</span>
         </div>
       </div>
     </BaseNode>

@@ -114,10 +114,9 @@ export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> 
     Frequency: { min: 0, message: "Frequency must be > 0" },
   },
 
-  // Gradient
+  // Gradient (directional derivative)
   Gradient: {
-    FromY: { required: true },
-    ToY: { required: true },
+    SampleRange: { min: 0, message: "SampleRange must be >= 0" },
   },
 
   // Cache

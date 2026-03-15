@@ -111,7 +111,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   RangeChoice: [densityInput("Condition", "Condition"), densityInput("TrueInput", "True"), densityInput("FalseInput", "False"), densityOutput()],
 
   // Additional math
-  AmplitudeConstant: [densityInput("Input", "Input"), densityOutput()],
+  AmplitudeConstant: [densityOutput()],
   Pow: [densityInput("Input", "Input"), densityOutput()],
 
   // Smooth operations
@@ -136,7 +136,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   XOverride: [densityInput("Input", "Input"), densityOutput()],
   ZOverride: [densityInput("Input", "Input"), densityOutput()],
   SmoothCeiling: [densityInput("Input", "Input"), densityOutput()],
-  Gradient: [densityOutput()],
+  Gradient: [densityInput("Input", "Input"), densityOutput()],
   Amplitude: [densityInput("Input", "Input"), densityInput("Amplitude", "Amplitude"), densityOutput()],
   YSampled: [densityInput("Input", "Input"), densityInput("YProvider", "Y Provider"), densityOutput()],
   SwitchState: [densityOutput()],
@@ -161,7 +161,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   Axis: [curveInput("Curve", "Curve"), densityOutput()],
   Angle: [vectorInput("VectorProvider", "VectorProvider"), vectorInput("Vector", "Vector"), densityOutput()],
   Cache2D: [densityInput("Input", "Input"), densityOutput()],
-  OffsetConstant: [densityInput("Input", "Input"), densityOutput()],
+  OffsetConstant: [densityOutput()],
   Exported: [densityInput("Input", "Input"), densityOutput()],
 
   // Multi-input blending

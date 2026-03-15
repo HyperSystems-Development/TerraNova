@@ -63,14 +63,14 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   FlatCache: {},
   // Combinators
   Conditional: { Threshold: 0.0 },
-  Switch: {},
+  Switch: { SwitchCases: [] },
   Blend: {},
   BlendCurve: {},
   MinFunction: {},
   MaxFunction: {},
   AverageFunction: {},
   // Sampling / transforms
-  CacheOnce: {},
+  CacheOnce: { Capacity: 3 },
   Wrap: {},
   TranslatedPosition: { Translation: { x: 0, y: 0, z: 0 } },
   ScaledPosition: { Scale: { x: 1, y: 1, z: 1 } },
@@ -95,12 +95,12 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   SmoothMin: { Smoothness: 1.0 },
   SmoothMax: { Smoothness: 1.0 },
   // Additional math
-  AmplitudeConstant: { Value: 1.0 },
+  AmplitudeConstant: {},
   Pow: { Exponent: 2.0 },
   Floor: { Floor: 0 },
   Ceiling: { Ceiling: 1 },
   // Position overrides & sampling
-  Anchor: {},
+  Anchor: { Reversed: false },
   YOverride: { OverrideY: 0 },
   BaseHeight: { BaseHeightName: "Base", Distance: false },
   Offset: {},
@@ -108,7 +108,7 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   PositionsCellNoise: { Frequency: 0.01, Seed: "A" },
   // Additional operations
   SmoothCeiling: { Threshold: 1.0, Smoothness: 0.1 },
-  Gradient: { FromY: 0, ToY: 256 },
+  Gradient: { Axis: { x: 0, y: 1, z: 0 }, SampleRange: 1.0 },
   Amplitude: {},
   YSampled: { SampleDistance: 4.0, SampleOffset: 0.0 },
   SwitchState: { State: 0 },
@@ -129,7 +129,7 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   DistanceToBiomeEdge: {},
   Pipeline: {},
   // New pre-release types
-  OffsetConstant: { Value: 0.0 },
+  OffsetConstant: {},
   Cache2D: {},
   Exported: { Name: "", SingleInstance: false },
   Angle: { Vector: { x: 0, y: 1, z: 0 }, IsAxis: false },

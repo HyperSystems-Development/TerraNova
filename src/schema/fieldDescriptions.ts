@@ -185,8 +185,8 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     Smoothness: "Controls how gradual the ceiling transition is. Higher values create a softer curve near the threshold.",
   },
   Gradient: {
-    FromY: "Y coordinate where the gradient outputs 0 (bottom of the transition).",
-    ToY: "Y coordinate where the gradient outputs 1 (top of the transition).",
+    Axis: "Direction along which to compute the directional derivative (default [0,1,0] = Y axis).",
+    SampleRange: "Finite-difference step size for estimating the gradient. Larger values smooth out noise.",
     From: "Starting color of the gradient as a hex string (e.g. '#ffffff' for white).",
     To: "Ending color of the gradient as a hex string (e.g. '#000000' for black).",
   },
