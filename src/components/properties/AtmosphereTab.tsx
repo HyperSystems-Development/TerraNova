@@ -13,6 +13,7 @@ import {
 import { applyBiomeTintBand } from "./biomeTintUtils";
 import { ColorPickerField } from "./ColorPickerField";
 import { SliderField } from "./SliderField";
+import { joinPath, inferServerRoot, normalizePath, getDirname } from "@/utils/pathUtils";
 
 // ---------------------------------------------------------------------------
 // Section header
@@ -72,43 +73,14 @@ function clampHour(hour: number): number {
   return normalized < 0 ? normalized + 24 : normalized;
 }
 
-function getDirectory(path: string | null): string | null {
-  if (!path) return null;
-  const normalized = path.replace(/\\/g, "/");
-  const idx = normalized.lastIndexOf("/");
-  if (idx <= 0) return null;
-  return normalized.slice(0, idx).replace(/\//g, "\\");
-}
-
-function joinWindowsPath(base: string, child: string): string {
-  return `${base.replace(/[\\/]+$/, "")}\\${child}`;
-}
-
-function findServerRoot(path: string | null): string | null {
-  if (!path) return null;
-  const normalized = path.replace(/\\/g, "/");
-  const marker = "/server/";
-  const markerIdx = normalized.toLowerCase().lastIndexOf(marker);
-  if (markerIdx >= 0) {
-    return normalized.slice(0, markerIdx + marker.length - 1).replace(/\//g, "\\");
-  }
-  if (normalized.toLowerCase().endsWith("/server")) {
-    return normalized.replace(/\//g, "\\");
-  }
-  return null;
-}
-
-function inferServerRoot(currentFile: string | null, projectPath: string | null, resolvedRoot: string | null): string | null {
+/** Local wrapper: prefers an already-resolved root, then falls back to the shared inferServerRoot. */
+function inferServerRootWithHint(
+  currentFile: string | null,
+  projectPath: string | null,
+  resolvedRoot: string | null,
+): string | null {
   if (resolvedRoot) return resolvedRoot;
-  const fromCurrent = findServerRoot(currentFile);
-  if (fromCurrent) return fromCurrent;
-  const fromProject = findServerRoot(projectPath);
-  if (fromProject) return fromProject;
-  if (!projectPath) return null;
-  if (projectPath.toLowerCase().endsWith("\\hytalegenerator")) {
-    return getDirectory(projectPath);
-  }
-  return joinWindowsPath(projectPath, "Server");
+  return inferServerRoot(currentFile, projectPath);
 }
 
 function extractZoneKeyFromEnvironmentDir(environmentDir: string | null): string | null {
@@ -519,14 +491,14 @@ export function AtmosphereTab({
   const [templateLoadStatus, setTemplateLoadStatus] = useState<"idle" | "loading" | "error">("idle");
 
   const loadBiomeFiles = useCallback(async () => {
-    const serverRoot = inferServerRoot(currentFile, projectPath, weatherInfo.serverRoot);
+    const serverRoot = inferServerRootWithHint(currentFile, projectPath, weatherInfo.serverRoot);
     if (!serverRoot) {
       setBiomeLoadStatus("error");
       return;
     }
     setBiomeLoadStatus("loading");
     try {
-      const biomesRoot = `${serverRoot}\\Generator\\Biomes`;
+      const biomesRoot = joinPath(serverRoot, "Generator/Biomes");
       const entries = await listDirectory(biomesRoot);
       const files: { name: string; path: string }[] = [];
       function collect(list: typeof entries) {
@@ -676,14 +648,15 @@ export function AtmosphereTab({
       ?? weatherInfo.environmentName
       ?? pickEnvironmentNameFromProvider(biomeConfig?.EnvironmentProvider)
       ?? null;
-    const serverRoot = inferServerRoot(
+    const serverRoot = inferServerRootWithHint(
       currentFile,
       projectPath,
       metadata?.serverRoot ?? weatherInfo.serverRoot,
     );
+    const envPath = metadata?.environmentPath ?? weatherInfo.environmentPath;
     const environmentDir =
-      getDirectory(metadata?.environmentPath ?? weatherInfo.environmentPath)
-      ?? (serverRoot ? joinWindowsPath(serverRoot, "Environments") : null);
+      (envPath ? getDirname(normalizePath(envPath)) : null)
+      ?? (serverRoot ? joinPath(serverRoot, "Environments") : null);
 
     if (!parentEnvironmentName || !environmentDir) {
       setExportStatus("err");
@@ -693,7 +666,7 @@ export function AtmosphereTab({
     }
 
     const environmentName = `Env_${name}`;
-    const filePath = joinWindowsPath(environmentDir, `${environmentName}.json`);
+    const filePath = joinPath(environmentDir, `${environmentName}.json`);
 
     const alreadyExists = await pathExists(filePath);
     if (alreadyExists) {
@@ -804,13 +777,13 @@ export function AtmosphereTab({
     });
   }
 
-  const exportServerRoot = inferServerRoot(currentFile, projectPath, weatherInfo.serverRoot);
+  const exportServerRoot = inferServerRootWithHint(currentFile, projectPath, weatherInfo.serverRoot);
   const exportEnvironmentDir =
-    getDirectory(weatherInfo.environmentPath)
-    ?? (exportServerRoot ? joinWindowsPath(exportServerRoot, "Environments") : null);
+    (weatherInfo.environmentPath ? getDirname(normalizePath(weatherInfo.environmentPath)) : null)
+    ?? (exportServerRoot ? joinPath(exportServerRoot, "Environments") : null);
   const exportFileName = `Env_${sanitizeEnvironmentName(exportName) || "..."}.json`;
   const exportPreviewPath = exportEnvironmentDir
-    ? toServerRelativePath(joinWindowsPath(exportEnvironmentDir, exportFileName), exportServerRoot)
+    ? toServerRelativePath(joinPath(exportEnvironmentDir, exportFileName), exportServerRoot)
     : `Server/Environments/${exportFileName}`;
   const weatherStatusLabel =
     weatherInfo.status === "loading"

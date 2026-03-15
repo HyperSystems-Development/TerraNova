@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { emit, on } from "./storeEvents";
+import { registerProjectRoot, unregisterProjectRoot } from "@/utils/ipc";
 
 export interface DirectoryEntry {
   name: string;
@@ -41,7 +42,12 @@ export const useProjectStore = create<ProjectState>((set) => ({
   isDirty: false,
   lastError: null,
 
-  setProjectPath: (path) => set({ projectPath: path }),
+  setProjectPath: (path) => {
+    const prev = useProjectStore.getState().projectPath;
+    if (prev) unregisterProjectRoot(prev).catch(() => {});
+    if (path) registerProjectRoot(path).catch(() => {});
+    set({ projectPath: path });
+  },
   setAssetFiles: (files) => set({ assetFiles: files }),
   setDirectoryTree: (tree) => set({ directoryTree: tree }),
   setCurrentFile: (file) => set({ currentFile: file }),
@@ -57,6 +63,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
       lastError: null,
     }),
   closeProject: () => {
+    const prev = useProjectStore.getState().projectPath;
+    if (prev) unregisterProjectRoot(prev).catch(() => {});
     set({
       projectPath: null,
       assetFiles: [],

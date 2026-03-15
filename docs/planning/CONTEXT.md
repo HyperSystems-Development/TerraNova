@@ -2,7 +2,7 @@
 
 **Version:** 2.0
 **Date:** 2026-02-13
-**Organization:** HyperSystemsDev
+**Organization:** HyperSystems-Development
 
 ---
 
@@ -678,7 +678,7 @@ sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file \
 
 ```bash
 # Clone the repo
-git clone https://github.com/HyperSystemsDev/TerraNova.git
+git clone https://github.com/HyperSystems-Development/TerraNova.git
 cd TerraNova
 
 # Install frontend dependencies
@@ -737,14 +737,14 @@ To bundle a new template in production builds, add it to the `resources` array i
 
 | Resource | URL |
 |----------|-----|
-| **Source Code** | https://github.com/HyperSystemsDev/TerraNova |
-| **Releases** | https://github.com/HyperSystemsDev/TerraNova/releases |
-| **Templates Repo** | https://github.com/HyperSystemsDev/terranova-templates (planned) |
+| **Source Code** | https://github.com/HyperSystems-Development/TerraNova |
+| **Releases** | https://github.com/HyperSystems-Development/TerraNova/releases |
+| **Templates Repo** | https://github.com/HyperSystems-Development/terranova-templates (planned) |
 | **Worldgen Docs** | `hytale-server-docs/docs/worldgen/` (19 files, decompiled) |
 | **Discord** | https://discord.gg/NHPzsjkQeu |
-| **HyperPerms** | https://github.com/HyperSystemsDev/HyperPerms |
-| **HyperHomes** | https://github.com/HyperSystemsDev/HyperHomes |
-| **HyperFactions** | https://github.com/HyperSystemsDev/HyperFactions |
+| **HyperPerms** | https://github.com/HyperSystems-Development/HyperPerms |
+| **HyperHomes** | https://github.com/HyperSystems-Development/HyperHomes |
+| **HyperFactions** | https://github.com/HyperSystems-Development/HyperFactions |
 
 ### External References
 

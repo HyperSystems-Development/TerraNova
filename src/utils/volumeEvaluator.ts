@@ -41,7 +41,7 @@ export function evaluateDensityVolume(
     return { densities, resolution: n, ySlices: ys, minValue: 0, maxValue: 0 };
   }
 
-  const stepXZ = (rangeMax - rangeMin) / n;
+  const stepXZ = n > 1 ? (rangeMax - rangeMin) / (n - 1) : 0;
   const stepY = ys > 1 ? (yMax - yMin) / (ys - 1) : 0;
   let minVal = Infinity;
   let maxVal = -Infinity;

@@ -110,9 +110,9 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
           useToastStore.getState().addToast("Failed to load Hytale assets", "error");
         })
         .finally(() => {
+          useLoadingStore.getState().stop();
           if (!active) return;
           setAssetsLoading(false);
-          useLoadingStore.getState().stop();
         });
     } else {
       setHytaleAssets([]);

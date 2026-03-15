@@ -1,5 +1,6 @@
 use crate::bridge::client::{BridgeClient, BridgeState};
 use crate::bridge::types::*;
+use crate::io::path_scope;
 
 #[tauri::command]
 pub async fn bridge_connect(
@@ -99,6 +100,9 @@ pub async fn bridge_sync_file(
     relative_path: String,
     state: tauri::State<'_, BridgeState>,
 ) -> Result<BridgeResponse, String> {
+    // Validate the source path is within an allowed project scope
+    path_scope::validate_path_str(&source_path)?;
+
     // Validate that relative_path doesn't escape server_mod_path via ".." traversal
     let base = std::path::Path::new(&server_mod_path)
         .canonicalize()

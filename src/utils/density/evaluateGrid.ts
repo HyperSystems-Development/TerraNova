@@ -16,10 +16,10 @@ export function evaluateDensityGrid(
 
   const ctx = createEvaluationContext(nodes, edges, rootNodeId, options);
   if (!ctx) {
-    return { values, minValue: 0, maxValue: 0 };
+    return { values, minValue: 0, maxValue: 0, p02Value: 0, p98Value: 0 };
   }
 
-  const step = (rangeMax - rangeMin) / n;
+  const step = n > 1 ? (rangeMax - rangeMin) / (n - 1) : 0;
   let minVal = Infinity;
   let maxVal = -Infinity;
 
@@ -40,5 +40,12 @@ export function evaluateDensityGrid(
   if (!isFinite(minVal)) minVal = 0;
   if (!isFinite(maxVal)) maxVal = 0;
 
-  return { values, minValue: minVal, maxValue: maxVal };
+  // Compute 2nd/98th percentile for robust normalization (outlier resistance)
+  const sorted = Float32Array.from(values).sort();
+  const p02Idx = Math.floor(sorted.length * 0.02);
+  const p98Idx = Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.98));
+  const p02Value = sorted[p02Idx];
+  const p98Value = sorted[p98Idx];
+
+  return { values, minValue: minVal, maxValue: maxVal, p02Value, p98Value };
 }

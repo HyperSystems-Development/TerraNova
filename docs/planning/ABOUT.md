@@ -47,7 +47,7 @@ TerraNova is for the **design phase** — architect your worldgen offline, itera
 - **Tiny install** — under 15MB
 - **Git-friendly** — outputs clean JSON files you can version control and diff
 - **Cross-platform** — macOS, Windows, Linux
-- **Built by** [HyperSystemsDev](https://github.com/HyperSystemsDev) — the same team behind HyperPerms, HyperHomes, and HyperFactions
+- **Built by** [HyperSystems-Development](https://github.com/HyperSystems-Development) — the same team behind HyperPerms, HyperHomes, and HyperFactions
 - **Community** — [discord.gg/NHPzsjkQeu](https://discord.gg/NHPzsjkQeu)
 
 ---

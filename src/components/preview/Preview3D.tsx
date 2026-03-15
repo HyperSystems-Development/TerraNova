@@ -18,6 +18,8 @@ function Heightfield({ wireframe }: { wireframe: boolean }) {
   const resolution = usePreviewStore((s) => s.resolution);
   const minValue = usePreviewStore((s) => s.minValue);
   const maxValue = usePreviewStore((s) => s.maxValue);
+  const p02Value = usePreviewStore((s) => s.p02Value);
+  const p98Value = usePreviewStore((s) => s.p98Value);
   const colormap = usePreviewStore((s) => s.colormap);
   const heightScale3D = usePreviewStore((s) => s.heightScale3D);
   const meshRef = useRef<Mesh>(null);
@@ -29,17 +31,21 @@ function Heightfield({ wireframe }: { wireframe: boolean }) {
     const n = resolution;
     const positions = new Float32Array(n * n * 3);
     const colors = new Float32Array(n * n * 3);
-    const range = maxValue - minValue || 1;
-    const isFlat = maxValue === minValue;
+    // Use percentile-based range for outlier resistance
+    const lo = p02Value ?? minValue;
+    const hi = p98Value ?? maxValue;
+    const range = hi - lo || 1;
+    const isFlat = Math.abs(hi - lo) < 1e-8;
+    const d = n > 1 ? n - 1 : 1; // divisor for vertex positions to span full [-25, 25]
 
     for (let z = 0; z < n; z++) {
       for (let x = 0; x < n; x++) {
         const i = z * n + x;
-        const normalized = isFlat ? 0.5 : (values[i] - minValue) / range;
+        const normalized = isFlat ? 0.5 : Math.max(0, Math.min(1, (values[i] - lo) / range));
         const height = normalized * heightScale3D;
-        positions[i * 3] = (x / n - 0.5) * 50;
+        positions[i * 3] = (x / d - 0.5) * 50;
         positions[i * 3 + 1] = height;
-        positions[i * 3 + 2] = (z / n - 0.5) * 50;
+        positions[i * 3 + 2] = (z / d - 0.5) * 50;
 
         const [r, g, b] = cm.rampVec(normalized);
         colors[i * 3] = r;
@@ -61,7 +67,7 @@ function Heightfield({ wireframe }: { wireframe: boolean }) {
     }
 
     return { positions, colors, indices: new Uint32Array(indices) };
-  }, [values, resolution, minValue, maxValue, colormap, heightScale3D]);
+  }, [values, resolution, minValue, maxValue, p02Value, p98Value, colormap, heightScale3D]);
 
   useEffect(() => {
     if (!meshRef.current || !geometry) return;

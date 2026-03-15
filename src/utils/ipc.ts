@@ -40,6 +40,14 @@ export interface ValidationError {
   severity: "Error" | "Warning" | "Info";
 }
 
+export async function registerProjectRoot(path: string): Promise<void> {
+  return invoke("register_project_root", { path });
+}
+
+export async function unregisterProjectRoot(path: string): Promise<void> {
+  return invoke("unregister_project_root", { path });
+}
+
 export async function openAssetPack(path: string): Promise<AssetPackData> {
   return invoke<AssetPackData>("open_asset_pack", { path });
 }

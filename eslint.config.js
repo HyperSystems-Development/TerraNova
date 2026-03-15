@@ -45,7 +45,7 @@ export default [
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "no-undef": "off",
-      "react-hooks/exhaustive-deps": "off",
+      "react-hooks/exhaustive-deps": "warn",
     },
   },
 ];

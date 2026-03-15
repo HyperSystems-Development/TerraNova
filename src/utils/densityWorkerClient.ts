@@ -35,6 +35,8 @@ export interface EvalResult {
   values: Float32Array;
   minValue: number;
   maxValue: number;
+  p02Value: number;
+  p98Value: number;
 }
 
 export interface WorkerInstance {
@@ -53,7 +55,7 @@ function evaluateOnMainThread(params: EvalParams): EvalResult {
     params.rootNodeId,
     params.options,
   );
-  return { values: result.values, minValue: result.minValue, maxValue: result.maxValue };
+  return { values: result.values, minValue: result.minValue, maxValue: result.maxValue, p02Value: result.p02Value, p98Value: result.p98Value };
 }
 
 /**
@@ -122,6 +124,8 @@ export function createWorkerInstance(): WorkerInstance {
             values: e.data.values,
             minValue: e.data.minValue,
             maxValue: e.data.maxValue,
+            p02Value: e.data.p02Value,
+            p98Value: e.data.p98Value,
           });
         }
       };

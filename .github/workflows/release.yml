@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -35,41 +35,44 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: 'pnpm'
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
         with:
           targets: ${{ matrix.rust_target }}
 
       - name: Rust cache
-        uses: swatinem/rust-cache@v2
+        uses: swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: './src-tauri -> target'
 
       - name: Sync version from git tag
+        env:
+          TAG_NAME: ${{ github.ref_name }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${TAG_NAME#v}"
           echo "Updating version to $VERSION"
-          node -e "
+          VERSION="$VERSION" node -e "
             const fs = require('fs');
+            const VERSION = process.env.VERSION;
             // tauri.conf.json
             const tc = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));
-            tc.version = '$VERSION';
+            tc.version = VERSION;
             fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(tc, null, 2) + '\n');
             // package.json
             const pkg = JSON.parse(fs.readFileSync('package.json','utf8'));
-            pkg.version = '$VERSION';
+            pkg.version = VERSION;
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
             // Cargo.toml - replace first version line
             let cargo = fs.readFileSync('src-tauri/Cargo.toml','utf8');
-            cargo = cargo.replace(/^version = \".*\"/m, 'version = \"$VERSION\"');
+            cargo = cargo.replace(/^version = \".*\"/m, 'version = \"' + VERSION + '\"');
             fs.writeFileSync('src-tauri/Cargo.toml', cargo);
           "
         shell: bash
@@ -78,7 +81,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build and release
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}

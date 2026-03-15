@@ -53,6 +53,8 @@ interface PreviewState {
   values: Float32Array | null;
   minValue: number;
   maxValue: number;
+  p02Value: number;
+  p98Value: number;
   isLoading: boolean;
   previewError: string | null;
 
@@ -149,7 +151,7 @@ interface PreviewState {
   setRange: (min: number, max: number) => void;
   setYLevel: (y: number) => void;
   setSelectedPreviewNodeId: (id: string | null) => void;
-  setValues: (values: Float32Array | null, min: number, max: number) => void;
+  setValues: (values: Float32Array | null, min: number, max: number, p02?: number, p98?: number) => void;
   setLoading: (loading: boolean) => void;
   setPreviewError: (error: string | null) => void;
   setViewMode: (mode: ViewMode) => void;
@@ -432,6 +434,8 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     values: null,
     minValue: 0,
     maxValue: 1,
+    p02Value: 0,
+    p98Value: 1,
     isLoading: false,
     previewError: null,
     autoRefresh: true,
@@ -472,7 +476,7 @@ export const usePreviewStore = create<PreviewState>((originalSet) => {
     setRange: (rangeMin, rangeMax) => originalSet({ rangeMin, rangeMax }),
     setYLevel: (yLevel) => originalSet({ yLevel }),
     setSelectedPreviewNodeId: (id) => originalSet({ selectedPreviewNodeId: id }),
-    setValues: (values, minValue, maxValue) => originalSet({ values, minValue, maxValue }),
+    setValues: (values, minValue, maxValue, p02Value, p98Value) => originalSet({ values, minValue, maxValue, p02Value: p02Value ?? minValue, p98Value: p98Value ?? maxValue }),
     setLoading: (isLoading) => originalSet({ isLoading }),
     setPreviewError: (error) => originalSet({ previewError: error }),
     setAutoRefresh: (autoRefresh) => originalSet({ autoRefresh }),

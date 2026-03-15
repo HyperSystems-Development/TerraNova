@@ -2,7 +2,7 @@
 
 **Version:** 2.0
 **Date:** 2026-02-13
-**Organization:** HyperSystemsDev
+**Organization:** HyperSystems-Development
 
 ---
 
@@ -114,7 +114,7 @@ Shipped in v0.1.0. Home screen template browser with responsive cards, recent pr
 
 | Task | Description | Status |
 |------|-------------|--------|
-| 5.3.1 | Create `HyperSystemsDev/terranova-templates` GitHub repo | TODO |
+| 5.3.1 | Create `HyperSystems-Development/terranova-templates` GitHub repo | TODO |
 | 5.3.2 | Define template directory structure: `<name>/manifest.json` + `<name>/HytaleGenerator/` | TODO |
 | 5.3.3 | Create `index.json` at repo root with template metadata | TODO |
 | 5.3.4 | Set up GitHub Pages to serve `index.json` | TODO |

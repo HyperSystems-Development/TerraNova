@@ -24,7 +24,8 @@ const handleAnchor: NodeHandler = (ctx, fields, inputs, x, y, z) => {
       return ctx.getInput(inputs, "Input", x - ctx.anchorX, y - ctx.anchorY, z - ctx.anchorZ);
     }
   } else {
-    return ctx.getInput(inputs, "Input", 0, 0, 0);
+    // V2: when densityAnchor is null, pass through with original position unchanged
+    return ctx.getInput(inputs, "Input", x, y, z);
   }
 };
 

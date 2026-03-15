@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to [TerraNova](https://github.com/HyperSystemsDev/TerraNova) are documented in this file.
+All notable changes to [TerraNova](https://github.com/HyperSystems-Development/TerraNova) are documented in this file.
 
 ## [1.5.9 McCal's QoL] - 2026-03-14
 
@@ -289,38 +289,38 @@ Built over 85 commits (Feb 6–13, 2026) in the private TerraNovaDev repository 
 
 ---
 
-[0.1.5]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.5
-[0.1.4]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.4
-[0.1.3]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.3
-[0.1.2]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.2
-[0.1.1]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.1
-[0.1.0]: https://github.com/HyperSystemsDev/TerraNova/releases/tag/v0.1.0
-[#1]: https://github.com/HyperSystemsDev/TerraNova/pull/1
-[#2]: https://github.com/HyperSystemsDev/TerraNova/pull/2
-[#3]: https://github.com/HyperSystemsDev/TerraNova/pull/3
-[#6]: https://github.com/HyperSystemsDev/TerraNova/pull/6
-[#7]: https://github.com/HyperSystemsDev/TerraNova/pull/7
-[#8]: https://github.com/HyperSystemsDev/TerraNova/pull/8
-[#10]: https://github.com/HyperSystemsDev/TerraNova/pull/10
-[#12]: https://github.com/HyperSystemsDev/TerraNova/pull/12
-[#13]: https://github.com/HyperSystemsDev/TerraNova/pull/13
-[#16]: https://github.com/HyperSystemsDev/TerraNova/pull/16
-[#17]: https://github.com/HyperSystemsDev/TerraNova/pull/17
-[#20]: https://github.com/HyperSystemsDev/TerraNova/pull/20
-[#21]: https://github.com/HyperSystemsDev/TerraNova/issues/21
-[#22]: https://github.com/HyperSystemsDev/TerraNova/issues/22
-[#25]: https://github.com/HyperSystemsDev/TerraNova/issues/25
-[#28]: https://github.com/HyperSystemsDev/TerraNova/issues/28
-[#29]: https://github.com/HyperSystemsDev/TerraNova/issues/29
-[#30]: https://github.com/HyperSystemsDev/TerraNova/issues/30
-[#31]: https://github.com/HyperSystemsDev/TerraNova/pull/31
-[#32]: https://github.com/HyperSystemsDev/TerraNova/pull/32
-[#34]: https://github.com/HyperSystemsDev/TerraNova/pull/34
-[#35]: https://github.com/HyperSystemsDev/TerraNova/pull/35
-[#36]: https://github.com/HyperSystemsDev/TerraNova/pull/36
-[#37]: https://github.com/HyperSystemsDev/TerraNova/pull/37
-[#41]: https://github.com/HyperSystemsDev/TerraNova/pull/41
-[#42]: https://github.com/HyperSystemsDev/TerraNova/pull/42
-[#44]: https://github.com/HyperSystemsDev/TerraNova/issues/44
-[#46]: https://github.com/HyperSystemsDev/TerraNova/pull/46
-[#47]: https://github.com/HyperSystemsDev/TerraNova/pull/47
+[0.1.5]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v0.1.5
+[0.1.4]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v0.1.4
+[0.1.3]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v0.1.3
+[0.1.2]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v0.1.2
+[0.1.1]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v0.1.1
+[0.1.0]: https://github.com/HyperSystems-Development/TerraNova/releases/tag/v0.1.0
+[#1]: https://github.com/HyperSystems-Development/TerraNova/pull/1
+[#2]: https://github.com/HyperSystems-Development/TerraNova/pull/2
+[#3]: https://github.com/HyperSystems-Development/TerraNova/pull/3
+[#6]: https://github.com/HyperSystems-Development/TerraNova/pull/6
+[#7]: https://github.com/HyperSystems-Development/TerraNova/pull/7
+[#8]: https://github.com/HyperSystems-Development/TerraNova/pull/8
+[#10]: https://github.com/HyperSystems-Development/TerraNova/pull/10
+[#12]: https://github.com/HyperSystems-Development/TerraNova/pull/12
+[#13]: https://github.com/HyperSystems-Development/TerraNova/pull/13
+[#16]: https://github.com/HyperSystems-Development/TerraNova/pull/16
+[#17]: https://github.com/HyperSystems-Development/TerraNova/pull/17
+[#20]: https://github.com/HyperSystems-Development/TerraNova/pull/20
+[#21]: https://github.com/HyperSystems-Development/TerraNova/issues/21
+[#22]: https://github.com/HyperSystems-Development/TerraNova/issues/22
+[#25]: https://github.com/HyperSystems-Development/TerraNova/issues/25
+[#28]: https://github.com/HyperSystems-Development/TerraNova/issues/28
+[#29]: https://github.com/HyperSystems-Development/TerraNova/issues/29
+[#30]: https://github.com/HyperSystems-Development/TerraNova/issues/30
+[#31]: https://github.com/HyperSystems-Development/TerraNova/pull/31
+[#32]: https://github.com/HyperSystems-Development/TerraNova/pull/32
+[#34]: https://github.com/HyperSystems-Development/TerraNova/pull/34
+[#35]: https://github.com/HyperSystems-Development/TerraNova/pull/35
+[#36]: https://github.com/HyperSystems-Development/TerraNova/pull/36
+[#37]: https://github.com/HyperSystems-Development/TerraNova/pull/37
+[#41]: https://github.com/HyperSystems-Development/TerraNova/pull/41
+[#42]: https://github.com/HyperSystems-Development/TerraNova/pull/42
+[#44]: https://github.com/HyperSystems-Development/TerraNova/issues/44
+[#46]: https://github.com/HyperSystems-Development/TerraNova/pull/46
+[#47]: https://github.com/HyperSystems-Development/TerraNova/pull/47

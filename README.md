@@ -1,13 +1,13 @@
 # TerraNova
 
-[![Latest Release](https://img.shields.io/github/v/release/HyperSystemsDev/TerraNova?label=version)](https://github.com/HyperSystemsDev/TerraNova/releases)
+[![Latest Release](https://img.shields.io/github/v/release/HyperSystems-Development/TerraNova?label=version)](https://github.com/HyperSystems-Development/TerraNova/releases)
 [![License](https://img.shields.io/badge/license-LGPL--2.1-green)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Us-7289DA?logo=discord&logoColor=white)](https://discord.gg/NHPzsjkQeu)
-[![GitHub Stars](https://img.shields.io/github/stars/HyperSystemsDev/TerraNova?style=social)](https://github.com/HyperSystemsDev/TerraNova)
+[![GitHub Stars](https://img.shields.io/github/stars/HyperSystems-Development/TerraNova?style=social)](https://github.com/HyperSystems-Development/TerraNova)
 
 **Offline design studio for Hytale World Generation V2.** Visual node editor, live terrain preview, and validated JSON export — no server required.
 
-**[Releases](https://github.com/HyperSystemsDev/TerraNova/releases)** | **[Discord](https://discord.gg/NHPzsjkQeu)** | **[Changelog](docs/CHANGELOG.md)**
+**[Releases](https://github.com/HyperSystems-Development/TerraNova/releases)** | **[Discord](https://discord.gg/NHPzsjkQeu)** | **[Changelog](docs/CHANGELOG.md)**
 
 ![TerraNova](docs/images/header.webp)
 
@@ -37,7 +37,7 @@
 
 ## Quick Start
 
-1. Download the latest release from [Releases](https://github.com/HyperSystemsDev/TerraNova/releases)
+1. Download the latest release from [Releases](https://github.com/HyperSystems-Development/TerraNova/releases)
 2. Open TerraNova, pick a template or start from scratch
 3. Design your worldgen using the node editor and live preview
 4. Export and drop the JSON files in your server's `mods/` folder
@@ -205,11 +205,11 @@ TerraNova/
 
 ## Links
 
-- [Releases](https://github.com/HyperSystemsDev/TerraNova/releases) — Downloads
+- [Releases](https://github.com/HyperSystems-Development/TerraNova/releases) — Downloads
 - [Changelog](docs/CHANGELOG.md) — Version history
 - [Discord](https://discord.gg/NHPzsjkQeu) — Support & community
-- [Issues](https://github.com/HyperSystemsDev/TerraNova/issues) — Bug reports & features
-- [HyperSystemsDev](https://github.com/HyperSystemsDev) — Organization
+- [Issues](https://github.com/HyperSystems-Development/TerraNova/issues) — Bug reports & features
+- [HyperSystems-Development](https://github.com/HyperSystems-Development) — Organization
 
 ## License
 
@@ -221,4 +221,4 @@ TerraNova is developed with assistance from AI tooling. We believe in being upfr
 
 ---
 
-Part of the **HyperSystems** suite: [HyperPerms](https://github.com/HyperSystemsDev/HyperPerms) | [HyperHomes](https://github.com/HyperSystemsDev/HyperHomes) | [HyperFactions](https://github.com/HyperSystemsDev/HyperFactions) | [TerraNova](https://github.com/HyperSystemsDev/TerraNova)
+Part of the **HyperSystems** suite: [HyperPerms](https://github.com/HyperSystems-Development/HyperPerms) | [HyperHomes](https://github.com/HyperSystems-Development/HyperHomes) | [HyperFactions](https://github.com/HyperSystems-Development/HyperFactions) | [TerraNova](https://github.com/HyperSystems-Development/TerraNova)
