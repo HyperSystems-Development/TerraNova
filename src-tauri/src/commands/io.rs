@@ -545,6 +545,10 @@ fn collect_biome_files_inner(
 /// Open a URL in the user's default web browser.
 #[tauri::command]
 pub fn open_url(url: String) -> Result<(), String> {
+    if !url.starts_with("https://") && !url.starts_with("http://") {
+        return Err("Only http/https URLs are allowed".into());
+    }
+
     #[cfg(target_os = "windows")]
     {
         Command::new("cmd")
