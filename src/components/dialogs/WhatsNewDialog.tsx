@@ -155,8 +155,8 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
                       {section.title}
                     </h3>
                     <ul className="space-y-3">
-                      {section.items.map((item) => (
-                        <li key={item.label} className="flex gap-3">
+                      {section.items.map((item, i) => (
+                        <li key={i} className="flex gap-3">
                           <span className="mt-[5px] shrink-0 w-1.5 h-1.5 rounded-full bg-tn-accent" />
                           <div>
                             <p className="text-[13px] font-medium leading-snug">{item.label}</p>
@@ -182,8 +182,8 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
                       {section.title}
                     </h3>
                     <ul className="space-y-2">
-                      {section.items.map((item) => (
-                        <li key={item.label} className="flex gap-3">
+                      {section.items.map((item, i) => (
+                        <li key={i} className="flex gap-3">
                           <span className="mt-[5px] shrink-0 w-1.5 h-1.5 rounded-full bg-tn-border" />
                           <div>
                             <p className="text-[12px] font-medium leading-snug">{item.label}</p>

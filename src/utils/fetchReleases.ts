@@ -102,7 +102,7 @@ function parseItems(content: string): { label: string; description: string }[] {
 // ── Fetcher ────────────────────────────────────────────────────────────────────
 
 const RELEASES_URL =
-  "https://api.github.com/repos/HyperSystems-Development/TerraNova/releases";
+  "https://api.github.com/repos/HyperSystems-Development/TerraNova/releases?per_page=100";
 
 interface GitHubRelease {
   tag_name: string;
@@ -155,7 +155,7 @@ export async function fetchReleases(): Promise<ReleaseData[]> {
 
   const raw: GitHubRelease[] = await res.json();
   const releases = raw
-    .filter((r) => !r.draft)
+    .filter((r) => !r.draft && !r.prerelease)
     .map(toReleaseData);
 
   memoryCache = releases;

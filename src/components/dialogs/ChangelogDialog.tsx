@@ -120,8 +120,8 @@ export function ChangelogDialog({ open, onClose }: ChangelogDialogProps) {
                           {section.title}
                         </p>
                         <ul className="space-y-1.5">
-                          {section.items.map((item) => (
-                            <li key={item.label} className="flex gap-2.5 text-[12px] text-tn-text leading-snug">
+                          {section.items.map((item, i) => (
+                            <li key={i} className="flex gap-2.5 text-[12px] text-tn-text leading-snug">
                               <span className="mt-[5px] shrink-0 w-1 h-1 rounded-full bg-tn-text-muted/60" />
                               <span>
                                 {item.description ? (
