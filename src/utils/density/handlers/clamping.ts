@@ -2,9 +2,13 @@ import type { NodeHandler } from "../evalContext";
 
 const handleClamp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const v = ctx.getInput(inputs, "Input", x, y, z);
-  const min = Number(fields.Min ?? -Infinity);
-  const max = Number(fields.Max ?? Infinity);
-  return Math.max(min, Math.min(max, v));
+  const wallA = Number(fields.Min ?? fields.WallA ?? -Infinity);
+  const wallB = Number(fields.Max ?? fields.WallB ?? Infinity);
+  // V2: auto-sort walls so either order works; if equal, return constant
+  if (wallA === wallB) return wallA;
+  const lo = Math.min(wallA, wallB);
+  const hi = Math.max(wallA, wallB);
+  return Math.max(lo, Math.min(hi, v));
 };
 
 const handleClampToIndex: NodeHandler = (ctx, fields, inputs, x, y, z) => {
