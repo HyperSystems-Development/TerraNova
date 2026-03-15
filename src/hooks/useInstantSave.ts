@@ -1,31 +1,22 @@
 import { useEffect, useRef } from "react";
-import { on, off } from "@/stores/storeEvents";
 import { useProjectStore } from "@/stores/projectStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { saveRef } from "@/utils/saveRef";
 
 /**
- * When Instant Save is enabled, listens for "editor:dirty" events and
- * debounce-saves the current file to disk. Uses saveRef (set by Toolbar)
- * so this hook works anywhere inside or outside ReactFlowProvider.
+ * When Instant Save is enabled, watches the project store's isDirty flag
+ * and debounce-saves the current file to disk. Subscribes to isDirty via
+ * zustand rather than the "editor:dirty" event because some mutation paths
+ * (e.g. useFieldChange config edits) call setDirty(true) directly without
+ * emitting the event. Uses saveRef (set by Toolbar) so this hook works
+ * anywhere inside or outside ReactFlowProvider.
  */
 export function useInstantSave() {
   const savingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const currentFileRef = useRef<string | null>(null);
-
-  // Track file changes to cancel stale debounces
-  const currentFile = useProjectStore((s) => s.currentFile);
-  useEffect(() => {
-    if (currentFileRef.current !== currentFile && timerRef.current !== null) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    currentFileRef.current = currentFile;
-  }, [currentFile]);
 
   useEffect(() => {
-    function handleDirty() {
+    function scheduleSave() {
       const { instantSaveEnabled, instantSaveDebounceMs } = useSettingsStore.getState();
       if (!instantSaveEnabled) return;
       if (!useProjectStore.getState().currentFile) return;
@@ -41,13 +32,10 @@ export function useInstantSave() {
         if (savingRef.current) return;
         if (!saveRef.current) return;
         if (!useProjectStore.getState().currentFile) return;
-        // Re-check in case it was toggled off during debounce
         if (!useSettingsStore.getState().instantSaveEnabled) return;
 
         savingRef.current = true;
         try {
-          // handleSaveFile() calls setDirty(false) on success, which does NOT
-          // emit "editor:dirty", so there is no feedback loop.
           await saveRef.current();
         } finally {
           savingRef.current = false;
@@ -57,15 +45,30 @@ export function useInstantSave() {
             useSettingsStore.getState().instantSaveEnabled &&
             useProjectStore.getState().currentFile
           ) {
-            handleDirty();
+            scheduleSave();
           }
         }
       }, instantSaveDebounceMs);
     }
 
-    on("editor:dirty", handleDirty);
+    // Subscribe to isDirty transitions: false → true triggers a save.
+    // This catches ALL dirty paths (graph mutations, config field edits,
+    // clipboard ops, biome section changes).
+    const unsub = useProjectStore.subscribe(
+      (state, prev) => {
+        if (state.isDirty && !prev.isDirty) {
+          scheduleSave();
+        }
+        // Cancel pending save if file changed while debounce is pending
+        if (state.currentFile !== prev.currentFile && timerRef.current !== null) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+      },
+    );
+
     return () => {
-      off("editor:dirty", handleDirty);
+      unsub();
       if (timerRef.current !== null) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
