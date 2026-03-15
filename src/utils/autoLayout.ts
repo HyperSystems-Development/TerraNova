@@ -1,5 +1,19 @@
 import type { Node, Edge } from "@xyflow/react";
 import { NODE_WIDTH, NODE_HEIGHT } from "@/constants";
+import * as _graphlibModule from "@dagrejs/graphlib";
+
+// @dagrejs/dagre's ESM bundle contains a CJS require() shim that throws
+// "Dynamic require of '@dagrejs/graphlib' is not supported" in browsers.
+// The shim fires during module evaluation, so we must polyfill require()
+// before dagre is ever imported. Static import of graphlib above guarantees
+// it's available here at module scope.
+const _graphlib = (_graphlibModule as any).default ?? _graphlibModule;
+if (!(globalThis as any).require) {
+  (globalThis as any).require = (id: string) => {
+    if (id === "@dagrejs/graphlib") return _graphlib;
+    throw new Error(`Dynamic require of "${id}" is not supported`);
+  };
+}
 
 /**
  * Tidy up node positions by snapping to grid and resolving overlaps.
@@ -63,42 +77,17 @@ export function tidyUp(nodes: Node[], gridSize: number = 20): Node[] {
 let dagreLib: typeof import("@dagrejs/dagre") | null = null;
 
 /**
- * Lazily import dagre and graphlib with a temporary require polyfill.
- *
- * @dagrejs/dagre's ESM bundle contains a CJS require() shim that throws
- * "Dynamic require of '@dagrejs/graphlib' is not supported" in browser
- * environments. The shim fires during module evaluation (at import time),
- * so we must make graphlib available via globalThis.require *before*
- * importing dagre.
+ * Lazily import dagre. The require polyfill is already set up at module
+ * scope above, so dagre's CJS shim will find graphlib when it evaluates.
  */
 async function ensureDagre() {
   if (dagreLib) return dagreLib;
 
-  // 1. Load graphlib first (separate chunk from dagre)
-  const graphlibMod = await import("@dagrejs/graphlib");
-  const graphlib = (graphlibMod as any).default ?? graphlibMod;
-
-  // 2. Temporarily polyfill require so dagre's CJS shim can resolve graphlib
-  const prevRequire = (globalThis as any).require;
-  (globalThis as any).require = (id: string) => {
-    if (id === "@dagrejs/graphlib") return graphlib;
-    if (prevRequire) return prevRequire(id);
-    throw new Error(`Dynamic require of "${id}" is not supported`);
-  };
-
-  try {
-    // 3. Now import dagre — its shim will find graphlib via our polyfill
-    const dagreMod = await import("@dagrejs/dagre");
-    const dagre = (dagreMod as any).default ?? dagreMod;
-    dagre.graphlib = graphlib;
-    dagreLib = dagre;
-  } finally {
-    // 4. Restore original state
-    if (prevRequire === undefined) delete (globalThis as any).require;
-    else (globalThis as any).require = prevRequire;
-  }
-
-  return dagreLib!;
+  const dagreMod = await import("@dagrejs/dagre");
+  const dagre = (dagreMod as any).default ?? dagreMod;
+  dagre.graphlib = _graphlib;
+  dagreLib = dagre;
+  return dagreLib;
 }
 
 /**
