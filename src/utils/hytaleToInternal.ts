@@ -384,6 +384,11 @@ function reverseSpaceAndDepthFields(
       delete result.Layers;
       delete result.LayerContext;
       delete result.MaxExpectedDepth;
+    } else {
+      // 0-1 layers: still clean up Hytale-only fields
+      delete result.Layers;
+      delete result.LayerContext;
+      delete result.MaxExpectedDepth;
     }
   }
   return result;

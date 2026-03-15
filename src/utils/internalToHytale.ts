@@ -435,8 +435,7 @@ function transformSpaceAndDepthFields(
 
   // 2-layer case: reconstruct from DepthThreshold/Empty/Solid
   const depthThreshold = (result.DepthThreshold as number) ?? 2;
-  const originalMaxDepth = (result.__originalMaxExpectedDepth as number) ??
-    (depthThreshold + 14); // fallback for legacy data without preserved depth
+  const originalMaxDepth = (result.__originalMaxExpectedDepth as number) ?? 16;
 
   // Transform child material nodes
   let emptyMaterial: unknown;

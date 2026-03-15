@@ -348,7 +348,7 @@ const INTERNAL_ONLY_FIELDS = new Set(["BoxBlockType"]);
 function stripInternalFields(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
-    if (INTERNAL_ONLY_FIELDS.has(key)) continue;
+    if (INTERNAL_ONLY_FIELDS.has(key) || key.startsWith("__")) continue;
     if (Array.isArray(value)) {
       result[key] = value.map((item) =>
         item && typeof item === "object" && !Array.isArray(item)
