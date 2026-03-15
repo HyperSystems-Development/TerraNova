@@ -81,15 +81,15 @@ fn is_leap(year: u64) -> bool {
     (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
 }
 
-fn write_sync_manifest(cache_root: &Path, source_path: &Path, files_written: u64) {
+fn write_sync_manifest(cache_root: &Path, source_path: &Path, files_written: u64) -> Result<(), Box<dyn std::error::Error>> {
     let manifest = SyncManifest {
         synced_at: now_iso8601(),
         source_path: source_path.to_string_lossy().to_string(),
         files_written,
     };
-    if let Ok(json) = serde_json::to_string_pretty(&manifest) {
-        let _ = fs::write(cache_root.join(SYNC_MANIFEST_NAME), json);
-    }
+    let json = serde_json::to_string_pretty(&manifest)?;
+    fs::write(cache_root.join(SYNC_MANIFEST_NAME), json)?;
+    Ok(())
 }
 
 fn read_sync_manifest(cache_root: &Path) -> Option<SyncManifest> {
@@ -186,6 +186,7 @@ pub fn check_asset_staleness(source_path: &str) -> AssetStalenessInfo {
 
     let is_stale = match (synced_at_secs, newest_secs) {
         (Some(synced), src) if src > 0 => src > synced,
+        (None, src) if src > 0 => true, // never synced but source exists
         _ => false,
     };
 
@@ -262,8 +263,9 @@ pub fn ensure_hytale_assets_root() -> Result<PathBuf, Box<dyn std::error::Error>
 }
 
 fn sanitize_relative_path(relative_path: &str) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let normalized = relative_path.replace('\\', "/");
     let mut sanitized = PathBuf::new();
-    for component in Path::new(relative_path).components() {
+    for component in Path::new(&normalized).components() {
         match component {
             Component::Normal(part) => sanitized.push(part),
             Component::CurDir => {}
@@ -300,12 +302,13 @@ fn clear_cached_asset_subtrees(root: &Path) -> Result<(), Box<dyn std::error::Er
 }
 
 fn sanitize_archive_entry_path(entry_name: &str) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let normalized = entry_name.replace('\\', "/");
     let mut sanitized = PathBuf::new();
-    for component in Path::new(entry_name).components() {
+    for component in Path::new(&normalized).components() {
         match component {
             Component::Normal(part) => sanitized.push(part),
-            Component::CurDir => {}
-            _ => return Err("Invalid archive entry path".into()),
+            Component::CurDir | Component::RootDir => {}
+            _ => return Err("Invalid archive entry path: contains ..".into()),
         }
     }
     Ok(sanitized)
@@ -328,6 +331,10 @@ fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<u64, Bo
             return Err("sync cancelled by user".into());
         }
         let source_path = entry.path();
+        // Skip symlinks to prevent info leaks and cycles
+        if source_path.is_symlink() {
+            continue;
+        }
         let destination_path = destination.join(entry.file_name());
 
         if source_path.is_dir() {
@@ -552,6 +559,10 @@ fn copy_directory_recursive_with_progress(
             return Err("sync cancelled by user".into());
         }
         let source_path = entry.path();
+        // Skip symlinks to prevent info leaks and cycles
+        if source_path.is_symlink() {
+            continue;
+        }
         let destination_path = destination.join(entry.file_name());
 
         if source_path.is_dir() {
@@ -574,7 +585,9 @@ fn copy_directory_recursive_with_progress(
             *files_written += 1;
 
             // Emit progress
-            let percent = total_files_opt.map(|total| (*files_written as f32) / (total as f32) * 100.0);
+            let percent = total_files_opt
+                .filter(|&total| total > 0)
+                .map(|total| ((*files_written as f32) / (total as f32) * 100.0).min(100.0));
             let _ = window.emit(
                 "hytale-sync-progress",
                 &SyncProgressEvent {
@@ -642,7 +655,9 @@ fn extract_assets_zip_with_progress(
         io::copy(&mut entry, &mut output)?;
         *files_written += 1;
 
-        let percent = if total_files > 0 { Some((*files_written as f32) / (total_files as f32) * 100.0) } else { None };
+        let percent = if total_files > 0 {
+            Some(((*files_written as f32) / (total_files as f32) * 100.0).min(100.0))
+        } else { None };
         let _ = window.emit(
             "hytale-sync-progress",
             &SyncProgressEvent {
@@ -663,6 +678,9 @@ pub fn sync_hytale_assets_from_source_with_progress(
     common_overlay_path: Option<&Path>,
     window: &Window,
 ) -> Result<HytaleAssetSyncResult, Box<dyn std::error::Error>> {
+    // Reset cancel flag before any work, including the counting phase.
+    CANCEL_SYNC.store(false, Ordering::SeqCst);
+
     if !source_path.exists() {
         return Err(format!("Hytale asset source not found: {}", source_path.display()).into());
     }
@@ -767,8 +785,6 @@ pub fn sync_hytale_assets_from_source_with_progress(
         return Ok(result);
     }
 
-    // Clear any previous cancellation request and emit start
-    CANCEL_SYNC.store(false, Ordering::SeqCst);
     let _ = window.emit("hytale-sync-start", &serde_json::json!({ "total_files": total_files_opt }));
 
     let mut files_written = 0u64;
@@ -803,7 +819,7 @@ pub fn sync_hytale_assets_from_source_with_progress(
     };
 
     let total_written = files_written_inner + common_overlay_files_written;
-    write_sync_manifest(&cache_root, source_path, total_written);
+    write_sync_manifest(&cache_root, source_path, total_written)?;
 
     let result = HytaleAssetSyncResult {
         cache_root: cache_root.to_string_lossy().to_string(),
@@ -865,7 +881,7 @@ pub fn sync_hytale_assets_from_source(
     };
 
     let total_written = files_written + common_overlay_files_written;
-    write_sync_manifest(&cache_root, source_path, total_written);
+    write_sync_manifest(&cache_root, source_path, total_written)?;
 
     Ok(HytaleAssetSyncResult {
         cache_root: cache_root.to_string_lossy().to_string(),

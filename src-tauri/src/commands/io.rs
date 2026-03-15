@@ -1,3 +1,7 @@
+// TODO(security): The filesystem commands in this module (read_asset_file,
+// write_asset_file, copy_file, etc.) accept arbitrary paths and bypass
+// Tauri's filesystem scoping. A future PR should add path scope validation
+// to restrict operations to the project directory and hytale-assets cache.
 use crate::io::asset_pack::{AssetPack, DirectoryEntry};
 use serde_json::Value;
 use std::fs;
