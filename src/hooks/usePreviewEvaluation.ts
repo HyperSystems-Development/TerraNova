@@ -60,7 +60,7 @@ export function usePreviewEvaluation() {
 
         // Only apply if this is still the latest evaluation
         if (evalId === evalIdRef.current) {
-          setValues(result.values, result.minValue, result.maxValue);
+          setValues(result.values, result.minValue, result.maxValue, result.p02Value, result.p98Value);
           usePreviewStore.getState().setFidelityScore(computeFidelityScore(nodes));
         }
       } catch (err) {
@@ -109,7 +109,7 @@ export function triggerManualEvaluation() {
     options: { contentFields },
   })
     .then((result) => {
-      setValues(result.values, result.minValue, result.maxValue);
+      setValues(result.values, result.minValue, result.maxValue, result.p02Value, result.p98Value);
     })
     .catch((err) => {
       if (err === "cancelled") return;

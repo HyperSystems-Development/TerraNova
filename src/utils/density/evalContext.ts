@@ -16,6 +16,10 @@ export interface DensityGridResult {
   values: Float32Array;
   minValue: number;
   maxValue: number;
+  /** 2nd percentile value for robust normalization */
+  p02Value: number;
+  /** 98th percentile value for robust normalization */
+  p98Value: number;
 }
 
 export interface EvaluationOptions {
