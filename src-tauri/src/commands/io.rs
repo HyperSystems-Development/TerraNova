@@ -181,6 +181,15 @@ pub fn sync_hytale_assets(
     source_path: String,
     common_overlay_path: Option<String>,
 ) -> Result<crate::io::hytale_assets::HytaleAssetSyncResult, String> {
+    // Register the user-selected source path as an allowed root, then validate.
+    path_scope::register_allowed_root(Path::new(&source_path));
+    path_scope::validate_path_str(&source_path)?;
+    if let Some(ref overlay) = common_overlay_path {
+        if !overlay.trim().is_empty() {
+            path_scope::register_allowed_root(Path::new(overlay));
+            path_scope::validate_path_str(overlay)?;
+        }
+    }
     crate::io::hytale_assets::sync_hytale_assets_from_source_with_progress(
         Path::new(&source_path),
         common_overlay_path
@@ -199,6 +208,14 @@ pub fn count_hytale_assets_to_sync(
     source_path: String,
     common_overlay_path: Option<String>,
 ) -> Result<u64, String> {
+    path_scope::register_allowed_root(Path::new(&source_path));
+    path_scope::validate_path_str(&source_path)?;
+    if let Some(ref overlay) = common_overlay_path {
+        if !overlay.trim().is_empty() {
+            path_scope::register_allowed_root(Path::new(overlay));
+            path_scope::validate_path_str(overlay)?;
+        }
+    }
     crate::io::hytale_assets::count_changed_hytale_assets_from_source(
         Path::new(&source_path),
         common_overlay_path
@@ -216,6 +233,15 @@ pub fn start_hytale_assets_sync(
     source_path: String,
     common_overlay_path: Option<String>,
 ) -> Result<(), String> {
+    path_scope::register_allowed_root(Path::new(&source_path));
+    path_scope::validate_path_str(&source_path)?;
+    if let Some(ref overlay) = common_overlay_path {
+        if !overlay.trim().is_empty() {
+            path_scope::register_allowed_root(Path::new(overlay));
+            path_scope::validate_path_str(overlay)?;
+        }
+    }
+
     let win = window.clone();
     let src = source_path.clone();
     let overlay = common_overlay_path.clone();
@@ -245,8 +271,10 @@ pub fn cancel_hytale_assets_sync() -> Result<(), String> {
 #[tauri::command]
 pub fn check_hytale_asset_staleness(
     source_path: String,
-) -> crate::io::hytale_assets::AssetStalenessInfo {
-    crate::io::hytale_assets::check_asset_staleness(&source_path)
+) -> Result<crate::io::hytale_assets::AssetStalenessInfo, String> {
+    path_scope::register_allowed_root(Path::new(&source_path));
+    path_scope::validate_path_str(&source_path)?;
+    Ok(crate::io::hytale_assets::check_asset_staleness(&source_path))
 }
 
 // ── Project creation commands ───────────────────────────────────────────────
@@ -255,6 +283,10 @@ pub fn check_hytale_asset_staleness(
 #[tauri::command]
 pub fn create_blank_project(target_path: String) -> Result<(), String> {
     let target = Path::new(&target_path);
+    // Register the target as an allowed root first — the path comes from a
+    // user-confirmed OS save dialog so it is trusted. This must happen before
+    // any I/O so that subsequent scope-validated commands work correctly.
+    path_scope::register_allowed_root(target);
     if target.exists()
         && fs::read_dir(target)
             .map_err(|e| e.to_string())?
@@ -378,9 +410,6 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
-    // Register the new project as an allowed root
-    path_scope::register_allowed_root(target);
-
     Ok(())
 }
 
@@ -391,11 +420,12 @@ pub fn create_from_template(
     template_name: String,
     target_path: String,
 ) -> Result<(), String> {
+    // Register the target as an allowed root first — the path comes from a
+    // user-confirmed OS save dialog so it is trusted.
+    path_scope::register_allowed_root(Path::new(&target_path));
     let resource_dir = app.path().resource_dir().ok();
     crate::io::template::create_from_template(&template_name, &target_path, resource_dir)
         .map_err(|e| e.to_string())?;
-    // Register the new project as an allowed root
-    path_scope::register_allowed_root(Path::new(&target_path));
     Ok(())
 }
 
@@ -515,6 +545,7 @@ fn collect_biome_files_inner(
 /// Reveal a file or folder in the OS file explorer.
 #[tauri::command]
 pub fn show_in_folder(path: String) -> Result<(), String> {
+    path_scope::validate_path_str(&path)?;
     let target = PathBuf::from(&path);
 
     #[cfg(target_os = "windows")]

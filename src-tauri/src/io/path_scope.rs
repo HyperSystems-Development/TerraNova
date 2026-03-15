@@ -64,12 +64,14 @@ pub fn validate_path(path: &str) -> Result<PathBuf, String> {
 
     let roots = ALLOWED_ROOTS.read().unwrap_or_else(|e| e.into_inner());
 
-    // If no roots are registered yet, allow everything (backward compat during
-    // startup before a project is opened). This is a deliberate tradeoff:
-    // commands like show_in_folder and path_exists may be called before any
-    // project is open.
+    // Deny-by-default: if no roots are registered yet, reject the path.
+    // Commands that need to work pre-project (path_exists, get_hytale_asset_cache_root)
+    // either bypass scope explicitly or register their own roots first.
     if roots.is_empty() {
-        return Ok(canonical);
+        return Err(format!(
+            "No project roots registered — path not allowed: {}",
+            target.display()
+        ));
     }
 
     for root in roots.iter() {
