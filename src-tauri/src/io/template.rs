@@ -55,10 +55,28 @@ pub fn find_templates_root(
     Err("templates/ directory not found".into())
 }
 
+/// Validate that a template name is a simple directory name with no path
+/// traversal components (no `/`, `\`, or `..`).
+fn validate_template_name(name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    if name.is_empty() {
+        return Err("Template name must not be empty".into());
+    }
+    if name.contains('/') || name.contains('\\') || name.contains("..") {
+        return Err(format!(
+            "Template name '{}' contains invalid path characters",
+            name
+        )
+        .into());
+    }
+    Ok(())
+}
+
 fn get_template_dir(
     template_name: &str,
     resource_dir: Option<PathBuf>,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    validate_template_name(template_name)?;
+
     // 1. Tauri resource directory (production builds)
     if let Some(res_dir) = resource_dir {
         let resource_path = res_dir.join("templates").join(template_name);
@@ -97,6 +115,11 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<(), Box<dyn std::error::
         let entry = entry?;
         let entry_path = entry.path();
         let dest_path = dst.join(entry.file_name());
+
+        // Skip symlinks to prevent following links outside the template directory
+        if entry_path.is_symlink() {
+            continue;
+        }
 
         if entry_path.is_dir() {
             copy_dir_recursive(&entry_path, &dest_path)?;

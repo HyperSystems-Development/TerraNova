@@ -28,8 +28,17 @@ impl BridgeState {
     }
 }
 
+/// Hosts allowed for bridge connections (loopback only).
+const ALLOWED_HOSTS: &[&str] = &["127.0.0.1", "::1", "localhost"];
+
 impl BridgeClient {
     pub fn new(host: &str, port: u16, auth_token: &str) -> Result<Self, String> {
+        if !ALLOWED_HOSTS.iter().any(|h| h.eq_ignore_ascii_case(host)) {
+            return Err(format!(
+                "Bridge host must be loopback (127.0.0.1, ::1, or localhost), got '{}'",
+                host
+            ));
+        }
         let http = Client::builder()
             .connect_timeout(Duration::from_secs(3))
             .timeout(Duration::from_secs(8))

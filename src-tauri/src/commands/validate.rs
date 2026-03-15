@@ -1,3 +1,4 @@
+use crate::io::path_scope;
 use crate::schema::validation::{ValidationError, ValidationResult};
 use serde_json::Value;
 use std::fs;
@@ -6,6 +7,7 @@ use std::path::PathBuf;
 /// Validate an entire asset pack directory against V2 schema.
 #[tauri::command]
 pub fn validate_asset_pack(path: String) -> Result<ValidationResult, String> {
+    path_scope::validate_path_str(&path)?;
     let pack_path = PathBuf::from(&path);
     if !pack_path.is_dir() {
         return Err(format!("Not a directory: {}", path));

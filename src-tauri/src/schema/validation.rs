@@ -51,9 +51,27 @@ const KNOWN_STRUCTURE_TYPES: &[&str] = &[
     "NoiseRange", "DAOTerrain",
 ];
 
+/// Maximum nesting depth for recursive validation to prevent stack overflow
+/// from maliciously crafted deeply-nested JSON.
+const MAX_VALIDATION_DEPTH: usize = 64;
+
 /// Validate a single asset JSON against V2 schema rules.
 pub fn validate_asset(file_path: &str, value: &Value) -> Vec<ValidationError> {
+    validate_asset_inner(file_path, value, 0)
+}
+
+fn validate_asset_inner(file_path: &str, value: &Value, depth: usize) -> Vec<ValidationError> {
     let mut errors = Vec::new();
+
+    if depth > MAX_VALIDATION_DEPTH {
+        errors.push(ValidationError {
+            file: file_path.to_string(),
+            field: String::new(),
+            message: format!("Nesting exceeds maximum depth of {}", MAX_VALIDATION_DEPTH),
+            severity: Severity::Warning,
+        });
+        return errors;
+    }
 
     let obj = match value.as_object() {
         Some(obj) => obj,
@@ -222,7 +240,7 @@ pub fn validate_asset(file_path: &str, value: &Value) -> Vec<ValidationError> {
         if let Some(nested_obj) = val.as_object() {
             if nested_obj.contains_key("Type") {
                 let nested_path = format!("{} > {}", file_path, key);
-                errors.extend(validate_asset(&nested_path, val));
+                errors.extend(validate_asset_inner(&nested_path, val, depth + 1));
             }
         }
         if let Some(arr) = val.as_array() {
@@ -230,7 +248,7 @@ pub fn validate_asset(file_path: &str, value: &Value) -> Vec<ValidationError> {
                 if let Some(item_obj) = item.as_object() {
                     if item_obj.contains_key("Type") {
                         let nested_path = format!("{} > {}[{}]", file_path, key, i);
-                        errors.extend(validate_asset(&nested_path, item));
+                        errors.extend(validate_asset_inner(&nested_path, item, depth + 1));
                     }
                 }
             }
@@ -437,6 +455,23 @@ mod validation_tests {
         .unwrap();
         let errors = validate_asset("Settings/Settings.json", &json);
         assert!(errors.is_empty(), "expected no errors, got: {:?}", errors);
+    }
+
+    #[test]
+    fn depth_limit_prevents_stack_overflow() {
+        // Build a serde_json::Value tree nested 70 levels deep (exceeds
+        // MAX_VALIDATION_DEPTH of 64). We construct the Value programmatically
+        // to avoid serde_json's parser recursion limit.
+        let mut inner = serde_json::json!({"Type": "Constant", "Value": 1.0});
+        for _ in 0..70 {
+            inner = serde_json::json!({"Type": "Sum", "Inputs": [inner]});
+        }
+        let errors = validate_asset("test.json", &inner);
+        assert!(
+            errors.iter().any(|e| e.message.contains("maximum depth")),
+            "expected depth limit warning, got: {:?}",
+            errors
+        );
     }
 
     #[test]
