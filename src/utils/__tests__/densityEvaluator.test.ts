@@ -1398,14 +1398,17 @@ describe("ZOverride", () => {
   });
 });
 
-/* ── Gradient ────────────────────────────────────────────────────── */
+/* ── Gradient (directional derivative) ────────────────────────────── */
 
 describe("Gradient", () => {
-  it("returns 0 at FromY and 1 at ToY", () => {
-    const nodes = [makeNode("g", "Gradient", { FromY: 0, ToY: 256 })];
-    expect(evalAt(nodes, [], 0, 0, 0)).toBeCloseTo(0);
-    expect(evalAt(nodes, [], 0, 256, 0)).toBeCloseTo(1);
-    expect(evalAt(nodes, [], 0, 128, 0)).toBeCloseTo(0.5);
+  it("estimates directional derivative of input along Y axis", () => {
+    // Input = CoordinateY, so d/dy(y) = 1.0 everywhere
+    const nodes = [
+      makeNode("y", "CoordinateY"),
+      makeNode("g", "Gradient", { Axis: { x: 0, y: 1, z: 0 }, SampleRange: 1.0 }),
+    ];
+    const edges = [makeEdge("y", "g", "Input")];
+    expect(evalAt(nodes, edges, 0, 64, 0, "g")).toBeCloseTo(1.0);
   });
 });
 
@@ -1455,7 +1458,7 @@ describe("DENSITY_NAMED_TO_ARRAY completeness", () => {
     "MirroredPosition", "QuantizedPosition", "Debug", "Passthrough", "Wrap",
     "SplineFunction", "Square", "SumSelf",
     "Exported", "ImportedValue", "YOverride", "XOverride", "ZOverride",
-    "Floor", "Ceiling", "AmplitudeConstant", "Pow", "SmoothCeiling",
+    "Floor", "Ceiling", "Pow", "SmoothCeiling",
     "SmoothFloor", "Anchor", "PositionsPinch", "PositionsTwist",
     "GradientDensity", "Gradient", "YGradient", "ClampToIndex",
     "DoubleNormalizer",

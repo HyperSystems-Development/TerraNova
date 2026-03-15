@@ -148,15 +148,23 @@ function transformSmoothFields(
   hytaleType: string,
 ): Record<string, unknown> {
   const result = { ...asset };
-  // All Smooth* types: Smoothness → Range
-  if ("Smoothness" in result) {
-    result.Range = result.Smoothness;
-    delete result.Smoothness;
-  }
-  // SmoothFloor / SmoothCeiling: Threshold → SmoothRange
-  if ((hytaleType === "SmoothFloor" || hytaleType === "SmoothCeiling") && "Threshold" in result) {
-    result.SmoothRange = result.Threshold;
-    delete result.Threshold;
+
+  if (hytaleType === "SmoothFloor" || hytaleType === "SmoothCeiling") {
+    // V2 uses Limit (threshold) + SmoothRange (blend width)
+    if ("Threshold" in result) {
+      result.Limit = result.Threshold;
+      delete result.Threshold;
+    }
+    if ("Smoothness" in result) {
+      result.SmoothRange = result.Smoothness;
+      delete result.Smoothness;
+    }
+  } else {
+    // SmoothClamp/SmoothMin/SmoothMax: Smoothness → Range
+    if ("Smoothness" in result) {
+      result.Range = result.Smoothness;
+      delete result.Smoothness;
+    }
   }
   return result;
 }
@@ -1357,6 +1365,16 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     transformedFields = transformNoiseFields(transformedFields, hytaleType);
   }
 
+  // Floor / Ceiling: internal "Floor"/"Ceiling" field → V2 "Limit"
+  if (hytaleType === "Floor" && "Floor" in transformedFields) {
+    transformedFields.Limit = transformedFields.Floor;
+    delete transformedFields.Floor;
+  }
+  if (hytaleType === "Ceiling" && "Ceiling" in transformedFields) {
+    transformedFields.Limit = transformedFields.Ceiling;
+    delete transformedFields.Ceiling;
+  }
+
   // Clamp / SmoothClamp
   if (hytaleType === "Clamp" || hytaleType === "SmoothClamp") {
     transformedFields = transformClampFields(transformedFields);
@@ -1395,6 +1413,21 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
   // FastGradientWarp: convert internal field names to Hytale names
   if (internalType === "FastGradientWarp") {
     transformedFields = transformFastGradientWarpFields(transformedFields);
+  }
+
+  // Plane: Normal → PlaneNormal, Distance → IsAnchored
+  if (hytaleType === "Plane") {
+    if ("Normal" in transformedFields) {
+      transformedFields.PlaneNormal = transformedFields.Normal;
+      delete transformedFields.Normal;
+    }
+    if ("Distance" in transformedFields) {
+      // Distance was mismodeled; V2 uses IsAnchored (boolean)
+      delete transformedFields.Distance;
+    }
+    if ("IsAnchored" in transformedFields) {
+      // pass through correctly
+    }
   }
 
   // AmplitudeConstant (LinearTransform)

@@ -366,7 +366,7 @@ export function analyzeGraphDefaults(
   // Priority 3: Y-dependent nodes
   for (const node of nodes) {
     const type = (node.data as Record<string, unknown>)?.type as string | undefined;
-    if (type === "YGradient" || type === "Gradient" || type === "GradientDensity" || type === "CoordinateY") {
+    if (type === "YGradient" || type === "GradientDensity" || type === "CoordinateY") {
       const fields = (node.data as Record<string, unknown>)?.fields as Record<string, unknown> | undefined;
       const fromY = Number(fields?.FromY ?? 0);
       const toY = Number(fields?.ToY ?? DEFAULT_WORLD_HEIGHT);
