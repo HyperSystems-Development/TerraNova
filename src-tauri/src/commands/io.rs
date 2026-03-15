@@ -542,6 +542,36 @@ fn collect_biome_files_inner(
 
 // ── Explorer / filesystem utility commands ───────────────────────────────────
 
+/// Open a URL in the user's default web browser.
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("explorer")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        Command::new("xdg-open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
 /// Reveal a file or folder in the OS file explorer.
 #[tauri::command]
 pub fn show_in_folder(path: String) -> Result<(), String> {
