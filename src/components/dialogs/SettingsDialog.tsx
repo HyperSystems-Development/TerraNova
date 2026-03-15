@@ -571,7 +571,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-4 flex flex-col gap-1">
                   <p className="text-sm font-semibold text-tn-text">TerraNova</p>
                   <p className="text-[11px] text-tn-text-muted">Offline design studio for Hytale World Generation V2</p>
-                  <p className="mt-1 text-[11px] text-tn-text-muted">v{appVersion} · McCal's QoL</p>
+                  <p className="mt-1 text-[11px] text-tn-text-muted">v{appVersion}</p>
                 </div>
 
                 {/* Authors */}
@@ -579,8 +579,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                   <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Authors</label>
                   <div className="flex flex-col gap-1.5">
                     {[
-                      { name: "HyperSystems", role: "Original TerraNova", description: "Core node graph editor, 3D voxel preview, and Hytale V2 schema foundation." },
-                      { name: "McCal", role: "McCal's QoL fork", description: "Weather & environment editors, Hytale asset cache sync, QoL improvements, and this settings overhaul." },
+                      { name: "TerraNova Team", role: "TerraNova", description: "Core node graph editor, 3D voxel preview, weather & environment editors, Hytale asset cache sync, and Hytale V2 schema foundation." },
                     ].map(({ name, role, description }) => (
                       <div key={name} className="rounded border border-tn-border/60 bg-tn-bg/60 px-3 py-2.5 flex flex-col gap-0.5">
                         <div className="flex items-center justify-between">
@@ -597,7 +596,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                 <div className="border-t border-tn-border/50 pt-4 flex flex-col gap-2">
                   <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Legal</label>
                   <div className="rounded border border-tn-border/60 bg-tn-bg/60 px-3 py-2.5 flex flex-col gap-1 text-[11px] text-tn-text-muted">
-                    <p>© 2024–2026 HyperSystems &amp; Contributors. McCal's QoL fork © 2026 McCal.</p>
+                    <p>© 2024–2026 HyperSystems &amp; Contributors.</p>
                     <p>TerraNova is not affiliated with or endorsed by Hypixel Studios.</p>
                     <p>Hytale is a trademark of Hypixel Studios.</p>
                   </div>
