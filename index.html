@@ -105,6 +105,44 @@
       </div>
     </div>
     <div id="root"></div>
+    <script>
+      // Runs immediately during bundle load — no module dependency.
+      (function(){
+        var msgs=[
+          "Getting it together...","Hoping that Simon notices me...",
+          "Plastic is Fantastic, just dont consume on a daily basis",
+          "Good luck in the Modding Contest!","Loading assets...",
+          "Warming up the map...","Assembling blocks...",
+          "Summoning terrain spirits...","Polishing the sky...",
+          "Feeding the pixel dragons...","Tuning the grass color...",
+          "Checking for missing cookies..."
+        ];
+        var statusEl=document.getElementById("splash-status");
+        var progressEl=document.getElementById("splash-progress");
+        if(!statusEl)return;
+
+        // Rotate messages
+        var i=0;
+        statusEl.textContent=msgs[0];
+        window.__splashMsgInterval=setInterval(function(){
+          i=(i+1)%msgs.length;
+          var e=document.getElementById("splash-status");
+          if(e)e.textContent=msgs[i];
+        },2400);
+
+        // Progressive bar: advance toward 90%, slowing as it approaches.
+        // React will fill the last 10% when it mounts.
+        var pct=14;
+        window.__splashTickInterval=setInterval(function(){
+          var el=document.getElementById("splash-progress");
+          if(!el)return;
+          var remaining=90-pct;
+          var step=Math.max(0.15,remaining*0.02);
+          pct=Math.min(pct+step,90);
+          el.style.width=pct.toFixed(1)+"%";
+        },100);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { UnlistenFn } from "@tauri-apps/api/event";
 import { ReactFlowProvider } from "@xyflow/react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getVersion } from "@tauri-apps/api/app";
+import { removeSplash } from "@/utils/splashProgress";
 import { useProjectStore } from "@/stores/projectStore";
 import { SimpleTitleBar } from "@/components/layout/TitleBar";
 import { ProjectTitleBar } from "@/components/layout/ProjectTitleBar";
@@ -35,109 +35,10 @@ import { useSessionRestore } from "@/hooks/useSessionRestore";
 type PendingAction = "window-close" | "close-project";
 
 export default function App() {
-  // Animate and update the initial splash overlay until the app is ready.
+  // Remove splash once React has mounted — the real wait is bundle loading,
+  // which happens before this code runs. No fake progress needed.
   useEffect(() => {
-    const progressEl = document.getElementById("splash-progress") as HTMLElement | null;
-    const statusEl = document.getElementById("splash-status") as HTMLElement | null;
-
-    const messages = [
-      "Getting it together...",
-      "Hoping that Simon notices me...",
-      "Plastic is Fantastic, just dont consume on a daily basis",
-      "Good luck in the Modding Contest!",
-      "Loading assets...",
-      "Warming up the map...",
-      "Assembling blocks...",
-      "Summoning terrain spirits...",
-      "Polishing the sky...",
-      "Feeding the pixel dragons...",
-      "Tuning the grass color...",
-      "Checking for missing cookies...",
-    ];
-
-    let msgIdx = 0;
-    let isReady = false;
-    let unlistenFn: UnlistenFn | null = null;
-
-    const setStatus = (text: string) => {
-      if (statusEl) statusEl.textContent = text;
-    };
-
-    // Initialize progress from DOM or default.
-    let progress = 14;
-    if (progressEl) {
-      const w = parseFloat(progressEl.style.width || "");
-      if (!Number.isNaN(w)) progress = w;
-    }
-
-    // Progress tick: advance slowly toward 92% until ready, then finish.
-    const tickInterval = 140;
-    const tick = () => {
-      if (!progressEl) return;
-      const targetMax = isReady ? 100 : 92;
-      const remaining = Math.max(0, targetMax - progress);
-      // smaller steps as we approach the target
-      const step = Math.max(0.2, Math.random() * (0.6 + remaining / 150));
-      progress = Math.min(progress + step, targetMax);
-      progressEl.style.width = `${Math.round(progress * 10) / 10}%`;
-    };
-
-    const tickId = window.setInterval(tick, tickInterval);
-
-    // Rotate playful status messages.
-    setStatus(messages[0]);
-    const msgId = window.setInterval(() => {
-      setStatus(messages[msgIdx % messages.length]);
-      msgIdx += 1;
-    }, 2400);
-
-    const removeSplash = (fast = false) => {
-      const el = document.getElementById("initial-splash");
-      if (!el) return;
-      try {
-        if (progressEl) progressEl.style.width = "100%";
-        el.classList.add("fade-out");
-        window.setTimeout(() => el.remove(), fast ? 180 : 320);
-      } catch {
-        try { el.remove(); } catch {}
-      }
-    };
-
-    // Listen for Tauri ready. In web dev mode this will throw and we fall back.
-    (async () => {
-      try {
-        const evt = await import("@tauri-apps/api/event");
-        unlistenFn = await evt.listen("tauri://ready", () => {
-          isReady = true;
-          setStatus("Ready — launching...");
-          if (progressEl) progressEl.style.width = "100%";
-          setTimeout(() => removeSplash(true), 120);
-          if (unlistenFn) unlistenFn();
-        });
-      } catch (e) {
-        // Not in a Tauri environment — finalize after a short delay so the
-        // user sees the animated progress on web/dev runs.
-        setTimeout(() => {
-          isReady = true;
-          setStatus("Ready — launching...");
-          removeSplash();
-        }, 800);
-      }
-    })();
-
-    // Safety fallback: ensure the splash is removed eventually.
-    const safety = window.setTimeout(() => {
-      isReady = true;
-      setStatus("Finalizing...");
-      removeSplash();
-    }, 5000);
-
-    return () => {
-      clearInterval(tickId);
-      clearInterval(msgId);
-      clearTimeout(safety);
-      if (unlistenFn) unlistenFn();
-    };
+    removeSplash();
   }, []);
 
   // Restore previous session (project path) on app mount
