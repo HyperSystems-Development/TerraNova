@@ -92,14 +92,18 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
         const pixel = i * 4;
 
         if (normalized && showHillShade) {
-          // Central differences for gradient
-          const colL = Math.max(0, col - 1);
-          const colR = Math.min(n - 1, col + 1);
-          const rowU = Math.max(0, row - 1);
-          const rowD = Math.min(n - 1, row + 1);
+          // Central differences with proper one-sided fallback at boundaries
+          const colL = col > 0 ? col - 1 : col;
+          const colR = col < n - 1 ? col + 1 : col;
+          const rowU = row > 0 ? row - 1 : row;
+          const rowD = row < n - 1 ? row + 1 : row;
 
-          const dx = (normalized[row * n + colR] - normalized[row * n + colL]) * reliefScale;
-          const dz = (normalized[rowD * n + col] - normalized[rowU * n + col]) * reliefScale;
+          // Adjust divisor for edge cells (one-sided vs two-sided difference)
+          const dxDiv = colR - colL || 1;
+          const dzDiv = rowD - rowU || 1;
+
+          const dx = (normalized[row * n + colR] - normalized[row * n + colL]) / dxDiv * reliefScale;
+          const dz = (normalized[rowD * n + col] - normalized[rowU * n + col]) / dzDiv * reliefScale;
 
           // Surface normal from gradient: (-dx, 1, -dz) then normalize
           const nx = -dx;
