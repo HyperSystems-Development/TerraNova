@@ -63,29 +63,24 @@ export function tidyUp(nodes: Node[], gridSize: number = 20): Node[] {
 let dagreLib: typeof import("@dagrejs/dagre") | null = null;
 
 /**
- * Lazily import dagre with a require() polyfill so its internal
- * require("@dagrejs/graphlib") resolves in the browser.
+ * Lazily import dagre and graphlib, then wire graphlib in directly.
+ * No window.require polyfill needed — works in all environments.
  */
 async function ensureDagre() {
   if (dagreLib) return dagreLib;
 
-  // 1. Import graphlib — its ESM bundle is self-contained and works fine
-  const graphlibMod = await import("@dagrejs/graphlib");
+  const [graphlibMod, dagreMod] = await Promise.all([
+    import("@dagrejs/graphlib"),
+    import("@dagrejs/dagre"),
+  ]);
+
+  const dagre = (dagreMod as any).default ?? dagreMod;
   const graphlib = (graphlibMod as any).default ?? graphlibMod;
 
-  // 2. Polyfill require() so dagre's internal require("@dagrejs/graphlib") resolves
-  if (typeof window !== "undefined") {
-    const prev = (window as any).require;
-    (window as any).require = (id: string) => {
-      if (id === "@dagrejs/graphlib") return graphlib;
-      if (typeof prev === "function") return prev(id);
-      throw new Error(`Cannot require("${id}")`);
-    };
-  }
+  // Inject graphlib directly so dagre.graphlib.Graph() works
+  dagre.graphlib = graphlib;
 
-  // 3. NOW import dagre — it will find graphlib via the polyfill
-  const dagreMod = await import("@dagrejs/dagre");
-  dagreLib = (dagreMod as any).default ?? dagreMod;
+  dagreLib = dagre;
   return dagreLib;
 }
 
