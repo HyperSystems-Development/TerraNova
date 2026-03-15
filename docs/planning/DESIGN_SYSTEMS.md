@@ -12,7 +12,7 @@ Reference document for TerraNova's visual language, color tokens, component anat
 | **Tagline** | Offline design studio for Hytale World Generation V2 |
 | **Logo** | Isometric mountain SVG with layered terrain silhouette |
 | **Logo Location** | `public/icons/terranova.svg` |
-| **Organization** | HyperSystemsDev |
+| **Organization** | HyperSystems-Development |
 
 ### Brand Colors
 

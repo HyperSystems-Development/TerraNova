@@ -89,8 +89,8 @@ body:
     attributes:
       label: Confirmation Checklist
       options:
-        - label: I have checked the existing [issues](https://github.com/HyperSystemsDev/TerraNova/issues) for duplicates.
+        - label: I have checked the existing [issues](https://github.com/HyperSystems-Development/TerraNova/issues) for duplicates.
           required: true
 
-        - label: I agree to follow this project's [Code of Conduct](https://github.com/HyperSystemsDev/TerraNova/blob/main/CODE_OF_CONDUCT.md).
+        - label: I agree to follow this project's [Code of Conduct](https://github.com/HyperSystems-Development/TerraNova/blob/main/CODE_OF_CONDUCT.md).
           required: true

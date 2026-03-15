@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** 2026-02-06
-**Organization:** HyperSystemsDev
+**Organization:** HyperSystems-Development
 **License:** LGPL-2.1
 **Based on:** IEEE 830-1998
 
@@ -70,7 +70,7 @@ TerraNova 1.0 targets Hytale server pre-release **2026.02.05-9ce2783f7**. Future
 
 ### 2.1 Product Perspective
 
-TerraNova is a new standalone product within the HyperSystemsDev ecosystem (alongside HyperPerms, HyperHomes, HyperFactions). It occupies the **design phase** in a complementary toolchain:
+TerraNova is a new standalone product within the HyperSystems-Development ecosystem (alongside HyperPerms, HyperHomes, HyperFactions). It occupies the **design phase** in a complementary toolchain:
 
 - **TerraNova** — offline design, template sharing, schema validation
 - **HyPaint** (3rd party) — live production editing with server sync
@@ -822,7 +822,7 @@ HytaleGenerator/
 {
   "name": "Forest Template",
   "description": "Complex forest terrain with trees, rocks, and layered materials",
-  "author": "HyperSystemsDev",
+  "author": "HyperSystems-Development",
   "version": "1.0.0",
   "serverVersion": "2026.02.05-9ce2783f7",
   "category": "terrain",
@@ -891,7 +891,7 @@ Core functionality (editing, preview, validation, bundled templates) must work w
 Output JSON must be loadable by Hytale server pre-release `2026.02.05-9ce2783f7` without modification.
 
 ### 7.6 Open Source
-All source code published under LGPL-2.1 license on `HyperSystemsDev/TerraNova` GitHub repository.
+All source code published under LGPL-2.1 license on `HyperSystems-Development/TerraNova` GitHub repository.
 
 ---
 
