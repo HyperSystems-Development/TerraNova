@@ -1129,7 +1129,7 @@ export function EnvironmentEditorView() {
                       max={23}
                       step={1}
                       value={previewHour}
-                      onChange={(event) => setPreviewHour(Number.parseInt(event.target.value, 10))}
+                      onChange={(event) => { const h = Number.parseInt(event.target.value, 10); if (Number.isFinite(h)) setPreviewHour(h); }}
                       className="min-w-[180px] flex-1 accent-tn-accent"
                     />
                     <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="environment-preview-jump">
@@ -1140,7 +1140,8 @@ export function EnvironmentEditorView() {
                       value={quickPreviewPresetValue}
                       onChange={(event) => {
                         if (event.target.value === "custom") return;
-                        setPreviewHour(Number.parseInt(event.target.value, 10));
+                        const h = Number.parseInt(event.target.value, 10);
+                        if (Number.isFinite(h)) setPreviewHour(h);
                       }}
                       className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
                     >
@@ -1253,7 +1254,7 @@ export function EnvironmentEditorView() {
                     </div>
                   )}
                   {activeForecasts.map((entry, index) => {
-                    const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];
+                    const weatherPath = entry.WeatherId ? weatherPathIndex[entry.WeatherId.toLowerCase()] : undefined;
                     const isHytale = weatherPath ? isHytaleAssetPath(weatherPath) : false;
                     return (
                       <ForecastEntryEditorCard
@@ -1431,13 +1432,16 @@ export function EnvironmentEditorView() {
                 <div className="mb-2 flex items-center justify-between">
                   <button
                     type="button"
-                    onClick={() => updateDoc((previous) => ({
-                      ...previous,
-                      Tags: {
-                        ...(previous.Tags ?? {}),
-                        NewGroup: [],
-                      },
-                    }))}
+                    onClick={() => updateDoc((previous) => {
+                      const existing = Object.keys(previous.Tags ?? {});
+                      let key = "NewGroup";
+                      let i = 2;
+                      while (existing.includes(key)) { key = `NewGroup_${i++}`; }
+                      return {
+                        ...previous,
+                        Tags: { ...(previous.Tags ?? {}), [key]: [] },
+                      };
+                    })}
                     className="rounded border border-tn-accent/40 px-2 py-1 text-[10px] text-tn-accent transition-colors hover:bg-tn-accent/10"
                   >
                     Add Tag Group
@@ -1598,7 +1602,7 @@ export function EnvironmentEditorView() {
                       )}
 
                       {entries.map((entry, index) => {
-                        const weatherPath = weatherPathIndex[entry.WeatherId.toLowerCase()];
+                        const weatherPath = entry.WeatherId ? weatherPathIndex[entry.WeatherId.toLowerCase()] : undefined;
                         const isHytale = weatherPath ? isHytaleAssetPath(weatherPath) : false;
                         return (
                           <ForecastEntryEditorCard

@@ -994,7 +994,7 @@ export function WeatherEditorView() {
           max={23}
           step={1}
           value={previewHour}
-          onChange={(event) => setPreviewHour(Number.parseInt(event.target.value, 10))}
+          onChange={(event) => { const h = Number.parseInt(event.target.value, 10); if (Number.isFinite(h)) setPreviewHour(h); }}
           className="min-w-[180px] flex-1 accent-tn-accent"
         />
         <span className="w-12 text-right text-[10px] font-mono text-tn-text-muted">{previewHour}:00</span>
@@ -1006,7 +1006,8 @@ export function WeatherEditorView() {
           value={quickPreviewPresetValue}
           onChange={(event) => {
             if (event.target.value === "custom") return;
-            setPreviewHour(Number.parseInt(event.target.value, 10));
+            const h = Number.parseInt(event.target.value, 10);
+            if (Number.isFinite(h)) setPreviewHour(h);
           }}
           className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
         >
