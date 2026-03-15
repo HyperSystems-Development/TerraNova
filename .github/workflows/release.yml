@@ -21,6 +21,7 @@ jobs:
             rust_target: ''
 
     runs-on: ${{ matrix.platform }}
+    environment: Prod
     permissions:
       contents: write
 

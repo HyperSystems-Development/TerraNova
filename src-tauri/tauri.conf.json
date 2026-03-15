@@ -60,7 +60,7 @@
       "endpoints": [
         "https://github.com/HyperSystems-Development/TerraNova/releases/latest/download/latest.json"
       ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDRCOEE4OERDNzhENjA3MDAKUldRQUI5WjQzSWlLUzgvS0h1SkVsbkpLQmdaanNqU1pERVBWWUJ5MzZVeXUyenBuNU41RDJCQVQK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJFNzdDQjZBN0IyNzhEODkKUldTSmpTZDdhc3QzdmtaZTNocC9hMVpOTjVHU2lEc2grczJuUWF2UGlSeXM2YWtWZ2pLUDF1Wm4K",
       "windows": {
         "installMode": "passive"
       }
