@@ -91,35 +91,7 @@ jobs:
           updaterJsonPreferNsis: true
           tagName: ${{ github.ref_name }}
           releaseName: 'TerraNova ${{ github.ref_name }}'
-          releaseBody: |
-            ## TerraNova — Hytale Worldgen Design Studio
-
-            Visual biome editor and terrain designer for Hytale World Generation V2. This is an early alpha release for testing.
-
-            ### Installation
-
-            **Windows**
-            1. Download the `.exe` installer
-            2. Run the installer (Windows may show a SmartScreen warning — click "More info" → "Run anyway")
-            3. Launch TerraNova from the Start Menu
-            > Requires Windows 10/11 with WebView2 (installer handles this automatically).
-
-            **macOS**
-            1. Download the `.dmg` for your architecture (aarch64 = Apple Silicon, x86_64 = Intel)
-            2. Open the `.dmg` and drag TerraNova to Applications
-            3. **First launch:** Right-click (or Control-click) TerraNova → select "Open" → click "Open" in the dialog
-            4. If macOS still blocks the app, open Terminal and run:
-               `xattr -cr /Applications/TerraNova.app` then launch normally
-            5. Alternatively: **System Settings → Privacy & Security** → click "Open Anyway"
-            > TerraNova is not yet signed with an Apple Developer certificate. The steps above are only needed once.
-            > Requires macOS 10.15+.
-
-            **Linux**
-            1. Download the `.deb` (Debian/Ubuntu) or `.AppImage`
-            2. For `.deb`: `sudo dpkg -i TerraNova_*.deb`
-            3. For `.AppImage`: `chmod +x TerraNova_*.AppImage && ./TerraNova_*.AppImage`
-            > Requires WebKitGTK 4.1.
-          releaseDraft: false
+          releaseDraft: true
           prerelease: true
           args: ${{ matrix.rust_target != '' && format('--target {0}', matrix.rust_target) || '' }}
 
