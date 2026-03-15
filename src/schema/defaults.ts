@@ -139,7 +139,7 @@ export const DENSITY_DEFAULTS: Record<DensityType, DefaultFields> = {
   Ellipsoid: { Scale: { x: 1, y: 1, z: 1 }, NewYAxis: { x: 0, y: 1, z: 0 }, SpinAngle: 0 },
   Cuboid: { Scale: { x: 1, y: 1, z: 1 }, NewYAxis: { x: 0, y: 1, z: 0 }, SpinAngle: 0 },
   Cylinder: { Radius: 1.0, Height: 2.0, NewYAxis: { x: 0, y: 1, z: 0 }, SpinAngle: 0 },
-  Plane: { Normal: { x: 0, y: 1, z: 0 }, Distance: 0.0 },
+  Plane: { Normal: { x: 0, y: 1, z: 0 }, IsAnchored: false },
   Shell: { Axis: { x: 0, y: 1, z: 0 }, Mirror: false },
   // Special
   Debug: { Label: "" },

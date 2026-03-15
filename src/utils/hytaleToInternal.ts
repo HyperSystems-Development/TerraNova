@@ -124,15 +124,23 @@ function reverseSmoothFields(
   hytaleType: string,
 ): Record<string, unknown> {
   const result = { ...asset };
-  // All Smooth* types: Range → Smoothness
-  if ("Range" in result) {
-    result.Smoothness = result.Range;
-    delete result.Range;
-  }
-  // SmoothFloor / SmoothCeiling: SmoothRange → Threshold
-  if ((hytaleType === "SmoothFloor" || hytaleType === "SmoothCeiling") && "SmoothRange" in result) {
-    result.Threshold = result.SmoothRange;
-    delete result.SmoothRange;
+
+  if (hytaleType === "SmoothFloor" || hytaleType === "SmoothCeiling") {
+    // V2 uses Limit + SmoothRange → internal Threshold + Smoothness
+    if ("Limit" in result) {
+      result.Threshold = result.Limit;
+      delete result.Limit;
+    }
+    if ("SmoothRange" in result) {
+      result.Smoothness = result.SmoothRange;
+      delete result.SmoothRange;
+    }
+  } else {
+    // SmoothClamp/SmoothMin/SmoothMax: Range → Smoothness
+    if ("Range" in result) {
+      result.Smoothness = result.Range;
+      delete result.Range;
+    }
   }
   return result;
 }
@@ -911,6 +919,16 @@ function transformNodeToInternal(
     processedFields = reverseNoiseFields(processedFields, hytaleType);
   }
 
+  // Floor / Ceiling: V2 "Limit" → internal "Floor"/"Ceiling"
+  if (hytaleType === "Floor" && "Limit" in processedFields) {
+    processedFields.Floor = processedFields.Limit;
+    delete processedFields.Limit;
+  }
+  if (hytaleType === "Ceiling" && "Limit" in processedFields) {
+    processedFields.Ceiling = processedFields.Limit;
+    delete processedFields.Limit;
+  }
+
   // Clamp / SmoothClamp
   if (hytaleType === "Clamp" || hytaleType === "SmoothClamp") {
     processedFields = reverseClampFields(processedFields);
@@ -939,6 +957,14 @@ function transformNodeToInternal(
   // Rotator → RotatedPosition
   if (hytaleType === "Rotator" && category === "density") {
     processedFields = reverseRotatorFields(processedFields);
+  }
+
+  // Plane: PlaneNormal → Normal, IsAnchored stays
+  if (hytaleType === "Plane") {
+    if ("PlaneNormal" in processedFields) {
+      processedFields.Normal = processedFields.PlaneNormal;
+      delete processedFields.PlaneNormal;
+    }
   }
 
   // FastGradientWarp: convert Hytale field names to internal names

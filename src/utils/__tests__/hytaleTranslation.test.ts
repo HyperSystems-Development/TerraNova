@@ -299,7 +299,7 @@ describe("clamp field renames", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Smooth* field renames (Smoothness→Range, Threshold→SmoothRange)
+// Smooth* field renames
 // ---------------------------------------------------------------------------
 
 describe("smooth field renames", () => {
@@ -321,21 +321,19 @@ describe("smooth field renames", () => {
     expect(result.Smoothness).toBeUndefined();
   });
 
-  it("exports SmoothFloor Threshold as SmoothRange", () => {
+  it("exports SmoothFloor Threshold as Limit, Smoothness as SmoothRange", () => {
     const result = internalToHytale({ Type: "SmoothFloor", Threshold: 0.5, Smoothness: 0.1 });
-    expect(result.SmoothRange).toBe(0.5);
+    expect(result.Limit).toBe(0.5);
     expect(result.Threshold).toBeUndefined();
-    // SmoothFloor also renames Smoothness → Range
-    expect(result.Range).toBe(0.1);
+    expect(result.SmoothRange).toBe(0.1);
     expect(result.Smoothness).toBeUndefined();
   });
 
-  it("exports SmoothCeiling Threshold as SmoothRange", () => {
+  it("exports SmoothCeiling Threshold as Limit, Smoothness as SmoothRange", () => {
     const result = internalToHytale({ Type: "SmoothCeiling", Threshold: 0.8, Smoothness: 0.15 });
-    expect(result.SmoothRange).toBe(0.8);
+    expect(result.Limit).toBe(0.8);
     expect(result.Threshold).toBeUndefined();
-    // SmoothCeiling also renames Smoothness → Range
-    expect(result.Range).toBe(0.15);
+    expect(result.SmoothRange).toBe(0.15);
     expect(result.Smoothness).toBeUndefined();
   });
 
@@ -352,18 +350,18 @@ describe("smooth field renames", () => {
     expect(asset.Range).toBeUndefined();
   });
 
-  it("imports SmoothRange back as Threshold for SmoothFloor", () => {
+  it("imports Limit as Threshold, SmoothRange as Smoothness for SmoothFloor", () => {
     const { asset } = hytaleToInternal({
       $NodeId: "SmoothFloorDensityNode-123",
       Type: "SmoothFloor",
-      SmoothRange: 0.5,
-      Range: 0.1,
+      Limit: 0.5,
+      SmoothRange: 0.1,
       Skip: false,
     });
     expect(asset.Threshold).toBe(0.5);
-    expect(asset.SmoothRange).toBeUndefined();
+    expect(asset.Limit).toBeUndefined();
     expect(asset.Smoothness).toBe(0.1);
-    expect(asset.Range).toBeUndefined();
+    expect(asset.SmoothRange).toBeUndefined();
   });
 });
 
@@ -1082,7 +1080,7 @@ describe("round-trip: internal → hytale → internal", () => {
     expect(imported.TargetRange).toEqual({ Min: 0, Max: 1 });
   });
 
-  it("round-trips Floor density with Floor field", () => {
+  it("round-trips Floor density with Floor→Limit rename", () => {
     const original = {
       Type: "Floor",
       Floor: 0,
@@ -1090,8 +1088,8 @@ describe("round-trip: internal → hytale → internal", () => {
     };
     const exported = internalToHytale(original);
     expect(exported.Type).toBe("Floor");
-    expect(exported.Floor).toBe(0);
-    // Input should be in Inputs[] array
+    expect(exported.Limit).toBe(0);
+    expect(exported.Floor).toBeUndefined();
     const inputs = exported.Inputs as Record<string, unknown>[];
     expect(inputs).toHaveLength(1);
     expect(inputs[0].Type).toBe("Constant");
@@ -1099,11 +1097,12 @@ describe("round-trip: internal → hytale → internal", () => {
     const { asset: imported } = hytaleToInternal(exported);
     expect(imported.Type).toBe("Floor");
     expect(imported.Floor).toBe(0);
+    expect(imported.Limit).toBeUndefined();
     expect((imported.Input as Record<string, unknown>).Type).toBe("Constant");
     expect((imported.Input as Record<string, unknown>).Value).toBe(3.7);
   });
 
-  it("round-trips Ceiling density with Ceiling field", () => {
+  it("round-trips Ceiling density with Ceiling→Limit rename", () => {
     const original = {
       Type: "Ceiling",
       Ceiling: 1,
@@ -1111,7 +1110,8 @@ describe("round-trip: internal → hytale → internal", () => {
     };
     const exported = internalToHytale(original);
     expect(exported.Type).toBe("Ceiling");
-    expect(exported.Ceiling).toBe(1);
+    expect(exported.Limit).toBe(1);
+    expect(exported.Ceiling).toBeUndefined();
     const inputs = exported.Inputs as Record<string, unknown>[];
     expect(inputs).toHaveLength(1);
     expect(inputs[0].Type).toBe("Constant");
@@ -1119,6 +1119,7 @@ describe("round-trip: internal → hytale → internal", () => {
     const { asset: imported } = hytaleToInternal(exported);
     expect(imported.Type).toBe("Ceiling");
     expect(imported.Ceiling).toBe(1);
+    expect(imported.Limit).toBeUndefined();
     expect((imported.Input as Record<string, unknown>).Type).toBe("Constant");
     expect((imported.Input as Record<string, unknown>).Value).toBe(-0.5);
   });
