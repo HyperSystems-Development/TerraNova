@@ -385,15 +385,11 @@ export function voronoiNoise3D(
               break;
           }
 
-          // Track 1st and 2nd nearest (same as FNL's approach)
-          if (newDistance < distance1) {
-            if (newDistance < distance0) {
-              distance1 = distance0;
-              distance0 = newDistance;
-              closestHash = hash;
-            } else {
-              distance1 = newDistance;
-            }
+          // FNL tracking: distance1 = max(min(distance1, newDist), distance0)
+          distance1 = Math.max(Math.min(distance1, newDistance), distance0);
+          if (newDistance < distance0) {
+            distance0 = newDistance;
+            closestHash = hash;
           }
 
           zPrimed = (zPrimed + PRIME_Z) | 0;

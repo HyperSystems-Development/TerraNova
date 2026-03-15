@@ -82,6 +82,8 @@ export function fbm3D(
  * 2D Ridge FBM matching V2's FastNoiseLite GenFractalRidged.
  * Uses linear transform: 1 - 2*|n| (not (1-|n|)^2).
  * Applies fractalBounding normalization.
+ * NOTE: V2's mWeightedStrength (default 0.0) is not implemented — it's a
+ * no-op at default and no V2 asset is known to set it to non-zero.
  */
 export function ridgeFbm2D(
   noise: (x: number, y: number) => number,

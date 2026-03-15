@@ -21,7 +21,10 @@ const handleGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const slopeRange = Number(fields.SlopeRange ?? fields.SampleRange ?? 1.0);
   const is2D = fields.Is2D === true;
 
-  // V2: forward difference — sample at origin and at origin + slopeRange
+  // V2: forward difference — sample at origin and at origin + slopeRange.
+  // NOTE: V2's GradientWarpDensity.java line 55 has a decompiler bug where
+  // the deltaZ sample uses (x, z, z+slopeRange) instead of (x, y, z+slopeRange).
+  // We intentionally use the mathematically correct formula here.
   const valueAtOrigin = ctx.getInput(inputs, "WarpSource", x, y, z);
 
   const deltaX = ctx.getInput(inputs, "WarpSource", x + slopeRange, y, z) - valueAtOrigin;
@@ -66,7 +69,7 @@ const handleFastGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const warpFactor = Number(fields.WarpFactor ?? 1.0);
   const warpSeed = ctx.hashSeed((fields.WarpSeed ?? fields.Seed) as string | number | undefined);
   const warpScale = Number(fields.WarpScale ?? 1.0);
-  // V2: passes 1.0 / warpScale as frequency to FastNoiseLite
+  // V2 asset inverts WarpScale to frequency: freq = 1.0 / warpScale
   const warpFreq = warpScale !== 0 ? 1.0 / warpScale : 1.0;
   const warpOctaves = Math.max(1, Number(fields.WarpOctaves ?? 3));
   const warpLacunarity = Number(fields.WarpLacunarity ?? 2.0);
