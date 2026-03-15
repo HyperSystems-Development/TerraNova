@@ -417,7 +417,25 @@ function transformSpaceAndDepthFields(
   ctx: TransformContext,
 ): Record<string, unknown> {
   const result = { ...asset };
+
+  // 3+ layer passthrough: emit the preserved raw data verbatim
+  if ("__rawLayers" in result) {
+    result.Layers = result.__rawLayers;
+    result.LayerContext = result.__rawLayerContext ?? "DEPTH_INTO_FLOOR";
+    result.MaxExpectedDepth = result.__rawMaxExpectedDepth ?? 16;
+    delete result.__rawLayers;
+    delete result.__rawLayerContext;
+    delete result.__rawMaxExpectedDepth;
+    delete result.DepthThreshold;
+    delete result.Solid;
+    delete result.Empty;
+    delete result.__originalMaxExpectedDepth;
+    return result;
+  }
+
+  // 2-layer case: reconstruct from DepthThreshold/Empty/Solid
   const depthThreshold = (result.DepthThreshold as number) ?? 2;
+  const originalMaxDepth = (result.__originalMaxExpectedDepth as number) ?? 16;
 
   // Transform child material nodes
   let emptyMaterial: unknown;
@@ -439,7 +457,7 @@ function transformSpaceAndDepthFields(
   }
 
   result.LayerContext = "DEPTH_INTO_FLOOR";
-  result.MaxExpectedDepth = 16;
+  result.MaxExpectedDepth = originalMaxDepth;
   result.Layers = [
     {
       $NodeId: generateNodeId("ConstantThickness.Layer"),
@@ -450,7 +468,7 @@ function transformSpaceAndDepthFields(
     {
       $NodeId: generateNodeId("ConstantThickness.Layer"),
       Type: "ConstantThickness",
-      Thickness: 16 - depthThreshold,
+      Thickness: originalMaxDepth - depthThreshold,
       Material: solidMaterial,
     },
   ];
@@ -458,6 +476,7 @@ function transformSpaceAndDepthFields(
   delete result.DepthThreshold;
   delete result.Solid;
   delete result.Empty;
+  delete result.__originalMaxExpectedDepth;
   return result;
 }
 
