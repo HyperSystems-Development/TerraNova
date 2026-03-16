@@ -53,7 +53,7 @@ export interface DocNodeGraphProps {
   height?: number;
 }
 
-const NODE_W = 130;
+const NODE_W = 160;
 
 function makeRFNode(n: DocGraphNode): Node {
   const color = CATEGORY_COLORS[n.category ?? "default"] ?? CATEGORY_COLORS.default;
@@ -73,26 +73,26 @@ function makeRFEdge(e: DocGraphEdge, i: number): Edge {
     target: e.to,
     label: e.label,
     type: "smoothstep",
-    style: { stroke: "#4a4438", strokeWidth: 1.5 },
-    labelStyle: { fill: "#9a9082", fontSize: 10 },
-    labelBgStyle: { fill: "#1c1a17", fillOpacity: 0.85 },
+    style: { stroke: "#6b5f4e", strokeWidth: 2 },
+    labelStyle: { fill: "#c4baa8", fontSize: 11 },
+    labelBgStyle: { fill: "#1c1a17", fillOpacity: 0.9 },
   };
 }
 
 function DocNode({ data }: { data: { label: string; sub?: string; color: string } }) {
   return (
     <div
-      style={{ borderColor: data.color }}
+      style={{ borderColor: data.color, borderWidth: 1.5 }}
       className="rounded border bg-tn-panel text-tn-text select-none overflow-hidden"
     >
       <div
         style={{ background: data.color }}
-        className="px-2 py-0.5 text-[11px] font-semibold text-white leading-tight truncate"
+        className="px-2.5 py-1 text-[13px] font-semibold text-white leading-tight truncate"
       >
         {data.label}
       </div>
       {data.sub && (
-        <div className="px-2 py-0.5 text-[10px] text-tn-text-muted truncate">{data.sub}</div>
+        <div className="px-2.5 py-0.5 text-[11px] text-tn-text-muted truncate">{data.sub}</div>
       )}
     </div>
   );
@@ -115,7 +115,7 @@ export function DocNodeGraph({ nodes, edges, height = 260 }: DocNodeGraphProps) 
           edges={rfEdges}
           nodeTypes={nodeTypes}
           fitView
-          fitViewOptions={{ padding: 0.25 }}
+          fitViewOptions={{ padding: 0.3, minZoom: 0.5, maxZoom: 1.2 }}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
