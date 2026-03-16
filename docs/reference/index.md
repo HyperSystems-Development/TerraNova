@@ -5,3 +5,10 @@ This section contains reference documentation about nodes, formats, and systems 
 ## Reference docs
 
 - [Node Effects: How Each Node Changes Terrain](./node-effects.md)
+
+---
+
+## More docs
+
+- [Walkthroughs](../walkthroughs/index.md)
+- [Getting Started](../getting-started.md)
