@@ -321,13 +321,15 @@ export function DocsPanel() {
       const entry = entries.find((e) => e.slug === slug);
       if (!entry) return;
       const text = await entry.loader();
-      setRawMd(text);
+      // Strip HTML comments (e.g. <!-- walkthrough -->) before rendering
+      const cleaned = text.replace(/<!--[\s\S]*?-->/g, "");
+      setRawMd(cleaned);
       setSelectedSlug(slug);
 
       // Parse walkthrough steps if applicable
       if (text.includes("<!-- walkthrough -->")) {
         const steps: Array<{ title: string; content: string }> = [];
-        const parts = text.split(/^##\s+/m).slice(1);
+        const parts = cleaned.split(/^##\s+/m).slice(1);
         for (const part of parts) {
           const [titleLine, ...rest] = part.split("\n");
           steps.push({ title: titleLine.trim(), content: rest.join("\n") });
@@ -460,17 +462,24 @@ export function DocsPanel() {
   return (
     <div className="flex h-full">
       <div
-        className={`docs-sidebar relative flex flex-col transition-all duration-200 ${
-          sidebarCollapsed
-            ? "w-12 min-w-[48px] border-r border-tn-border bg-tn-panel/80"
-            : "w-64 min-w-[220px] border-r border-tn-border bg-tn-panel/80"
+        className={`docs-sidebar relative flex flex-col transition-all duration-200 border-r border-tn-border bg-tn-panel/80 ${
+          sidebarCollapsed ? "hidden" : "w-64 min-w-[220px]"
         }`}
       >
         <div className={`border-b border-tn-border ${sidebarCollapsed ? "p-2" : "p-3"}`}>
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-between">
             {!sidebarCollapsed && (
               <div className="text-xs font-semibold text-tn-text-muted">Docs</div>
             )}
+            <button
+              type="button"
+              className={`flex items-center justify-center rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none focus:ring-2 focus:ring-tn-accent/40 ${sidebarCollapsed ? "w-8 h-8" : "w-6 h-6 ml-auto"}`}
+              onClick={() => toggleSidebarCollapsed()}
+              aria-label={sidebarCollapsed ? "Show docs tree" : "Hide docs tree"}
+              title={sidebarCollapsed ? "Show docs tree" : "Hide docs tree"}
+            >
+              {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </button>
           </div>
           {!sidebarCollapsed && (
             <input
@@ -503,31 +512,9 @@ export function DocsPanel() {
         {selectedSlug ? (
           <>
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  className="docs-toggle flex h-10 items-center justify-center rounded-md text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none focus:ring-2 focus:ring-tn-accent/40 px-3"
-                  onClick={() => toggleSidebarCollapsed()}
-                  aria-label={sidebarCollapsed ? "Show docs tree" : "Hide docs tree"}
-                  aria-pressed={sidebarCollapsed}
-                  title={sidebarCollapsed ? "Show docs tree" : "Hide docs tree"}
-                >
-                  {sidebarCollapsed ? (
-                    <>
-                      <ChevronRight className="h-4 w-4" />
-                      <span className="ml-2 text-xs font-medium">Show docs</span>
-                    </>
-                  ) : (
-                    <>
-                      <ChevronLeft className="h-4 w-4" />
-                      <span className="ml-2 text-xs font-medium">Hide docs</span>
-                    </>
-                  )}
-                </button>
-                <div>
-                  <div className="text-sm font-semibold text-tn-text">{titleFromSlug(selectedSlug)}</div>
-                  <div className="text-[11px] text-tn-text-muted">{selectedSlug}</div>
-                </div>
+              <div>
+                <div className="text-sm font-semibold text-tn-text">{titleFromSlug(selectedSlug)}</div>
+                <div className="text-[11px] text-tn-text-muted">{selectedSlug}</div>
               </div>
               {walkthroughSteps.length > 0 && (
                 <button
