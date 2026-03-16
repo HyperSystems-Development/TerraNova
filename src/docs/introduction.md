@@ -6,11 +6,14 @@ Welcome to the TerraNova documentation. This space is designed to help you under
 
 This documentation is split into focused sections:
 
-- **Guides** — conceptual tutorials covering core worldgen concepts (density, noise, curves) and practical walkthroughs.
-- **Glossary** — definitions for terms used in Hytale WorldGen V2 / TerraNova, including node names and in-game commands.
-- **Templates** — starter maps, example worlds, and generator setups.
-- **Reference** — detailed reference material for nodes, file formats, and configuration.
-- **Troubleshooting** — common problems and solutions.
+- **Getting Started** — installation, opening the app, and your first steps in the editor.
+- **Walkthroughs** — practical step-by-step tutorials for common tasks like building your first world.
+- **Guides** — conceptual deep-dives into terrain generation, the biome system, and node patterns.
+- **Templates** — starter worlds and example generator setups you can open and modify.
+- **Glossary** — terminology, node types, and in-game commands for Hytale WorldGen V2 / TerraNova.
+- **Reference** — complete technical reference for all node types, file formats, and configuration.
+- **Troubleshooting** — common problems and how to fix them.
+- **Contributing** — how to contribute guides, fixes, and improvements to this documentation.
 
 ## About Me
 

@@ -8,7 +8,8 @@ This folder is the source for all in-app docs, tutorials, templates, and referen
 
 - **[Introduction](./introduction.md)** – who wrote the docs, how they’re organized, and how to contribute.
 - **[Getting Started](./getting-started.md)** – install, open, and basic concepts.
-- **[Guides](./guides/README.md)** – conceptual and practical walk-throughs (terrain, nodes, data flow).
+- **[Walkthroughs](./walkthroughs/README.md)** – step-by-step practical tutorials for common tasks.
+- **[Guides](./guides/README.md)** – conceptual deep-dives into terrain, biomes, and node patterns.
 - **[Templates](./templates/README.md)** – starter worlds and generator setups.
 - **[Glossary](./glossary/README.md)** – key terminology, nodes, and in-game commands.
 - **[Reference](./reference/README.md)** – node, file format, and config reference.
