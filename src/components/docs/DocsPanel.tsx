@@ -29,7 +29,14 @@ function slugFromPath(path: string) {
 }
 
 function titleFromSlug(slug: string) {
-  const name = slug.split("/").pop() ?? slug;
+  const parts = slug.split("/");
+  let name = parts.pop() ?? slug;
+
+  // Treat README/index-style pages as the folder title
+  if (/^(readme|index)$/i.test(name) && parts.length > 0) {
+    name = parts[parts.length - 1];
+  }
+
   // Use a simple title case conversion for file names
   return name
     .replace(/[-_]/g, " ")
@@ -102,6 +109,7 @@ function DocTreeNodeItem({
   depth?: number;
 }) {
   const indent = depth * 12; // left indent per depth level
+  const basePadding = 10; // always keep a small left margin for the icon
   const isCollapsed = node.type === "folder" && collapsed[node.slug];
 
   if (node.type === "file") {
@@ -113,7 +121,7 @@ function DocTreeNodeItem({
             ? "bg-tn-accent/20 text-tn-text"
             : "text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"
         }`}
-        style={{ paddingLeft: `${indent}px` }}
+        style={{ paddingLeft: `${indent + basePadding}px` }}
         onClick={() => onSelect(node.slug)}
       >
         <FileText className="h-4 w-4" />
@@ -126,16 +134,18 @@ function DocTreeNodeItem({
     <div className="docs-folder">
       <button
         type="button"
-        className={`flex w-full items-center gap-1.5 py-2 text-sm font-semibold rounded ${
+        className={`flex w-full items-center gap-1.5 py-2 pr-3 text-sm font-semibold rounded ${
           isCollapsed ? "text-tn-text-muted" : "text-tn-text"
         } hover:bg-tn-accent/10 focus:outline-none focus:ring-2 focus:ring-tn-accent/40`}
-        style={{ paddingLeft: `${indent}px` }}
+        style={{ paddingLeft: `${indent + basePadding}px` }}
         onClick={() => onToggleCollapse(node.slug)}
         aria-expanded={!isCollapsed}
       >
-        <span className="text-xs w-4 text-left">{isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}</span>
         <Folder className="h-4 w-4 text-tn-text-muted" />
         <span className="flex-1 truncate">{node.title}</span>
+        <span className="text-xs w-4 text-right flex-shrink-0">
+          {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        </span>
       </button>
       {!isCollapsed && (
         <div>
@@ -166,10 +176,13 @@ function resolveLinkSlug(currentSlug: string, href: string): ResolvedLink {
     return { slug: currentSlug, anchor: href.slice(1) };
   }
 
+  // Strip leading slashes (treat as root-relative within docs)
+  const normalizedHref = href.replace(/^\//, "");
+
   // Relative path
   const baseParts = currentSlug.split("/");
   baseParts.pop();
-  const [pathPart, anchorPart] = href.split("#", 2);
+  const [pathPart, anchorPart] = normalizedHref.split("#", 2);
   const parts = pathPart.split("/");
   for (const part of parts) {
     if (part === "." || part === "") continue;
@@ -280,6 +293,7 @@ export function DocsPanel() {
         setWalkthroughSteps(steps);
       } else {
         setWalkthroughSteps([]);
+        setWalkthroughActive(false);
       }
 
       if (anchor && contentRef.current) {
@@ -324,6 +338,8 @@ export function DocsPanel() {
             const resolved = resolveLinkSlug(entry.slug, href);
             if (!resolved) continue;
             const targetSlug = resolved.slug;
+            // Ignore self-references (e.g. intra-doc anchors)
+            if (targetSlug === entry.slug) continue;
             if (!links[targetSlug]) links[targetSlug] = new Set();
             links[targetSlug].add(entry.slug);
           }
