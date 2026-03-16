@@ -150,13 +150,10 @@ export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraph
             edges={rfEdges}
             nodeTypes={nodeTypes}
             fitView
-            fitViewOptions={{ padding: 0.3, minZoom: 0.5, maxZoom: 1.2 }}
+            fitViewOptions={{ padding: 0.3, minZoom: 0.4, maxZoom: 1.5 }}
             nodesDraggable={false}
             nodesConnectable={false}
             elementsSelectable={false}
-            panOnDrag={false}
-            zoomOnScroll={false}
-            zoomOnPinch={false}
             zoomOnDoubleClick={false}
             proOptions={{ hideAttribution: true }}
             style={{ background: "#1c1a17" }}
@@ -167,9 +164,16 @@ export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraph
       </div>
 
       {hasSteps && steps && (
-        <div className="border-t border-tn-border bg-tn-panel/60 px-4 py-3">
+        <div
+          className="border-t border-tn-border bg-tn-panel/60 px-4 py-3"
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") setStepIndex((s) => Math.max(0, s - 1));
+            if (e.key === "ArrowRight") setStepIndex((s) => Math.min(steps.length - 1, s + 1));
+          }}
+          tabIndex={0}
+        >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] text-tn-text-muted">
+            <span className="text-[11px] text-tn-text-muted" aria-live="polite">
               Step {stepIndex + 1} of {steps.length}
             </span>
             <div className="flex items-center gap-2">

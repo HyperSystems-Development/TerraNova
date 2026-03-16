@@ -12,7 +12,7 @@ Each section shows a common wiring pattern — what nodes to connect and why. Th
 | Color | Category | Examples |
 |-------|----------|---------|
 | Blue | Generative (noise) | SimplexNoise2D, FractalNoise2D, VoronoiNoise2D |
-| Purple | Filter / Transform | Normalizer, CurveFunction, YSampled, GradientWarp |
+| Purple | Filter / Transform | Normalizer, CurveMapper, YSampled, GradientWarp |
 | Teal | Math / Combinator | Sum, Blend, MinFunction, Conditional, WeightedSum |
 | Green | Position / Coordinate | CoordinateY, BaseHeight, DistanceFromOrigin |
 | Amber | Terrain-specific | CaveDensity, YGradient, DistanceToBiomeEdge |
@@ -95,9 +95,9 @@ Each section shows a common wiring pattern — what nodes to connect and why. Th
 
 ---
 
-## 4. BaseHeight + CurveFunction (Height Profile)
+## 4. BaseHeight + CurveMapper (Height Profile)
 
-**What it does:** `BaseHeight` outputs 0 at a reference Y, negative below, positive above. `CurveFunction` remaps those values through a hand-drawn curve to sculpt the vertical terrain profile — flat plains, sharp cliffs, or rolling hills.
+**What it does:** `BaseHeight` outputs 0 at a reference Y, negative below, positive above. `CurveMapper` remaps those values through a hand-drawn curve to sculpt the vertical terrain profile — flat plains, sharp cliffs, or rolling hills.
 
 **When to use it:** Every terrain setup needs this as its vertical backbone before adding noise.
 
@@ -106,7 +106,7 @@ Each section shows a common wiring pattern — what nodes to connect and why. Th
   "height": 190,
   "nodes": [
     { "id": "bh",  "label": "BaseHeight",    "category": "position",  "sub": "Y = 64",         "x": 0,   "y": 30 },
-    { "id": "cf",  "label": "CurveFunction", "category": "filter",    "sub": "height profile",  "x": 240, "y": 30 },
+    { "id": "cf",  "label": "CurveMapper", "category": "filter",    "sub": "height profile",  "x": 240, "y": 30 },
     { "id": "sn",  "label": "SimplexNoise2D","category": "generative","sub": "±surface vary",   "x": 0,   "y": 130 },
     { "id": "sum", "label": "Sum",           "category": "math",                                "x": 480, "y": 80 },
     { "id": "out", "label": "Terrain Out",   "category": "output",                              "x": 700, "y": 80 }
@@ -119,9 +119,9 @@ Each section shows a common wiring pattern — what nodes to connect and why. Th
   ],
   "steps": [
     { "nodeId": "bh",  "text": "BaseHeight outputs 0 at Y=64, positive above (solid), negative below (air). It is the vertical zero-line of your terrain. Every terrain graph starts here." },
-    { "nodeId": "cf",  "text": "CurveFunction remaps the BaseHeight value through a hand-drawn curve. A flat line keeps the default shape. An S-curve creates cliff overhangs. A steep drop at one end creates mesas. This is how you sculpt terrain height without noise." },
+    { "nodeId": "cf",  "text": "CurveMapper remaps the BaseHeight value through a hand-drawn curve. A flat line keeps the default shape. An S-curve creates cliff overhangs. A steep drop at one end creates mesas. This is how you sculpt terrain height without noise." },
     { "nodeId": "sn",  "text": "SimplexNoise2D adds horizontal variation to the terrain — hills and valleys. Without it, the terrain would be completely flat at every Y level defined by the curve." },
-    { "nodeId": "sum", "text": "Sum adds the CurveFunction output and the noise together. The curve sets the overall vertical shape; the noise gives it organic surface variation. Both are still in density units — positive = solid." },
+    { "nodeId": "sum", "text": "Sum adds the CurveMapper output and the noise together. The curve sets the overall vertical shape; the noise gives it organic surface variation. Both are still in density units — positive = solid." },
     { "nodeId": "out", "text": "Terrain Out is the final connection. Whatever density value reaches this node is used to decide solid vs air for every block in the world." }
   ]
 }
@@ -358,7 +358,7 @@ Each section shows a common wiring pattern — what nodes to connect and why. Th
   "height": 160,
   "nodes": [
     { "id": "fn",  "label": "FractalNoise2D", "category": "generative", "sub": "expensive",     "x": 0,   "y": 30 },
-    { "id": "cf",  "label": "CurveFunction",  "category": "filter",     "sub": "height profile", "x": 240, "y": 0  },
+    { "id": "cf",  "label": "CurveMapper",  "category": "filter",     "sub": "height profile", "x": 240, "y": 0  },
     { "id": "sum", "label": "Sum",            "category": "math",                               "x": 480, "y": 30 },
     { "id": "ys",  "label": "YSampled",       "category": "terrain",    "sub": "step = 4",       "x": 680, "y": 30 },
     { "id": "out", "label": "Output",         "category": "output",                             "x": 900, "y": 30 }
@@ -379,14 +379,14 @@ Each section shows a common wiring pattern — what nodes to connect and why. Th
 
 **What it does:** A complete typical terrain graph combining everything above — height profile, surface noise, cave carving, and performance wrapping. This is a production-ready starting point.
 
-**Beginner tip:** Build this one node at a time. Start with just `BaseHeight → Terrain Out`, add `CurveFunction`, then noise, then caves.
+**Beginner tip:** Build this one node at a time. Start with just `BaseHeight → Terrain Out`, add `CurveMapper`, then noise, then caves.
 
 ```nodegraph
 {
   "height": 300,
   "nodes": [
     { "id": "bh",  "label": "BaseHeight",     "category": "position",   "sub": "Y = 64",           "x": 0,   "y": 0   },
-    { "id": "cf",  "label": "CurveFunction",  "category": "filter",     "sub": "height profile",    "x": 240, "y": 0   },
+    { "id": "cf",  "label": "CurveMapper",  "category": "filter",     "sub": "height profile",    "x": 240, "y": 0   },
     { "id": "sn",  "label": "SimplexNoise2D", "category": "generative", "sub": "surface variation", "x": 0,   "y": 110 },
     { "id": "sum", "label": "Sum",            "category": "math",       "sub": "base terrain",      "x": 480, "y": 50  },
     { "id": "ys",  "label": "YSampled",       "category": "terrain",    "sub": "step = 4",          "x": 680, "y": 50  },
@@ -407,7 +407,7 @@ Each section shows a common wiring pattern — what nodes to connect and why. Th
   ],
   "steps": [
     { "nodeId": "bh",  "text": "BaseHeight — the vertical zero-line. Outputs 0 at Y=64. Above 64 is positive (solid); below is negative (air). This is always the first node in any terrain graph." },
-    { "nodeId": "cf",  "text": "CurveFunction shapes the terrain profile. The curve maps height values to new density values — creating cliffs, plateaus, and slopes without any noise." },
+    { "nodeId": "cf",  "text": "CurveMapper shapes the terrain profile. The curve maps height values to new density values — creating cliffs, plateaus, and slopes without any noise." },
     { "nodeId": "sn",  "text": "SimplexNoise2D adds organic horizontal variation. Low frequency (e.g. 0.005) gives broad rolling hills. Higher frequency gives rocky jagged surfaces." },
     { "nodeId": "sum", "text": "Sum combines the height profile and the noise into a single density field. Positive = solid, negative = air. This is your base terrain before caves are carved." },
     { "nodeId": "ys",  "text": "YSampled wraps the expensive Sum subgraph and samples it every 4 Y levels instead of every block. Linearly interpolates between samples. ~4× performance gain with minimal visual difference." },

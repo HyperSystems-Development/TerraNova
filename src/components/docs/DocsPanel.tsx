@@ -336,7 +336,14 @@ export function DocsPanel() {
     async (slug: string, anchor?: string) => {
       const entry = entries.find((e) => e.slug === slug);
       if (!entry) return;
-      const text = await entry.loader();
+      let text: string;
+      try {
+        text = await entry.loader();
+      } catch {
+        setRawMd(`> **Error:** Could not load \`${slug}\`. The file may be missing or unreadable.`);
+        setSelectedSlug(slug);
+        return;
+      }
       // Strip HTML comments (e.g. <!-- walkthrough -->) before rendering
       const cleaned = text.replace(/<!--[\s\S]*?-->/g, "");
       setRawMd(cleaned);
@@ -597,7 +604,14 @@ export function DocsPanel() {
             </div>
 
             {walkthroughActive ? (
-              <div className="flex flex-col gap-4">
+              <div
+                className="flex flex-col gap-4"
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowLeft") setWalkthroughStep((s) => Math.max(0, s - 1));
+                  if (e.key === "ArrowRight") setWalkthroughStep((s) => Math.min(walkthroughSteps.length - 1, s + 1));
+                }}
+                tabIndex={-1}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-sm font-semibold text-tn-text">{walkthroughSteps[walkthroughStep]?.title}</div>
                   <div className="flex items-center gap-2">
@@ -606,14 +620,14 @@ export function DocsPanel() {
                       disabled={walkthroughStep === 0}
                       onClick={() => setWalkthroughStep((s) => Math.max(0, s - 1))}
                     >
-                      Previous
+                      ← Previous
                     </button>
                     <button
                       className="rounded border border-tn-border bg-tn-panel px-2 py-1 text-xs text-tn-text hover:bg-tn-panel/80 disabled:opacity-50"
                       disabled={walkthroughStep >= walkthroughSteps.length - 1}
                       onClick={() => setWalkthroughStep((s) => Math.min(walkthroughSteps.length - 1, s + 1))}
                     >
-                      Next
+                      Next →
                     </button>
                   </div>
                 </div>
@@ -626,7 +640,7 @@ export function DocsPanel() {
                   {walkthroughSteps[walkthroughStep]?.content ?? ""}
                 </ReactMarkdown>
 
-                <div className="text-xs text-tn-text-muted">
+                <div className="text-xs text-tn-text-muted" aria-live="polite">
                   Step {walkthroughStep + 1} of {walkthroughSteps.length}
                 </div>
               </div>
