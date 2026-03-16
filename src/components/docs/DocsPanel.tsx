@@ -516,11 +516,12 @@ export function DocsPanel() {
                 {sidebarCollapsed && (
                   <button
                     type="button"
-                    className="flex items-center justify-center w-7 h-7 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none"
+                    className="flex items-center gap-1.5 px-2 h-7 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none text-xs"
                     onClick={() => toggleSidebarCollapsed()}
                     title="Show docs tree"
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="h-3.5 w-3.5" />
+                    <span>Nav</span>
                   </button>
                 )}
                 <div>
