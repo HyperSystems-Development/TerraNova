@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   BackgroundVariant,
   type Node,
@@ -105,24 +106,26 @@ export function DocNodeGraph({ nodes, edges, height = 260 }: DocNodeGraphProps) 
       className="my-4 rounded border border-tn-border overflow-hidden"
       style={{ height }}
     >
-      <ReactFlow
-        nodes={rfNodes}
-        edges={rfEdges}
-        nodeTypes={nodeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.25 }}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={false}
-        panOnDrag={false}
-        zoomOnScroll={false}
-        zoomOnPinch={false}
-        zoomOnDoubleClick={false}
-        proOptions={{ hideAttribution: true }}
-        style={{ background: "#1c1a17" }}
-      >
-        <Background color="#4a4438" gap={20} variant={BackgroundVariant.Dots} />
-      </ReactFlow>
+      <ReactFlowProvider>
+        <ReactFlow
+          nodes={rfNodes}
+          edges={rfEdges}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.25 }}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          elementsSelectable={false}
+          panOnDrag={false}
+          zoomOnScroll={false}
+          zoomOnPinch={false}
+          zoomOnDoubleClick={false}
+          proOptions={{ hideAttribution: true }}
+          style={{ background: "#1c1a17" }}
+        >
+          <Background color="#4a4438" gap={20} variant={BackgroundVariant.Dots} />
+        </ReactFlow>
+      </ReactFlowProvider>
     </div>
   );
 }

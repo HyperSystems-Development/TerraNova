@@ -17,6 +17,25 @@ In WorldGen V2, a biome is a named configuration of four independent systems:
 
 Each system is independent. You can swap a material provider between two biomes without changing their terrain shape.
 
+```nodegraph
+{
+  "height": 200,
+  "nodes": [
+    { "id": "td",  "label": "Terrain Density",   "category": "density",  "sub": "shape of land",   "x": 0,   "y": 20 },
+    { "id": "mp",  "label": "Material Provider", "category": "material", "sub": "block types",     "x": 0,   "y": 90 },
+    { "id": "pp",  "label": "Props",             "category": "prop",     "sub": "trees, rocks…",  "x": 0,   "y": 160 },
+    { "id": "ep",  "label": "Environment/Tint",  "category": "scanner",  "sub": "fog, lighting",   "x": 220, "y": 90 },
+    { "id": "bio", "label": "Biome",             "category": "biome",                              "x": 400, "y": 90 }
+  ],
+  "edges": [
+    { "from": "td",  "to": "bio" },
+    { "from": "mp",  "to": "bio" },
+    { "from": "pp",  "to": "bio" },
+    { "from": "ep",  "to": "bio" }
+  ]
+}
+```
+
 ## How the World Chooses a Biome
 
 At each (x, z) coordinate, the world evaluates a **biome selector density** — a noise function that outputs a value between –1 and 1. Each biome is assigned a range:
@@ -34,6 +53,25 @@ At each (x, z) coordinate, the world evaluates a **biome selector density** — 
 ```
 
 If the noise value at (x, z) falls in [–1.0, –0.3], the coordinate is in **Plains**. In [–0.3, 0.3], it's **Forest**. And so on.
+
+```nodegraph
+{
+  "height": 200,
+  "nodes": [
+    { "id": "sn",  "label": "SimplexNoise2D", "category": "density",     "sub": "scale 0.001",   "x": 0,   "y": 70 },
+    { "id": "rng", "label": "Range Map",      "category": "worldstruct", "sub": "–1→1 to biome", "x": 200, "y": 70 },
+    { "id": "pl",  "label": "Plains",         "category": "biome",       "sub": "–1.0 to –0.3",  "x": 420, "y": 0  },
+    { "id": "fo",  "label": "Forest",         "category": "biome",       "sub": "–0.3 to 0.3",   "x": 420, "y": 70 },
+    { "id": "mt",  "label": "Mountains",      "category": "biome",       "sub": "0.3 to 1.0",    "x": 420, "y": 140 }
+  ],
+  "edges": [
+    { "from": "sn",  "to": "rng", "label": "noise value" },
+    { "from": "rng", "to": "pl"  },
+    { "from": "rng", "to": "fo"  },
+    { "from": "rng", "to": "mt"  }
+  ]
+}
+```
 
 ## Biome Transitions
 
