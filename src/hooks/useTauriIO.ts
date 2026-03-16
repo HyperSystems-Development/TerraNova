@@ -25,6 +25,7 @@ import {
   internalToHytaleBiome,
 } from "@/utils/fileTypeDetection";
 import mapDirEntry from "@/utils/mapDirEntry";
+import { getDirname, findServerRoot, isPathInProject } from "@/utils/pathUtils";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { useToastStore } from "@/stores/toastStore";
 import { loadPersistedHistory } from "@/stores/editorStore";
@@ -317,6 +318,24 @@ export function useTauriIO() {
   const handleOpenFile = useCallback(
     async (filePath: string) => {
       setLastError(null);
+
+      // If there is no open project (or the file is outside the current project),
+      // treat the file's parent folder (or inferred Hytale Server root) as the project root.
+      const currentProjectPath = useProjectStore.getState().projectPath;
+      const insideCurrentProject = isPathInProject(filePath, currentProjectPath);
+      if (!insideCurrentProject) {
+        const inferredRoot = findServerRoot(filePath) ?? getDirname(filePath);
+        if (inferredRoot && inferredRoot !== currentProjectPath) {
+          setProjectPath(inferredRoot);
+          try {
+            const entries = await listDirectory(inferredRoot);
+            setDirectoryTree(entries.map(mapDirEntry));
+          } catch {
+            // Ignore failures (e.g. invalid directory) and proceed with opening the file.
+          }
+        }
+      }
+
       try {
         // Cache the current file's graph before switching
         const previousFile = useProjectStore.getState().currentFile;
@@ -719,7 +738,7 @@ export function useTauriIO() {
         setLastError(`Failed to open file: ${err}`);
       }
     },
-    [setCurrentFile, setNodes, setEdges, commitState, setLastError, setDirty, cacheCurrentFile, restoreFromCache],
+    [setCurrentFile, setNodes, setEdges, commitState, setLastError, setDirty, cacheCurrentFile, restoreFromCache, setProjectPath, setDirectoryTree],
   );
 
   const handleSaveFile = useCallback(async () => {

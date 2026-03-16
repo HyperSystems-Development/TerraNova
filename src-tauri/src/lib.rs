@@ -23,6 +23,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             io_commands::register_project_root,
             io_commands::unregister_project_root,
+            io_commands::get_launch_file,
             io_commands::open_asset_pack,
             io_commands::save_asset_pack,
             io_commands::read_asset_file,

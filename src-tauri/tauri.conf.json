@@ -20,7 +20,7 @@
         "resizable": true,
         "fullscreen": false,
         "decorations": true,
-        "dragDropEnabled": false
+        "dragDropEnabled": true
       }
     ],
     "security": {
@@ -31,6 +31,13 @@
     "active": true,
     "createUpdaterArtifacts": true,
     "targets": "all",
+    "fileAssociations": [
+      {
+        "name": "TerraNova JSON",
+        "ext": ["json"],
+        "role": "Editor"
+      }
+    ],
     "resources": [
       "../templates/void/",
       "../templates/forest-hills/",
