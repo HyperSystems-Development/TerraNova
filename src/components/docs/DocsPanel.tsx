@@ -45,15 +45,16 @@ function titleFromSlug(slug: string) {
 }
 
 const ROOT_SECTION_ORDER = [
-  { key: "overview", title: "Overview", slug: "root/overview" },
-  { key: "getting-started", title: "Getting Started", slug: "root/getting-started" },
-  { key: "tutorials", title: "Walkthroughs", slug: "tutorials" },
-  { key: "guides", title: "Reference", slug: "reference" },
+  { key: "overview", title: "Overview", slug: "overview" },
+  { key: "introduction", title: "Introduction", slug: "introduction" },
+  { key: "getting-started", title: "Getting Started", slug: "getting-started" },
+  { key: "walkthroughs", title: "Walkthroughs", slug: "walkthroughs" },
+  { key: "guides", title: "Guides", slug: "guides" },
   { key: "templates", title: "Templates", slug: "templates" },
   { key: "glossary", title: "Glossary", slug: "glossary" },
   { key: "reference", title: "Reference", slug: "reference" },
-  { key: "troubleshooting", title: "Troubleshooting", slug: "root/troubleshooting" },
-  { key: "contributing", title: "Contributing", slug: "root/contributing" },
+  { key: "troubleshooting", title: "Troubleshooting", slug: "troubleshooting" },
+  { key: "contributing", title: "Contributing", slug: "contributing" },
 ];
 
 function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
@@ -443,6 +444,19 @@ export function DocsPanel() {
     [entries, loadDoc, selectedSlug],
   );
 
+  const canHandleLink = useCallback(
+    (href: string) => {
+      if (!href || href.startsWith("http") || href.startsWith("mailto:")) return false;
+      const resolved = resolveLinkSlug(selectedSlug ?? "", href);
+      if (!resolved) return false;
+      const target = entries.find((e) => e.slug === resolved.slug || e.slug === resolved.slug.replace(/\.md$/, ""));
+      if (target) return true;
+      if (resolved.slug === selectedSlug && resolved.anchor) return true;
+      return false;
+    },
+    [entries, selectedSlug],
+  );
+
   return (
     <div className="flex h-full">
       <div
@@ -556,19 +570,18 @@ export function DocsPanel() {
                   components={{
                     a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
                       const hrefStr = String(href ?? "");
-                      const isHandled = handleLinkClick(hrefStr);
-
+                      const isInternal = canHandleLink(hrefStr);
                       return (
                         <a
                           {...props}
                           href={hrefStr}
                           onClick={(e) => {
-                            if (isHandled) {
+                            if (handleLinkClick(hrefStr)) {
                               e.preventDefault();
                             }
                           }}
                           className={
-                            isHandled ? "text-tn-accent hover:underline" : "text-tn-text-muted hover:underline"
+                            isInternal ? "text-tn-accent hover:underline" : "text-tn-text-muted hover:underline"
                           }
                         >
                           {children}
@@ -601,19 +614,18 @@ export function DocsPanel() {
                   components={{
                     a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
                       const hrefStr = String(href ?? "");
-                      const isHandled = handleLinkClick(hrefStr);
-
+                      const isInternal = canHandleLink(hrefStr);
                       return (
                         <a
                           {...props}
                           href={hrefStr}
                           onClick={(e) => {
-                            if (isHandled) {
+                            if (handleLinkClick(hrefStr)) {
                               e.preventDefault();
                             }
                           }}
                           className={
-                            isHandled ? "text-tn-accent hover:underline" : "text-tn-text-muted hover:underline"
+                            isInternal ? "text-tn-accent hover:underline" : "text-tn-text-muted hover:underline"
                           }
                         >
                           {children}

@@ -1,43 +1,117 @@
 # Glossary — Asset Node Editor Nodes
 
-This glossary section covers common node types used in the Asset Node Editor for TerraNova / Hytale WorldGen V2.
+This glossary covers the node types available in the Asset Node Editor for TerraNova / Hytale WorldGen V2.
+
+For a full tabular reference, see [Reference → Density Node Types](../reference/README.md).
 
 ## Density Nodes
 
-### Sum Density
-
-Adds multiple density inputs together. This node is commonly used to combine terrain layers (e.g., base terrain + noise + caves).
-
-### Min Density & Max Density
-
-These nodes combine densities by choosing the min/max value at each coordinate.
-
-- **Max Density** keeps the highest (most solid) value.
-- **Min Density** keeps the lowest (most empty) value.
+Density nodes output a scalar value (–1 to 1 typically) evaluated at each (x,y,z) coordinate. Positive values produce solid blocks; zero or negative produce air.
 
 ### BaseHeight Density
 
-Defines a height reference (Y level) that outputs `0` at the chosen height.
+Defines a reference height (Y level). Outputs `0` at that height.
 
-- Values above that height become positive.
-- Values below become negative.
+- Values **above** the reference → positive (solid)
+- Values **below** the reference → negative (air)
+
+Common use: `BaseHeight` sets the ground "zero line", which other nodes then warp and shape.
 
 ### CurveMapper Density
 
-Remaps an input value using a curve (usually a `Manual Curve` node). Commonly used to shape terrain height profiles.
+Remaps an input density value using a curve defined by a `Manual Curve` node. Used to sculpt the vertical profile of terrain — creating cliffs, plateaus, or rolling hills.
+
+**Typical setup:**
+```
+BaseHeight → CurveMapper → Sum
+```
+
+### SimplexNoise2D Density
+
+A 2D coherent noise generator. Outputs between –1 and 1. Adds horizontal variation to terrain (hills, valleys).
+
+### SimplexNoise3D Density
+
+A 3D coherent noise generator. Outputs between –1 and 1. Enables caves, overhangs, and floating islands by varying density in all three dimensions.
+
+### Sum Density
+
+Adds multiple density inputs together. Because each input is in [–1, 1], the sum can exceed that range — the world generator treats **any positive value** as solid.
+
+**Common pattern:**
+```
+CurveMapper (height profile)
+  +
+SimplexNoise2D (horizontal variation)
+  ↓
+Sum → terrain output
+```
+
+### Min Density & Max Density
+
+- **Max Density** keeps the highest (most solid) value across inputs. Use to carve: `Max(terrain, cave)` keeps terrain where solid, cave where empty.
+- **Min Density** keeps the lowest (most empty) value. Use to restrict: `Min(A, B)` is only solid where *both* A and B are solid.
 
 ### Constant Density
 
-Outputs a fixed value.
+Outputs a fixed value regardless of position. Useful for setting baseline levels or overriding sections.
 
 ### Normalizer Density
 
 Remaps a value range to another range.
 
-Example: Convert `[-1, 1]` to `[0, 1]`.
+**Example:** Convert [–1, 1] noise to [0, 1] for use as a blend weight.
 
-### SimplexNoise2D Density
+### Inverter Density
 
-A 2D noise generator commonly used for base terrain noise.
+Multiplies density by –1. Swaps solid and empty — useful for carving caves out of solid terrain.
 
-It outputs values between `-1` and `1`.
+### YSampled Density
+
+A performance optimization wrapper. Instead of evaluating the wrapped density at every Y coordinate, it samples at coarse intervals (default: every 4 blocks) and linearly interpolates between samples.
+
+**Result:** ~4× faster vertical column evaluation at the cost of slight smoothing in the Y direction.
+
+### GradientWarp Density
+
+Displaces the sampling position using another density function. Creates twisted, turbulent terrain.
+
+### DistanceToBiomeEdge Density
+
+Outputs a value proportional to the distance from the nearest biome boundary. Used to blend props or terrain features near biome edges.
+
+### CellNoise2D / CellNoise3D
+
+Voronoi-style noise. Each point in space is assigned a value based on its distance to the nearest cell center. Creates rocky, fractured, or organic-looking patterns.
+
+---
+
+## Material Nodes
+
+Material nodes determine which block type fills each solid voxel.
+
+### ConstantMaterial
+
+Fills every solid voxel with a single block type.
+
+### LayeredMaterial
+
+Fills solid voxels with different blocks based on depth below the surface (e.g., grass → dirt → stone).
+
+---
+
+## Curve Nodes
+
+### Manual Curve
+
+Defines a custom function mapping input → output. Used as the curve input for `CurveMapper`. You draw the shape of the curve in the editor.
+
+---
+
+## Tips
+
+- **Start simple:** Begin with `BaseHeight + SimplexNoise2D → Sum` to get a basic landscape.
+- **Combine in Sum:** Most terrain graphs are built by summing several density contributions.
+- **Use Max to carve caves:** `Max(terrain, -cave_noise)` digs caves out of terrain without fully removing them from the solid region.
+- **YSampled for performance:** Wrap expensive vertical density subgraphs in `YSampled` to get a major speed boost.
+- **DistanceToBiomeEdge for blending:** Fade props in/out near biome edges for natural-looking transitions.
