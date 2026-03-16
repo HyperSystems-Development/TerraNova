@@ -10,5 +10,5 @@ This section contains reference documentation about nodes, formats, and systems 
 
 ## More docs
 
-- [Walkthroughs](../walkthroughs/index.md)
+- [Walkthroughs](../tutorials/index.md)
 - [Getting Started](../getting-started.md)

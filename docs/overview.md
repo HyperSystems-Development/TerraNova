@@ -18,5 +18,5 @@ This docs site is organized into sections:
 ## Where to begin
 
 - Start with **[Getting Started](./getting-started.md)**.
-- When you're ready for a full build, follow the **[Walkthroughs](./walkthroughs/index.md)**.
+- When you're ready for a full build, follow the **[Walkthroughs](./tutorials/index.md)**.
 - For node-by-node detail, see **[Reference](./reference/index.md)**.
