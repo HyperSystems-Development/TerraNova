@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
-import { ChevronLeft, ChevronRight, Folder, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, Folder, FileText, X } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
@@ -127,18 +127,19 @@ function DocTreeNodeItem({
   const isCollapsed = node.type === "folder" && collapsed[node.slug];
 
   if (node.type === "file") {
+    const isSelected = selectedSlug === node.slug;
     return (
       <button
         type="button"
-        className={`docs-file flex w-full items-center gap-2 text-left py-2 text-sm leading-relaxed transition-colors ${
-          selectedSlug === node.slug
-            ? "bg-tn-accent/20 text-tn-text"
-            : "text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"
+        className={`docs-file flex w-full items-center gap-2 text-left py-2 text-sm leading-relaxed transition-colors border-l-2 ${
+          isSelected
+            ? "border-tn-accent bg-tn-accent/20 text-tn-text"
+            : "border-transparent text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"
         }`}
         style={{ paddingLeft: `${indent + basePadding}px` }}
         onClick={() => onSelect(node.slug)}
       >
-        <FileText className="h-4 w-4" />
+        <FileText className="h-4 w-4 shrink-0" />
         <span className="flex-1 truncate">{node.title}</span>
       </button>
     );
@@ -155,8 +156,12 @@ function DocTreeNodeItem({
         onClick={() => onToggleCollapse(node.slug)}
         aria-expanded={!isCollapsed}
       >
-        <Folder className="h-4 w-4 text-tn-text-muted" />
+        <Folder className="h-4 w-4 text-tn-text-muted shrink-0" />
         <span className="flex-1 truncate">{node.title}</span>
+        {isCollapsed
+          ? <ChevronRight className="h-3.5 w-3.5 text-tn-text-muted shrink-0" />
+          : <ChevronDown className="h-3.5 w-3.5 text-tn-text-muted shrink-0" />
+        }
       </button>
       {!isCollapsed && (
         <div>
@@ -473,13 +478,16 @@ export function DocsPanel() {
   const mdComponents = useMemo(() => ({
     a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
       const hrefStr = String(href ?? "");
+      const isExternal = hrefStr.startsWith("http") || hrefStr.startsWith("mailto:");
       const isInternal = canHandleLink(hrefStr);
       return (
         <a
           {...props}
           href={hrefStr}
+          target={isExternal ? "_blank" : undefined}
+          rel={isExternal ? "noopener noreferrer" : undefined}
           onClick={(e) => {
-            if (handleLinkClick(hrefStr)) e.preventDefault();
+            if (!isExternal && handleLinkClick(hrefStr)) e.preventDefault();
           }}
           className={isInternal ? "text-tn-accent hover:underline" : "text-tn-text-muted hover:underline"}
         >
@@ -519,12 +527,24 @@ export function DocsPanel() {
               <ChevronLeft className="h-4 w-4" />
             </button>
           </div>
-          <input
-            className="mt-2 w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-sm text-tn-text focus:outline-none focus:border-tn-accent"
-            placeholder="Search docs…"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          />
+          <div className="relative mt-2">
+            <input
+              className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 pr-6 text-sm text-tn-text focus:outline-none focus:border-tn-accent"
+              placeholder="Search docs…"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            />
+            {filter && (
+              <button
+                type="button"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-tn-text-muted hover:text-tn-text focus:outline-none"
+                onClick={() => setFilter("")}
+                title="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto">
           {filteredTree.map((node) => (
