@@ -156,11 +156,11 @@ body,
 }
 
 .docs-sidebar .docs-folder > button {
-  padding-left: 0.75rem;
+  padding-left: 0;
 }
 
 .docs-sidebar .docs-folder .docs-file {
-  padding-left: 1.5rem;
+  padding-left: 0;
 }
 
 .docs-content h1,

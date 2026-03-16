@@ -16,10 +16,10 @@ type DocEntry = {
   loader: () => Promise<string>;
 };
 
-type FolderNode = { type: "folder"; title: string; slug: string; children: DocTreeNode[] };
+type FolderNode = { type: "folder"; title: string; slug: string; children: DocTreeNodeData[] };
 type FileNode = { type: "file"; title: string; slug: string };
 
-type DocTreeNode = FolderNode | FileNode;
+type DocTreeNodeData = FolderNode | FileNode;
 
 function slugFromPath(path: string) {
   // Vite returns paths like "../docs/overview.md" or "../../docs/guides/foo.md"
@@ -47,7 +47,7 @@ const ROOT_SECTION_ORDER = [
   { key: "contributing", title: "Contributing", slug: "root/contributing" },
 ];
 
-function buildDocTree(entries: DocEntry[]): DocTreeNode[] {
+function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
   const sectionMap = new Map<string, FolderNode>();
   const sections: FolderNode[] = ROOT_SECTION_ORDER.map((section) => {
     const folder: FolderNode = {
@@ -86,7 +86,7 @@ function buildDocTree(entries: DocEntry[]): DocTreeNode[] {
   return result;
 }
 
-function DocTreeNode({
+function DocTreeNodeItem({
   node,
   selectedSlug,
   onSelect,
@@ -94,7 +94,7 @@ function DocTreeNode({
   onToggleCollapse,
   depth = 0,
 }: {
-  node: DocTreeNode;
+  node: DocTreeNodeData;
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
   collapsed: Record<string, boolean>;
@@ -140,8 +140,8 @@ function DocTreeNode({
       {!isCollapsed && (
         <div>
           {node.children.map((child) => (
-            <DocTreeNode
-              key={child.slug}
+            <DocTreeNodeItem
+              key={`${child.type}-${child.slug}`}
               node={child}
               selectedSlug={selectedSlug}
               onSelect={onSelect}
@@ -243,13 +243,13 @@ export function DocsPanel() {
     // Flatten filtered entries into a tree-like object for display
     const allowed = new Set(filtered.map((e) => e.slug));
 
-    function filterNode(node: DocTreeNode): DocTreeNode | null {
+    function filterNode(node: DocTreeNodeData): DocTreeNodeData | null {
       if (node.type === "file") {
         return allowed.has(node.slug) ? node : null;
       }
       const childNodes = node.children
         .map(filterNode)
-        .filter((n): n is DocTreeNode => n !== null);
+        .filter((n): n is DocTreeNodeData => n !== null);
       if (childNodes.length > 0) {
         return { ...node, children: childNodes };
       }
@@ -258,7 +258,7 @@ export function DocsPanel() {
 
     return docTree
       .map(filterNode)
-      .filter((n): n is DocTreeNode => n !== null);
+      .filter((n): n is DocTreeNodeData => n !== null);
   }, [filter, docTree, filtered]);
 
   const loadDoc = useCallback(
@@ -391,8 +391,8 @@ export function DocsPanel() {
         </div>
         <div className="flex-1 overflow-y-auto">
           {filteredTree.map((node) => (
-            <DocTreeNode
-              key={node.slug}
+            <DocTreeNodeItem
+              key={`${node.type}-${node.slug}`}
               node={node}
               selectedSlug={selectedSlug}
               onSelect={loadDoc}
