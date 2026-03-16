@@ -112,6 +112,95 @@ body,
   filter: drop-shadow(0 0 4px rgba(0, 206, 209, 0.5));
 }
 
+/* Docs content styling */
+.docs-content {
+  color: var(--tn-text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.docs-content h1,
+.docs-content h2,
+.docs-content h3,
+.docs-content h4 {
+  color: var(--tn-text);
+  margin-top: 1.75em;
+  margin-bottom: 0.75em;
+  line-height: 1.2;
+}
+
+.docs-content h1 { font-size: 1.75rem; }
+.docs-content h2 { font-size: 1.5rem; }
+.docs-content h3 { font-size: 1.25rem; }
+.docs-content h4 { font-size: 1.1rem; }
+
+.docs-content p {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.docs-content a {
+  color: var(--tn-accent);
+  text-decoration: underline;
+}
+
+.docs-content pre {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 1rem;
+  overflow: auto;
+  margin: 1em 0;
+}
+
+.docs-content code {
+  font-family: ui-monospace, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono", "Liberation Mono", "Ubuntu Mono", monospace;
+  font-size: 0.9em;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.2em 0.35em;
+  border-radius: 4px;
+}
+
+.docs-content blockquote {
+  border-left: 3px solid rgba(181, 147, 80, 0.6);
+  padding-left: 1em;
+  color: rgba(232, 226, 217, 0.8);
+  margin: 1.25em 0;
+}
+
+.docs-content ul,
+.docs-content ol {
+  padding-left: 1.25em;
+  margin: 0.75em 0;
+}
+
+.docs-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+.docs-content th,
+.docs-content td {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.5em 0.75em;
+}
+
+.docs-content th {
+  background: rgba(255, 255, 255, 0.06);
+  text-align: left;
+}
+
+.docs-content code.hljs {
+  background: transparent;
+  padding: 0;
+}
+
+.docs-content pre code {
+  background: transparent;
+  padding: 0;
+}
+
 @keyframes interjection-march {
   to {
     stroke-dashoffset: -12;
