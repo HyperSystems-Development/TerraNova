@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { ChevronDown, ChevronRight, Folder, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
@@ -100,21 +101,22 @@ function DocTreeNode({
   onToggleCollapse: (slug: string) => void;
   depth?: number;
 }) {
-  const indent = depth * 12;
+  const indent = depth * 8; // smaller indent for tighter left alignment
   const isCollapsed = node.type === "folder" && collapsed[node.slug];
 
   if (node.type === "file") {
     return (
       <button
-        className={`docs-file flex w-full items-start text-left px-3 py-2 text-sm transition-colors ${
+        className={`docs-file flex w-full items-start gap-2 text-left px-1 py-2 text-sm leading-relaxed transition-colors ${
           selectedSlug === node.slug
             ? "bg-tn-accent/20 text-tn-text"
             : "text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"
         }`}
-        style={{ paddingLeft: `${indent + 12}px` }}
+        style={{ paddingLeft: `${indent + 8}px` }}
         onClick={() => onSelect(node.slug)}
       >
-        {node.title}
+        <FileText className="h-4 w-4" />
+        <span className="flex-1 truncate">{node.title}</span>
       </button>
     );
   }
@@ -122,15 +124,16 @@ function DocTreeNode({
   return (
     <div className="docs-folder">
       <button
-        className={`flex w-full items-start gap-1 px-3 py-2 text-sm font-semibold rounded ${
+        className={`flex w-full items-start gap-2 px-1 py-2 text-sm font-semibold rounded ${
           isCollapsed ? "text-tn-text-muted" : "text-tn-text"
         } hover:bg-tn-accent/10 focus:outline-none focus:ring-2 focus:ring-tn-accent/40`}
         style={{ paddingLeft: `${indent + 8}px` }}
         onClick={() => onToggleCollapse(node.slug)}
         aria-expanded={!isCollapsed}
       >
-        <span className="text-xs w-4 text-left">{isCollapsed ? "▸" : "▾"}</span>
-        <span className="flex-1">{node.title}</span>
+        <span className="text-xs w-4 text-left">{isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}</span>
+        <Folder className="h-4 w-4 text-tn-text-muted" />
+        <span className="flex-1 truncate">{node.title}</span>
         <span className="text-[10px] text-tn-text-muted">{node.children.length}</span>
       </button>
       {!isCollapsed && (

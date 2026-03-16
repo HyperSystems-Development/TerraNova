@@ -129,7 +129,7 @@ body,
 }
 
 .docs-sidebar button:hover {
-  background: rgba(181, 147, 80, 0.12);
+  background: rgba(181, 147, 80, 0.16);
 }
 
 .docs-sidebar button:focus-visible {
@@ -141,17 +141,26 @@ body,
   font-weight: 700;
   letter-spacing: 0.03em;
   font-size: 0.95rem;
-  padding-top: 0.55rem;
-  padding-bottom: 0.55rem;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
 }
 
 .docs-sidebar .docs-file {
   font-weight: 500;
   font-size: 0.9rem;
+  padding-left: 0.7rem;
 }
 
 .docs-sidebar .docs-folder .text-tn-text-muted {
   opacity: 0.7;
+}
+
+.docs-sidebar .docs-folder > button {
+  padding-left: 0.75rem;
+}
+
+.docs-sidebar .docs-folder .docs-file {
+  padding-left: 1.5rem;
 }
 
 .docs-content h1,
