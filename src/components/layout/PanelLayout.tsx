@@ -383,7 +383,7 @@ export function PanelLayout() {
 
           {/* Right panel: properties / docs */}
           <div
-            className="flex flex-col bg-tn-surface border-l border-tn-border overflow-y-auto shrink-0 transition-all duration-150"
+            className="flex flex-col bg-tn-surface border-l border-tn-border overflow-hidden shrink-0 transition-all duration-150 min-h-0"
             style={{ width: displayRightWidth }}
           >
             <div className="flex items-center border-b border-tn-border bg-tn-panel/70 px-3 py-2">
