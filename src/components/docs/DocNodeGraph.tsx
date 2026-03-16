@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -7,6 +7,7 @@ import {
   Handle,
   Position,
   MarkerType,
+  useReactFlow,
   type Node,
   type Edge,
 } from "@xyflow/react";
@@ -126,6 +127,36 @@ function DocNode({ data }: { data: { label: string; sub?: string; color: string;
 
 const nodeTypes = { docNode: DocNode };
 
+function DocFlowInner({ rfNodes, rfEdges, focusedId }: { rfNodes: Node[]; rfEdges: Edge[]; focusedId: string | null }) {
+  const { fitView } = useReactFlow();
+
+  useEffect(() => {
+    if (focusedId) {
+      fitView({ nodes: [{ id: focusedId }], duration: 300, padding: 0.6, minZoom: 0.5, maxZoom: 1.2 });
+    } else {
+      fitView({ duration: 300, padding: 0.3, minZoom: 0.4, maxZoom: 1.2 });
+    }
+  }, [focusedId, fitView]);
+
+  return (
+    <ReactFlow
+      nodes={rfNodes}
+      edges={rfEdges}
+      nodeTypes={nodeTypes}
+      fitView
+      fitViewOptions={{ padding: 0.3, minZoom: 0.4, maxZoom: 1.5 }}
+      nodesDraggable={false}
+      nodesConnectable={false}
+      elementsSelectable={false}
+      zoomOnDoubleClick={false}
+      proOptions={{ hideAttribution: true }}
+      style={{ background: "#1c1a17" }}
+    >
+      <Background color="#4a4438" gap={20} variant={BackgroundVariant.Dots} />
+    </ReactFlow>
+  );
+}
+
 export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraphProps) {
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -145,21 +176,7 @@ export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraph
     <div className="my-4 rounded border border-tn-border overflow-hidden">
       <div style={{ height }}>
         <ReactFlowProvider>
-          <ReactFlow
-            nodes={rfNodes}
-            edges={rfEdges}
-            nodeTypes={nodeTypes}
-            fitView
-            fitViewOptions={{ padding: 0.3, minZoom: 0.4, maxZoom: 1.5 }}
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable={false}
-            zoomOnDoubleClick={false}
-            proOptions={{ hideAttribution: true }}
-            style={{ background: "#1c1a17" }}
-          >
-            <Background color="#4a4438" gap={20} variant={BackgroundVariant.Dots} />
-          </ReactFlow>
+          <DocFlowInner rfNodes={rfNodes} rfEdges={rfEdges} focusedId={focusedId} />
         </ReactFlowProvider>
       </div>
 
@@ -195,7 +212,7 @@ export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraph
               </button>
             </div>
           </div>
-          <p className="text-sm text-tn-text leading-relaxed max-h-28 overflow-y-auto pr-1">{steps[stepIndex]?.text}</p>
+          <p className="text-sm text-tn-text leading-relaxed whitespace-normal break-words">{steps[stepIndex]?.text}</p>
         </div>
       )}
     </div>
