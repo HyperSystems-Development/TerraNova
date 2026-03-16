@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
+import { MermaidDiagram } from "@/components/docs/MermaidDiagram";
 
 // Import all markdown docs under src/docs
 // Note: Vite now prefers `query: '?raw'` rather than `as: 'raw'`.
@@ -571,6 +572,18 @@ export function DocsPanel() {
                         </a>
                       );
                     },
+                    code: ({ className, children, ...props }) => {
+                      const match = /language-(\w+)/.exec(className || "");
+                      const value = String(children).replace(/\n$/, "");
+                      if (match?.[1] === "mermaid") {
+                        return <MermaidDiagram code={value} />;
+                      }
+                      return (
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
                   }}
                 >
                   {walkthroughSteps[walkthroughStep]?.content ?? ""}
@@ -605,6 +618,18 @@ export function DocsPanel() {
                         >
                           {children}
                         </a>
+                      );
+                    },
+                    code: ({ className, children, ...props }) => {
+                      const match = /language-(\w+)/.exec(className || "");
+                      const value = String(children).replace(/\n$/, "");
+                      if (match?.[1] === "mermaid") {
+                        return <MermaidDiagram code={value} />;
+                      }
+                      return (
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
                       );
                     },
                   }}
