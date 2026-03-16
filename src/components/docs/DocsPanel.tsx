@@ -106,7 +106,7 @@ function DocTreeNode({
   if (node.type === "file") {
     return (
       <button
-        className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+        className={`docs-file flex w-full items-start text-left px-3 py-2 text-sm transition-colors ${
           selectedSlug === node.slug
             ? "bg-tn-accent/20 text-tn-text"
             : "text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"
@@ -120,7 +120,7 @@ function DocTreeNode({
   }
 
   return (
-    <div>
+    <div className="docs-folder">
       <button
         className={`flex w-full items-start gap-1 px-3 py-2 text-sm font-semibold rounded ${
           isCollapsed ? "text-tn-text-muted" : "text-tn-text"

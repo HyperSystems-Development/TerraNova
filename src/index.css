@@ -121,7 +121,7 @@ body,
 
 /* Sidebar docs navigation */
 .docs-sidebar {
-  background: rgba(33, 30, 26, 0.9);
+  background: rgba(33, 30, 26, 0.92);
 }
 
 .docs-sidebar button {
@@ -139,11 +139,19 @@ body,
 
 .docs-sidebar .docs-folder {
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+  font-size: 0.95rem;
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
 }
 
 .docs-sidebar .docs-file {
   font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.docs-sidebar .docs-folder .text-tn-text-muted {
+  opacity: 0.7;
 }
 
 .docs-content h1,
