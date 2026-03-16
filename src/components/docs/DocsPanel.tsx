@@ -176,7 +176,9 @@ function resolveLinkSlug(currentSlug: string, href: string): ResolvedLink {
   }
 
   // Strip leading slashes (treat as root-relative within docs)
-  const normalizedHref = href.replace(/^\//, "");
+  let normalizedHref = href.replace(/^\//, "");
+  // Allow links that include the docs folder (e.g. docs/tutorials/...) to work too.
+  normalizedHref = normalizedHref.replace(/^docs\//, "");
 
   // Relative path
   const baseParts = currentSlug.split("/");
