@@ -195,7 +195,7 @@ export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraph
               </button>
             </div>
           </div>
-          <p className="text-sm text-tn-text leading-relaxed">{steps[stepIndex]?.text}</p>
+          <p className="text-sm text-tn-text leading-relaxed max-h-28 overflow-y-auto pr-1">{steps[stepIndex]?.text}</p>
         </div>
       )}
     </div>

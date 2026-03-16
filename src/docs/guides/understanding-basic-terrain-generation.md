@@ -28,14 +28,14 @@ These values are then combined with other nodes to produce terrain.
 
 ---
 
-## CurveMapper & BaseHeight
+## CurveFunction & BaseHeight
 
-The **CurveMapper** is a key part of terrain generation. It remaps an input value using a curve (usually defined by a `Manual Curve` node).
+The **CurveFunction** is a key part of terrain generation. It remaps an input value using a curve (usually defined by a `Manual Curve` node).
 
 The most common pairing is:
 
 - `BaseHeight` outputs a value based on world height (Y coordinate) — `0` at the reference Y, positive above, negative below
-- `CurveMapper` remaps that value to shape terrain elevation (hills, cliffs, plateaus)
+- `CurveFunction` remaps that value to shape terrain elevation (hills, cliffs, plateaus)
 
 ```nodegraph
 {
@@ -43,7 +43,7 @@ The most common pairing is:
   "nodes": [
     { "id": "bh",   "label": "BaseHeight",  "category": "density", "sub": "Y = 64",       "x": 0,   "y": 60 },
     { "id": "mc",   "label": "Manual Curve", "category": "curve",                          "x": 0,   "y": 140 },
-    { "id": "cm",   "label": "CurveMapper",  "category": "density", "sub": "height profile","x": 200, "y": 100 },
+    { "id": "cm",   "label": "CurveFunction",  "category": "density", "sub": "height profile","x": 200, "y": 100 },
     { "id": "out",  "label": "Terrain Out",  "category": "output",                          "x": 400, "y": 100 }
   ],
   "edges": [
@@ -75,12 +75,12 @@ A flat height profile with no noise produces completely flat terrain. Adding `Si
 
 ---
 
-## CurveMapper + BaseHeight + Noise
+## CurveFunction + BaseHeight + Noise
 
 To create varied terrain, combine the height-based curve with noise using a `Sum` node.
 
 1. `SimplexNoise2D` creates horizontal variation
-2. `CurveMapper` defines the vertical profile
+2. `CurveFunction` defines the vertical profile
 3. `Sum` merges them into a single density per (x,y,z)
 
 ```nodegraph
@@ -89,7 +89,7 @@ To create varied terrain, combine the height-based curve with noise using a `Sum
   "nodes": [
     { "id": "bh",  "label": "BaseHeight",    "category": "density", "sub": "Y = 64",        "x": 0,   "y": 20 },
     { "id": "mc",  "label": "Manual Curve",  "category": "curve",                            "x": 0,   "y": 110 },
-    { "id": "cm",  "label": "CurveMapper",   "category": "density", "sub": "height profile", "x": 200, "y": 60 },
+    { "id": "cm",  "label": "CurveFunction",   "category": "density", "sub": "height profile", "x": 200, "y": 60 },
     { "id": "sn",  "label": "SimplexNoise2D","category": "density", "sub": "scale 0.01",     "x": 0,   "y": 185 },
     { "id": "sum", "label": "Sum",           "category": "density",                          "x": 400, "y": 100 },
     { "id": "out", "label": "Terrain Out",   "category": "output",                           "x": 580, "y": 100 }
@@ -108,7 +108,7 @@ To create varied terrain, combine the height-based curve with noise using a `Sum
 
 - Each node outputs a value between -1 and 1.
 - `Sum` of two inputs can range from -2 to 2 — the world treats **any positive value** as solid.
-- The `CurveMapper` dominates the vertical shape; noise adds surface variation on top.
+- The `CurveFunction` dominates the vertical shape; noise adds surface variation on top.
 
 ---
 
@@ -147,7 +147,7 @@ Evaluating a full density graph at every Y level is expensive. `YSampled` wraps 
 {
   "height": 180,
   "nodes": [
-    { "id": "cm",  "label": "CurveMapper",  "category": "density",                       "x": 0,   "y": 70 },
+    { "id": "cm",  "label": "CurveFunction",  "category": "density",                       "x": 0,   "y": 70 },
     { "id": "ys",  "label": "YSampled",     "category": "density", "sub": "step = 4",    "x": 200, "y": 70 },
     { "id": "sum", "label": "Sum",          "category": "density",                       "x": 380, "y": 70 },
     { "id": "out", "label": "Terrain Out",  "category": "output",                        "x": 540, "y": 70 }
@@ -162,4 +162,4 @@ Evaluating a full density graph at every Y level is expensive. `YSampled` wraps 
 
 ---
 
-> Tip: Experiment with simple graphs in the editor to see how changing node parameters affects density output. Start with just `BaseHeight → Terrain Out`, then layer in `CurveMapper` and noise one step at a time.
+> Tip: Experiment with simple graphs in the editor to see how changing node parameters affects density output. Start with just `BaseHeight → Terrain Out`, then layer in `CurveFunction` and noise one step at a time.

@@ -87,7 +87,7 @@ The density system is the mathematical backbone of terrain generation. Every ter
 | Node | Purpose |
 |------|---------|
 | `BaseHeight` | Outputs 0 at a configured Y level; positive above, negative below |
-| `CurveMapper` | Remaps input through a curve — used to shape terrain profiles |
+| `CurveFunction` | Remaps input through a curve — used to shape terrain profiles |
 | `Terrain` | Back-reference to the biome's own terrain density |
 | `DistanceToBiomeEdge` | Value based on proximity to the nearest biome boundary |
 | `CellWallDistance` | Distance to the nearest Voronoi cell boundary |

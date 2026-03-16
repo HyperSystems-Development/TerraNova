@@ -104,7 +104,7 @@ Each biome has its own `Terrain` density function that defines its shape. Two bi
   "Type": "Sum",
   "Inputs": [
     { "Type": "BaseHeight", "Height": 80 },
-    { "Type": "CurveMapper", "Input": { "Type": "SimplexNoise2D", "Scale": 0.005 } }
+    { "Type": "CurveFunction", "Input": { "Type": "SimplexNoise2D", "Scale": 0.005 } }
   ]
 }
 ```

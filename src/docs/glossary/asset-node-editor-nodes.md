@@ -17,13 +17,13 @@ Defines a reference height (Y level). Outputs `0` at that height.
 
 Common use: `BaseHeight` sets the ground "zero line", which other nodes then warp and shape.
 
-### CurveMapper Density
+### CurveFunction Density
 
 Remaps an input density value using a curve defined by a `Manual Curve` node. Used to sculpt the vertical profile of terrain — creating cliffs, plateaus, or rolling hills.
 
 **Typical setup:**
 ```
-BaseHeight → CurveMapper → Sum
+BaseHeight → CurveFunction → Sum
 ```
 
 ### SimplexNoise2D Density
@@ -40,7 +40,7 @@ Adds multiple density inputs together. Because each input is in [–1, 1], the s
 
 **Common pattern:**
 ```
-CurveMapper (height profile)
+CurveFunction (height profile)
   +
 SimplexNoise2D (horizontal variation)
   ↓
@@ -88,23 +88,51 @@ Voronoi-style noise. Each point in space is assigned a value based on its distan
 
 ## Material Nodes
 
-Material nodes determine which block type fills each solid voxel.
+Material nodes determine which block type fills each solid voxel. They only run where density is positive.
 
 ### ConstantMaterial
 
-Fills every solid voxel with a single block type.
+Fills every solid voxel with a single block type. Simplest material provider — good for prototyping or uniform-surface biomes.
 
-### LayeredMaterial
+### HeightGradientMaterial
 
-Fills solid voxels with different blocks based on depth below the surface (e.g., grass → dirt → stone).
+Assigns different block types based on Y depth — e.g. grass on top, dirt in the middle, stone deeper. The most common material setup for natural-looking biomes.
+
+### BlendMaterial
+
+Blends between two material providers using a density value as a weight (0–1). Useful for gradual transitions between two surface types.
+
+### WeightedRandomMaterial
+
+Randomly selects between multiple materials using configurable weights. Adds natural variation — e.g. 70% grass, 20% dirt patches, 10% rock.
+
+### ConditionalMaterial
+
+Chooses between two materials based on a density condition (above/below threshold). Useful for sharp surface-type changes.
+
+### SpaceAndDepthMaterial
+
+Assigns materials based on both horizontal position and depth. For complex biomes that need horizontal variation in their material layering.
 
 ---
 
 ## Curve Nodes
 
-### Manual Curve
+### ManualCurve
 
-Defines a custom function mapping input → output. Used as the curve input for `CurveMapper`. You draw the shape of the curve in the editor.
+A hand-drawn spline curve. Used as the `Curve` input for `CurveFunction`. You draw the exact shape in the editor — the x-axis is the input value, y-axis is the output.
+
+### LinearRemapCurve
+
+Remaps input linearly from one range to another (e.g. [–1,1] → [0,1]). Simpler and more predictable than `ManualCurve`.
+
+### ConstantCurve
+
+Always outputs a fixed value regardless of input. Useful as a flat baseline or when you need a constant density contribution.
+
+### DistanceSCurve
+
+An S-shaped curve providing smooth ease-in and ease-out transitions. Used for natural-feeling blends near biome boundaries.
 
 ---
 

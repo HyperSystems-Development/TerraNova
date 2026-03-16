@@ -58,9 +58,9 @@ Now add surface variation:
 
 Terrain is solid, but every block is the same material until you add a **Material Provider**.
 
-1. Right-click → **Add Node** → **Material** → **LayeredMaterial** (or similar from the Material category).
+1. Right-click → **Add Node** → **Material** → **HeightGradientMaterial** (or similar from the Material category).
 2. In the properties panel, set the top layer to **Grass** and a lower layer to **Stone**.
-3. Connect `LayeredMaterial` to the **Material** input on `Terrain Out`.
+3. Connect `HeightGradientMaterial` to the **Material** input on `Terrain Out`.
 4. Generate to see block types applied.
 
 > If you only see density shape in the preview and not block colors, make sure your preview mode is set to **Blocks** not **Density** (toggle in the toolbar).

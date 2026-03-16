@@ -12,7 +12,7 @@ Templates are regular world projects — there's nothing special about their for
 
 A single flat biome with mild hills, grass/stone layered materials, and scattered tree props. Good starting point for beginners.
 
-**Key nodes used:** `BaseHeight`, `SimplexNoise2D`, `Sum`, `LayeredMaterial`, `Mesh2D` prop positions
+**Key nodes used:** `BaseHeight`, `SimplexNoise2D`, `Sum`, `HeightGradientMaterial`, `Mesh2D` prop positions
 
 ```json
 {
@@ -26,9 +26,9 @@ A single flat biome with mild hills, grass/stone layered materials, and scattere
 
 ## Mountain Range
 
-Three biomes (Plains, Forest, Mountains) selected by a simplex noise map. Each biome has a distinct terrain density curve and material stack. Mountains use a `CurveMapper` to create steep cliffs.
+Three biomes (Plains, Forest, Mountains) selected by a simplex noise map. Each biome has a distinct terrain density curve and material stack. Mountains use a `CurveFunction` to create steep cliffs.
 
-**Key nodes used:** `BaseHeight`, `CurveMapper`, `SimplexNoise2D`, `SimplexNoise3D`, `Sum`, `Min`, `Inverter`, `YSampled`
+**Key nodes used:** `BaseHeight`, `CurveFunction`, `SimplexNoise2D`, `SimplexNoise3D`, `Sum`, `Min`, `Inverter`, `YSampled`
 
 ```json
 {

@@ -28,7 +28,7 @@ This page covers common issues and suggested solutions.
 
 ## Nodes Produce Unexpected Values
 
-- Remember that `Sum` of two [–1, 1] values can range from –2 to 2. Use `Clamp` or `Normalizer` to bring values back into an expected range before feeding them to a `CurveMapper`.
+- Remember that `Sum` of two [–1, 1] values can range from –2 to 2. Use `Clamp` or `Normalizer` to bring values back into an expected range before feeding them to a `CurveFunction`.
 - Verify noise `Scale` values — very large scales produce very fine, grainy noise; very small scales produce wide, smooth hills.
 
 ## Help & Support

@@ -12,7 +12,7 @@ This section defines key terms used in TerraNova and Hytale WorldGen V2.
 | **Node Graph** | The directed graph of connected nodes that defines a biome's terrain, materials, and props. |
 | **Biome** | A named configuration of terrain density, block materials, props, environment, and tint. Multiple biomes are blended across the world using a noise-based biome map. |
 | **Generator** | A node that produces values without taking inputs — e.g. noise nodes, constant nodes, axis nodes. |
-| **Modifier** | A node that transforms the output of another node — e.g. CurveMapper, Scale, Clamp. |
+| **Modifier** | A node that transforms the output of another node — e.g. CurveFunction, Scale, Clamp. |
 | **Combinator** | A node that merges multiple inputs — e.g. Sum, Max, Mix. |
 | **WorldGen V2** | The current Hytale world generation architecture (`builtin.hytalegenerator`). Asset-driven, density-based, and fully composable. Replaced the older Zone/Climate-based V1 system. |
 | **TerraNova** | An editor for building and previewing Hytale WorldGen V2 worlds using a visual node graph. |
@@ -24,7 +24,7 @@ This section defines key terms used in TerraNova and Hytale WorldGen V2.
 | Node | Summary |
 |------|---------|
 | `BaseHeight` | Outputs 0 at a reference Y; positive above, negative below. The foundation of all terrain profiles. |
-| `CurveMapper` | Remaps an input value through a custom curve. Used to shape how density changes with height — creates hills, cliffs, and plateaus. |
+| `CurveFunction` | Remaps an input value through a custom curve. Used to shape how density changes with height — creates hills, cliffs, and plateaus. |
 | `SimplexNoise2D` | 2D coherent noise (varies with X and Z). Adds horizontal surface variation — hills, valleys, uneven ground. |
 | `SimplexNoise3D` | 3D coherent noise (varies with X, Y, and Z). Used for caves, overhangs, and floating terrain. |
 | `FractalNoise2D` | Layered octaves of simplex noise. Produces more natural, detailed terrain variation than plain simplex. |
@@ -56,16 +56,22 @@ This section defines key terms used in TerraNova and Hytale WorldGen V2.
 
 | Node | Summary |
 |------|---------|
-| `LayeredMaterial` | Assigns different block types at different Y depths — e.g. grass on top, dirt below, stone deeper. |
-| `NoiseMaterial` | Blends between two materials using a noise pattern — useful for rocky/dirt patches. |
-| `SingleMaterial` | Fills every solid voxel with one block type. |
+| `ConstantMaterial` | Fills every solid voxel with a single block type. |
+| `HeightGradientMaterial` | Assigns different block types based on Y depth — e.g. grass on top, dirt below, stone deeper. |
+| `BlendMaterial` | Blends between two materials using a density value as a weight — useful for rocky/dirt patches. |
+| `WeightedRandomMaterial` | Randomly picks between materials with configurable weights — adds natural variation. |
+| `ConditionalMaterial` | Uses a density condition to choose between two materials — solid check, above/below threshold. |
+| `SpaceAndDepthMaterial` | Assigns materials based on both horizontal position and depth — for complex layered biomes. |
 
 ### Curves
 
 | Node | Summary |
 |------|---------|
-| `ManualCurve` | A hand-drawn spline curve used as input to `CurveMapper`. Defines the exact density-to-height mapping. |
-| `LinearCurve` | A straight-line curve between two points. Simpler alternative to `ManualCurve` for predictable profiles. |
+| `ManualCurve` | A hand-drawn spline curve used as input to `CurveFunction`. Defines the exact shape of the remapping. |
+| `LinearRemapCurve` | Remaps a value linearly from one range to another. Simpler alternative to `ManualCurve`. |
+| `ConstantCurve` | Always outputs a fixed value regardless of input. Useful as a flat baseline. |
+| `DistanceExponentialCurve` | Exponential falloff curve — useful for smooth distance-based fades. |
+| `DistanceSCurve` | S-shaped curve for smooth transitions at both ends of a range. |
 
 ## File Formats
 

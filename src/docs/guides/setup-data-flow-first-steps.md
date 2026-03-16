@@ -23,7 +23,7 @@ Most of what you'll build is density graphs — they determine the shape of the 
   "height": 200,
   "nodes": [
     { "id": "gen",  "label": "Generator",    "category": "terrain",     "sub": "e.g. BaseHeight",  "x": 0,   "y": 40 },
-    { "id": "mod",  "label": "Modifier",     "category": "math",        "sub": "e.g. CurveMapper", "x": 0,   "y": 140 },
+    { "id": "mod",  "label": "Modifier",     "category": "math",        "sub": "e.g. CurveFunction", "x": 0,   "y": 140 },
     { "id": "comb", "label": "Combinator",   "category": "math",        "sub": "e.g. Sum",         "x": 220, "y": 90 },
     { "id": "out",  "label": "Terrain Out",  "category": "output",                                  "x": 420, "y": 90 }
   ],
@@ -38,7 +38,7 @@ Most of what you'll build is density graphs — they determine the shape of the 
 The three node roles:
 
 - **Generators** produce values with no inputs — noise nodes, `BaseHeight`, axis nodes (`YValue`, `XValue`).
-- **Modifiers** transform a value — `CurveMapper`, `Scale`, `Clamp`, `Inverter`, `Normalizer`.
+- **Modifiers** transform a value — `CurveFunction`, `Scale`, `Clamp`, `Inverter`, `Normalizer`.
 - **Combinators** merge multiple values — `Sum`, `Max`, `Min`, `Mix`.
 
 ## The Evaluation Loop
