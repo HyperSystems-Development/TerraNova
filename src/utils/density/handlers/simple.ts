@@ -55,6 +55,7 @@ export function buildSimpleHandlers(): Map<string, NodeHandler> {
     ["One", handleOne],
     ["CacheOnce", handleCacheOnce],
     ["FlatCache", handleFlatCache],
+    ["Cache2D", handleFlatCache],
     ["Wrap", handleWrap],
     ["Passthrough", handlePassthrough],
     ["Debug", handleDebug],

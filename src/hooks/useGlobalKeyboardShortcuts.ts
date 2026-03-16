@@ -5,6 +5,8 @@ import { useEditorStore } from "@/stores/editorStore";
 import { usePreviewStore, type ViewMode } from "@/stores/previewStore";
 import { useBridgeStore } from "@/stores/bridgeStore";
 import { useUIStore } from "@/stores/uiStore";
+import { useSettingsStore } from "@/stores/settingsStore";
+import { useToastStore } from "@/stores/toastStore";
 import { matchesKeybinding } from "@/config/keybindings";
 import { exportAssetPack, exportCurrentJson } from "@/utils/exportAssetPack";
 import { handleAutoLayout, handleAutoLayoutSelected, handleTidyUp } from "@/utils/layoutActions";
@@ -184,6 +186,19 @@ export function useGlobalKeyboardShortcuts({
       if (matchesKeybinding("exportJson", e)) {
         e.preventDefault();
         exportCurrentJson();
+        return;
+      }
+
+      // Toggle instant save
+      if (matchesKeybinding("toggleInstantSave", e)) {
+        e.preventDefault();
+        const settings = useSettingsStore.getState();
+        settings.toggleInstantSave();
+        const nowEnabled = useSettingsStore.getState().instantSaveEnabled;
+        useToastStore.getState().addToast(
+          nowEnabled ? "Instant Save enabled" : "Instant Save disabled",
+          "success",
+        );
         return;
       }
 

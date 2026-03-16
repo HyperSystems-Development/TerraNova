@@ -43,7 +43,7 @@ export function evaluateDensityGrid(
   // Compute 2nd/98th percentile for robust normalization (outlier resistance)
   const sorted = Float32Array.from(values).sort();
   const p02Idx = Math.floor(sorted.length * 0.02);
-  const p98Idx = Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.98));
+  const p98Idx = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.98));
   const p02Value = sorted[p02Idx];
   const p98Value = sorted[p98Idx];
 

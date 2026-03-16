@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { emit, on } from "./storeEvents";
 import { registerProjectRoot, unregisterProjectRoot } from "@/utils/ipc";
+import { saveSession, clearSession } from "@/utils/sessionPersist";
 
 export interface DirectoryEntry {
   name: string;
@@ -47,13 +48,17 @@ export const useProjectStore = create<ProjectState>((set) => ({
     if (prev) unregisterProjectRoot(prev).catch(() => {});
     if (path) registerProjectRoot(path).catch(() => {});
     set({ projectPath: path });
+    saveSession({ projectPath: path });
   },
   setAssetFiles: (files) => set({ assetFiles: files }),
   setDirectoryTree: (tree) => set({ directoryTree: tree }),
-  setCurrentFile: (file) => set({ currentFile: file }),
+  setCurrentFile: (file) => {
+    set({ currentFile: file });
+    saveSession({ currentFile: file });
+  },
   setDirty: (dirty) => set({ isDirty: dirty }),
   setLastError: (error) => set({ lastError: error }),
-  reset: () =>
+  reset: () => {
     set({
       projectPath: null,
       assetFiles: [],
@@ -61,7 +66,9 @@ export const useProjectStore = create<ProjectState>((set) => ({
       currentFile: null,
       isDirty: false,
       lastError: null,
-    }),
+    });
+    clearSession();
+  },
   closeProject: () => {
     const prev = useProjectStore.getState().projectPath;
     if (prev) unregisterProjectRoot(prev).catch(() => {});
@@ -73,6 +80,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
       isDirty: false,
       lastError: null,
     });
+    clearSession();
     emit("project:close");
   },
 }));

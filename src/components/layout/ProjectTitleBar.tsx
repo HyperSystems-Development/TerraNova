@@ -10,6 +10,8 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { resolveKeybinding } from "@/config/keybindings";
 import { exportAssetPack, exportCurrentJson } from "@/utils/exportAssetPack";
 import { isMac } from "@/utils/platform";
+import { ChevronRight } from "lucide-react";
+import { openUrl } from "@/utils/ipc";
 
 interface MenuItemProps {
   label: string;
@@ -36,6 +38,43 @@ function MenuItem({ label, onClick, shortcut, disabled }: MenuItemProps) {
 
 function MenuSeparator() {
   return <div className="border-t border-tn-border my-1" />;
+}
+
+function MenuSubmenu({ label, children }: { label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  function handleEnter() {
+    clearTimeout(timeoutRef.current);
+    setOpen(true);
+  }
+
+  function handleLeave() {
+    timeoutRef.current = setTimeout(() => setOpen(false), 120);
+  }
+
+  useEffect(() => () => clearTimeout(timeoutRef.current), []);
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      <button
+        className="w-full text-left px-3 py-1.5 text-sm flex justify-between gap-6 hover:bg-tn-accent/20"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span>{label}</span>
+        <ChevronRight className="h-3.5 w-3.5 text-tn-text-muted" />
+      </button>
+      {open && (
+        <div className="absolute left-full top-0 ml-0.5 bg-tn-panel border border-tn-border rounded shadow-lg py-1 min-w-[200px] z-50">
+          {children}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function MenuDropdown({ label, children }: { label: string; children: ReactNode }) {
@@ -156,9 +195,11 @@ export function ProjectTitleBar({
     >
       <div className="flex items-center">
         <MenuDropdown label="File">
-          <MenuItem label="New Project..." onClick={onNewProject} shortcut={resolveKeybinding("newProject")} />
-          <MenuItem label="New Biome..." onClick={newBiome} />
-          <MenuItem label="New Instance..." onClick={newInstance} />
+          <MenuSubmenu label="New">
+            <MenuItem label="Project..." onClick={onNewProject} shortcut={resolveKeybinding("newProject")} />
+            <MenuItem label="Biome..." onClick={newBiome} />
+            <MenuItem label="Instance Folder..." onClick={newInstance} />
+          </MenuSubmenu>
           <MenuItem label="Close Project" onClick={onCloseProject} shortcut={resolveKeybinding("closeProject")} />
           <MenuSeparator />
           <MenuItem label="Open Asset Pack..." onClick={openAssetPack} shortcut={resolveKeybinding("openFile")} />
@@ -313,6 +354,11 @@ export function ProjectTitleBar({
           <MenuItem
             label={useAccordionSidebar ? "Sidebar: Accordion" : "Sidebar: Tabs"}
             onClick={() => useUIStore.getState().toggleAccordionSidebar()}
+          />
+          <MenuSeparator />
+          <MenuItem
+            label="File a Bug Report"
+            onClick={() => openUrl("https://github.com/HyperSystems-Development/TerraNova/issues/new?template=BUG_REPORT.yml")}
           />
         </MenuDropdown>
       </div>

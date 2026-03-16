@@ -42,6 +42,12 @@ const handleModulo: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   return divisor === 0 ? 0 : v % divisor;
 };
 
+const handleOffsetConstant: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+  const v = ctx.getInput(inputs, "Input", x, y, z);
+  const offset = Number(fields.Offset ?? fields.Value ?? 0);
+  return v + offset;
+};
+
 const handleAmplitudeConstant: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const v = ctx.getInput(inputs, "Input", x, y, z);
   const amp = Number(fields.Value ?? 1);
@@ -90,6 +96,7 @@ export function buildArithmeticHandlers(): Map<string, NodeHandler> {
     ["Inverse", handleInverse],
     ["SumSelf", handleSumSelf],
     ["Modulo", handleModulo],
+    ["OffsetConstant", handleOffsetConstant],
     ["AmplitudeConstant", handleAmplitudeConstant],
     ["Pow", handlePow],
     ["Sum", handleSum],

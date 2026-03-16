@@ -1,6 +1,6 @@
 [package]
 name = "terranova"
-version = "0.1.5"
+version = "0.1.7"
 description = "Offline design studio for Hytale World Generation V2"
 authors = ["HyperSystems-Development"]
 license = "LGPL-2.1"
@@ -32,6 +32,6 @@ zip = "2"
 [profile.release]
 panic = "abort"
 codegen-units = 1
-lto = true
+lto = "thin"
 opt-level = "s"
 strip = true

@@ -108,12 +108,13 @@ describe("evaluatePositions — Mesh3D", () => {
 /* ── SimpleHorizontal ─────────────────────────────────────────────── */
 
 describe("evaluatePositions — SimpleHorizontal", () => {
-  it("uses Spacing field for grid", () => {
+  it("passes through upstream positions with RangeY constraint", () => {
     const nodes = [
-      makeNode("root", "SimpleHorizontal", { Spacing: 32, Jitter: 0 }, { _biomeField: "Positions" }),
+      makeNode("root", "SimpleHorizontal", { RangeY: { Min: 0, Max: 256 } }, { _biomeField: "Positions" }),
+      makeNode("mesh", "Mesh2D", { Resolution: 32, Jitter: 0 }),
     ];
-    const result = evaluatePositions(nodes, [], DEFAULT_RANGE, SEED);
-    // 128 / 32 = 4 per axis → 16
+    const edges = [makeEdge("mesh", "root", "PositionProvider")];
+    const result = evaluatePositions(nodes, edges, DEFAULT_RANGE, SEED);
     expect(result).toHaveLength(16);
   });
 });
@@ -146,34 +147,14 @@ describe("evaluatePositions — List", () => {
 /* ── Occurrence ────────────────────────────────────────────────────── */
 
 describe("evaluatePositions — Occurrence", () => {
-  it("Chance=1.0 keeps all positions", () => {
+  it("filters upstream positions via density FieldFunction (preview: ~50% random)", () => {
     const nodes = [
-      makeNode("root", "Occurrence", { Chance: 1.0 }, { _biomeField: "Positions" }),
-      makeNode("mesh", "Mesh2D", { Resolution: 32, Jitter: 0 }),
-    ];
-    const edges = [makeEdge("mesh", "root", "PositionProvider")];
-    const result = evaluatePositions(nodes, edges, DEFAULT_RANGE, SEED);
-    expect(result).toHaveLength(16);
-  });
-
-  it("Chance=0.0 removes all positions", () => {
-    const nodes = [
-      makeNode("root", "Occurrence", { Chance: 0.0 }, { _biomeField: "Positions" }),
-      makeNode("mesh", "Mesh2D", { Resolution: 32, Jitter: 0 }),
-    ];
-    const edges = [makeEdge("mesh", "root", "PositionProvider")];
-    const result = evaluatePositions(nodes, edges, DEFAULT_RANGE, SEED);
-    expect(result).toHaveLength(0);
-  });
-
-  it("Chance=0.5 filters ~50% of positions", () => {
-    const nodes = [
-      makeNode("root", "Occurrence", { Chance: 0.5 }, { _biomeField: "Positions" }),
+      makeNode("root", "Occurrence", { Seed: "A" }, { _biomeField: "Positions" }),
       makeNode("mesh", "Mesh2D", { Resolution: 16, Jitter: 0 }),
     ];
     const edges = [makeEdge("mesh", "root", "PositionProvider")];
     const result = evaluatePositions(nodes, edges, DEFAULT_RANGE, SEED);
-    // ~50% of 64 → should be roughly 25-40
+    // Preview uses 50% random filter on 64 positions
     expect(result.length).toBeGreaterThan(10);
     expect(result.length).toBeLessThan(55);
   });
@@ -276,7 +257,7 @@ describe("evaluatePositions — chain", () => {
   it("Mesh2D → Occurrence → Cache produces filtered output", () => {
     const nodes = [
       makeNode("root", "Cache", {}, { _biomeField: "Positions" }),
-      makeNode("occ", "Occurrence", { Chance: 1.0 }),
+      makeNode("occ", "Occurrence", { Seed: "" }),
       makeNode("mesh", "Mesh2D", { Resolution: 32, Jitter: 0 }),
     ];
     const edges = [
@@ -284,7 +265,9 @@ describe("evaluatePositions — chain", () => {
       makeEdge("occ", "root", "PositionProvider"),
     ];
     const result = evaluatePositions(nodes, edges, DEFAULT_RANGE, SEED);
-    expect(result).toHaveLength(16);
+    // Occurrence preview uses 50% random filter on 16 upstream positions
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.length).toBeLessThanOrEqual(16);
   });
 });
 

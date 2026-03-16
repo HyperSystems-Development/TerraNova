@@ -103,10 +103,10 @@ describe("Extended node types — default field values", () => {
     expect(d.Smoothness).toBe(0.1);
   });
 
-  it("Gradient has FromY and ToY defaults", () => {
+  it("Gradient has Axis and SampleRange defaults", () => {
     const d = DENSITY_DEFAULTS["Gradient"];
-    expect(d.FromY).toBe(0);
-    expect(d.ToY).toBe(256);
+    expect(d.Axis).toEqual({ x: 0, y: 1, z: 0 });
+    expect(d.SampleRange).toBe(1.0);
   });
 
   it("XOverride has OverrideX default", () => {
@@ -139,8 +139,8 @@ describe("Extended node types — default field values", () => {
     expect(DENSITY_DEFAULTS["GradientWarp"].WarpScale).toBe(1.0);
   });
 
-  it("AmplitudeConstant has Value default", () => {
-    expect(DENSITY_DEFAULTS["AmplitudeConstant"].Value).toBe(1);
+  it("AmplitudeConstant has no fields (legacy output-only)", () => {
+    expect(Object.keys(DENSITY_DEFAULTS["AmplitudeConstant"])).toHaveLength(0);
   });
 
   it("Pow has Exponent default", () => {
@@ -197,9 +197,9 @@ describe("Extended node types — field descriptions", () => {
     expect(Object.keys(FIELD_DESCRIPTIONS[type]).length).toBeGreaterThan(0);
   });
 
-  it("Gradient has FromY and ToY descriptions", () => {
-    expect(FIELD_DESCRIPTIONS["Gradient"].FromY).toBeDefined();
-    expect(FIELD_DESCRIPTIONS["Gradient"].ToY).toBeDefined();
+  it("Gradient has Axis and SampleRange descriptions", () => {
+    expect(FIELD_DESCRIPTIONS["Gradient"].Axis).toBeDefined();
+    expect(FIELD_DESCRIPTIONS["Gradient"].SampleRange).toBeDefined();
   });
 
 });

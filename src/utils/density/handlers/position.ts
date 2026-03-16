@@ -82,11 +82,18 @@ const handleGradientDensity: NodeHandler = (_ctx, fields, _inputs, _x, y) => {
   return range === 0 ? 0 : (y - fromY) / range;
 };
 
-const handleGradient: NodeHandler = (_ctx, fields, _inputs, _x, y) => {
-  const fromY = Number(fields.FromY ?? 0);
-  const toY = Number(fields.ToY ?? DEFAULT_WORLD_HEIGHT);
-  const range = toY - fromY;
-  return range === 0 ? 0 : (y - fromY) / range;
+const handleGradient: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+  // Directional derivative via finite differences along Axis
+  const axis = fields.Axis as { x: number; y: number; z: number } | undefined;
+  const ax = Number(axis?.x ?? 0);
+  const ay = Number(axis?.y ?? 1);
+  const az = Number(axis?.z ?? 0);
+  const sr = Number(fields.SampleRange ?? 1.0);
+  const inputId = inputs.get("Input");
+  if (!inputId) return 0;
+  const fPlus = ctx.evaluate(inputId, x + ax * sr, y + ay * sr, z + az * sr);
+  const fMinus = ctx.evaluate(inputId, x - ax * sr, y - ay * sr, z - az * sr);
+  return sr > 0 ? (fPlus - fMinus) / (2 * sr) : 0;
 };
 
 const handleBaseHeight: NodeHandler = (ctx, fields, _inputs, _x, y) => {

@@ -94,16 +94,16 @@ export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> 
 
   // Material depth/space types
   DownwardDepth: {
-    MaxDepth: { min: 1, message: "MaxDepth must be >= 1" },
+    Depth: { min: 1, message: "Depth must be >= 1" },
   },
   UpwardDepth: {
-    MaxDepth: { min: 1, message: "MaxDepth must be >= 1" },
+    Depth: { min: 1, message: "Depth must be >= 1" },
   },
   DownwardSpace: {
-    MaxSpace: { min: 1, message: "MaxSpace must be >= 1" },
+    Space: { min: 1, message: "Space must be >= 1" },
   },
   UpwardSpace: {
-    MaxSpace: { min: 1, message: "MaxSpace must be >= 1" },
+    Space: { min: 1, message: "Space must be >= 1" },
   },
   Striped: {
     Thickness: { min: 1, message: "Thickness must be >= 1" },
@@ -114,10 +114,9 @@ export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> 
     Frequency: { min: 0, message: "Frequency must be > 0" },
   },
 
-  // Gradient
+  // Gradient (directional derivative)
   Gradient: {
-    FromY: { required: true },
-    ToY: { required: true },
+    SampleRange: { min: 0, message: "SampleRange must be >= 0" },
   },
 
   // Cache

@@ -139,30 +139,34 @@ describe("SmoothCeiling", () => {
  * ══════════════════════════════════════════════════════════════════════════ */
 
 describe("Gradient", () => {
-  it("returns linear interpolation between FromY and ToY", () => {
-    const nodes = [makeNode("g", "Gradient", { FromY: 0, ToY: 128 })];
-    const result = evalSingle(nodes, []);
-    // Y_LEVEL = 64, FromY=0, ToY=128 → (64 - 0) / 128 = 0.5
-    expectAll(result, 0.5);
+  it("estimates directional derivative of input along default Y axis", () => {
+    // d/dy(y) = 1.0 everywhere
+    const nodes = [
+      makeNode("y", "CoordinateY"),
+      makeNode("g", "Gradient", { Axis: { x: 0, y: 1, z: 0 }, SampleRange: 1.0 }),
+    ];
+    const edges = [makeEdge("y", "g", "Input")];
+    const result = evalSingle(nodes, edges, "g");
+    expectAll(result, 1.0);
   });
 
-  it("returns 0 at FromY", () => {
-    const nodes = [makeNode("g", "Gradient", { FromY: 64, ToY: 128 })];
-    // Y_LEVEL = 64 = FromY → result = 0
-    const result = evalSingle(nodes, []);
+  it("returns 0 for constant input", () => {
+    const nodes = [
+      makeNode("c", "Constant", { Value: 42 }),
+      makeNode("g", "Gradient", { Axis: { x: 0, y: 1, z: 0 }, SampleRange: 1.0 }),
+    ];
+    const edges = [makeEdge("c", "g", "Input")];
+    const result = evalSingle(nodes, edges, "g");
     expectAll(result, 0);
   });
 
-  it("returns 1 at ToY", () => {
-    const nodes = [makeNode("g", "Gradient", { FromY: 0, ToY: 64 })];
-    // Y_LEVEL = 64 = ToY → result = 1
-    const result = evalSingle(nodes, []);
-    expectAll(result, 1);
-  });
-
-  it("handles zero range gracefully", () => {
-    const nodes = [makeNode("g", "Gradient", { FromY: 64, ToY: 64 })];
-    const result = evalSingle(nodes, []);
+  it("returns 0 when SampleRange is 0", () => {
+    const nodes = [
+      makeNode("y", "CoordinateY"),
+      makeNode("g", "Gradient", { Axis: { x: 0, y: 1, z: 0 }, SampleRange: 0 }),
+    ];
+    const edges = [makeEdge("y", "g", "Input")];
+    const result = evalSingle(nodes, edges, "g");
     expectAll(result, 0);
   });
 });
@@ -447,24 +451,26 @@ describe("Context-dependent types", () => {
 });
 
 /* ══════════════════════════════════════════════════════════════════════════
- * Complex graph: GradientWarp + SmoothCeiling chain
+ * Complex graph: Gradient + SmoothCeiling chain
  * ══════════════════════════════════════════════════════════════════════════ */
 
 describe("Complex graph: GradientWarp + SmoothCeiling", () => {
-  it("Gradient → Amplitude → SmoothCeiling produces clamped gradient", () => {
+  it("Gradient → Amplitude → SmoothCeiling produces clamped derivative", () => {
+    // Gradient of CoordinateY along Y = 1.0, * 2 = 2.0, smoothCeiling at 0.8 → ~0.8
     const nodes = [
-      makeNode("grad", "Gradient", { FromY: 0, ToY: 128 }),
+      makeNode("y", "CoordinateY"),
+      makeNode("grad", "Gradient", { Axis: { x: 0, y: 1, z: 0 }, SampleRange: 1.0 }),
       makeNode("amp", "Constant", { Value: 2 }),
       makeNode("mul", "Amplitude"),
       makeNode("sc", "SmoothCeiling", { Threshold: 0.8, Smoothness: 0.01 }),
     ];
     const edges = [
+      makeEdge("y", "grad", "Input"),
       makeEdge("grad", "mul", "Input"),
       makeEdge("amp", "mul", "Amplitude"),
       makeEdge("mul", "sc", "Input"),
     ];
     const result = evalSingle(nodes, edges, "sc");
-    // Gradient at y=64: (64-0)/128 = 0.5, * 2 = 1.0, smoothCeiling at 0.8 → ~0.8
     for (let i = 0; i < result.values.length; i++) {
       expect(result.values[i]).toBeCloseTo(0.8, 1);
     }

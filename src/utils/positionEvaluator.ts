@@ -147,9 +147,9 @@ export function evaluatePositions(
       }
 
       case "SimpleHorizontal": {
-        const spacing = (fields.Spacing as number) ?? 16;
-        const jitter = (fields.Jitter as number) ?? 0;
-        result = generateGrid(range, spacing, jitter, rng);
+        // V2: RangeY constrains Y band; preview approximates as passthrough
+        const upstream = getUpstream(inputs, "PositionProvider");
+        result = upstream.length > 0 ? upstream : generateGrid(range, 16, 0, rng);
         break;
       }
 
@@ -162,9 +162,9 @@ export function evaluatePositions(
       }
 
       case "Occurrence": {
-        const chance = (fields.Chance as number) ?? 0.5;
+        // V2: density FieldFunction filters positions; preview uses 50% random
         const upstream = getUpstream(inputs, "PositionProvider");
-        result = upstream.filter(() => rng() < chance);
+        result = upstream.filter(() => rng() < 0.5);
         break;
       }
 

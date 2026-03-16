@@ -43,6 +43,7 @@ pub fn run() {
             io_commands::list_template_biomes,
             io_commands::create_blank_project,
             io_commands::show_in_folder,
+            io_commands::open_url,
             io_commands::path_exists,
             validate::validate_asset_pack,
             preview::evaluate_density,

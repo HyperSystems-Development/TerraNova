@@ -1,5 +1,6 @@
 import { useUIStore } from "../uiStore";
 import { emit } from "../storeEvents";
+import { saveSession } from "@/utils/sessionPersist";
 import type {
   EditorState,
   SliceCreator,
@@ -31,7 +32,10 @@ export const createBiomeSectionsSlice: SliceCreator<BiomeSectionsSliceState> = (
     ...biomeSectionsInitialState,
 
     setBiomeSections: (sections) => set({ biomeSections: sections }),
-    setActiveBiomeSection: (section) => set({ activeBiomeSection: section }),
+    setActiveBiomeSection: (section) => {
+      set({ activeBiomeSection: section });
+      saveSession({ activeBiomeSection: section });
+    },
     setBiomeConfig: (config) => set({ biomeConfig: config }),
 
     switchBiomeSection: (target) => {
@@ -61,6 +65,7 @@ export const createBiomeSectionsSlice: SliceCreator<BiomeSectionsSliceState> = (
           outputNodeId: targetData.outputNodeId ?? null,
           selectedNodeId: null,
         });
+        saveSession({ activeBiomeSection: target });
         // Reload per-tab bookmarks for the new section
         useUIStore.getState().reloadBookmarks(undefined, undefined, target);
       }

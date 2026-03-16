@@ -109,6 +109,7 @@ const FIELD_CATEGORY_PREFIX: Record<string, string> = {
   Materials: "Material",
   ThicknessFunctionXZ: "",
   NewYAxis: "Vector",
+  Scale: "Vector",
   // Curve fields on non-CurveFunction parents (e.g. PositionsCellNoise, Shell)
   ReturnCurve: "Curve",
   AngleCurve: "Curve",

@@ -24,7 +24,7 @@ const handleSmoothCeiling: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 };
 
 const handleSmoothMin: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const k = Number(fields.Smoothness ?? fields.Range ?? 0.1);
+  const k = Number(fields.Smoothness ?? fields.SmoothRange ?? fields.Range ?? 1.0);
   let result = ctx.getInput(inputs, "Inputs[0]", x, y, z);
   for (let i = 1; inputs.has(`Inputs[${i}]`); i++) {
     result = smoothMin(result, ctx.getInput(inputs, `Inputs[${i}]`, x, y, z), k);
@@ -33,7 +33,7 @@ const handleSmoothMin: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 };
 
 const handleSmoothMax: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const k = Number(fields.Smoothness ?? fields.Range ?? 0.1);
+  const k = Number(fields.Smoothness ?? fields.SmoothRange ?? fields.Range ?? 1.0);
   let result = ctx.getInput(inputs, "Inputs[0]", x, y, z);
   for (let i = 1; inputs.has(`Inputs[${i}]`); i++) {
     result = smoothMax(result, ctx.getInput(inputs, `Inputs[${i}]`, x, y, z), k);

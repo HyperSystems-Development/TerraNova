@@ -44,8 +44,8 @@ const handleSimplexRidgeNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) 
   const amp = Number(fields.Amplitude ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const octaves = Math.max(1, Number(fields.Octaves ?? 1));
-  const lacunarity = Number(fields.Lacunarity ?? 2.0);
-  const gain = Number(fields.Gain ?? fields.Persistence ?? 0.5);
+  const lacunarity = Number(fields.Lacunarity ?? 1.0);
+  const gain = Number(fields.Gain ?? fields.Persistence ?? 1.0);
   const noise = ctx.getNoise2D(seed);
   return ridgeFbm2D(noise, x, z, scale, scale, octaves, lacunarity, gain, seed) * amp;
 };
@@ -56,8 +56,8 @@ const handleSimplexRidgeNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) =
   const amp = Number(fields.Amplitude ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const octaves = Math.max(1, Number(fields.Octaves ?? 1));
-  const lacunarity = Number(fields.Lacunarity ?? 2.0);
-  const gain = Number(fields.Gain ?? fields.Persistence ?? 0.5);
+  const lacunarity = Number(fields.Lacunarity ?? 1.0);
+  const gain = Number(fields.Gain ?? fields.Persistence ?? 1.0);
   const noise = ctx.getNoise3D(seed);
   return ridgeFbm3D(noise, x, y, z, scaleXZ, scaleY, octaves, lacunarity, gain, seed) * amp;
 };

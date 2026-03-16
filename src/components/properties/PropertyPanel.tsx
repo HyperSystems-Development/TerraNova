@@ -1464,7 +1464,7 @@ export function PropertyPanel() {
         </div>
       )}
 
-      {Object.entries(fields).map(([key, value]) => {
+      {Object.entries(fields).filter(([key]) => !key.startsWith("__")).map(([key, value]) => {
         const fieldLabel = getFieldDisplayName(typeName, key);
         const transform = typeof value === "number" ? getFieldTransform(typeName, key) : null;
         const constraint = typeConstraints[key] ?? typeConstraints[fieldLabel];

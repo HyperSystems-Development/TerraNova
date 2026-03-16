@@ -1,5 +1,19 @@
 import type { Node, Edge } from "@xyflow/react";
 import { NODE_WIDTH, NODE_HEIGHT } from "@/constants";
+import * as _graphlibModule from "@dagrejs/graphlib";
+
+// @dagrejs/dagre's ESM bundle contains a CJS require() shim that throws
+// "Dynamic require of '@dagrejs/graphlib' is not supported" in browsers.
+// The shim fires during module evaluation, so we must polyfill require()
+// before dagre is ever imported. Static import of graphlib above guarantees
+// it's available here at module scope.
+const _graphlib = (_graphlibModule as any).default ?? _graphlibModule;
+if (!(globalThis as any).require) {
+  (globalThis as any).require = (id: string) => {
+    if (id === "@dagrejs/graphlib") return _graphlib;
+    throw new Error(`Dynamic require of "${id}" is not supported`);
+  };
+}
 
 /**
  * Tidy up node positions by snapping to grid and resolving overlaps.
@@ -63,29 +77,16 @@ export function tidyUp(nodes: Node[], gridSize: number = 20): Node[] {
 let dagreLib: typeof import("@dagrejs/dagre") | null = null;
 
 /**
- * Lazily import dagre with a require() polyfill so its internal
- * require("@dagrejs/graphlib") resolves in the browser.
+ * Lazily import dagre. The require polyfill is already set up at module
+ * scope above, so dagre's CJS shim will find graphlib when it evaluates.
  */
 async function ensureDagre() {
   if (dagreLib) return dagreLib;
 
-  // 1. Import graphlib — its ESM bundle is self-contained and works fine
-  const graphlibMod = await import("@dagrejs/graphlib");
-  const graphlib = (graphlibMod as any).default ?? graphlibMod;
-
-  // 2. Polyfill require() so dagre's internal require("@dagrejs/graphlib") resolves
-  if (typeof window !== "undefined") {
-    const prev = (window as any).require;
-    (window as any).require = (id: string) => {
-      if (id === "@dagrejs/graphlib") return graphlib;
-      if (typeof prev === "function") return prev(id);
-      throw new Error(`Cannot require("${id}")`);
-    };
-  }
-
-  // 3. NOW import dagre — it will find graphlib via the polyfill
   const dagreMod = await import("@dagrejs/dagre");
-  dagreLib = (dagreMod as any).default ?? dagreMod;
+  const dagre = (dagreMod as any).default ?? dagreMod;
+  dagre.graphlib = _graphlib;
+  dagreLib = dagre;
   return dagreLib;
 }
 

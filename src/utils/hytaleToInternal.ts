@@ -124,15 +124,23 @@ function reverseSmoothFields(
   hytaleType: string,
 ): Record<string, unknown> {
   const result = { ...asset };
-  // All Smooth* types: Range → Smoothness
-  if ("Range" in result) {
-    result.Smoothness = result.Range;
-    delete result.Range;
-  }
-  // SmoothFloor / SmoothCeiling: SmoothRange → Threshold
-  if ((hytaleType === "SmoothFloor" || hytaleType === "SmoothCeiling") && "SmoothRange" in result) {
-    result.Threshold = result.SmoothRange;
-    delete result.SmoothRange;
+
+  if (hytaleType === "SmoothFloor" || hytaleType === "SmoothCeiling") {
+    // V2 uses Limit + SmoothRange → internal Threshold + Smoothness
+    if ("Limit" in result) {
+      result.Threshold = result.Limit;
+      delete result.Limit;
+    }
+    if ("SmoothRange" in result) {
+      result.Smoothness = result.SmoothRange;
+      delete result.SmoothRange;
+    }
+  } else {
+    // SmoothClamp/SmoothMin/SmoothMax: Range → Smoothness
+    if ("Range" in result) {
+      result.Smoothness = result.Range;
+      delete result.Range;
+    }
   }
   return result;
 }
@@ -336,8 +344,19 @@ function reverseSpaceAndDepthFields(
   const result = { ...asset };
   if ("Layers" in result && Array.isArray(result.Layers)) {
     const layers = result.Layers as Record<string, unknown>[];
-    if (layers.length >= 2) {
-      // First layer = Empty (surface), Second layer = Solid (deep)
+
+    if (layers.length > 2) {
+      // 3+ layers: preserve the original data as opaque passthrough.
+      // Store the raw Layers array, LayerContext, and MaxExpectedDepth
+      // so the export path can emit them verbatim.
+      result.__rawLayers = result.Layers;
+      result.__rawLayerContext = result.LayerContext;
+      result.__rawMaxExpectedDepth = result.MaxExpectedDepth;
+      delete result.Layers;
+      delete result.LayerContext;
+      delete result.MaxExpectedDepth;
+    } else if (layers.length >= 2) {
+      // 2-layer case: flatten to DepthThreshold/Empty/Solid as before
       const emptyLayer = layers[0];
       const solidLayer = layers[1];
       result.DepthThreshold = (emptyLayer.Thickness as number) ?? 2;
@@ -356,11 +375,22 @@ function reverseSpaceAndDepthFields(
       } else {
         result.Solid = unwrapMaterial(solidMat) ?? solidMat;
       }
+
+      // Preserve the actual MaxExpectedDepth instead of discarding it
+      if ("MaxExpectedDepth" in result) {
+        result.__originalMaxExpectedDepth = result.MaxExpectedDepth;
+      }
+
+      delete result.Layers;
+      delete result.LayerContext;
+      delete result.MaxExpectedDepth;
+    } else {
+      // 0-1 layers: still clean up Hytale-only fields
+      delete result.Layers;
+      delete result.LayerContext;
+      delete result.MaxExpectedDepth;
     }
-    delete result.Layers;
   }
-  delete result.LayerContext;
-  delete result.MaxExpectedDepth;
   return result;
 }
 
@@ -911,6 +941,16 @@ function transformNodeToInternal(
     processedFields = reverseNoiseFields(processedFields, hytaleType);
   }
 
+  // Floor / Ceiling: V2 "Limit" → internal "Floor"/"Ceiling"
+  if (hytaleType === "Floor" && "Limit" in processedFields) {
+    processedFields.Floor = processedFields.Limit;
+    delete processedFields.Limit;
+  }
+  if (hytaleType === "Ceiling" && "Limit" in processedFields) {
+    processedFields.Ceiling = processedFields.Limit;
+    delete processedFields.Limit;
+  }
+
   // Clamp / SmoothClamp
   if (hytaleType === "Clamp" || hytaleType === "SmoothClamp") {
     processedFields = reverseClampFields(processedFields);
@@ -939,6 +979,14 @@ function transformNodeToInternal(
   // Rotator → RotatedPosition
   if (hytaleType === "Rotator" && category === "density") {
     processedFields = reverseRotatorFields(processedFields);
+  }
+
+  // Plane: PlaneNormal → Normal, IsAnchored stays
+  if (hytaleType === "Plane") {
+    if ("PlaneNormal" in processedFields) {
+      processedFields.Normal = processedFields.PlaneNormal;
+      delete processedFields.PlaneNormal;
+    }
   }
 
   // FastGradientWarp: convert Hytale field names to internal names
@@ -1118,6 +1166,24 @@ function transformNodeToInternal(
       continue;
     }
 
+    // Named-map of nested assets (V2 StringCodecMapCodec: { "key1": {Type:...}, "key2": {Type:...} })
+    // Convert to array and recursively transform each entry.
+    if (
+      value && typeof value === "object" && !Array.isArray(value) &&
+      !("Type" in (value as Record<string, unknown>))
+    ) {
+      const entries = Object.values(value as Record<string, unknown>);
+      if (
+        entries.length > 0 &&
+        entries.every((e) => e && typeof e === "object" && "Type" in (e as Record<string, unknown>))
+      ) {
+        output[key] = entries.map((item) =>
+          transformNodeToInternal(item as Record<string, unknown>, { ...ctx, parentField: key }, metadata),
+        );
+        continue;
+      }
+    }
+
     // Pass through — strip $NodeId from non-typed nested structures
     if (Array.isArray(value)) {
       output[key] = stripNodeIds(value);
@@ -1154,6 +1220,7 @@ function inferCategoryFromParent(parentField: string): string {
     Low: "material",
     High: "material",
     Material: "material",
+    Materials: "material",
     Curve: "curve",
     Pattern: "pattern",
     SubPattern: "pattern",

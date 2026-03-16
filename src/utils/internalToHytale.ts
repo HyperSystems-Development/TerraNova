@@ -148,15 +148,23 @@ function transformSmoothFields(
   hytaleType: string,
 ): Record<string, unknown> {
   const result = { ...asset };
-  // All Smooth* types: Smoothness → Range
-  if ("Smoothness" in result) {
-    result.Range = result.Smoothness;
-    delete result.Smoothness;
-  }
-  // SmoothFloor / SmoothCeiling: Threshold → SmoothRange
-  if ((hytaleType === "SmoothFloor" || hytaleType === "SmoothCeiling") && "Threshold" in result) {
-    result.SmoothRange = result.Threshold;
-    delete result.Threshold;
+
+  if (hytaleType === "SmoothFloor" || hytaleType === "SmoothCeiling") {
+    // V2 uses Limit (threshold) + SmoothRange (blend width)
+    if ("Threshold" in result) {
+      result.Limit = result.Threshold;
+      delete result.Threshold;
+    }
+    if ("Smoothness" in result) {
+      result.SmoothRange = result.Smoothness;
+      delete result.Smoothness;
+    }
+  } else {
+    // SmoothClamp/SmoothMin/SmoothMax: Smoothness → Range
+    if ("Smoothness" in result) {
+      result.Range = result.Smoothness;
+      delete result.Smoothness;
+    }
   }
   return result;
 }
@@ -409,7 +417,25 @@ function transformSpaceAndDepthFields(
   ctx: TransformContext,
 ): Record<string, unknown> {
   const result = { ...asset };
+
+  // 3+ layer passthrough: emit the preserved raw data verbatim
+  if ("__rawLayers" in result) {
+    result.Layers = result.__rawLayers;
+    result.LayerContext = result.__rawLayerContext ?? "DEPTH_INTO_FLOOR";
+    result.MaxExpectedDepth = result.__rawMaxExpectedDepth ?? 16;
+    delete result.__rawLayers;
+    delete result.__rawLayerContext;
+    delete result.__rawMaxExpectedDepth;
+    delete result.DepthThreshold;
+    delete result.Solid;
+    delete result.Empty;
+    delete result.__originalMaxExpectedDepth;
+    return result;
+  }
+
+  // 2-layer case: reconstruct from DepthThreshold/Empty/Solid
   const depthThreshold = (result.DepthThreshold as number) ?? 2;
+  const originalMaxDepth = (result.__originalMaxExpectedDepth as number) ?? 16;
 
   // Transform child material nodes
   let emptyMaterial: unknown;
@@ -431,7 +457,7 @@ function transformSpaceAndDepthFields(
   }
 
   result.LayerContext = "DEPTH_INTO_FLOOR";
-  result.MaxExpectedDepth = 16;
+  result.MaxExpectedDepth = originalMaxDepth;
   result.Layers = [
     {
       $NodeId: generateNodeId("ConstantThickness.Layer"),
@@ -442,7 +468,7 @@ function transformSpaceAndDepthFields(
     {
       $NodeId: generateNodeId("ConstantThickness.Layer"),
       Type: "ConstantThickness",
-      Thickness: 16 - depthThreshold,
+      Thickness: originalMaxDepth - depthThreshold,
       Material: solidMaterial,
     },
   ];
@@ -450,6 +476,7 @@ function transformSpaceAndDepthFields(
   delete result.DepthThreshold;
   delete result.Solid;
   delete result.Empty;
+  delete result.__originalMaxExpectedDepth;
   return result;
 }
 
@@ -1278,7 +1305,6 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     return {
       $NodeId: generateNodeId("SpaceAndDepthMaterialProvider"),
       Type: "SpaceAndDepth",
-      Skip: false,
       ...layerFields,
     };
   }
@@ -1358,6 +1384,16 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     transformedFields = transformNoiseFields(transformedFields, hytaleType);
   }
 
+  // Floor / Ceiling: internal "Floor"/"Ceiling" field → V2 "Limit"
+  if (hytaleType === "Floor" && "Floor" in transformedFields) {
+    transformedFields.Limit = transformedFields.Floor;
+    delete transformedFields.Floor;
+  }
+  if (hytaleType === "Ceiling" && "Ceiling" in transformedFields) {
+    transformedFields.Limit = transformedFields.Ceiling;
+    delete transformedFields.Ceiling;
+  }
+
   // Clamp / SmoothClamp
   if (hytaleType === "Clamp" || hytaleType === "SmoothClamp") {
     transformedFields = transformClampFields(transformedFields);
@@ -1396,6 +1432,21 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
   // FastGradientWarp: convert internal field names to Hytale names
   if (internalType === "FastGradientWarp") {
     transformedFields = transformFastGradientWarpFields(transformedFields);
+  }
+
+  // Plane: Normal → PlaneNormal, Distance → IsAnchored
+  if (hytaleType === "Plane") {
+    if ("Normal" in transformedFields) {
+      transformedFields.PlaneNormal = transformedFields.Normal;
+      delete transformedFields.Normal;
+    }
+    if ("Distance" in transformedFields) {
+      // Distance was mismodeled; V2 uses IsAnchored (boolean)
+      delete transformedFields.Distance;
+    }
+    if ("IsAnchored" in transformedFields) {
+      // pass through correctly
+    }
   }
 
   // AmplitudeConstant (LinearTransform)
@@ -1478,10 +1529,38 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     transformedFields = transformDensityBasedFields(transformedFields);
   }
 
+  // SimpleHorizontal: Materials[] → Material (V2 uses singular Material port, not array)
+  if (internalType === "SimpleHorizontal" &&
+      "Materials" in transformedFields && Array.isArray(transformedFields.Materials)) {
+    const materials = transformedFields.Materials as unknown[];
+    if (materials.length > 0) {
+      transformedFields.Material = materials[0];
+    }
+    delete transformedFields.Materials;
+  }
+
   // PositionsCellNoise: ReturnCurve → Curve (reverse of import normalization)
   if (internalType === "PositionsCellNoise" && "ReturnCurve" in transformedFields) {
     transformedFields.Curve = transformedFields.ReturnCurve;
     delete transformedFields.ReturnCurve;
+  }
+
+  // PositionsCellNoise: wrap DistanceFunction/ReturnType strings → objects for V2 codec
+  // V2 expects { Type: "Euclidean" }, not bare "Euclidean"
+  if (internalType === "PositionsCellNoise") {
+    if (typeof transformedFields.DistanceFunction === "string") {
+      transformedFields.DistanceFunction = { Type: transformedFields.DistanceFunction };
+    }
+    if (typeof transformedFields.ReturnType === "string") {
+      const rtType = transformedFields.ReturnType as string;
+      const rtObj: Record<string, unknown> = { Type: rtType };
+      // When ReturnType is "Curve", embed the Curve asset inside the ReturnType object
+      if (rtType === "Curve" && "Curve" in transformedFields) {
+        rtObj.Curve = transformedFields.Curve;
+        delete transformedFields.Curve;
+      }
+      transformedFields.ReturnType = rtObj;
+    }
   }
 
   // SimplexRidgeNoise2D/3D → Abs(SimplexNoise2D/3D) compound node

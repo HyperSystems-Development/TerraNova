@@ -18,7 +18,11 @@ export function HomeScreen() {
   const { openAssetPack } = useTauriIO();
   const removeProject = useRecentProjectsStore((s) => s.removeProject);
   const { shouldShow: showWhatsNew, dismiss: dismissWhatsNew } = useWhatsNew();
-  const [whatsNewOpen, setWhatsNewOpen] = useState(showWhatsNew);
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+
+  useEffect(() => {
+    if (showWhatsNew) setWhatsNewOpen(true);
+  }, [showWhatsNew]);
 
   function handleCloseWhatsNew(suppress: boolean) {
     dismissWhatsNew(suppress);
