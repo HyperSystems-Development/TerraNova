@@ -81,13 +81,15 @@ function makeRFNode(n: DocGraphNode, focusedId: string | null, hasSteps: boolean
 
 function makeRFEdge(e: DocGraphEdge, i: number, focusedId: string | null, hasSteps: boolean): Edge {
   const dimmed = hasSteps && focusedId !== null && e.from !== focusedId && e.to !== focusedId;
+  const color = dimmed ? "#3a3428" : "#6b5f4e";
   return {
     id: e.id ?? `e-${i}`,
     source: e.from,
     target: e.to,
     label: e.label,
     type: "smoothstep",
-    style: { stroke: dimmed ? "#3a3428" : "#6b5f4e", strokeWidth: 2, opacity: dimmed ? 0.3 : 1 },
+    markerEnd: { type: MarkerType.ArrowClosed, color, width: 18, height: 18 },
+    style: { stroke: color, strokeWidth: 2, opacity: dimmed ? 0.3 : 1 },
     labelStyle: { fill: dimmed ? "#4a4438" : "#c4baa8", fontSize: 11 },
     labelBgStyle: { fill: "#1c1a17", fillOpacity: 0.9 },
   };
