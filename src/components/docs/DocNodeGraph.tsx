@@ -107,6 +107,7 @@ function DocNode({ data }: { data: { label: string; sub?: string; color: string;
       }}
       className="rounded border bg-tn-panel text-tn-text select-none overflow-hidden"
     >
+      <Handle type="target" position={Position.Left} style={{ background: "#6b5f4e", border: "none", width: 8, height: 8 }} />
       <div
         style={{ background: data.color }}
         className="px-2.5 py-1 text-[13px] font-semibold text-white leading-tight truncate"
@@ -116,6 +117,7 @@ function DocNode({ data }: { data: { label: string; sub?: string; color: string;
       {data.sub && (
         <div className="px-2.5 py-0.5 text-[11px] text-tn-text-muted truncate">{data.sub}</div>
       )}
+      <Handle type="source" position={Position.Right} style={{ background: "#6b5f4e", border: "none", width: 8, height: 8 }} />
     </div>
   );
 }
