@@ -456,6 +456,19 @@ export function DocsPanel() {
     [entries, loadDoc, selectedSlug],
   );
 
+  const canHandleLink = useCallback(
+    (href: string) => {
+      if (!href || href.startsWith("http") || href.startsWith("mailto:")) return false;
+      const resolved = resolveLinkSlug(selectedSlug ?? "", href);
+      if (!resolved) return false;
+      const target = entries.find((e) => e.slug === resolved.slug || e.slug === resolved.slug.replace(/\.md$/, ""));
+      if (target) return true;
+      if (resolved.slug === selectedSlug && resolved.anchor) return true;
+      return false;
+    },
+    [entries, selectedSlug],
+  );
+
   const mdComponents = useMemo(() => ({
     a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
       const hrefStr = String(href ?? "");
@@ -480,21 +493,7 @@ export function DocsPanel() {
       if (match?.[1] === "mermaid") return <MermaidDiagram code={value} />;
       return <code {...props} />;
     },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [canHandleLink, handleLinkClick]);
-
-  const canHandleLink = useCallback(
-    (href: string) => {
-      if (!href || href.startsWith("http") || href.startsWith("mailto:")) return false;
-      const resolved = resolveLinkSlug(selectedSlug ?? "", href);
-      if (!resolved) return false;
-      const target = entries.find((e) => e.slug === resolved.slug || e.slug === resolved.slug.replace(/\.md$/, ""));
-      if (target) return true;
-      if (resolved.slug === selectedSlug && resolved.anchor) return true;
-      return false;
-    },
-    [entries, selectedSlug],
-  );
 
   return (
     <div className="flex h-full">
@@ -597,37 +596,7 @@ export function DocsPanel() {
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeSlug, rehypeHighlight]}
-                  components={{
-                    a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
-                      const hrefStr = String(href ?? "");
-                      const isInternal = canHandleLink(hrefStr);
-                      return (
-                        <a
-                          {...props}
-                          href={hrefStr}
-                          onClick={(e) => {
-                            if (handleLinkClick(hrefStr)) {
-                              e.preventDefault();
-                            }
-                          }}
-                          className={
-                            isInternal ? "text-tn-accent hover:underline" : "text-tn-text-muted hover:underline"
-                          }
-                        >
-                          {children}
-                        </a>
-                      );
-                    },
-                    code: (props: any) => {
-                      const className = String(props.className || "");
-                      const match = /language-(\w+)/.exec(className);
-                      const value = String(props.children).replace(/\n$/, "");
-                      if (match?.[1] === "mermaid") {
-                        return <MermaidDiagram code={value} />;
-                      }
-                      return <code {...props} />;
-                    },
-                  }}
+                  components={mdComponents}
                 >
                   {walkthroughSteps[walkthroughStep]?.content ?? ""}
                 </ReactMarkdown>
@@ -641,37 +610,7 @@ export function DocsPanel() {
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeSlug, rehypeHighlight]}
-                  components={{
-                    a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
-                      const hrefStr = String(href ?? "");
-                      const isInternal = canHandleLink(hrefStr);
-                      return (
-                        <a
-                          {...props}
-                          href={hrefStr}
-                          onClick={(e) => {
-                            if (handleLinkClick(hrefStr)) {
-                              e.preventDefault();
-                            }
-                          }}
-                          className={
-                            isInternal ? "text-tn-accent hover:underline" : "text-tn-text-muted hover:underline"
-                          }
-                        >
-                          {children}
-                        </a>
-                      );
-                    },
-                    code: (props: any) => {
-                      const className = String(props.className || "");
-                      const match = /language-(\w+)/.exec(className);
-                      const value = String(props.children).replace(/\n$/, "");
-                      if (match?.[1] === "mermaid") {
-                        return <MermaidDiagram code={value} />;
-                      }
-                      return <code {...props} />;
-                    },
-                  }}
+                  components={mdComponents}
                 >
                   {rawMd}
                 </ReactMarkdown>
