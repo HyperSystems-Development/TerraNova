@@ -28,6 +28,9 @@ export function MermaidDiagram({ code }: { code: string }) {
 
     return () => {
       cancelled = true;
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+      }
     };
   }, [code, id]);
 
