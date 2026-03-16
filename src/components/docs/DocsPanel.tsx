@@ -101,18 +101,19 @@ function DocTreeNode({
   onToggleCollapse: (slug: string) => void;
   depth?: number;
 }) {
-  const indent = depth * 8; // smaller indent for tighter left alignment
+  const indent = depth * 12; // left indent per depth level
   const isCollapsed = node.type === "folder" && collapsed[node.slug];
 
   if (node.type === "file") {
     return (
       <button
-        className={`docs-file flex w-full items-start gap-2 text-left px-1 py-2 text-sm leading-relaxed transition-colors ${
+        type="button"
+        className={`docs-file flex w-full items-center gap-2 text-left py-2 text-sm leading-relaxed transition-colors ${
           selectedSlug === node.slug
             ? "bg-tn-accent/20 text-tn-text"
             : "text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"
         }`}
-        style={{ paddingLeft: `${indent + 8}px` }}
+        style={{ paddingLeft: `${indent}px` }}
         onClick={() => onSelect(node.slug)}
       >
         <FileText className="h-4 w-4" />
@@ -124,17 +125,17 @@ function DocTreeNode({
   return (
     <div className="docs-folder">
       <button
-        className={`flex w-full items-start gap-2 px-1 py-2 text-sm font-semibold rounded ${
+        type="button"
+        className={`flex w-full items-center gap-2 py-2 text-sm font-semibold rounded ${
           isCollapsed ? "text-tn-text-muted" : "text-tn-text"
         } hover:bg-tn-accent/10 focus:outline-none focus:ring-2 focus:ring-tn-accent/40`}
-        style={{ paddingLeft: `${indent + 8}px` }}
+        style={{ paddingLeft: `${indent}px` }}
         onClick={() => onToggleCollapse(node.slug)}
         aria-expanded={!isCollapsed}
       >
         <span className="text-xs w-4 text-left">{isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}</span>
         <Folder className="h-4 w-4 text-tn-text-muted" />
         <span className="flex-1 truncate">{node.title}</span>
-        <span className="text-[10px] text-tn-text-muted">{node.children.length}</span>
       </button>
       {!isCollapsed && (
         <div>
@@ -516,10 +517,11 @@ export function DocsPanel() {
                 {backlinks[selectedSlug]?.length > 0 && (
                   <div className="mt-6 border-t border-tn-border pt-4">
                     <div className="text-sm font-semibold text-tn-text">Referenced by</div>
-                    <ul className="mt-2 list-disc list-inside text-tn-text-muted">
+                    <ul className="mt-2 list-none space-y-1 text-tn-text-muted">
                       {backlinks[selectedSlug].map((ref) => (
-                        <li key={ref}>
+                        <li key={ref} className="pl-2">
                           <button
+                            type="button"
                             className="text-tn-accent hover:underline"
                             onClick={() => loadDoc(ref)}
                           >
