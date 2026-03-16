@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import mermaid from "mermaid";
 
 mermaid.initialize({ startOnLoad: false, theme: "default" });
@@ -15,9 +15,9 @@ export function MermaidDiagram({ code }: { code: string }) {
     let cancelled = false;
     mermaid
       .render(id, code)
-      .then((svg) => {
+      .then((result) => {
         if (cancelled || !containerRef.current) return;
-        containerRef.current.innerHTML = svg;
+        containerRef.current.innerHTML = result.svg;
       })
       .catch((err) => {
         if (!containerRef.current) return;
