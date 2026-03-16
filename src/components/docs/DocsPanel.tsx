@@ -47,6 +47,7 @@ function titleFromSlug(slug: string) {
 const ROOT_SECTION_ORDER = [
   { key: "overview", title: "Overview", slug: "root/overview" },
   { key: "getting-started", title: "Getting Started", slug: "root/getting-started" },
+  { key: "tutorials", title: "Tutorials", slug: "tutorials" },
   { key: "guides", title: "Guides", slug: "guides" },
   { key: "templates", title: "Templates", slug: "templates" },
   { key: "glossary", title: "Glossary", slug: "glossary" },
