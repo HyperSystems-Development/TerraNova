@@ -9,19 +9,23 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-// Category colour palette matching the main editor (from schema/types.ts)
+// Category colour palette matching the actual subcategory colors from densitySubcategories.ts
 const CATEGORY_COLORS: Record<string, string> = {
-  density:     "#5B8DBF",
-  curve:       "#A67EB8",
+  generative:  "#4A90D9",
+  filter:      "#7B68AE",
+  math:        "#2D9B83",
+  position:    "#3D8B37",
+  terrain:     "#B8763C",
+  shape:       "#C45B84",
   material:    "#C87D3A",
-  position:    "#6B9E5A",
   prop:        "#C76B6B",
   scanner:     "#5AACA6",
   biome:       "#4E9E8F",
   worldstruct: "#5A6FA0",
   framework:   "#8C8878",
   output:      "#b5924c",
-  default:     "#5B8DBF",
+  curve:       "#A67EB8",
+  default:     "#4A90D9",
 };
 
 export interface DocGraphNode {
@@ -50,7 +54,6 @@ export interface DocNodeGraphProps {
 }
 
 const NODE_W = 130;
-const NODE_H = 44;
 
 function makeRFNode(n: DocGraphNode): Node {
   const color = CATEGORY_COLORS[n.category ?? "default"] ?? CATEGORY_COLORS.default;
