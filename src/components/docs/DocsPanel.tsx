@@ -512,9 +512,21 @@ export function DocsPanel() {
         {selectedSlug ? (
           <>
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="text-sm font-semibold text-tn-text">{titleFromSlug(selectedSlug)}</div>
-                <div className="text-[11px] text-tn-text-muted">{selectedSlug}</div>
+              <div className="flex items-center gap-2">
+                {sidebarCollapsed && (
+                  <button
+                    type="button"
+                    className="flex items-center justify-center w-7 h-7 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none"
+                    onClick={() => toggleSidebarCollapsed()}
+                    title="Show docs tree"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                )}
+                <div>
+                  <div className="text-sm font-semibold text-tn-text">{titleFromSlug(selectedSlug)}</div>
+                  <div className="text-[11px] text-tn-text-muted">{selectedSlug}</div>
+                </div>
               </div>
               {walkthroughSteps.length > 0 && (
                 <button
