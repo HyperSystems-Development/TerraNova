@@ -305,7 +305,18 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
     return { x: 16, y: 16 };
   });
   React.useEffect(() => {
-    localStorage.setItem("tn-voxelMaterialLegendPos", JSON.stringify(legendPos));
+    try {
+      localStorage.setItem("tn-voxelMaterialLegendPos", JSON.stringify(legendPos));
+    } catch (err) {
+      // Guard against quota errors or other localStorage failures.
+      // Don't crash the app if the browser storage is full.
+      console.warn("Failed to persist voxel legend position", err);
+      try {
+        localStorage.removeItem("tn-voxelMaterialLegendPos");
+      } catch {
+        // ignore
+      }
+    }
   }, [legendPos]);
 
   return (
