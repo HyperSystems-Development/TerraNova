@@ -132,6 +132,21 @@ body,
   background: rgba(181, 147, 80, 0.16);
 }
 
+/* Make the docs tree feel more like a file explorer */
+.docs-sidebar .docs-tree-item {
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.docs-sidebar .docs-tree-item:hover {
+  background: rgba(181, 147, 80, 0.16);
+}
+
+.docs-sidebar .docs-tree-item:focus-visible {
+  outline: 2px solid rgba(181, 147, 80, 0.6);
+  outline-offset: 2px;
+}
+
 .docs-sidebar button:focus-visible {
   outline: 2px solid rgba(181, 147, 80, 0.6);
   outline-offset: 2px;
