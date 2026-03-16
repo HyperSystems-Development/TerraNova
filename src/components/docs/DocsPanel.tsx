@@ -105,16 +105,12 @@ function DocTreeNodeItem({
   const isCollapsed = node.type === "folder" && collapsed[node.slug];
 
   if (node.type === "file") {
-    const isSelected = selectedSlug === node.slug;
     return (
       <button
         type="button"
-        role="treeitem"
-        aria-level={depth + 1}
-        tabIndex={0}
-        className={`docs-tree-item flex w-full items-center gap-2 text-left py-2 text-sm leading-relaxed transition-colors ${
-          isSelected
-            ? "bg-tn-accent/20 text-tn-text border-l-2 border-tn-accent"
+        className={`docs-file flex w-full items-center gap-2 text-left py-2 text-sm leading-relaxed transition-colors ${
+          selectedSlug === node.slug
+            ? "bg-tn-accent/20 text-tn-text"
             : "text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"
         }`}
         style={{ paddingLeft: `${indent}px` }}
@@ -126,19 +122,12 @@ function DocTreeNodeItem({
     );
   }
 
-  const isSelected = selectedSlug === node.slug;
-
   return (
     <div className="docs-folder">
       <button
         type="button"
-        role="treeitem"
-        aria-level={depth + 1}
-        tabIndex={0}
-        className={`docs-tree-item flex w-full items-center gap-1.5 py-2 text-sm font-semibold rounded-sm ${
-          isSelected
-            ? "bg-tn-accent/20 text-tn-text border-l-2 border-tn-accent"
-            : "text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"
+        className={`flex w-full items-center gap-1.5 py-2 text-sm font-semibold rounded ${
+          isCollapsed ? "text-tn-text-muted" : "text-tn-text"
         } hover:bg-tn-accent/10 focus:outline-none focus:ring-2 focus:ring-tn-accent/40`}
         style={{ paddingLeft: `${indent}px` }}
         onClick={() => onToggleCollapse(node.slug)}
@@ -149,7 +138,7 @@ function DocTreeNodeItem({
         <span className="flex-1 truncate">{node.title}</span>
       </button>
       {!isCollapsed && (
-        <div role="group">
+        <div>
           {node.children.map((child) => (
             <DocTreeNodeItem
               key={`${child.type}-${child.slug}`}
@@ -166,7 +155,6 @@ function DocTreeNodeItem({
     </div>
   );
 }
-
 
 type ResolvedLink = { slug: string; anchor?: string } | null;
 
@@ -401,7 +389,7 @@ export function DocsPanel() {
             onChange={(e) => setFilter(e.target.value)}
           />
         </div>
-        <div className="flex-1 overflow-y-auto" role="tree">
+        <div className="flex-1 overflow-y-auto">
           {filteredTree.map((node) => (
             <DocTreeNodeItem
               key={`${node.type}-${node.slug}`}
