@@ -88,7 +88,17 @@ function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
     section.children.push({ type: "file", title, slug: entry.slug });
   }
 
-  const result = [...sections];
+  // Filter out README/index children whose title matches the parent folder (redundant nav entry)
+  for (const section of sections) {
+    section.children = section.children.filter((child) => {
+      if (child.type !== "file") return true;
+      const isReadme = /\/(readme|index)$/i.test(child.slug);
+      return !isReadme || child.title.toLowerCase() !== section.title.toLowerCase();
+    });
+  }
+
+  // Only include sections that have children
+  const result = sections.filter((s) => s.children.length > 0);
   if (otherSection.children.length > 0) {
     result.push(otherSection);
   }
@@ -446,6 +456,33 @@ export function DocsPanel() {
     [entries, loadDoc, selectedSlug],
   );
 
+  const mdComponents = useMemo(() => ({
+    a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
+      const hrefStr = String(href ?? "");
+      const isInternal = canHandleLink(hrefStr);
+      return (
+        <a
+          {...props}
+          href={hrefStr}
+          onClick={(e) => {
+            if (handleLinkClick(hrefStr)) e.preventDefault();
+          }}
+          className={isInternal ? "text-tn-accent hover:underline" : "text-tn-text-muted hover:underline"}
+        >
+          {children}
+        </a>
+      );
+    },
+    code: (props: any) => {
+      const className = String(props.className || "");
+      const match = /language-(\w+)/.exec(className);
+      const value = String(props.children).replace(/\n$/, "");
+      if (match?.[1] === "mermaid") return <MermaidDiagram code={value} />;
+      return <code {...props} />;
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [canHandleLink, handleLinkClick]);
+
   const canHandleLink = useCallback(
     (href: string) => {
       if (!href || href.startsWith("http") || href.startsWith("mailto:")) return false;
@@ -466,46 +503,39 @@ export function DocsPanel() {
           sidebarCollapsed ? "hidden" : "w-64 min-w-[220px]"
         }`}
       >
-        <div className={`border-b border-tn-border ${sidebarCollapsed ? "p-2" : "p-3"}`}>
+        <div className="border-b border-tn-border p-3">
           <div className="flex items-center justify-between">
-            {!sidebarCollapsed && (
-              <div className="text-xs font-semibold text-tn-text-muted">Docs</div>
-            )}
+            <div className="text-xs font-semibold text-tn-text-muted">Docs</div>
             <button
               type="button"
-              className={`flex items-center justify-center rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none focus:ring-2 focus:ring-tn-accent/40 ${sidebarCollapsed ? "w-8 h-8" : "w-6 h-6 ml-auto"}`}
+              className="flex items-center justify-center w-6 h-6 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none"
               onClick={() => toggleSidebarCollapsed()}
-              aria-label={sidebarCollapsed ? "Show docs tree" : "Hide docs tree"}
-              title={sidebarCollapsed ? "Show docs tree" : "Hide docs tree"}
+              title="Hide docs tree"
             >
-              {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              <ChevronLeft className="h-4 w-4" />
             </button>
           </div>
-          {!sidebarCollapsed && (
-            <input
-              className="mt-2 w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-sm text-tn-text focus:outline-none focus:border-tn-accent"
-              placeholder="Search docs…"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            />
-          )}
+          <input
+            className="mt-2 w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-sm text-tn-text focus:outline-none focus:border-tn-accent"
+            placeholder="Search docs…"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
         </div>
-        {!sidebarCollapsed && (
-          <div className="flex-1 overflow-y-auto">
-            {filteredTree.map((node) => (
-              <DocTreeNodeItem
-                key={`${node.type}-${node.slug}`}
-                node={node}
-                selectedSlug={selectedSlug}
-                onSelect={loadDoc}
-                collapsed={collapsedFolders}
-                onToggleCollapse={(slug) =>
-                  setCollapsedFolders((prev) => ({ ...prev, [slug]: !prev[slug] }))
-                }
-              />
-            ))}
-          </div>
-        )}
+        <div className="flex-1 overflow-y-auto">
+          {filteredTree.map((node) => (
+            <DocTreeNodeItem
+              key={`${node.type}-${node.slug}`}
+              node={node}
+              selectedSlug={selectedSlug}
+              onSelect={loadDoc}
+              collapsed={collapsedFolders}
+              onToggleCollapse={(slug) =>
+                setCollapsedFolders((prev) => ({ ...prev, [slug]: !prev[slug] }))
+              }
+            />
+          ))}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 docs-content" id="docs-content" ref={contentRef}>
