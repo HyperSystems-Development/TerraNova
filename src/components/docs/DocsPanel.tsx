@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
-import { ChevronDown, ChevronRight, Folder, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Folder, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
@@ -134,7 +134,7 @@ function DocTreeNodeItem({
     <div className="docs-folder">
       <button
         type="button"
-        className={`flex w-full items-center gap-1.5 py-2 pr-3 text-sm font-semibold rounded ${
+        className={`flex w-full items-center gap-2 py-2 pr-3 text-sm font-semibold rounded ${
           isCollapsed ? "text-tn-text-muted" : "text-tn-text"
         } hover:bg-tn-accent/10 focus:outline-none focus:ring-2 focus:ring-tn-accent/40`}
         style={{ paddingLeft: `${indent + basePadding}px` }}
@@ -143,9 +143,6 @@ function DocTreeNodeItem({
       >
         <Folder className="h-4 w-4 text-tn-text-muted" />
         <span className="flex-1 truncate">{node.title}</span>
-        <span className="text-xs w-4 text-right flex-shrink-0">
-          {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-        </span>
       </button>
       {!isCollapsed && (
         <div>
@@ -219,6 +216,14 @@ export function DocsPanel() {
   const [walkthroughActive, setWalkthroughActive] = useState(false);
   const [walkthroughStep, setWalkthroughStep] = useState(0);
   const [walkthroughSteps, setWalkthroughSteps] = useState<Array<{ title: string; content: string }>>([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("tn-docs-sidebar-collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const prevCollapsedFoldersRef = useRef<Record<string, boolean> | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   const entries = useMemo<DocEntry[]>(() => {
@@ -232,6 +237,38 @@ export function DocsPanel() {
   }, []);
 
   const docTree = useMemo(() => buildDocTree(entries), [entries]);
+
+  const getAllFolderSlugs = useCallback((nodes: DocTreeNodeData[]): string[] => {
+    const slugs: string[] = [];
+    for (const node of nodes) {
+      if (node.type === "folder") {
+        slugs.push(node.slug);
+        slugs.push(...getAllFolderSlugs(node.children));
+      }
+    }
+    return slugs;
+  }, []);
+
+  const toggleSidebarCollapsed = useCallback(
+    (next?: boolean) => {
+      setSidebarCollapsed((current) => {
+        const target = typeof next === "boolean" ? next : !current;
+
+        if (target) {
+          prevCollapsedFoldersRef.current = collapsedFolders;
+          const allFolders = getAllFolderSlugs(docTree);
+          const collapsedState = Object.fromEntries(allFolders.map((s) => [s, true]));
+          setCollapsedFolders(collapsedState);
+        } else if (prevCollapsedFoldersRef.current) {
+          setCollapsedFolders(prevCollapsedFoldersRef.current);
+          prevCollapsedFoldersRef.current = null;
+        }
+
+        return target;
+      });
+    },
+    [collapsedFolders, docTree, getAllFolderSlugs],
+  );
 
   const filtered = useMemo(() => {
     if (!filter.trim()) return entries;
@@ -371,6 +408,15 @@ export function DocsPanel() {
     }
   }, [collapsedFolders]);
 
+  // Persist sidebar collapsed state
+  useEffect(() => {
+    try {
+      localStorage.setItem("tn-docs-sidebar-collapsed", sidebarCollapsed ? "true" : "false");
+    } catch {
+      // ignore
+    }
+  }, [sidebarCollapsed]);
+
   const handleLinkClick = useCallback(
     (href: string) => {
       const resolved = resolveLinkSlug(selectedSlug ?? "", href);
@@ -395,39 +441,75 @@ export function DocsPanel() {
 
   return (
     <div className="flex h-full">
-      <div className="docs-sidebar w-64 min-w-[220px] border-r border-tn-border bg-tn-panel/80 flex flex-col">
-        <div className="p-3 border-b border-tn-border">
-          <div className="text-xs font-semibold text-tn-text-muted">Docs</div>
-          <input
-            className="mt-2 w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-sm text-tn-text focus:outline-none focus:border-tn-accent"
-            placeholder="Search docs…"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          />
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {filteredTree.map((node) => (
-            <DocTreeNodeItem
-              key={`${node.type}-${node.slug}`}
-              node={node}
-              selectedSlug={selectedSlug}
-              onSelect={loadDoc}
-              collapsed={collapsedFolders}
-              onToggleCollapse={(slug) =>
-                setCollapsedFolders((prev) => ({ ...prev, [slug]: !prev[slug] }))
-              }
+      <div
+        className={`docs-sidebar relative flex flex-col transition-all duration-200 ${
+          sidebarCollapsed
+            ? "w-12 min-w-[48px] border-r border-tn-border bg-tn-panel/80"
+            : "w-64 min-w-[220px] border-r border-tn-border bg-tn-panel/80"
+        }`}
+      >
+        <div className={`border-b border-tn-border ${sidebarCollapsed ? "p-2" : "p-3"}`}>
+          <div className="flex items-center justify-center">
+            {!sidebarCollapsed && (
+              <div className="text-xs font-semibold text-tn-text-muted">Docs</div>
+            )}
+          </div>
+          {!sidebarCollapsed && (
+            <input
+              className="mt-2 w-full rounded border border-tn-border bg-tn-bg px-2 py-1 text-sm text-tn-text focus:outline-none focus:border-tn-accent"
+              placeholder="Search docs…"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
             />
-          ))}
+          )}
         </div>
+        {!sidebarCollapsed && (
+          <div className="flex-1 overflow-y-auto">
+            {filteredTree.map((node) => (
+              <DocTreeNodeItem
+                key={`${node.type}-${node.slug}`}
+                node={node}
+                selectedSlug={selectedSlug}
+                onSelect={loadDoc}
+                collapsed={collapsedFolders}
+                onToggleCollapse={(slug) =>
+                  setCollapsedFolders((prev) => ({ ...prev, [slug]: !prev[slug] }))
+                }
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 docs-content" id="docs-content" ref={contentRef}>
         {selectedSlug ? (
           <>
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="text-sm font-semibold text-tn-text">{titleFromSlug(selectedSlug)}</div>
-                <div className="text-[11px] text-tn-text-muted">{selectedSlug}</div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="docs-toggle flex h-10 items-center justify-center rounded-md text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none focus:ring-2 focus:ring-tn-accent/40 px-3"
+                  onClick={() => toggleSidebarCollapsed()}
+                  aria-label={sidebarCollapsed ? "Show docs tree" : "Hide docs tree"}
+                  aria-pressed={sidebarCollapsed}
+                  title={sidebarCollapsed ? "Show docs tree" : "Hide docs tree"}
+                >
+                  {sidebarCollapsed ? (
+                    <>
+                      <ChevronRight className="h-4 w-4" />
+                      <span className="ml-2 text-xs font-medium">Show docs</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronLeft className="h-4 w-4" />
+                      <span className="ml-2 text-xs font-medium">Hide docs</span>
+                    </>
+                  )}
+                </button>
+                <div>
+                  <div className="text-sm font-semibold text-tn-text">{titleFromSlug(selectedSlug)}</div>
+                  <div className="text-[11px] text-tn-text-muted">{selectedSlug}</div>
+                </div>
               </div>
               {walkthroughSteps.length > 0 && (
                 <button
