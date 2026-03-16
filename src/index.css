@@ -119,6 +119,33 @@ body,
   line-height: 1.6;
 }
 
+/* Sidebar docs navigation */
+.docs-sidebar {
+  background: rgba(33, 30, 26, 0.9);
+}
+
+.docs-sidebar button {
+  border-radius: 6px;
+}
+
+.docs-sidebar button:hover {
+  background: rgba(181, 147, 80, 0.12);
+}
+
+.docs-sidebar button:focus-visible {
+  outline: 2px solid rgba(181, 147, 80, 0.6);
+  outline-offset: 2px;
+}
+
+.docs-sidebar .docs-folder {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.docs-sidebar .docs-file {
+  font-weight: 500;
+}
+
 .docs-content h1,
 .docs-content h2,
 .docs-content h3,
@@ -126,12 +153,14 @@ body,
   color: var(--tn-text);
   margin-top: 1.75em;
   margin-bottom: 0.75em;
-  line-height: 1.2;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-.docs-content h1 { font-size: 1.75rem; }
-.docs-content h2 { font-size: 1.5rem; }
-.docs-content h3 { font-size: 1.25rem; }
+.docs-content h1 { font-size: 1.9rem; }
+.docs-content h2 { font-size: 1.6rem; }
+.docs-content h3 { font-size: 1.3rem; }
 .docs-content h4 { font-size: 1.1rem; }
 
 .docs-content p {

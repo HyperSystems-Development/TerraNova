@@ -1,5 +1,7 @@
 # Walkthrough: Create a World
 
+<!-- walkthrough -->
+
 This walkthrough shows a simple flow for creating a new world in TerraNova.
 
 ## Step 1 — New World

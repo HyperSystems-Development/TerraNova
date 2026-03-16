@@ -15,9 +15,10 @@ type DocEntry = {
   loader: () => Promise<string>;
 };
 
-type DocTreeNode =
-  | { type: "folder"; title: string; slug: string; children: DocTreeNode[] }
-  | { type: "file"; title: string; slug: string };
+type FolderNode = { type: "folder"; title: string; slug: string; children: DocTreeNode[] };
+type FileNode = { type: "file"; title: string; slug: string };
+
+type DocTreeNode = FolderNode | FileNode;
 
 function slugFromPath(path: string) {
   // Vite returns paths like "../docs/overview.md" or "../../docs/guides/foo.md"
@@ -34,37 +35,121 @@ function titleFromSlug(slug: string) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const ROOT_SECTION_ORDER = [
+  { key: "overview", title: "Overview", slug: "root/overview" },
+  { key: "getting-started", title: "Getting Started", slug: "root/getting-started" },
+  { key: "guides", title: "Guides", slug: "guides" },
+  { key: "templates", title: "Templates", slug: "templates" },
+  { key: "glossary", title: "Glossary", slug: "glossary" },
+  { key: "reference", title: "Reference", slug: "reference" },
+  { key: "troubleshooting", title: "Troubleshooting", slug: "root/troubleshooting" },
+  { key: "contributing", title: "Contributing", slug: "root/contributing" },
+];
+
 function buildDocTree(entries: DocEntry[]): DocTreeNode[] {
-  const root: DocTreeNode = { type: "folder", title: "Docs", slug: "", children: [] };
+  const sectionMap = new Map<string, FolderNode>();
+  const sections: FolderNode[] = ROOT_SECTION_ORDER.map((section) => {
+    const folder: FolderNode = {
+      type: "folder",
+      title: section.title,
+      slug: section.slug,
+      children: [],
+    };
+    sectionMap.set(section.key, folder);
+    return folder;
+  });
+
+  const otherSection: FolderNode = {
+    type: "folder",
+    title: "Other",
+    slug: "other",
+    children: [],
+  };
 
   for (const entry of entries) {
     const parts = entry.slug.split("/");
-    let current = root;
-    let currentSlugParts: string[] = [];
+    const sectionKey = parts.length === 1 ? entry.slug : parts[0];
+    const section = sectionMap.get(sectionKey) ?? otherSection;
 
-    for (let i = 0; i < parts.length; i += 1) {
-      const part = parts[i];
-      currentSlugParts.push(part);
-      const isLast = i === parts.length - 1;
-      const slug = currentSlugParts.join("/");
+    // If this entry is part of a deeper folder structure, preserve it in the title.
+    const title = parts.length === 1 ? entry.title : `${titleFromSlug(parts.slice(1).join("/"))}`;
 
-      if (isLast) {
-        // file
-        current.children.push({ type: "file", title: entry.title, slug });
-      } else {
-        let nextFolder = current.children.find(
-          (c) => c.type === "folder" && c.title === part,
-        ) as DocTreeNode | undefined;
-        if (!nextFolder) {
-          nextFolder = { type: "folder", title: titleFromSlug(part), slug, children: [] };
-          current.children.push(nextFolder);
-        }
-        current = nextFolder;
-      }
-    }
+    section.children.push({ type: "file", title, slug: entry.slug });
   }
 
-  return root.children;
+  const result = [...sections];
+  if (otherSection.children.length > 0) {
+    result.push(otherSection);
+  }
+
+  return result;
+}
+
+function DocTreeNode({
+  node,
+  selectedSlug,
+  onSelect,
+  collapsed,
+  onToggleCollapse,
+  depth = 0,
+}: {
+  node: DocTreeNode;
+  selectedSlug: string | null;
+  onSelect: (slug: string) => void;
+  collapsed: Record<string, boolean>;
+  onToggleCollapse: (slug: string) => void;
+  depth?: number;
+}) {
+  const indent = depth * 12;
+  const isCollapsed = node.type === "folder" && collapsed[node.slug];
+
+  if (node.type === "file") {
+    return (
+      <button
+        className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+          selectedSlug === node.slug
+            ? "bg-tn-accent/20 text-tn-text"
+            : "text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"
+        }`}
+        style={{ paddingLeft: `${indent + 12}px` }}
+        onClick={() => onSelect(node.slug)}
+      >
+        {node.title}
+      </button>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        className={`flex w-full items-start gap-1 px-3 py-2 text-sm font-semibold rounded ${
+          isCollapsed ? "text-tn-text-muted" : "text-tn-text"
+        } hover:bg-tn-accent/10 focus:outline-none focus:ring-2 focus:ring-tn-accent/40`}
+        style={{ paddingLeft: `${indent + 8}px` }}
+        onClick={() => onToggleCollapse(node.slug)}
+        aria-expanded={!isCollapsed}
+      >
+        <span className="text-xs w-4 text-left">{isCollapsed ? "▸" : "▾"}</span>
+        <span className="flex-1">{node.title}</span>
+        <span className="text-[10px] text-tn-text-muted">{node.children.length}</span>
+      </button>
+      {!isCollapsed && (
+        <div>
+          {node.children.map((child) => (
+            <DocTreeNode
+              key={child.slug}
+              node={child}
+              selectedSlug={selectedSlug}
+              onSelect={onSelect}
+              collapsed={collapsed}
+              onToggleCollapse={onToggleCollapse}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 type ResolvedLink = { slug: string; anchor?: string } | null;
@@ -106,7 +191,14 @@ export function DocsPanel() {
   const [filter, setFilter] = useState("");
   const [docIndex, setDocIndex] = useState<Record<string, string>>({});
   const [backlinks, setBacklinks] = useState<Record<string, string[]>>({});
-  const [collapsedHeaders, setCollapsedHeaders] = useState<Record<string, boolean>>({});
+  const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem("tn-docs-collapsed");
+      return stored ? (JSON.parse(stored) as Record<string, boolean>) : {};
+    } catch {
+      return {};
+    }
+  });
   const [walkthroughActive, setWalkthroughActive] = useState(false);
   const [walkthroughStep, setWalkthroughStep] = useState(0);
   const [walkthroughSteps, setWalkthroughSteps] = useState<Array<{ title: string; content: string }>>([]);
@@ -165,17 +257,6 @@ export function DocsPanel() {
       .filter((n): n is DocTreeNode => n !== null);
   }, [filter, docTree, filtered]);
 
-  const filteredGrouped = useMemo(() => {
-    const map = new Map<string, DocEntry[]>();
-    for (const entry of filtered) {
-      const group = entry.slug.includes("/") ? entry.slug.split("/")[0] : "Root";
-      const arr = map.get(group) ?? [];
-      arr.push(entry);
-      map.set(group, arr);
-    }
-    return map;
-  }, [filtered]);
-
   const loadDoc = useCallback(
     async (slug: string, anchor?: string) => {
       const entry = entries.find((e) => e.slug === slug);
@@ -183,6 +264,19 @@ export function DocsPanel() {
       const text = await entry.loader();
       setRawMd(text);
       setSelectedSlug(slug);
+
+      // Parse walkthrough steps if applicable
+      if (text.includes("<!-- walkthrough -->")) {
+        const steps: Array<{ title: string; content: string }> = [];
+        const parts = text.split(/^##\s+/m).slice(1);
+        for (const part of parts) {
+          const [titleLine, ...rest] = part.split("\n");
+          steps.push({ title: titleLine.trim(), content: rest.join("\n") });
+        }
+        setWalkthroughSteps(steps);
+      } else {
+        setWalkthroughSteps([]);
+      }
 
       if (anchor && contentRef.current) {
         // Wait a tick to allow markdown render
@@ -248,6 +342,15 @@ export function DocsPanel() {
     };
   }, [entries]);
 
+  // Persist folder collapsed state
+  useEffect(() => {
+    try {
+      localStorage.setItem("tn-docs-collapsed", JSON.stringify(collapsedFolders));
+    } catch {
+      // ignore
+    }
+  }, [collapsedFolders]);
+
   const handleLinkClick = useCallback(
     (href: string) => {
       const resolved = resolveLinkSlug(selectedSlug ?? "", href);
@@ -272,7 +375,7 @@ export function DocsPanel() {
 
   return (
     <div className="flex h-full">
-      <div className="w-64 min-w-[220px] border-r border-tn-border bg-tn-panel/80 flex flex-col">
+      <div className="docs-sidebar w-64 min-w-[220px] border-r border-tn-border bg-tn-panel/80 flex flex-col">
         <div className="p-3 border-b border-tn-border">
           <div className="text-xs font-semibold text-tn-text-muted">Docs</div>
           <input
@@ -283,60 +386,150 @@ export function DocsPanel() {
           />
         </div>
         <div className="flex-1 overflow-y-auto">
-          {[...filteredGrouped.entries()].map(([group, groupEntries]) => (
-            <div key={group} className="pt-3">
-              <div className="px-3 text-[11px] uppercase tracking-wide text-tn-text-muted">{group}</div>
-              <div className="mt-1">
-                {groupEntries.map((entry) => (
-                  <button
-                    key={entry.slug}
-                    className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                      selectedSlug === entry.slug
-                        ? "bg-tn-accent/20 text-tn-text"
-                        : "text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"
-                    }`}
-                    onClick={() => loadDoc(entry.slug)}
-                  >
-                    {entry.title}
-                  </button>
-                ))}
-              </div>
-            </div>
+          {filteredTree.map((node) => (
+            <DocTreeNode
+              key={node.slug}
+              node={node}
+              selectedSlug={selectedSlug}
+              onSelect={loadDoc}
+              collapsed={collapsedFolders}
+              onToggleCollapse={(slug) =>
+                setCollapsedFolders((prev) => ({ ...prev, [slug]: !prev[slug] }))
+              }
+            />
           ))}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 docs-content" id="docs-content">
+      <div className="flex-1 overflow-y-auto p-6 docs-content" id="docs-content" ref={contentRef}>
         {selectedSlug ? (
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeSlug, rehypeHighlight]}
-            components={{
-              a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
-                const hrefStr = String(href ?? "");
-                const isHandled = handleLinkClick(hrefStr);
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="text-sm font-semibold text-tn-text">{titleFromSlug(selectedSlug)}</div>
+                <div className="text-[11px] text-tn-text-muted">{selectedSlug}</div>
+              </div>
+              {walkthroughSteps.length > 0 && (
+                <button
+                  className="rounded border border-tn-border bg-tn-panel px-3 py-1 text-sm text-tn-text hover:bg-tn-panel/80"
+                  onClick={() => {
+                    setWalkthroughActive((v) => !v);
+                    setWalkthroughStep(0);
+                  }}
+                >
+                  {walkthroughActive ? "Exit Walkthrough" : "Start Walkthrough"}
+                </button>
+              )}
+            </div>
 
-                return (
-                  <a
-                    {...props}
-                    href={hrefStr}
-                    onClick={(e) => {
-                      if (isHandled) {
-                        e.preventDefault();
-                      }
-                    }}
-                    className={
-                      isHandled ? "text-tn-accent hover:underline" : "text-tn-text-muted hover:underline"
-                    }
-                  >
-                    {children}
-                  </a>
-                );
-              },
-            }}
-          >
-            {rawMd}
-          </ReactMarkdown>
+            {walkthroughActive ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-sm font-semibold text-tn-text">{walkthroughSteps[walkthroughStep]?.title}</div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="rounded border border-tn-border bg-tn-panel px-2 py-1 text-xs text-tn-text hover:bg-tn-panel/80 disabled:opacity-50"
+                      disabled={walkthroughStep === 0}
+                      onClick={() => setWalkthroughStep((s) => Math.max(0, s - 1))}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      className="rounded border border-tn-border bg-tn-panel px-2 py-1 text-xs text-tn-text hover:bg-tn-panel/80 disabled:opacity-50"
+                      disabled={walkthroughStep >= walkthroughSteps.length - 1}
+                      onClick={() => setWalkthroughStep((s) => Math.min(walkthroughSteps.length - 1, s + 1))}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeSlug, rehypeHighlight]}
+                  components={{
+                    a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
+                      const hrefStr = String(href ?? "");
+                      const isHandled = handleLinkClick(hrefStr);
+
+                      return (
+                        <a
+                          {...props}
+                          href={hrefStr}
+                          onClick={(e) => {
+                            if (isHandled) {
+                              e.preventDefault();
+                            }
+                          }}
+                          className={
+                            isHandled ? "text-tn-accent hover:underline" : "text-tn-text-muted hover:underline"
+                          }
+                        >
+                          {children}
+                        </a>
+                      );
+                    },
+                  }}
+                >
+                  {walkthroughSteps[walkthroughStep]?.content ?? ""}
+                </ReactMarkdown>
+
+                <div className="text-xs text-tn-text-muted">
+                  Step {walkthroughStep + 1} of {walkthroughSteps.length}
+                </div>
+              </div>
+            ) : (
+              <>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeSlug, rehypeHighlight]}
+                  components={{
+                    a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
+                      const hrefStr = String(href ?? "");
+                      const isHandled = handleLinkClick(hrefStr);
+
+                      return (
+                        <a
+                          {...props}
+                          href={hrefStr}
+                          onClick={(e) => {
+                            if (isHandled) {
+                              e.preventDefault();
+                            }
+                          }}
+                          className={
+                            isHandled ? "text-tn-accent hover:underline" : "text-tn-text-muted hover:underline"
+                          }
+                        >
+                          {children}
+                        </a>
+                      );
+                    },
+                  }}
+                >
+                  {rawMd}
+                </ReactMarkdown>
+
+                {backlinks[selectedSlug]?.length > 0 && (
+                  <div className="mt-6 border-t border-tn-border pt-4">
+                    <div className="text-sm font-semibold text-tn-text">Referenced by</div>
+                    <ul className="mt-2 list-disc list-inside text-tn-text-muted">
+                      {backlinks[selectedSlug].map((ref) => (
+                        <li key={ref}>
+                          <button
+                            className="text-tn-accent hover:underline"
+                            onClick={() => loadDoc(ref)}
+                          >
+                            {titleFromSlug(ref)}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            )}
+          </>
         ) : (
           <div className="text-tn-text-muted">Select a document to view.</div>
         )}
