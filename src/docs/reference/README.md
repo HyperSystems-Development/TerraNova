@@ -9,14 +9,14 @@ The density system is the mathematical backbone of terrain generation. Every ter
 ### Constants
 | Node | Purpose |
 |------|---------|
-| `ConstantDensity` | Outputs a fixed value regardless of position |
+| `Constant` | Outputs a fixed value regardless of position |
 | `AmplitudeConstant` | Scales a density by a constant factor |
 | `OffsetConstant` | Adds a fixed offset to a density value |
 
 ### Noise
 | Node | Purpose |
 |------|---------|
-| `SimplexNoise2D` | 2D coherent noise; outputs –1 to 1; used for heightmaps |
+| `SimplexNoise2D` | 2D coherent noise; outputs -1 to 1; used for heightmaps |
 | `SimplexNoise3D` | 3D coherent noise; used for caves, overhangs |
 | `CellNoise2D` | 2D Voronoi-style cell noise |
 | `CellNoise3D` | 3D Voronoi-style cell noise |
@@ -33,7 +33,7 @@ The density system is the mathematical backbone of terrain generation. Every ter
 | `Sqrt` | Square root |
 | `Clamp` | Clamp output to [min, max] |
 | `SmoothClamp` | Clamp with smooth transition at edges |
-| `Normalizer` | Remap an input range to an output range (e.g. [–1,1] → [0,1]) |
+| `Normalizer` | Remap an input range to an output range (e.g. [-1,1] to [0,1]) |
 
 ### Combinators
 | Node | Purpose |
@@ -52,9 +52,10 @@ The density system is the mathematical backbone of terrain generation. Every ter
 |------|---------|
 | `Scale` | Scale the coordinate space (zooms in/out on noise) |
 | `Offset` | Translate the coordinate space |
-| `Amplitude` | Multiply output value |
+| `Amplitude` | Multiply two density inputs together |
+| `AmplitudeConstant` | Multiply output value by a constant |
 | `Rotator` | Rotate the coordinate space |
-| `Inverter` | Multiply by –1 (flips solid/empty) |
+| `Inverter` | Multiply by -1 (flips solid/empty) |
 | `VectorWarp` | Warp position by a full 3D vector field |
 
 ### Shapes
@@ -67,27 +68,26 @@ The density system is the mathematical backbone of terrain generation. Every ter
 | `Plane` | Signed-distance field for an infinite plane |
 | `Shell` | Hollow shell around a shape |
 
-### Sampling & Caching
+### Sampling and Caching
 | Node | Purpose |
 |------|---------|
-| `YSampled` | Samples at coarse Y intervals and interpolates — 4× performance boost for vertical columns |
+| `YSampled` | Samples at coarse Y intervals and interpolates -- 4x performance boost for vertical columns |
 | `Cache` | Caches the result for a coordinate so it isn't recomputed |
 | `Exported` | Exposes this density so other assets can import it |
 | `Imported` | References a density exported by another asset |
 
-### Selection & Branching
+### Selection and Branching
 | Node | Purpose |
 |------|---------|
-| `Selector` | Blend between two densities based on a condition density |
-| `Switch` | Choose between multiple densities based on an integer selector |
-| `SwitchState` | Read the `switchState` field of the context |
+| `Switch` | Choose between multiple densities based on switch cases |
+| `SwitchState` | Provides a string state value for use with Switch nodes |
 | `Slider` | Smooth selection using a mask density |
 
 ### Terrain Utilities
 | Node | Purpose |
 |------|---------|
 | `BaseHeight` | Outputs 0 at a configured Y level; positive above, negative below |
-| `CurveFunction` | Remaps input through a curve — used to shape terrain profiles |
+| `CurveMapper` | Remaps input through a curve -- used to shape terrain profiles. Curve types: Manual, DistanceS, DistanceExponential |
 | `Terrain` | Back-reference to the biome's own terrain density |
 | `DistanceToBiomeEdge` | Value based on proximity to the nearest biome boundary |
 | `CellWallDistance` | Distance to the nearest Voronoi cell boundary |
@@ -104,9 +104,35 @@ The density system is the mathematical backbone of terrain generation. Every ter
 
 ---
 
+## Material Provider Types
+
+Material providers determine which block fills each solid voxel.
+
+| Type | Purpose |
+|------|---------|
+| `SpaceAndDepth` | Assigns materials based on space and depth context; the primary provider. Configured with a Layers list and LayerContext. |
+| `DownwardDepth` | Assigns material based on depth measured downward from the surface |
+| `UpwardDepth` | Assigns material based on depth measured upward |
+| `DownwardSpace` | Assigns material based on open space measured downward |
+| `UpwardSpace` | Assigns material based on open space measured upward |
+| `Striped` | Applies a repeating striped pattern |
+| `Solidity` | Assigns material based on solidity context |
+| `TerrainDensity` | Assigns material based on the terrain density value |
+
+### Layer Types (used inside SpaceAndDepth)
+
+| Type | Purpose |
+|------|---------|
+| `ConstantThickness` | A layer of fixed thickness |
+| `NoiseThickness` | A layer whose thickness varies with noise |
+| `RangeThickness` | A layer within a fixed value range |
+| `WeightedThickness` | A layer whose thickness is drawn from weighted random values |
+
+---
+
 ## WorldGen V2 JSON Asset Schema
 
-### BiomeAsset (World.json → Biomes[])
+### BiomeAsset (World.json -> Biomes[])
 | JSON Key | Type | Description |
 |----------|------|-------------|
 | `"Name"` | string | Biome identifier |
@@ -121,18 +147,18 @@ The density system is the mathematical backbone of terrain generation. Every ter
 | JSON Key | Type | Default | Description |
 |----------|------|---------|-------------|
 | `"Biomes"` | BiomeRangeAsset[] | `[]` | List of biomes with noise ranges |
-| `"Density"` | DensityAsset | ConstantDensity | Noise used to choose biomes |
+| `"Density"` | DensityAsset | Constant | Noise used to choose biomes |
 | `"DefaultBiome"` | string | `""` | Fallback biome name |
 | `"DefaultTransitionDistance"` | int | `32` | Width of biome blend zone in blocks |
 | `"MaxBiomeEdgeDistance"` | int | `0` | Max distance tracked from biome edge |
 | `"Framework"` | FrameworkAsset[] | `[]` | Named shared assets (positions, constants) |
-| `"SpawnPositions"` | PositionProviderAsset | ListPositionProvider | Player spawn logic |
+| `"SpawnPositions"` | PositionProviderAsset | List | Player spawn logic |
 
 ### BiomeRangeAsset
 | JSON Key | Type | Description |
 |----------|------|-------------|
 | `"Biome"` | string | Reference to a BiomeAsset by name |
-| `"Min"` | double | Minimum noise value for this biome (default –1.0) |
+| `"Min"` | double | Minimum noise value for this biome (default -1.0) |
 | `"Max"` | double | Maximum noise value for this biome (default 1.0) |
 
 ---
@@ -146,10 +172,8 @@ Position providers define *where* props, structures, and spawn points are placed
 | `Anchor` | Positions relative to an anchor point |
 | `BaseHeight` | Positions at terrain surface height |
 | `Bound` | Constrains positions to a 3D bounding box |
-| `Cached` | Caches positions for reuse across frames |
 | `FieldFunction` | Positions from a density field |
 | `Framework` | Named reference to a shared PositionsFrameworkAsset entry |
-| `List` | Fixed explicit list of positions |
 | `Mesh2D` | 2D grid/mesh-based positions |
 | `Mesh3D` | 3D grid/mesh-based positions |
 | `Offset` | Applies a fixed offset to child positions |
@@ -168,11 +192,23 @@ Props are objects placed on generated terrain (trees, boulders, structures).
 | `Cluster` | Groups multiple prop placements |
 | `Column` | Vertical column of blocks |
 | `Density` | Density-driven placement |
-| `Offset` | Shifts child prop by a vector |
 | `Prefab` | Pastes a saved structure from the prefab library |
 | `Queue` | Sequential prop execution |
 | `Union` | Combines multiple props |
 | `Weighted` | Randomly selects from weighted prop options |
+
+---
+
+## Scanner Types
+
+Scanners control how position providers scan the terrain to find placement locations.
+
+| Type | Purpose |
+|------|---------|
+| `ColumnLinear` | Scans columns linearly across a region |
+| `ColumnRandom` | Scans columns at random positions |
+| `Origin` | Uses a single origin point |
+| `Area` | Scans across an area |
 
 ---
 
