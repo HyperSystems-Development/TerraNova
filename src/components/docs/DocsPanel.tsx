@@ -279,6 +279,62 @@ function resolveLinkSlug(currentSlug: string, href: string): ResolvedLink {
   return { slug: resolved, anchor: anchorPart };
 }
 
+function RelatedDocs({
+  selectedSlug,
+  outboundLinks,
+  backlinks,
+  entries,
+  loadDoc,
+}: {
+  selectedSlug: string;
+  outboundLinks: Record<string, string[]>;
+  backlinks: Record<string, string[]>;
+  entries: DocEntry[];
+  loadDoc: (slug: string) => void;
+}) {
+  const validOutbound = outboundLinks[selectedSlug]?.filter((slug) => entries.some((e) => e.slug === slug)) ?? [];
+  const refs = backlinks[selectedSlug] ?? [];
+  if (validOutbound.length === 0 && refs.length === 0) return null;
+  return (
+    <div className="mt-6 border-t border-tn-border pt-4 space-y-4">
+      {validOutbound.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-tn-text-muted uppercase tracking-wide mb-2">See also</div>
+          <div className="flex flex-wrap gap-2">
+            {validOutbound.map((slug) => (
+              <button
+                key={slug}
+                type="button"
+                className="px-2.5 py-1 rounded border border-tn-border text-xs text-tn-text-muted hover:text-tn-text hover:border-tn-accent hover:bg-tn-accent/10 transition-colors"
+                onClick={() => loadDoc(slug)}
+              >
+                {titleFromSlug(slug)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {refs.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-tn-text-muted uppercase tracking-wide mb-2">Referenced by</div>
+          <div className="flex flex-wrap gap-2">
+            {refs.map((ref) => (
+              <button
+                key={ref}
+                type="button"
+                className="px-2.5 py-1 rounded border border-tn-border text-xs text-tn-text-muted hover:text-tn-text hover:border-tn-accent hover:bg-tn-accent/10 transition-colors"
+                onClick={() => loadDoc(ref)}
+              >
+                {titleFromSlug(ref)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DocsPanel() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [rawMd, setRawMd] = useState<string>("");
@@ -709,8 +765,8 @@ export function DocsPanel() {
           />
         </div>
 
-      <div
-        className="flex-1 overflow-y-auto p-6 pb-16 docs-content"
+        <div
+          className="flex-1 overflow-y-auto p-6 pb-16 docs-content"
         id="docs-content"
         ref={contentRef}
         onKeyDown={(e) => {
@@ -820,54 +876,20 @@ export function DocsPanel() {
                   {rawMd}
                 </ReactMarkdown>
 
-                {(backlinks[selectedSlug]?.length > 0 || outboundLinks[selectedSlug]?.length > 0) && (
-                  <div className="mt-6 border-t border-tn-border pt-4 space-y-4">
-                    {(() => {
-                      const validOutbound = outboundLinks[selectedSlug]?.filter((slug) => entries.some((e) => e.slug === slug)) ?? [];
-                      return validOutbound.length > 0 ? (
-                      <div>
-                        <div className="text-xs font-semibold text-tn-text-muted uppercase tracking-wide mb-2">See also</div>
-                        <div className="flex flex-wrap gap-2">
-                          {validOutbound.map((slug) => (
-                              <button
-                                key={slug}
-                                type="button"
-                                className="px-2.5 py-1 rounded border border-tn-border text-xs text-tn-text-muted hover:text-tn-text hover:border-tn-accent hover:bg-tn-accent/10 transition-colors"
-                                onClick={() => loadDoc(slug)}
-                              >
-                                {titleFromSlug(slug)}
-                              </button>
-                            ))}
-                        </div>
-                      </div>
-                      ) : null;
-                    })()}
-                    {backlinks[selectedSlug]?.length > 0 && (
-                      <div>
-                        <div className="text-xs font-semibold text-tn-text-muted uppercase tracking-wide mb-2">Referenced by</div>
-                        <div className="flex flex-wrap gap-2">
-                          {backlinks[selectedSlug].map((ref) => (
-                            <button
-                              key={ref}
-                              type="button"
-                              className="px-2.5 py-1 rounded border border-tn-border text-xs text-tn-text-muted hover:text-tn-text hover:border-tn-accent hover:bg-tn-accent/10 transition-colors"
-                              onClick={() => loadDoc(ref)}
-                            >
-                              {titleFromSlug(ref)}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <RelatedDocs
+                  selectedSlug={selectedSlug}
+                  outboundLinks={outboundLinks}
+                  backlinks={backlinks}
+                  entries={entries}
+                  loadDoc={loadDoc}
+                />
               </>
             )}
           </>
         ) : (
           <div className="text-tn-text-muted">Select a document to view.</div>
         )}
-      </div>
+        </div>
       </div>
     </div>
   );
