@@ -1,5 +1,10 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
-import { ChevronLeft, ChevronRight, ChevronDown, Folder, FileText, X } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  ChevronLeft, ChevronRight, ChevronDown, Folder, FileText, X,
+  BookOpen, Map as MapIcon, Wrench, Library, ScrollText, Info, GitPullRequest, Copy, Check,
+  Compass, GraduationCap, LayoutTemplate,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
@@ -71,6 +76,19 @@ const ROOT_SECTION_ORDER = [
   { key: "contributing", title: "Contributing", slug: "contributing" },
 ];
 
+const SECTION_ICONS: Record<string, LucideIcon> = {
+  overview:        BookOpen,
+  introduction:    Info,
+  "getting-started": Compass,
+  walkthroughs:    MapIcon,
+  guides:          GraduationCap,
+  templates:       LayoutTemplate,
+  glossary:        Library,
+  reference:       ScrollText,
+  troubleshooting: Wrench,
+  contributing:    GitPullRequest,
+};
+
 function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
   const sectionMap = new Map<string, FolderNode>();
   const sections: FolderNode[] = ROOT_SECTION_ORDER.map((section) => {
@@ -141,6 +159,9 @@ function DocTreeNodeItem({
 
   if (node.type === "file") {
     const isSelected = selectedSlug === node.slug;
+    // Top-level docs (no slash) get a section icon; nested files get FileText
+    const sectionKey = node.slug.split("/")[0];
+    const Icon = depth === 0 ? (SECTION_ICONS[sectionKey] ?? FileText) : FileText;
     return (
       <button
         type="button"
@@ -152,12 +173,13 @@ function DocTreeNodeItem({
         style={{ paddingLeft: `${indent + basePadding}px` }}
         onClick={() => onSelect(node.slug)}
       >
-        <FileText className="h-4 w-4 shrink-0" />
+        <Icon className="h-4 w-4 shrink-0" />
         <span className="flex-1 truncate">{node.title}</span>
       </button>
     );
   }
 
+  const FolderIcon = SECTION_ICONS[node.slug] ?? Folder;
   return (
     <div className="docs-folder">
       <button
@@ -172,7 +194,7 @@ function DocTreeNodeItem({
         }}
         aria-expanded={!isCollapsed}
       >
-        <Folder className="h-4 w-4 text-tn-text-muted shrink-0" />
+        <FolderIcon className="h-4 w-4 text-tn-text-muted shrink-0" />
         <span className="flex-1 truncate">{node.title}</span>
         {isCollapsed
           ? <ChevronRight className="h-3.5 w-3.5 text-tn-text-muted shrink-0" />
@@ -195,6 +217,25 @@ function DocTreeNodeItem({
         </div>
       )}
     </div>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="absolute top-2 right-2 flex items-center justify-center w-7 h-7 rounded border border-tn-border bg-tn-panel/80 text-tn-text-muted hover:text-tn-text hover:bg-tn-accent/10 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
+      title="Copy"
+      onClick={() => {
+        navigator.clipboard.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        });
+      }}
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
   );
 }
 
@@ -240,6 +281,9 @@ export function DocsPanel() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [rawMd, setRawMd] = useState<string>("");
   const [filter, setFilter] = useState("");
+  const [navHistory, setNavHistory] = useState<string[]>([]);
+  const [navIndex, setNavIndex] = useState(-1);
+  const navIndexRef = useRef(-1);
   const [docIndex, setDocIndex] = useState<Record<string, string>>({});
   const [backlinks, setBacklinks] = useState<Record<string, string[]>>({});
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>(() => {
@@ -311,11 +355,8 @@ export function DocsPanel() {
     if (!filter.trim()) return entries;
     const lower = filter.toLowerCase();
 
-    // Ensure we have doc text available for searching
-    const index = docIndex;
-
     return entries.filter((entry) => {
-      const text = index[entry.slug] ?? "";
+      const text = docIndex[entry.slug] ?? "";
       return (
         entry.title.toLowerCase().includes(lower) ||
         entry.slug.toLowerCase().includes(lower) ||
@@ -349,7 +390,7 @@ export function DocsPanel() {
   }, [filter, docTree, filtered]);
 
   const loadDoc = useCallback(
-    async (slug: string, anchor?: string) => {
+    async (slug: string, anchor?: string, pushHistory = true) => {
       const entry = entries.find((e) => e.slug === slug);
       if (!entry) return;
       let text: string;
@@ -364,6 +405,21 @@ export function DocsPanel() {
       const cleaned = text.replace(/<!--[\s\S]*?-->/g, "");
       setRawMd(cleaned);
       setSelectedSlug(slug);
+
+      // Persist last-read slug
+      try { localStorage.setItem("tn-docs-last-slug", slug); } catch { /* ignore */ }
+
+      // Push to nav history (truncate forward stack)
+      if (pushHistory) {
+        const newIndex = navIndexRef.current + 1;
+        setNavHistory((prev) => {
+          const next = prev.slice(0, newIndex);
+          next.push(slug);
+          return next;
+        });
+        navIndexRef.current = newIndex;
+        setNavIndex(newIndex);
+      }
 
       // Parse walkthrough steps if applicable
       if (text.includes("<!-- walkthrough -->")) {
@@ -380,7 +436,6 @@ export function DocsPanel() {
       }
 
       if (anchor && contentRef.current) {
-        // Wait a tick to allow markdown render
         setTimeout(() => {
           const el = contentRef.current?.querySelector(`#${CSS.escape(anchor)}`);
           if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -390,11 +445,36 @@ export function DocsPanel() {
     [entries],
   );
 
-  // Load default doc on first render
+  const navBack = useCallback(() => {
+    const i = navIndexRef.current;
+    if (i <= 0) return;
+    const newIndex = i - 1;
+    navIndexRef.current = newIndex;
+    setNavIndex(newIndex);
+    loadDoc(navHistory[newIndex], undefined, false);
+  }, [navHistory, loadDoc]);
+
+  const navForward = useCallback(() => {
+    const i = navIndexRef.current;
+    if (i >= navHistory.length - 1) return;
+    const newIndex = i + 1;
+    navIndexRef.current = newIndex;
+    setNavIndex(newIndex);
+    loadDoc(navHistory[newIndex], undefined, false);
+  }, [navHistory, loadDoc]);
+
+  // Load last-read or default doc on first render
   useEffect(() => {
     if (selectedSlug === null && entries.length > 0) {
-      const defaultDoc = entries.find((e) => e.slug === "overview" || e.slug === "introduction");
-      loadDoc(defaultDoc?.slug ?? entries[0].slug);
+      let target: string | undefined;
+      try {
+        const last = localStorage.getItem("tn-docs-last-slug");
+        if (last && entries.some((e) => e.slug === last)) target = last;
+      } catch { /* ignore */ }
+      if (!target) {
+        target = entries.find((e) => e.slug === "overview" || e.slug === "introduction")?.slug ?? entries[0].slug;
+      }
+      loadDoc(target);
     }
   }, [selectedSlug, entries, loadDoc]);
 
@@ -485,24 +565,15 @@ export function DocsPanel() {
     [entries, loadDoc, selectedSlug],
   );
 
-  const canHandleLink = useCallback(
-    (href: string) => {
-      if (!href || href.startsWith("http") || href.startsWith("mailto:")) return false;
-      const resolved = resolveLinkSlug(selectedSlug ?? "", href);
-      if (!resolved) return false;
-      const target = entries.find((e) => e.slug === resolved.slug || e.slug === resolved.slug.replace(/\.md$/, ""));
-      if (target) return true;
-      if (resolved.slug === selectedSlug && resolved.anchor) return true;
-      return false;
-    },
-    [entries, selectedSlug],
-  );
-
   const mdComponents = useMemo(() => ({
     a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
       const hrefStr = String(href ?? "");
       const isExternal = hrefStr.startsWith("http") || hrefStr.startsWith("mailto:");
-      const isInternal = canHandleLink(hrefStr);
+      const resolved = !isExternal ? resolveLinkSlug(selectedSlug ?? "", hrefStr) : null;
+      const isInternal = resolved !== null && (
+        entries.some((e) => e.slug === resolved.slug || e.slug === resolved.slug.replace(/\.md$/, "")) ||
+        (resolved.slug === selectedSlug && !!resolved.anchor)
+      );
       return (
         <a
           {...props}
@@ -534,18 +605,27 @@ export function DocsPanel() {
         />
       );
     },
-    code: (props: any) => {
-      const className = String(props.className || "");
-      const match = /language-(\w+)/.exec(className);
-      const value = String(props.children).replace(/\n$/, "");
+    code: ({ className, children, ...props }: React.ComponentPropsWithoutRef<"code">) => {
+      const cls = String(className || "");
+      const match = /language-(\w+)/.exec(cls);
+      const value = String(children).replace(/\n$/, "");
       if (match?.[1] === "mermaid") return <MermaidDiagram code={value} />;
       if (match?.[1] === "nodegraph") {
         const graph = parseNodeGraph(value);
         if (graph) return <DocNodeGraph {...graph} />;
       }
-      return <code {...props} />;
+      // Fenced code block (has a language class) -- show copy button on hover
+      if (match) {
+        return (
+          <div className="relative group">
+            <code className={className} {...props}>{children}</code>
+            <CopyButton text={value} />
+          </div>
+        );
+      }
+      return <code className={className} {...props}>{children}</code>;
     },
-  }), [canHandleLink, handleLinkClick]);
+  }), [entries, selectedSlug, handleLinkClick]);
 
   return (
     <div className="flex h-full">
@@ -601,7 +681,16 @@ export function DocsPanel() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 pb-16 docs-content" id="docs-content" ref={contentRef}>
+      <div
+        className="flex-1 overflow-y-auto p-6 pb-16 docs-content"
+        id="docs-content"
+        ref={contentRef}
+        onKeyDown={(e) => {
+          if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); navBack(); }
+          if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); navForward(); }
+        }}
+        tabIndex={-1}
+      >
         {selectedSlug ? (
           <>
             <div className="flex items-center justify-between mb-4">
@@ -617,6 +706,24 @@ export function DocsPanel() {
                     <span>Nav</span>
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="flex items-center justify-center w-6 h-6 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none disabled:opacity-30"
+                  onClick={navBack}
+                  disabled={navIndex <= 0}
+                  title="Back (Alt+←)"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center justify-center w-6 h-6 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none disabled:opacity-30"
+                  onClick={navForward}
+                  disabled={navIndex >= navHistory.length - 1}
+                  title="Forward (Alt+→)"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
                 <div>
                   <div className="text-sm font-semibold text-tn-text">{titleFromSlug(selectedSlug)}</div>
                   <div className="text-[11px] text-tn-text-muted">{selectedSlug}</div>
@@ -645,7 +752,7 @@ export function DocsPanel() {
                 tabIndex={-1}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-semibold text-tn-text">{walkthroughSteps[walkthroughStep]?.title}</div>
+                  <div className="text-sm font-semibold text-tn-text">{walkthroughSteps[walkthroughStep].title}</div>
                   <div className="flex items-center gap-2">
                     <button
                       className="rounded border border-tn-border bg-tn-panel px-2 py-1 text-xs text-tn-text hover:bg-tn-panel/80 disabled:opacity-50"
@@ -669,7 +776,7 @@ export function DocsPanel() {
                   rehypePlugins={[rehypeSlug, rehypeHighlight]}
                   components={mdComponents}
                 >
-                  {walkthroughSteps[walkthroughStep]?.content ?? ""}
+                  {walkthroughSteps[walkthroughStep].content}
                 </ReactMarkdown>
 
                 <div className="text-xs text-tn-text-muted" aria-live="polite">

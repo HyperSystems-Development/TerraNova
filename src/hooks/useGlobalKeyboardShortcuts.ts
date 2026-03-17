@@ -70,6 +70,15 @@ export function useGlobalKeyboardShortcuts({
         }
       }
 
+      // Open docs (F1) -- works even from inputs
+      if (matchesKeybinding("openDocs", e)) {
+        e.preventDefault();
+        const ui = useUIStore.getState();
+        ui.setRightPanelVisible(true);
+        ui.setRightPanelMode("docs");
+        return;
+      }
+
       if (inInput) return;
 
       // Toggle grid

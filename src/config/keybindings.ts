@@ -59,6 +59,7 @@ export const KEYBINDINGS: KeybindingDef[] = [
   { id: "bridge",             defaultKey: "Ctrl+B",         label: "Bridge",                     category: "View" },
   { id: "settings",           defaultKey: "Ctrl+,",         label: "Preferences",                category: "View" },
   { id: "toggleSplitDirection",  defaultKey: "V",           label: "Toggle Split Direction",     category: "View" },
+  { id: "openDocs",              defaultKey: "F1",          label: "Open Docs",                  category: "View" },
 ];
 
 /** Returns the effective key combo for a given shortcut id (user override or default). */
