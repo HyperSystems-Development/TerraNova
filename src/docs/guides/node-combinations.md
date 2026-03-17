@@ -220,6 +220,8 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
 
 **When to use it:** Organic-feeling terrain with no straight edges. Rivers, eroded landscapes, cave system chaos.
 
+> **Preview gap — critical:** `GradientWarp` returns `0.0` in TerraNova's preview. The warp effect is completely absent in the editor — your warped terrain will look like unwarped noise. Tune the child terrain first without warping, then add `GradientWarp` and test exclusively in-game. Consider using `FastGradientWarp` instead, which does preview (though with reduced warp detail).
+
 ```nodegraph
 {
   "height": 160,
@@ -420,3 +422,5 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
   ]
 }
 ```
+
+> **See also:** [Terrain Types and Node Recipes](./terrain-types.md) organizes these patterns by terrain outcome (plains, mountains, caves, dunes, etc.) with full working recipes. [Complex Terrain Techniques](./terrain-types-advanced.md) covers advanced combinations. [Expert Terrain Techniques](./terrain-types-expert.md) covers preview gaps, optimization, and graph topology.

@@ -29,7 +29,22 @@ This page covers common issues and suggested solutions.
 ## Nodes Produce Unexpected Values
 
 - Remember that `Sum` of two [-1, 1] values can range from -2 to 2. Use `Clamp` or `Normalizer` to bring values back into an expected range before feeding them to a `CurveMapper`.
-- Verify noise `Frequency` values -- very large frequencies produce very fine, grainy noise; very small frequencies produce wide, smooth hills.
+- Verify noise `Scale` values -- very large scales produce very fine, grainy noise; very small scales produce wide, smooth hills.
+
+## Preview Doesn't Match In-Game Result
+
+Several nodes return `0.0` or a simplified value in TerraNova's preview evaluator. If your terrain looks flat, missing, or wrong in the editor but generates correctly in-game, check whether your graph contains any of these:
+
+| Node | Preview behavior | Workaround |
+|------|-----------------|------------|
+| `GradientWarp` | Returns `0.0` — warped terrain completely absent | Tune the child terrain without warping; test warp in-game only |
+| `VectorWarp` | Returns `0.0` — directional distortion invisible | Same as above |
+| `BaseHeight` | Returns `0.0` — terrain anchors at Y=0 | Temporarily replace with `OffsetConstant { Offset: -64, Input: YValue }` while previewing |
+| `CellWallDistance` | Returns `0.0` — Voronoi valley carving invisible | Use `CellNoise2D` distance output as a proxy during preview |
+| `Terrain` | Returns `0.0` — terrain re-queries broken | Only usable in material providers; test slope-based materials in-game |
+| `Imported` | Returns `0.0` — cross-asset references unresolved | Replace with inline copies during preview iteration |
+
+> See [Expert Terrain Techniques — Preview vs. Runtime](./guides/terrain-types-expert.md) for the full reference table including approximated nodes.
 
 ## Help and Support
 
