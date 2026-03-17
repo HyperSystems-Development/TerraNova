@@ -92,48 +92,48 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
 function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
   const sectionMap = new Map<string, FolderNode>();
   const sections: FolderNode[] = ROOT_SECTION_ORDER.map((section) => {
-    const folder: FolderNode = {
-      type: "folder",
-      title: section.title,
-      slug: section.slug,
-      children: [],
-    };
+    const folder: FolderNode = { type: "folder", title: section.title, slug: section.slug, children: [] };
     sectionMap.set(section.key, folder);
     return folder;
   });
 
-  const otherSection: FolderNode = {
-    type: "folder",
-    title: "Other",
-    slug: "other",
-    children: [],
-  };
+  const otherSection: FolderNode = { type: "folder", title: "Other", slug: "other", children: [] };
 
   for (const entry of entries) {
     const parts = entry.slug.split("/");
     const sectionKey = parts.length === 1 ? entry.slug : parts[0];
     const section = sectionMap.get(sectionKey) ?? otherSection;
-
-    // If this entry is part of a deeper folder structure, preserve it in the title.
-    const title = parts.length === 1 ? entry.title : `${titleFromSlug(parts.slice(1).join("/"))}`;
-
+    const title = parts.length === 1 ? entry.title : titleFromSlug(parts.slice(1).join("/"));
     section.children.push({ type: "file", title, slug: entry.slug });
   }
 
-  // Filter out README/index children whose title matches the parent folder (redundant nav entry)
+  // Build final tree: sections with multiple children become folder nodes;
+  // sections whose only child is a same-named top-level file collapse to a file node directly.
+  const result: DocTreeNodeData[] = [];
+
   for (const section of sections) {
-    section.children = section.children.filter((child) => {
+    if (section.children.length === 0) continue;
+
+    // Drop README children that duplicate the folder title (e.g. walkthroughs/README titled "Walkthroughs")
+    const meaningful = section.children.filter((child) => {
       if (child.type !== "file") return true;
       const isReadme = /\/(readme|index)$/i.test(child.slug);
       return !isReadme || child.title.toLowerCase() !== section.title.toLowerCase();
     });
+
+    if (meaningful.length === 0) {
+      // Only a README existed -- expose it as a single file node with the section title
+      const only = section.children[0];
+      result.push({ type: "file", title: section.title, slug: only.slug });
+    } else if (meaningful.length === 1 && section.children.length === 1) {
+      // Single file section (e.g. overview, introduction) -- no folder wrapper needed
+      result.push({ type: "file", title: section.title, slug: meaningful[0].slug });
+    } else {
+      result.push({ ...section, children: meaningful });
+    }
   }
 
-  // Only include sections that have children
-  const result = sections.filter((s) => s.children.length > 0);
-  if (otherSection.children.length > 0) {
-    result.push(otherSection);
-  }
+  if (otherSection.children.length > 0) result.push(otherSection);
 
   return result;
 }
