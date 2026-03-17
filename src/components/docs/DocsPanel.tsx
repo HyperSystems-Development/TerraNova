@@ -548,6 +548,7 @@ export function DocsPanel() {
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
+    setScrollProgress(0);
     function onScroll() {
       const scrollable = el!.scrollHeight - el!.clientHeight;
       setScrollProgress(scrollable > 0 ? el!.scrollTop / scrollable : 0);
@@ -821,13 +822,13 @@ export function DocsPanel() {
 
                 {(backlinks[selectedSlug]?.length > 0 || outboundLinks[selectedSlug]?.length > 0) && (
                   <div className="mt-6 border-t border-tn-border pt-4 space-y-4">
-                    {outboundLinks[selectedSlug]?.filter((slug) => entries.some((e) => e.slug === slug)).length > 0 && (
+                    {(() => {
+                      const validOutbound = outboundLinks[selectedSlug]?.filter((slug) => entries.some((e) => e.slug === slug)) ?? [];
+                      return validOutbound.length > 0 ? (
                       <div>
                         <div className="text-xs font-semibold text-tn-text-muted uppercase tracking-wide mb-2">See also</div>
                         <div className="flex flex-wrap gap-2">
-                          {outboundLinks[selectedSlug]
-                            .filter((slug) => entries.some((e) => e.slug === slug))
-                            .map((slug) => (
+                          {validOutbound.map((slug) => (
                               <button
                                 key={slug}
                                 type="button"
@@ -839,7 +840,8 @@ export function DocsPanel() {
                             ))}
                         </div>
                       </div>
-                    )}
+                      ) : null;
+                    })()}
                     {backlinks[selectedSlug]?.length > 0 && (
                       <div>
                         <div className="text-xs font-semibold text-tn-text-muted uppercase tracking-wide mb-2">Referenced by</div>
