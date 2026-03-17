@@ -6,7 +6,7 @@ This page covers common issues and suggested solutions.
 
 - If the editor becomes slow, try closing unused panels.
 - Reduce the node count in your world or break large graphs into smaller subgraphs.
-- Wrap expensive density subgraphs in a `YSampled` node — this samples at coarse Y intervals and interpolates, providing ~4× speedup for vertical columns.
+- Wrap expensive density subgraphs in a `YSampled` node -- this samples at coarse Y intervals and interpolates, providing ~4x speedup for vertical columns.
 - Use the `Cache` density node to avoid evaluating the same expensive subgraph multiple times.
 
 ## File Load Errors
@@ -28,9 +28,9 @@ This page covers common issues and suggested solutions.
 
 ## Nodes Produce Unexpected Values
 
-- Remember that `Sum` of two [–1, 1] values can range from –2 to 2. Use `Clamp` or `Normalizer` to bring values back into an expected range before feeding them to a `CurveFunction`.
-- Verify noise `Scale` values — very large scales produce very fine, grainy noise; very small scales produce wide, smooth hills.
+- Remember that `Sum` of two [-1, 1] values can range from -2 to 2. Use `Clamp` or `Normalizer` to bring values back into an expected range before feeding them to a `CurveMapper`.
+- Verify noise `Frequency` values -- very large frequencies produce very fine, grainy noise; very small frequencies produce wide, smooth hills.
 
-## Help & Support
+## Help and Support
 
 If you need extra help, open an issue in the TerraNova repository or join the project chat.
