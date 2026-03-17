@@ -30,7 +30,20 @@ function slugFromPath(path: string) {
   return match ? match[1] : normalized;
 }
 
+// Human-friendly titles for README/index pages that would otherwise show the folder name
+const SLUG_TITLE_OVERRIDES: Record<string, string> = {
+  "guides/README":           "Guides Overview",
+  "walkthroughs/README":     "Walkthroughs Overview",
+  "glossary/README":         "Glossary",
+  "glossary/asset-node-editor-nodes": "Node Editor Nodes",
+  "glossary/in-game-commands":        "In-Game Commands",
+  "reference/README":        "Reference Overview",
+  "templates/README":        "Templates Overview",
+};
+
 function titleFromSlug(slug: string) {
+  if (SLUG_TITLE_OVERRIDES[slug]) return SLUG_TITLE_OVERRIDES[slug];
+
   const parts = slug.split("/");
   let name = parts.pop() ?? slug;
 
@@ -153,7 +166,10 @@ function DocTreeNodeItem({
           isCollapsed ? "text-tn-text-muted" : "text-tn-text"
         } hover:bg-tn-accent/10 focus:outline-none focus:ring-2 focus:ring-tn-accent/40`}
         style={{ paddingLeft: `${indent + basePadding}px` }}
-        onClick={() => onToggleCollapse(node.slug)}
+        onClick={() => {
+          onToggleCollapse(node.slug);
+          onSelect(node.slug + "/README");
+        }}
         aria-expanded={!isCollapsed}
       >
         <Folder className="h-4 w-4 text-tn-text-muted shrink-0" />
