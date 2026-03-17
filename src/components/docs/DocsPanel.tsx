@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   ChevronLeft, ChevronRight, ChevronDown, Folder, FileText, X,
-  BookOpen, Map as MapIcon, Wrench, Library, ScrollText, Info, GitPullRequest, Copy, Check,
+  BookOpen, Map as MapIcon, Wrench, Library, ScrollText, GitPullRequest, Copy, Check,
   Compass, GraduationCap, LayoutTemplate,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -65,7 +65,6 @@ function titleFromSlug(slug: string) {
 
 const ROOT_SECTION_ORDER = [
   { key: "overview", title: "Overview", slug: "overview" },
-  { key: "introduction", title: "Introduction", slug: "introduction" },
   { key: "getting-started", title: "Getting Started", slug: "getting-started" },
   { key: "walkthroughs", title: "Walkthroughs", slug: "walkthroughs" },
   { key: "guides", title: "Guides", slug: "guides" },
@@ -77,8 +76,7 @@ const ROOT_SECTION_ORDER = [
 ];
 
 const SECTION_ICONS: Record<string, LucideIcon> = {
-  overview:        BookOpen,
-  introduction:    Info,
+  overview:          BookOpen,
   "getting-started": Compass,
   walkthroughs:    MapIcon,
   guides:          GraduationCap,
@@ -479,7 +477,7 @@ export function DocsPanel() {
         if (last && entries.some((e) => e.slug === last)) target = last;
       } catch { /* ignore */ }
       if (!target) {
-        target = entries.find((e) => e.slug === "overview" || e.slug === "introduction")?.slug ?? entries[0].slug;
+        target = entries.find((e) => e.slug === "overview")?.slug ?? entries[0].slug;
       }
       loadDoc(target);
     }

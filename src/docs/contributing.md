@@ -8,8 +8,7 @@ This page explains how the documentation is organized, how files should be named
 
 ```
 src/docs/
-  overview.md               -- top-level landing page
-  introduction.md           -- about the project, credits, how to contribute
+  overview.md               -- landing page, project info, credits, how to contribute
   getting-started.md        -- first launch, editor layout, shortcuts
   troubleshooting.md        -- common problems and fixes
   contributing.md           -- this file

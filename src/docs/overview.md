@@ -1,41 +1,52 @@
 # TerraNova Documentation
 
-Welcome to the TerraNova in-app documentation system.
+TerraNova is a community-built visual editor for Hytale WorldGen V2. It gives you a node graph interface to design, preview, and export world generation configurations -- no JSON editing required.
 
-This folder is the source for all in-app docs, tutorials, templates, and reference material.
-
----
-
-## Structure
-
-- **[Introduction](./introduction.md)** -- who made this, how it is organized, and how to contribute.
-- **[Getting Started](./getting-started.md)** -- launch the app, open a world, and learn the editor layout.
-- **[Walkthroughs](./walkthroughs/README.md)** -- step-by-step tutorials for common tasks.
-- **[Guides](./guides/README.md)** -- conceptual deep-dives into terrain, biomes, and node patterns.
-- **[Templates](./templates/README.md)** -- starter worlds, generator setups, and doc templates.
-- **[Glossary](./glossary/README.md)** -- key terminology, nodes, and in-game commands.
-- **[Reference](./reference/README.md)** -- complete node, file format, and config reference.
-- **[Troubleshooting](./troubleshooting.md)** -- common problems and how to fix them.
-- **[Contributing](./contributing.md)** -- how to add guides, fixes, and improvements.
+This documentation covers everything from opening the app for the first time to building complex multi-biome worlds with props, caves, and custom terrain shapes.
 
 ---
 
-## The TerraNova Project
+## What's Here
 
-TerraNova is a community-built visual editor for Hytale WorldGen V2. It lets you design, preview, and export world generation graphs without writing JSON by hand.
-
-This documentation exists to help everyone -- from first-time builders to experienced worldgen developers -- get the most out of the tool.
-
-### Credits
-
-**A huge thank you to Nylaro**, whose public Hytale WorldGen V2 guide was a foundational source of knowledge for this project and for the Hytale worldgen community as a whole. Nylaro is the worldgen developer behind **Wild Skies**, an exploration RPG server, and has generously shared deep technical knowledge with the community. This documentation would not exist in its current form without that work.
-
-- **Nylaro** -- original WorldGen V2 guide author, Wild Skies worldgen developer, community inspiration
-- **TerraNova contributors** -- editor development, documentation, templates, and feedback
-- **The Hytale community** -- testing, questions, and ideas that shaped the tooling
-
-> You can find Nylaro's original guide and join the Wild Skies community at the Discord linked in the [Introduction](./introduction.md).
+| Section | What it covers |
+|---------|---------------|
+| **[Getting Started](./getting-started.md)** | Launching the app, editor layout, keyboard shortcuts |
+| **[Walkthroughs](./walkthroughs/README.md)** | Step-by-step tutorials -- follow along in the editor |
+| **[Guides](./guides/README.md)** | Concept deep-dives -- terrain generation, biomes, node patterns |
+| **[Templates](./templates/README.md)** | Starter worlds and doc templates for contributors |
+| **[Glossary](./glossary/README.md)** | Definitions for every node type and term |
+| **[Reference](./reference/README.md)** | Complete technical listings for nodes, JSON schemas, commands |
+| **[Troubleshooting](./troubleshooting.md)** | Common problems and how to fix them |
+| **[Contributing](./contributing.md)** | How to add guides, fixes, and improvements |
 
 ---
 
-> Tip: Navigate these documents from the in-app Docs panel, or open them directly from the repository.
+## Thank You, Nylaro
+
+A special and sincere thank you to **Nylaro**, whose public Hytale WorldGen V2 guide was the foundation this entire documentation effort is built on. Nylaro is the worldgen developer behind **Wild Skies**, an exploration RPG server, and took the time to write and share deep technical knowledge about the Hytale worldgen system openly with the community.
+
+The understanding of biome structure, density graphs, material providers, prop placement, and the overall WorldGen V2 architecture in these docs traces directly back to that work. It was an act of genuine generosity to the community, and it is deeply appreciated.
+
+You can join the Wild Skies community here: https://discord.gg/DgUYJGs7ZP
+
+---
+
+## Contributors
+
+- **Nylaro** -- original WorldGen V2 guide, Wild Skies worldgen developer
+- **TerraNova contributors** -- editor development, documentation expansion, and template work
+- **The Hytale community** -- questions, feedback, and testing that shaped what needed explaining
+
+---
+
+## Contribute
+
+Want to help improve this documentation?
+
+- Write a guide on a topic not yet covered
+- Add a walkthrough for a workflow you know well
+- Fix an error, update an outdated node name, or improve an explanation
+
+Use the doc templates in the [Templates](./templates/README.md) section as a starting point. See [Contributing](./contributing.md) for the full process.
+
+> Please only submit content you own or have permission to share.
