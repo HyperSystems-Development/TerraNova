@@ -1,36 +1,56 @@
 # Introduction
 
-Welcome to the TerraNova documentation. This space is designed to help you understand the world generation concepts, tools, and workflows used by the TerraNova editor.
+Welcome to the TerraNova documentation.
+
+TerraNova is a community-built visual editor for Hytale WorldGen V2. It gives you a node graph interface to design, preview, and export world generation configurations -- no JSON editing required.
+
+This documentation covers everything from opening the app for the first time to building complex multi-biome worlds with props, caves, and custom terrain shapes.
+
+---
 
 ## Document Structure
 
-This documentation is split into focused sections:
+| Section | What it covers |
+|---------|---------------|
+| **Getting Started** | Launching the app, editor layout, keyboard shortcuts |
+| **Walkthroughs** | Step-by-step tutorials -- follow along in the editor |
+| **Guides** | Concept deep-dives -- terrain generation, biomes, node patterns |
+| **Templates** | Starter worlds and doc templates for contributors |
+| **Glossary** | Definitions for every node type and term |
+| **Reference** | Complete technical listings for nodes, JSON schemas, commands |
+| **Troubleshooting** | Common problems and how to fix them |
+| **Contributing** | How to add guides, fixes, and improvements |
 
-- **Getting Started** — installation, opening the app, and your first steps in the editor.
-- **Walkthroughs** — practical step-by-step tutorials for common tasks like building your first world.
-- **Guides** — conceptual deep-dives into terrain generation, the biome system, and node patterns.
-- **Templates** — starter worlds and example generator setups you can open and modify.
-- **Glossary** — terminology, node types, and in-game commands for Hytale WorldGen V2 / TerraNova.
-- **Reference** — complete technical reference for all node types, file formats, and configuration.
-- **Troubleshooting** — common problems and how to fix them.
-- **Contributing** — how to contribute guides, fixes, and improvements to this documentation.
+---
 
-## About Me
+## About This Documentation
 
-Hi everyone, I’m **Nylaro**. My interest in procedural world generation and level design has led me here.
+This documentation was built by the TerraNova community to support Hytale worldgen builders of all skill levels.
 
-I am also the WorldGen developer behind **Wild Skies**, an exploration RPG server.
-You can join our community here: https://discord.gg/DgUYJGs7ZP
+### Thank You, Nylaro
 
-I'm very happy to share knowledge with the Hytale community through this documentation.
+A special and sincere thank you to **Nylaro**, whose public Hytale WorldGen V2 guide was the foundation this entire documentation effort is built on. Nylaro is the worldgen developer behind **Wild Skies**, an exploration RPG server, and took the time to write and share deep technical knowledge about the Hytale worldgen system openly with the community.
+
+The understanding of biome structure, density graphs, material providers, prop placement, and the overall WorldGen V2 architecture in these docs traces directly back to that work. It was an act of genuine generosity to the community, and it is deeply appreciated.
+
+You can join the Wild Skies community here: https://discord.gg/DgUYJGs7ZP
+
+### Contributors
+
+- **Nylaro** -- original WorldGen V2 guide, Wild Skies worldgen developer
+- **TerraNova contributors** -- editor development, documentation expansion, and template work
+- **The Hytale community** -- questions, feedback, and testing that shaped what needed explaining
+
+---
 
 ## Contribute
 
 Want to help improve this documentation?
 
-- Create a guide (written or video) about a topic not yet covered.
-- Share a video showcasing one of the guides.
+- Write a guide on a topic not yet covered
+- Add a walkthrough for a workflow you know well
+- Fix an error, update an outdated node name, or improve an explanation
 
-If you want to contribute, reach out via Discord or open a PR in this repo.
+Use the doc templates in the [Templates](./templates/README.md) section as a starting point. See [Contributing](./contributing.md) for the full process.
 
-> ⚠️ Please only submit content you own or have permission to share.
+> Please only submit content you own or have permission to share.

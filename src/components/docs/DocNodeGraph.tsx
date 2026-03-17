@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -127,10 +127,22 @@ function DocNode({ data }: { data: { label: string; sub?: string; color: string;
 
 const nodeTypes = { docNode: DocNode };
 
-function DocFlowInner({ rfNodes, rfEdges, focusedId }: { rfNodes: Node[]; rfEdges: Edge[]; focusedId: string | null }) {
+function DocFlowInner({ rfNodes, rfEdges, focusedId, initialFocusId }: { rfNodes: Node[]; rfEdges: Edge[]; focusedId: string | null; initialFocusId: string | null }) {
   const { fitView } = useReactFlow();
+  const mounted = useRef(false);
 
   useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      // On first mount: zoom to the first step's node if there is one, otherwise fit all
+      const target = initialFocusId ?? null;
+      if (target) {
+        fitView({ nodes: [{ id: target }], duration: 0, padding: 0.6, minZoom: 0.5, maxZoom: 1.2 });
+      } else {
+        fitView({ duration: 0, padding: 0.3, minZoom: 0.4, maxZoom: 1.2 });
+      }
+      return;
+    }
     if (focusedId) {
       fitView({ nodes: [{ id: focusedId }], duration: 300, padding: 0.6, minZoom: 0.5, maxZoom: 1.2 });
     } else {
@@ -176,7 +188,7 @@ export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraph
     <div className="my-4 rounded border border-tn-border overflow-hidden">
       <div style={{ height }}>
         <ReactFlowProvider>
-          <DocFlowInner rfNodes={rfNodes} rfEdges={rfEdges} focusedId={focusedId} />
+          <DocFlowInner rfNodes={rfNodes} rfEdges={rfEdges} focusedId={focusedId} initialFocusId={hasSteps ? (steps![0]?.nodeId ?? null) : null} />
         </ReactFlowProvider>
       </div>
 
