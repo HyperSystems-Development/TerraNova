@@ -13,19 +13,22 @@ src/docs/
   troubleshooting.md        -- common problems and fixes
   contributing.md           -- this file
 
-  walkthroughs/
+  walkthroughs/             -- step-by-step tutorials, one task per file
     README.md               -- index of all walkthroughs
     create-a-world.md
     terrain-and-caves.md
     multi-biome-world.md
     periodic-density-stripes.md
+    [future] beginner/      -- split into beginner/ and advanced/ once 4+ files each
 
-  guides/
+  guides/                   -- concept deep-dives, longer-form explanations
     README.md               -- index of all guides
     setup-data-flow-first-steps.md
     understanding-basic-terrain-generation.md
     node-combinations.md
     hytale-worldgen-v2-biome-system.md
+    [future] terrain/       -- split into terrain/ and biomes/ once 6+ files each
+    [future] biomes/
 
   templates/
     README.md               -- index of templates and doc templates
@@ -37,9 +40,22 @@ src/docs/
     asset-node-editor-nodes.md
     in-game-commands.md
 
-  reference/
-    README.md               -- complete node, schema, and command reference
+  reference/                -- complete technical listings; split into subfolders as it grows
+    README.md               -- current single-page reference (nodes, schema, commands)
+    [future] nodes/         -- one file per node category when reference outgrows one page
+      density.md            --   all density node types
+      material.md           --   material provider and layer types
+      position.md           --   position provider types
+      prop.md               --   prop types
+      scanner.md            --   scanner types
+    [future] schema/        -- JSON asset schemas (world, biome, prop, framework)
+      world.md
+      biome.md
+    [future] commands/      -- in-game commands (consolidates glossary/in-game-commands.md)
+      README.md
 ```
+
+**When to split reference into subfolders:** when `reference/README.md` exceeds ~300 lines or when a single category (e.g. density nodes) has grown enough to warrant its own page. Until then, keep everything in `reference/README.md` -- one long page is easier to search than many short ones.
 
 ---
 

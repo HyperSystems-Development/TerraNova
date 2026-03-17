@@ -35,15 +35,9 @@ function slugFromPath(path: string) {
   return match ? match[1] : normalized;
 }
 
-// Human-friendly titles for README/index pages that would otherwise show the folder name
 const SLUG_TITLE_OVERRIDES: Record<string, string> = {
-  "guides/README":           "Guides Overview",
-  "walkthroughs/README":     "Walkthroughs Overview",
-  "glossary/README":         "Glossary",
   "glossary/asset-node-editor-nodes": "Node Editor Nodes",
   "glossary/in-game-commands":        "In-Game Commands",
-  "reference/README":        "Reference Overview",
-  "templates/README":        "Templates Overview",
 };
 
 function titleFromSlug(slug: string) {
@@ -112,12 +106,10 @@ function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
   for (const section of sections) {
     if (section.children.length === 0) continue;
 
-    // Drop README children that duplicate the folder title (e.g. walkthroughs/README titled "Walkthroughs")
-    const meaningful = section.children.filter((child) => {
-      if (child.type !== "file") return true;
-      const isReadme = /\/(readme|index)$/i.test(child.slug);
-      return !isReadme || child.title.toLowerCase() !== section.title.toLowerCase();
-    });
+    // Always strip README/index files -- the folder header loads them on click
+    const meaningful = section.children.filter((child) =>
+      child.type !== "file" || !/\/(readme|index)$/i.test(child.slug)
+    );
 
     if (meaningful.length === 0) {
       // Only a README existed -- expose it as a single file node with the section title
@@ -178,17 +170,21 @@ function DocTreeNodeItem({
   }
 
   const FolderIcon = SECTION_ICONS[node.slug] ?? Folder;
+  const readmeSlug = node.slug + "/README";
+  const isFolderSelected = selectedSlug === readmeSlug;
   return (
     <div className="docs-folder">
       <button
         type="button"
-        className={`flex w-full items-center gap-2 py-2 pr-3 text-sm font-semibold rounded ${
-          isCollapsed ? "text-tn-text-muted" : "text-tn-text"
+        className={`flex w-full items-center gap-2 py-2 pr-3 text-sm font-semibold rounded border-l-2 ${
+          isFolderSelected
+            ? "border-tn-accent bg-tn-accent/20 text-tn-text"
+            : `border-transparent ${isCollapsed ? "text-tn-text-muted" : "text-tn-text"}`
         } hover:bg-tn-accent/10 focus:outline-none focus:ring-2 focus:ring-tn-accent/40`}
         style={{ paddingLeft: `${indent + basePadding}px` }}
         onClick={() => {
           onToggleCollapse(node.slug);
-          onSelect(node.slug + "/README");
+          onSelect(readmeSlug);
         }}
         aria-expanded={!isCollapsed}
       >
