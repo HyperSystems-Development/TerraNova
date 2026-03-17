@@ -149,18 +149,21 @@ function DocTreeNodeItem({
 
   if (node.type === "file") {
     const isSelected = selectedSlug === node.slug;
-    // Top-level docs (no slash) get a section icon; nested files get FileText
     const sectionKey = node.slug.split("/")[0];
     const Icon = depth === 0 ? (SECTION_ICONS[sectionKey] ?? FileText) : FileText;
+    // Top-level file items match folder header weight; nested items are smaller and muted
+    const isTopLevel = depth === 0;
     return (
       <button
         type="button"
-        className={`docs-file flex w-full items-center gap-2 text-left py-2 text-sm leading-relaxed transition-colors border-l-2 ${
+        className={`docs-file flex w-full items-center gap-2 text-left border-l-2 transition-colors ${
+          isTopLevel ? "py-2 text-sm font-semibold" : "py-1.5 text-[13px]"
+        } ${
           isSelected
             ? "border-tn-accent bg-tn-accent/20 text-tn-text"
             : "border-transparent text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"
         }`}
-        style={{ paddingLeft: `${indent + basePadding}px` }}
+        style={{ paddingLeft: `${indent + basePadding}px`, paddingRight: "12px" }}
         onClick={() => onSelect(node.slug)}
       >
         <Icon className="h-4 w-4 shrink-0" />
@@ -173,10 +176,10 @@ function DocTreeNodeItem({
   const readmeSlug = node.slug + "/README";
   const isFolderSelected = selectedSlug === readmeSlug;
   return (
-    <div className="docs-folder">
+    <div className="docs-folder mt-0.5">
       <button
         type="button"
-        className={`flex w-full items-center gap-2 py-2 pr-3 text-sm font-semibold rounded border-l-2 ${
+        className={`flex w-full items-center gap-2 py-2 pr-3 text-sm font-semibold border-l-2 ${
           isFolderSelected
             ? "border-tn-accent bg-tn-accent/20 text-tn-text"
             : `border-transparent ${isCollapsed ? "text-tn-text-muted" : "text-tn-text"}`
@@ -188,15 +191,15 @@ function DocTreeNodeItem({
         }}
         aria-expanded={!isCollapsed}
       >
-        <FolderIcon className="h-4 w-4 text-tn-text-muted shrink-0" />
+        <FolderIcon className="h-4 w-4 shrink-0" />
         <span className="flex-1 truncate">{node.title}</span>
         {isCollapsed
-          ? <ChevronRight className="h-3.5 w-3.5 text-tn-text-muted shrink-0" />
-          : <ChevronDown className="h-3.5 w-3.5 text-tn-text-muted shrink-0" />
+          ? <ChevronRight className="h-3 w-3 text-tn-text-muted shrink-0" />
+          : <ChevronDown className="h-3 w-3 text-tn-text-muted shrink-0" />
         }
       </button>
       {!isCollapsed && (
-        <div>
+        <div className="pb-1">
           {node.children.map((child) => (
             <DocTreeNodeItem
               key={`${child.type}-${child.slug}`}
@@ -652,19 +655,8 @@ export function DocsPanel() {
           sidebarCollapsed ? "hidden" : "w-64 min-w-[220px]"
         }`}
       >
-        <div className="border-b border-tn-border p-3">
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-semibold text-tn-text-muted">Docs</div>
-            <button
-              type="button"
-              className="flex items-center justify-center w-6 h-6 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none"
-              onClick={() => toggleSidebarCollapsed()}
-              title="Hide docs tree"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="relative mt-2">
+        <div className="border-b border-tn-border px-3 py-2 flex items-center gap-1.5">
+          <div className="relative flex-1">
             <input
               className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 pr-6 text-sm text-tn-text focus:outline-none focus:border-tn-accent"
               placeholder="Search docs…"
@@ -682,6 +674,14 @@ export function DocsPanel() {
               </button>
             )}
           </div>
+          <button
+            type="button"
+            className="flex items-center justify-center w-6 h-6 shrink-0 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none"
+            onClick={() => toggleSidebarCollapsed()}
+            title="Hide docs tree"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto">
           {filteredTree.map((node) => (
@@ -725,36 +725,35 @@ export function DocsPanel() {
                 {sidebarCollapsed && (
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 px-2 h-7 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none text-xs"
+                    className="flex items-center justify-center w-6 h-6 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none"
                     onClick={() => toggleSidebarCollapsed()}
                     title="Show docs tree"
                   >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                    <span>Nav</span>
+                    <ChevronRight className="h-4 w-4" />
                   </button>
                 )}
-                <button
-                  type="button"
-                  className="flex items-center justify-center w-6 h-6 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none disabled:opacity-30"
-                  onClick={navBack}
-                  disabled={navIndex <= 0}
-                  title="Back (Alt+←)"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  className="flex items-center justify-center w-6 h-6 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none disabled:opacity-30"
-                  onClick={navForward}
-                  disabled={navIndex >= navHistory.length - 1}
-                  title="Forward (Alt+→)"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-                <div>
-                  <div className="text-sm font-semibold text-tn-text">{titleFromSlug(selectedSlug)}</div>
-                  <div className="text-[11px] text-tn-text-muted">{selectedSlug}</div>
+                {/* Back / Forward -- visually grouped with a subtle separator from the Nav toggle */}
+                <div className="flex items-center gap-0.5 border border-tn-border rounded px-0.5">
+                  <button
+                    type="button"
+                    className="flex items-center justify-center w-6 h-6 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none disabled:opacity-30"
+                    onClick={navBack}
+                    disabled={navIndex <= 0}
+                    title="Back (Alt+←)"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    className="flex items-center justify-center w-6 h-6 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none disabled:opacity-30"
+                    onClick={navForward}
+                    disabled={navIndex >= navHistory.length - 1}
+                    title="Forward (Alt+→)"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
                 </div>
+                <div className="text-sm font-semibold text-tn-text">{titleFromSlug(selectedSlug)}</div>
               </div>
               {walkthroughSteps.length > 0 && (
                 <button
@@ -821,35 +820,41 @@ export function DocsPanel() {
                 </ReactMarkdown>
 
                 {(backlinks[selectedSlug]?.length > 0 || outboundLinks[selectedSlug]?.length > 0) && (
-                  <div className="mt-6 border-t border-tn-border pt-4 flex gap-8">
-                    {backlinks[selectedSlug]?.length > 0 && (
-                      <div className="flex-1">
-                        <div className="text-sm font-semibold text-tn-text mb-2">Referenced by</div>
-                        <ul className="list-none space-y-1">
-                          {backlinks[selectedSlug].map((ref) => (
-                            <li key={ref} className="pl-2">
-                              <button type="button" className="text-tn-accent hover:underline text-sm" onClick={() => loadDoc(ref)}>
-                                {titleFromSlug(ref)}
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {outboundLinks[selectedSlug]?.length > 0 && (
-                      <div className="flex-1">
-                        <div className="text-sm font-semibold text-tn-text mb-2">See also</div>
-                        <ul className="list-none space-y-1">
+                  <div className="mt-6 border-t border-tn-border pt-4 space-y-4">
+                    {outboundLinks[selectedSlug]?.filter((slug) => entries.some((e) => e.slug === slug)).length > 0 && (
+                      <div>
+                        <div className="text-xs font-semibold text-tn-text-muted uppercase tracking-wide mb-2">See also</div>
+                        <div className="flex flex-wrap gap-2">
                           {outboundLinks[selectedSlug]
                             .filter((slug) => entries.some((e) => e.slug === slug))
                             .map((slug) => (
-                              <li key={slug} className="pl-2">
-                                <button type="button" className="text-tn-accent hover:underline text-sm" onClick={() => loadDoc(slug)}>
-                                  {titleFromSlug(slug)}
-                                </button>
-                              </li>
+                              <button
+                                key={slug}
+                                type="button"
+                                className="px-2.5 py-1 rounded border border-tn-border text-xs text-tn-text-muted hover:text-tn-text hover:border-tn-accent hover:bg-tn-accent/10 transition-colors"
+                                onClick={() => loadDoc(slug)}
+                              >
+                                {titleFromSlug(slug)}
+                              </button>
                             ))}
-                        </ul>
+                        </div>
+                      </div>
+                    )}
+                    {backlinks[selectedSlug]?.length > 0 && (
+                      <div>
+                        <div className="text-xs font-semibold text-tn-text-muted uppercase tracking-wide mb-2">Referenced by</div>
+                        <div className="flex flex-wrap gap-2">
+                          {backlinks[selectedSlug].map((ref) => (
+                            <button
+                              key={ref}
+                              type="button"
+                              className="px-2.5 py-1 rounded border border-tn-border text-xs text-tn-text-muted hover:text-tn-text hover:border-tn-accent hover:bg-tn-accent/10 transition-colors"
+                              onClick={() => loadDoc(ref)}
+                            >
+                              {titleFromSlug(ref)}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
