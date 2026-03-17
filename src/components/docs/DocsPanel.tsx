@@ -502,6 +502,22 @@ export function DocsPanel() {
         </a>
       );
     },
+    img: ({ src, alt, ...props }: React.ComponentPropsWithoutRef<"img">) => {
+      // Resolve relative image paths to /docs/ in public folder
+      const srcStr = String(src ?? "");
+      const resolved = srcStr.startsWith("http") || srcStr.startsWith("/")
+        ? srcStr
+        : `/docs/${srcStr.replace(/^\.\//, "")}`;
+      return (
+        <img
+          {...props}
+          src={resolved}
+          alt={alt ?? ""}
+          className="my-3 rounded border border-tn-border max-w-full"
+          style={{ imageRendering: "auto" }}
+        />
+      );
+    },
     code: (props: any) => {
       const className = String(props.className || "");
       const match = /language-(\w+)/.exec(className);
@@ -569,7 +585,7 @@ export function DocsPanel() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 docs-content" id="docs-content" ref={contentRef}>
+      <div className="flex-1 overflow-y-auto p-6 pb-16 docs-content" id="docs-content" ref={contentRef}>
         {selectedSlug ? (
           <>
             <div className="flex items-center justify-between mb-4">
