@@ -23,17 +23,15 @@ This documentation covers everything from opening the app for the first time to 
 
 ## Thank You, Nylaro
 
-A special and sincere thank you to **Nylaro**, whose public Hytale WorldGen V2 guide was the foundation this entire documentation effort is built on. Nylaro is the worldgen developer behind **Wild Skies**, an exploration RPG server, and took the time to write and share deep technical knowledge about the Hytale worldgen system openly with the community.
+A special and sincere thank you to **Nylaro**, whose public Hytale WorldGen V2 guide was the foundation this entire documentation effort is built on. Nylaro took the time to write and share deep technical knowledge about the Hytale worldgen system openly with the community.
 
 The understanding of biome structure, density graphs, material providers, prop placement, and the overall WorldGen V2 architecture in these docs traces directly back to that work. It was an act of genuine generosity to the community, and it is deeply appreciated.
-
-You can join the Wild Skies community here: https://discord.gg/DgUYJGs7ZP
 
 ---
 
 ## Contributors
 
-- **Nylaro** -- original WorldGen V2 guide, Wild Skies worldgen developer
+- **Nylaro** -- original WorldGen V2 guide
 - **TerraNova contributors** -- editor development, documentation expansion, and template work
 - **The Hytale community** -- questions, feedback, and testing that shaped what needed explaining
 
