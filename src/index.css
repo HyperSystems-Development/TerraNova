@@ -148,19 +148,10 @@ body,
 .docs-sidebar .docs-file {
   font-weight: 500;
   font-size: 0.9rem;
-  padding-left: 0.7rem;
 }
 
 .docs-sidebar .docs-folder .text-tn-text-muted {
   opacity: 0.7;
-}
-
-.docs-sidebar .docs-folder > button {
-  padding-left: 0;
-}
-
-.docs-sidebar .docs-folder .docs-file {
-  padding-left: 0;
 }
 
 .docs-content h1,
@@ -187,7 +178,6 @@ body,
 
 .docs-content a {
   color: var(--tn-accent);
-  text-decoration: underline;
 }
 
 .docs-content pre {

@@ -447,7 +447,6 @@ function DocToc({ entries, contentRef }: { entries: TocEntry[]; contentRef: Reac
                 if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
             >
-              {level === 3 && <span className="text-tn-border">╴</span>}
               <span className="truncate">{text}</span>
             </button>
           ))}
@@ -844,7 +843,7 @@ export function DocsPanel() {
       <h2 {...props} id={id} className="group flex items-center gap-2">
         {children}
         {id && (
-          <a href={`#${id}`} className="opacity-0 group-hover:opacity-100 transition-opacity text-tn-text-muted hover:text-tn-accent" aria-label="Link to section" onClick={(e) => { e.preventDefault(); const el = contentRef.current?.querySelector(`#${CSS.escape(id)}`); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
+          <a href={`#${id}`} className="inline-flex items-center opacity-0 group-hover:opacity-100 transition-opacity text-tn-text-muted hover:text-tn-accent shrink-0" aria-label="Link to section" onClick={(e) => { e.preventDefault(); const el = contentRef.current?.querySelector(`#${CSS.escape(id)}`); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
             <Hash className="h-4 w-4" />
           </a>
         )}
@@ -854,7 +853,7 @@ export function DocsPanel() {
       <h3 {...props} id={id} className="group flex items-center gap-2">
         {children}
         {id && (
-          <a href={`#${id}`} className="opacity-0 group-hover:opacity-100 transition-opacity text-tn-text-muted hover:text-tn-accent" aria-label="Link to section" onClick={(e) => { e.preventDefault(); const el = contentRef.current?.querySelector(`#${CSS.escape(id)}`); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
+          <a href={`#${id}`} className="inline-flex items-center opacity-0 group-hover:opacity-100 transition-opacity text-tn-text-muted hover:text-tn-accent shrink-0" aria-label="Link to section" onClick={(e) => { e.preventDefault(); const el = contentRef.current?.querySelector(`#${CSS.escape(id)}`); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
             <Hash className="h-3.5 w-3.5" />
           </a>
         )}
@@ -977,7 +976,7 @@ export function DocsPanel() {
                     <span key={crumb.slug} className="flex items-center gap-1 min-w-0">
                       {i < arr.length - 1 ? (
                         <>
-                          <span className="text-tn-text-muted truncate max-w-[80px]">{crumb.label}</span>
+                          <span className="text-tn-text-muted truncate max-w-[120px]">{crumb.label}</span>
                           <ChevronRight className="h-3 w-3 text-tn-border shrink-0" />
                         </>
                       ) : (
