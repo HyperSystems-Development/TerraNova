@@ -222,6 +222,10 @@ function DocTreeNodeItem({
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
   return (
     <button
       type="button"
@@ -230,7 +234,8 @@ function CopyButton({ text }: { text: string }) {
       onClick={() => {
         navigator.clipboard.writeText(text).then(() => {
           setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
+          if (timerRef.current) clearTimeout(timerRef.current);
+          timerRef.current = setTimeout(() => setCopied(false), 1500);
         });
       }}
     >
@@ -605,26 +610,27 @@ export function DocsPanel() {
         />
       );
     },
-    code: ({ className, children, ...props }: React.ComponentPropsWithoutRef<"code">) => {
-      const cls = String(className || "");
-      const match = /language-(\w+)/.exec(cls);
-      const value = String(children).replace(/\n$/, "");
-      if (match?.[1] === "mermaid") return <MermaidDiagram code={value} />;
-      if (match?.[1] === "nodegraph") {
+    pre: ({ children, ...props }: React.ComponentPropsWithoutRef<"pre">) => {
+      // Extract the inner code element to check language and get text for copy
+      const codeEl = Array.isArray(children) ? children[0] : children;
+      const codeProps = (codeEl as React.ReactElement<React.ComponentPropsWithoutRef<"code">>)?.props;
+      const cls = String(codeProps?.className || "");
+      const lang = /language-(\w+)/.exec(cls)?.[1];
+      const value = String(codeProps?.children ?? "").replace(/\n$/, "");
+      if (lang === "mermaid") return <MermaidDiagram code={value} />;
+      if (lang === "nodegraph") {
         const graph = parseNodeGraph(value);
         if (graph) return <DocNodeGraph {...graph} />;
       }
-      // Fenced code block (has a language class) -- show copy button on hover
-      if (match) {
-        return (
-          <div className="relative group">
-            <code className={className} {...props}>{children}</code>
-            <CopyButton text={value} />
-          </div>
-        );
-      }
-      return <code className={className} {...props}>{children}</code>;
+      return (
+        <div className="relative group">
+          <pre {...props}>{children}</pre>
+          <CopyButton text={value} />
+        </div>
+      );
     },
+    code: ({ className, children, ...props }: React.ComponentPropsWithoutRef<"code">) =>
+      <code className={className} {...props}>{children}</code>,
   }), [entries, selectedSlug, handleLinkClick]);
 
   return (
