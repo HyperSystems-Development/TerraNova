@@ -9,5 +9,6 @@ This section contains in-depth guides covering key TerraNova workflows and world
 - **[Hytale WorldGen V2 Biome System](./hytale-worldgen-v2-biome-system.md)** — how biomes are defined, how the world selects them, and how transitions work.
 - **[Node Combination Patterns](./node-combinations.md)** — common ways to wire nodes together, with visual flow diagrams for each pattern.
 - **[Terrain Types and Node Recipes](./terrain-types.md)** — organized by terrain outcome: plains, mountains, mesas, floating islands, caves, warped terrain, dunes, archipelagos, and complex layered worlds.
+- **[Complex Terrain Techniques](./terrain-types-advanced.md)** — advanced recipes: double domain warp, slope detection with Gradient, depth-zoned Switch branching, Voronoi river networks, altitude-scaled Amplitude, VectorWarp directional distortion, overhangs, and manual multi-scale noise stacks.
 
 > More guides will be added over time. If you want to contribute, see [Contributing](../contributing.md).
