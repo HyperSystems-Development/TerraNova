@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -13,7 +13,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-// Category colour palette matching the actual subcategory colors from densitySubcategories.ts
+// Category colour palette matching densitySubcategories.ts
 const CATEGORY_COLORS: Record<string, string> = {
   generative:  "#4A90D9",
   filter:      "#7B68AE",
@@ -35,9 +35,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 export interface DocGraphNode {
   id: string;
   label: string;
-  /** category key from CATEGORY_COLORS */
   category?: string;
-  /** subtitle shown below the label */
   sub?: string;
   x: number;
   y: number;
@@ -51,18 +49,14 @@ export interface DocGraphEdge {
 }
 
 export interface DocGraphStep {
-  /** which node id this step focuses on */
   nodeId: string;
-  /** explanation shown below the diagram */
   text: string;
 }
 
 export interface DocNodeGraphProps {
   nodes: DocGraphNode[];
   edges: DocGraphEdge[];
-  /** height in px, default 260 */
   height?: number;
-  /** if provided, enables walkthrough mode */
   steps?: DocGraphStep[];
 }
 
@@ -70,11 +64,10 @@ const NODE_W = 160;
 
 function makeRFNode(n: DocGraphNode, focusedId: string | null, hasSteps: boolean): Node {
   const color = CATEGORY_COLORS[n.category ?? "default"] ?? CATEGORY_COLORS.default;
-  const focused = focusedId === n.id;
   return {
     id: n.id,
     position: { x: n.x, y: n.y },
-    data: { label: n.label, sub: n.sub, color, focused, hasSteps },
+    data: { label: n.label, sub: n.sub, color, focused: focusedId === n.id, hasSteps },
     type: "docNode",
     style: { width: NODE_W },
   };
@@ -96,7 +89,7 @@ function makeRFEdge(e: DocGraphEdge, i: number, focusedId: string | null, hasSte
   };
 }
 
-function DocNode({ data }: { data: { label: string; sub?: string; color: string; focused?: boolean; hasSteps?: boolean } }) {
+function DocNode({ data }: { data: { label: string; sub?: string; color: string; focused: boolean; hasSteps: boolean } }) {
   const dimmed = data.hasSteps && !data.focused;
   const glow = data.focused ? `0 0 0 2.5px ${data.color}, 0 0 18px ${data.color}99` : undefined;
   return (
@@ -111,10 +104,7 @@ function DocNode({ data }: { data: { label: string; sub?: string; color: string;
       className="rounded border bg-tn-panel text-tn-text select-none overflow-hidden"
     >
       <Handle type="target" position={Position.Left} style={{ background: "#6b5f4e", border: "none", width: 8, height: 8 }} />
-      <div
-        style={{ background: data.color }}
-        className="px-2.5 py-1 text-[13px] font-semibold text-white leading-tight truncate"
-      >
+      <div style={{ background: data.color }} className="px-2.5 py-1 text-[13px] font-semibold text-white leading-tight truncate">
         {data.label}
       </div>
       {data.sub && (
@@ -127,26 +117,33 @@ function DocNode({ data }: { data: { label: string; sub?: string; color: string;
 
 const nodeTypes = { docNode: DocNode };
 
-function DocFlowInner({ rfNodes, rfEdges, focusedId, initialFocusId }: { rfNodes: Node[]; rfEdges: Edge[]; focusedId: string | null; initialFocusId: string | null }) {
+function DocFlowInner({
+  rfNodes,
+  rfEdges,
+  focusedId,
+  initialFocusId,
+}: {
+  rfNodes: Node[];
+  rfEdges: Edge[];
+  focusedId: string | null;
+  initialFocusId: string | null;
+}) {
   const { fitView } = useReactFlow();
-  const mounted = useRef(false);
 
+  // Fit to first step on mount (no animation so it is instant)
   useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      // On first mount: zoom to the first step's node if there is one, otherwise fit all
-      const target = initialFocusId ?? null;
-      if (target) {
-        fitView({ nodes: [{ id: target }], duration: 0, padding: 0.6, minZoom: 0.5, maxZoom: 1.2 });
-      } else {
-        fitView({ duration: 0, padding: 0.3, minZoom: 0.4, maxZoom: 1.2 });
-      }
-      return;
+    if (initialFocusId) {
+      fitView({ nodes: [{ id: initialFocusId }], duration: 0, padding: 0.6, minZoom: 0.5, maxZoom: 1.2 });
+    } else {
+      fitView({ duration: 0, padding: 0.3, minZoom: 0.4, maxZoom: 1.2 });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally runs once on mount only
+
+  // Pan to focused node whenever the step changes
+  useEffect(() => {
     if (focusedId) {
       fitView({ nodes: [{ id: focusedId }], duration: 300, padding: 0.6, minZoom: 0.5, maxZoom: 1.2 });
-    } else {
-      fitView({ duration: 300, padding: 0.3, minZoom: 0.4, maxZoom: 1.2 });
     }
   }, [focusedId, fitView]);
 
@@ -172,8 +169,9 @@ function DocFlowInner({ rfNodes, rfEdges, focusedId, initialFocusId }: { rfNodes
 export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraphProps) {
   const [stepIndex, setStepIndex] = useState(0);
 
-  const hasSteps = !!steps && steps.length > 0;
-  const focusedId = hasSteps ? (steps[stepIndex]?.nodeId ?? null) : null;
+  const hasSteps = steps !== undefined && steps.length > 0;
+  const focusedId = hasSteps ? steps[stepIndex].nodeId : null;
+  const initialFocusId = hasSteps ? steps[0].nodeId : null;
 
   const rfNodes = useMemo(
     () => nodes.map((n) => makeRFNode(n, focusedId, hasSteps)),
@@ -188,11 +186,16 @@ export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraph
     <div className="my-4 rounded border border-tn-border overflow-hidden">
       <div style={{ height }}>
         <ReactFlowProvider>
-          <DocFlowInner rfNodes={rfNodes} rfEdges={rfEdges} focusedId={focusedId} initialFocusId={hasSteps ? (steps![0]?.nodeId ?? null) : null} />
+          <DocFlowInner
+            rfNodes={rfNodes}
+            rfEdges={rfEdges}
+            focusedId={focusedId}
+            initialFocusId={initialFocusId}
+          />
         </ReactFlowProvider>
       </div>
 
-      {hasSteps && steps && (
+      {hasSteps && (
         <div
           className="border-t border-tn-border bg-tn-panel/60 px-4 py-3"
           onKeyDown={(e) => {
@@ -224,7 +227,9 @@ export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraph
               </button>
             </div>
           </div>
-          <p className="text-sm text-tn-text leading-relaxed whitespace-normal break-words">{steps[stepIndex]?.text}</p>
+          <p className="text-sm text-tn-text leading-relaxed whitespace-normal break-words">
+            {steps[stepIndex].text}
+          </p>
         </div>
       )}
     </div>
