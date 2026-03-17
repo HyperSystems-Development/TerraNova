@@ -26,6 +26,8 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 **The recipe:** `BaseHeight` → `Sum` → `Terrain Out`, with a low-amplitude `SimplexNoise2D` adding minimal variation.
 
+> **Preview gap:** `BaseHeight` returns `0.0` in TerraNova's preview — terrain will appear anchored at Y=0 instead of your configured Y level. Workaround: temporarily replace `BaseHeight` with `OffsetConstant { Offset: -64, Input: YValue }` while previewing, then restore `BaseHeight` before export.
+
 ```nodegraph
 {
   "height": 160,
@@ -100,7 +102,9 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 **What it looks like:** Tall, dramatic terrain with sharp peaks, steep slopes, and exposed rock faces. High amplitude variation.
 
-**The recipe:** Same structure as rolling hills, but with a much steeper CurveMapper, higher BaseHeight, and larger noise amplitude. Adding `Abs` (ridge noise) on a second noise layer gives sharp peaks.
+**The recipe:** Same structure as rolling hills, but with a much steeper CurveMapper, higher BaseHeight, and larger noise amplitude. Adding `Abs` on a second noise layer folds it into sharp ridges.
+
+> **Preview gap:** `BaseHeight` returns `0.0` in TerraNova's preview. Replace with `OffsetConstant { Offset: -80, Input: YValue }` while tuning, then restore before export.
 
 ```nodegraph
 {
@@ -136,7 +140,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
 - Ridge noise Scale`*`: `0.012`, Octaves: `3` — `Abs` folds it to create sharp ridgelines
 - Ridge `AmplitudeConstant`\*: `0.3–0.5` — controls how prominent the ridges are relative to the base shape
 
-**Why `Abs` makes ridges:** `Abs` folds all negative noise values to positive. A smooth valley at −0.6 becomes a spike at +0.6. Wherever noise crosses zero, there is now a sharp peak. Applied at a higher frequency, this creates the jagged ridgeline silhouette of mountain ranges.
+**Why `Abs` makes ridges:** `Abs` folds all negative noise values to positive — it takes the absolute value of Simplex noise output. A smooth valley at −0.6 becomes a spike at +0.6. Wherever noise crosses zero, there is now a sharp peak. Applied at a higher frequency, this creates the jagged ridgeline silhouette of mountain ranges.
 
 **Variations:**
 - Remove `Abs` for smoother, dome-like mountains
@@ -150,6 +154,8 @@ Parameters marked with `*` are the ones most worth tweaking first.
 **What it looks like:** Flat-topped elevated landforms with steep cliff walls dropping to lower surrounding terrain. Desert or highland feel.
 
 **The recipe:** A `CurveMapper` with a flat segment at the top (clamped curve) controls the height profile. `SmoothClamp` on the final density keeps the top surface flat without a hard edge.
+
+> **Preview gap:** `BaseHeight` returns `0.0` in preview. Replace with `OffsetConstant { Offset: -64, Input: YValue }` while tuning.
 
 ```nodegraph
 {
@@ -316,6 +322,8 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 **The recipe:** Use `GradientWarp` to displace the evaluation coordinates of a noise field using a second noise field's gradient. The child noise is evaluated at a twisted position, making all features curve and fold.
 
+> **Preview gap — critical:** `GradientWarp` returns `0.0` in TerraNova's preview. The warped terrain shape is entirely absent in the editor. Build and tune the unwarped child terrain first, confirm it looks right in preview, then add `GradientWarp` and test exclusively in-game. See [Expert Terrain Techniques](./terrain-types-expert.md#6-preview-vs-runtime-what-youre-not-seeing) for the full list of affected nodes.
+
 ```nodegraph
 {
   "height": 200,
@@ -355,6 +363,8 @@ Parameters marked with `*` are the ones most worth tweaking first.
 **What it looks like:** Cave tunnels that twist and meander organically. No straight sections. Intersections form smooth merged voids rather than angular joints.
 
 **The recipe:** Take the simple cave setup, but wrap the cave noise in `GradientWarp` before clamping and inverting. Then use `SmoothMin` instead of hard `Min` to round the joint between cave walls and terrain.
+
+> **Preview gap — critical:** `GradientWarp` returns `0.0` in preview — the cave warp will be completely invisible. Tune cave shape and depth fade without warping, then add `GradientWarp` and validate in-game only.
 
 ```nodegraph
 {
