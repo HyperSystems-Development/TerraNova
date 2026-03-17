@@ -12,16 +12,16 @@ This walkthrough shows how to make a density pattern repeat at a fixed interval 
 
 ## The Core Idea
 
-Normally a `CurveFunction` driven by `CoordinateX` maps a sine shape once across the entire world — you have to manually place every stripe. With `Modulo`, the X value wraps back to zero every N blocks. The curve only needs to cover one period, and it tiles automatically.
+Normally a `CurveMapper` driven by `XValue` maps a sine shape once across the entire world — you have to manually place every stripe. With `Modulo`, the X value wraps back to zero every N blocks. The curve only needs to cover one period, and it tiles automatically.
 
 ```nodegraph
 {
   "height": 180,
   "nodes": [
-    { "id": "cx",  "label": "CoordinateX",  "category": "terrain", "sub": "raw X value",     "x": 0,   "y": 65 },
-    { "id": "mod", "label": "Modulo",       "category": "math",    "sub": "Divisor = 100",   "x": 200, "y": 65 },
-    { "id": "cf",  "label": "CurveFunction","category": "filter",  "sub": "sine 0 → 100",    "x": 400, "y": 65 },
-    { "id": "out", "label": "Terrain Out",  "category": "output",                             "x": 620, "y": 65 }
+    { "id": "cx",  "label": "XValue",      "category": "terrain", "sub": "raw X value",     "x": 0,   "y": 65 },
+    { "id": "mod", "label": "Modulo",      "category": "math",    "sub": "Divisor = 100",   "x": 200, "y": 65 },
+    { "id": "cf",  "label": "CurveMapper", "category": "filter",  "sub": "sine 0 → 100",    "x": 400, "y": 65 },
+    { "id": "out", "label": "Terrain Out", "category": "output",                             "x": 620, "y": 65 }
   ],
   "edges": [
     { "from": "cx",  "to": "mod" },
@@ -29,9 +29,9 @@ Normally a `CurveFunction` driven by `CoordinateX` maps a sine shape once across
     { "from": "cf",  "to": "out", "label": "density" }
   ],
   "steps": [
-    { "nodeId": "cx",  "text": "CoordinateX outputs the raw world X coordinate — a number that increases as you move east. On its own this gives a value that grows forever, which isn't useful for periodic patterns." },
+    { "nodeId": "cx",  "text": "XValue outputs the raw world X coordinate — a number that increases as you move east. On its own this gives a value that grows forever, which isn't useful for periodic patterns." },
     { "nodeId": "mod", "text": "Modulo wraps the input back to zero every time it reaches the Divisor. With Divisor = 100, the output cycles 0 → 99 → 0 → 99 → ... every 100 blocks. This is the period of your stripe. Change the Divisor to change stripe width." },
-    { "nodeId": "cf",  "text": "CurveFunction receives a value between 0 and 100. Draw one full sine cycle in the Manual curve editor — the curve maps 0–100 input to a –1 to 1 density output. Because Modulo repeats the input, the curve tiles automatically without you drawing every stripe." },
+    { "nodeId": "cf",  "text": "CurveMapper receives a value between 0 and 100. Draw one full sine cycle in the Manual curve editor — the curve maps 0–100 input to a –1 to 1 density output. Because Modulo repeats the input, the curve tiles automatically without you drawing every stripe." },
     { "nodeId": "out", "text": "Terrain Out receives the tiled density. Every 100 blocks the pattern starts over. The result is repeating stripes of solid and air — like sediment bands or a striped terrain profile." }
   ]
 }
@@ -41,27 +41,27 @@ Normally a `CurveFunction` driven by `CoordinateX` maps a sine shape once across
 
 ## Step 1 — Add the Base Nodes
 
-1. Add **CoordinateX** (Terrain category).
+1. Add **XValue** (Terrain category).
 2. Add **Modulo** (Math category). Set `Divisor` to `100`.
-3. Connect `CoordinateX` → `Modulo`.
+3. Connect `XValue` → `Modulo`.
 
 The Modulo output now cycles 0 → 99 → 0 → 99 regardless of how far along X you are.
 
-> Use `CoordinateY` instead of `CoordinateX` for **horizontal sediment layers** (stripes going left–right). Use `CoordinateZ` for stripes running north–south.
+> Use `YValue` instead of `XValue` for **horizontal sediment layers** (stripes at different heights). Use `ZValue` for stripes running north–south.
 
 ---
 
-## Step 2 — Shape the Stripe with CurveFunction
+## Step 2 — Shape the Stripe with CurveMapper
 
-1. Add **CurveFunction** (Filter category). Set `Curve` type to **Manual**.
+1. Add **CurveMapper** (Filter category). Set `Curve` type to **Manual**.
 2. The input range is 0 to 100 (your Divisor). Draw a sine-shaped curve:
    - Start at 0 (left edge): value = 0
    - Peak at 25: value = +1 (solid)
    - Cross zero at 50: value = 0
    - Trough at 75: value = −1 (air)
    - Return to 0 at 100 (right edge): value = 0
-3. Connect `Modulo` → `CurveFunction`.
-4. Connect `CurveFunction` → `Terrain Out`.
+3. Connect `Modulo` → `CurveMapper`.
+4. Connect `CurveMapper` → `Terrain Out`.
 5. Click **Generate**. You should see repeating stripes.
 
 **Stripe width is controlled entirely by the `Divisor` value** — no need to redraw the curve.
@@ -77,7 +77,7 @@ The Modulo output now cycles 0 → 99 → 0 → 99 regardless of how far along X
 
 ## Step 3 — Layer Over Existing Terrain
 
-Stripes alone produce floating geometry. In practice, combine them with terrain using **Sum** or **MinFunction**.
+Stripes alone produce floating geometry. In practice, combine them with terrain using **Sum** or **Min**.
 
 ### Additive stripes (terrain + stripe modifier)
 
@@ -85,13 +85,13 @@ Stripes alone produce floating geometry. In practice, combine them with terrain 
 {
   "height": 200,
   "nodes": [
-    { "id": "terr", "label": "Terrain",     "category": "terrain", "sub": "from hills graph", "x": 0,   "y": 30  },
-    { "id": "cx",   "label": "CoordinateX", "category": "terrain", "sub": "raw X",            "x": 0,   "y": 130 },
-    { "id": "mod",  "label": "Modulo",      "category": "math",    "sub": "Divisor = 100",    "x": 200, "y": 130 },
-    { "id": "cf",   "label": "CurveFunction","category": "filter", "sub": "sine 0→100",       "x": 380, "y": 130 },
-    { "id": "amp",  "label": "AmplitudeConstant","category": "math","sub": "× 0.3",           "x": 560, "y": 130 },
-    { "id": "sum",  "label": "Sum",         "category": "math",                                "x": 720, "y": 80  },
-    { "id": "out",  "label": "Terrain Out", "category": "output",                              "x": 900, "y": 80  }
+    { "id": "terr", "label": "Terrain",          "category": "terrain", "sub": "from hills graph", "x": 0,   "y": 30  },
+    { "id": "cx",   "label": "XValue",           "category": "terrain", "sub": "raw X",            "x": 0,   "y": 130 },
+    { "id": "mod",  "label": "Modulo",           "category": "math",    "sub": "Divisor = 100",    "x": 200, "y": 130 },
+    { "id": "cf",   "label": "CurveMapper",      "category": "filter",  "sub": "sine 0→100",       "x": 380, "y": 130 },
+    { "id": "amp",  "label": "AmplitudeConstant","category": "math",    "sub": "× 0.3",            "x": 560, "y": 130 },
+    { "id": "sum",  "label": "Sum",              "category": "math",                                "x": 720, "y": 80  },
+    { "id": "out",  "label": "Terrain Out",      "category": "output",                              "x": 900, "y": 80  }
   ],
   "edges": [
     { "from": "terr", "to": "sum" },
@@ -106,12 +106,12 @@ Stripes alone produce floating geometry. In practice, combine them with terrain 
 
 `AmplitudeConstant` (× 0.3) keeps the stripe subtle — it nudges the terrain surface rather than overpowering it. Increase it to make stripes more pronounced.
 
-### Cave-carving stripes (MinFunction)
+### Cave-carving stripes (Min)
 
 To carve stripe-shaped tunnels through terrain:
 
-- Replace `Sum` with **MinFunction**
-- Feed terrain density and the stripe curve into `MinFunction`
+- Replace `Sum` with **Min**
+- Feed terrain density and the stripe curve into `Min`
 - Where the stripe is negative (trough), it carves through solid terrain
 
 ---
@@ -121,8 +121,8 @@ To carve stripe-shaped tunnels through terrain:
 Pure `Modulo` stripes are perfectly regular — they look artificial. Add noise to offset the stripe phase:
 
 1. Add **SimplexNoise2D** (Frequency `0.005`, Amplitude `20`).
-2. Add a **Sum** between `CoordinateX` and `Modulo`.
-3. Connect `CoordinateX` → `Sum`, `SimplexNoise2D` → `Sum`, then `Sum` → `Modulo`.
+2. Add a **Sum** between `XValue` and `Modulo`.
+3. Connect `XValue` → `Sum`, `SimplexNoise2D` → `Sum`, then `Sum` → `Modulo`.
 
 The noise shifts the X input before Modulo wraps it — the stripe boundaries wobble organically while the period stays consistent.
 
@@ -130,12 +130,12 @@ The noise shifts the X input before Modulo wraps it — the stripe boundaries wo
 {
   "height": 200,
   "nodes": [
-    { "id": "cx",   "label": "CoordinateX",  "category": "terrain", "sub": "raw X",           "x": 0,   "y": 30  },
+    { "id": "cx",   "label": "XValue",       "category": "terrain", "sub": "raw X",            "x": 0,   "y": 30  },
     { "id": "sn",   "label": "SimplexNoise2D","category": "terrain", "sub": "Freq 0.005 Amp 20","x": 0,   "y": 130 },
-    { "id": "sum",  "label": "Sum",          "category": "math",    "sub": "offset X by noise","x": 220, "y": 80  },
-    { "id": "mod",  "label": "Modulo",       "category": "math",    "sub": "Divisor = 100",    "x": 420, "y": 80  },
-    { "id": "cf",   "label": "CurveFunction","category": "filter",  "sub": "sine 0→100",       "x": 600, "y": 80  },
-    { "id": "out",  "label": "Terrain Out",  "category": "output",                              "x": 800, "y": 80  }
+    { "id": "sum",  "label": "Sum",          "category": "math",    "sub": "offset X by noise", "x": 220, "y": 80  },
+    { "id": "mod",  "label": "Modulo",       "category": "math",    "sub": "Divisor = 100",     "x": 420, "y": 80  },
+    { "id": "cf",   "label": "CurveMapper",  "category": "filter",  "sub": "sine 0→100",        "x": 600, "y": 80  },
+    { "id": "out",  "label": "Terrain Out",  "category": "output",                               "x": 800, "y": 80  }
   ],
   "edges": [
     { "from": "cx",  "to": "sum" },
@@ -158,9 +158,9 @@ The noise shifts the X input before Modulo wraps it — the stripe boundaries wo
 | Stronger stripe effect | Increase `AmplitudeConstant` multiplier |
 | Subtle stripe effect | Decrease `AmplitudeConstant` multiplier |
 | Wavy / organic stripe edges | Add `SimplexNoise2D` before `Modulo` (Step 4) |
-| Horizontal sediment layers | Replace `CoordinateX` with `CoordinateY` |
-| North–south stripes | Replace `CoordinateX` with `CoordinateZ` |
-| Diagonal stripes | Sum `CoordinateX` and `CoordinateZ` before `Modulo` |
+| Horizontal sediment layers | Replace `XValue` with `YValue` |
+| North–south stripes | Replace `XValue` with `ZValue` |
+| Diagonal stripes | Sum `XValue` and `ZValue` before `Modulo` |
 
 ---
 

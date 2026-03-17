@@ -75,17 +75,17 @@ Add `SimplexNoise2D` to introduce horizontal variation — hills, valleys, and u
 
 ---
 
-## Step 3 — Mountains (CurveFunction for Sharp Profiles)
+## Step 3 — Mountains (CurveMapper for Sharp Profiles)
 
-Mountains need a steep vertical profile — sharp peaks, flat base. `CurveFunction` with a `Manual` curve lets you draw exactly how density maps to height.
+Mountains need a steep vertical profile — sharp peaks, flat base. `CurveMapper` with a `Manual` curve lets you draw exactly how density maps to height.
 
-**Nodes needed:** `BaseHeight` → `CurveFunction` (Manual curve) + `SimplexNoise2D` → `Sum` → `YSampled` → `Terrain Out`
+**Nodes needed:** `BaseHeight` → `CurveMapper` (Manual curve) + `SimplexNoise2D` → `Sum` → `YSampled` → `Terrain Out`
 
-1. Add **CurveFunction**. In the properties panel, set its `Curve` type to **Manual**.
+1. Add **CurveMapper**. In the properties panel, set its `Curve` type to **Manual**.
 2. Draw the curve: flat near the bottom (gentle base), then steep in the middle (cliff face), then flat again near the top (plateau). This S-shape creates dramatic cliffs.
-3. Connect `BaseHeight` → `CurveFunction`.
+3. Connect `BaseHeight` → `CurveMapper`.
 4. Add **SimplexNoise2D** (Frequency `0.005`, Amplitude `20`) for ridge variation.
-5. Add **Sum** — connect `CurveFunction` and `SimplexNoise2D` into it.
+5. Add **Sum** — connect `CurveMapper` and `SimplexNoise2D` into it.
 6. Wrap the whole thing in **YSampled** (SampleDistance `4`) for performance.
 7. Connect `YSampled` → `Terrain Out`.
 
@@ -93,12 +93,12 @@ Mountains need a steep vertical profile — sharp peaks, flat base. `CurveFuncti
 {
   "height": 240,
   "nodes": [
-    { "id": "bh",  "label": "BaseHeight",    "category": "terrain", "sub": "Y = 64",            "x": 0,   "y": 10  },
-    { "id": "cf",  "label": "CurveFunction", "category": "filter",  "sub": "Manual — S-curve",  "x": 220, "y": 10  },
-    { "id": "sn",  "label": "SimplexNoise2D","category": "terrain", "sub": "Freq 0.005 Amp 20",  "x": 0,   "y": 120 },
-    { "id": "sum", "label": "Sum",           "category": "math",                                  "x": 420, "y": 65  },
-    { "id": "ys",  "label": "YSampled",      "category": "terrain", "sub": "SampleDistance 4",   "x": 600, "y": 65  },
-    { "id": "out", "label": "Terrain Out",   "category": "output",                                "x": 800, "y": 65  }
+    { "id": "bh",  "label": "BaseHeight",   "category": "terrain", "sub": "Y = 64",            "x": 0,   "y": 10  },
+    { "id": "cf",  "label": "CurveMapper",  "category": "filter",  "sub": "Manual — S-curve",  "x": 220, "y": 10  },
+    { "id": "sn",  "label": "SimplexNoise2D","category": "terrain", "sub": "Freq 0.005 Amp 20", "x": 0,   "y": 120 },
+    { "id": "sum", "label": "Sum",          "category": "math",                                  "x": 420, "y": 65  },
+    { "id": "ys",  "label": "YSampled",     "category": "terrain", "sub": "SampleDistance 4",   "x": 600, "y": 65  },
+    { "id": "out", "label": "Terrain Out",  "category": "output",                                "x": 800, "y": 65  }
   ],
   "edges": [
     { "from": "bh",  "to": "cf"  },
@@ -109,9 +109,9 @@ Mountains need a steep vertical profile — sharp peaks, flat base. `CurveFuncti
   ],
   "steps": [
     { "nodeId": "bh",  "text": "BaseHeight outputs 0 at Y=64. Above is positive (solid), below is negative (air). On its own this gives a flat plane — it's just an anchor for the shape." },
-    { "nodeId": "cf",  "text": "CurveFunction remaps the BaseHeight value using a drawn curve. A gentle S-curve creates a sharp cliff band: the terrain rises steeply through a narrow Y range instead of smoothly. Steepen the curve middle section to make cliffs more vertical." },
+    { "nodeId": "cf",  "text": "CurveMapper remaps the BaseHeight value using a drawn curve. A gentle S-curve creates a sharp cliff band: the terrain rises steeply through a narrow Y range instead of smoothly. Steepen the curve middle section to make cliffs more vertical." },
     { "nodeId": "sn",  "text": "SimplexNoise2D adds horizontal variation so the mountain isn't a perfectly uniform ridge. Low Frequency (0.005) gives broad variation — individual peaks and saddles. Increase Amplitude to make peaks taller." },
-    { "nodeId": "sum", "text": "Sum combines the curve-shaped height profile with the noise variation. The CurveFunction controls the overall vertical shape; the noise gives it organic peaks and ridges." },
+    { "nodeId": "sum", "text": "Sum combines the curve-shaped height profile with the noise variation. The CurveMapper controls the overall vertical shape; the noise gives it organic peaks and ridges." },
     { "nodeId": "ys",  "text": "YSampled wraps the entire density graph and evaluates it at every 4 blocks vertically, then interpolates between samples. This gives roughly 4× faster generation with no visible difference for smooth mountain terrain." },
     { "nodeId": "out", "text": "Terrain Out receives the final density. Anything positive becomes solid. The result is steep, cliff-banded mountains with natural horizontal variation." }
   ]
@@ -133,47 +133,50 @@ Mountains need a steep vertical profile — sharp peaks, flat base. `CurveFuncti
 
 `SimplexNoise3D` varies in all three dimensions — it can make terrain that overhangs itself or creates floating masses.
 
-**Nodes needed:** `SimplexNoise3D` + `YGradient` → `Sum` → `Terrain Out`
+**Nodes needed:** `SimplexNoise3D` + `YValue` + `CurveMapper` → `Sum` → `Terrain Out`
 
-Add a `YGradient` to bias the noise — negative at the top and bottom of the world, positive in the middle — so floating masses stay within a reasonable height band.
+Use `YValue` fed through a `CurveMapper` to bias the noise — positive in a target height band, negative outside — so floating masses stay within a reasonable range.
 
 1. Add **SimplexNoise3D**. Set `Frequency` to `0.02`, `Amplitude` to `1.0`, `Octaves` to `3`.
-2. Add **YGradient**. Set `FromY` to `40`, `ToY` to `120`. This outputs a positive value between those heights and negative outside — keeps islands within the band.
-3. Add **Sum** — connect both nodes into it.
-4. Connect `Sum` → `Terrain Out`.
+2. Add **YValue** — outputs the current Y coordinate as a number.
+3. Add **CurveMapper** (Manual). Draw a curve that is positive between Y=40 and Y=120 and negative outside that range — a hill shape. This keeps islands within the band.
+4. Add **Sum** — connect `SimplexNoise3D` and `CurveMapper` into it.
+5. Connect `Sum` → `Terrain Out`.
 
 ```nodegraph
 {
-  "height": 200,
+  "height": 220,
   "nodes": [
-    { "id": "sn3",  "label": "SimplexNoise3D", "category": "terrain", "sub": "Freq 0.02 Oct 3",   "x": 0,   "y": 20  },
-    { "id": "yg",   "label": "YGradient",      "category": "terrain", "sub": "Y 40 → 120",        "x": 0,   "y": 120 },
-    { "id": "sum",  "label": "Sum",            "category": "math",                                  "x": 240, "y": 70  },
-    { "id": "out",  "label": "Terrain Out",    "category": "output",                                "x": 440, "y": 70  }
+    { "id": "sn3",  "label": "SimplexNoise3D", "category": "terrain", "sub": "Freq 0.02 Oct 3",      "x": 0,   "y": 20  },
+    { "id": "yv",   "label": "YValue",         "category": "terrain", "sub": "raw Y",                "x": 0,   "y": 120 },
+    { "id": "cm",   "label": "CurveMapper",    "category": "filter",  "sub": "positive Y 40–120",    "x": 200, "y": 120 },
+    { "id": "sum",  "label": "Sum",            "category": "math",                                    "x": 400, "y": 70  },
+    { "id": "out",  "label": "Terrain Out",    "category": "output",                                  "x": 600, "y": 70  }
   ],
   "edges": [
     { "from": "sn3", "to": "sum" },
-    { "from": "yg",  "to": "sum" },
+    { "from": "yv",  "to": "cm"  },
+    { "from": "cm",  "to": "sum", "label": "height bias" },
     { "from": "sum", "to": "out", "label": "density" }
   ]
 }
 ```
 
-> To combine with ground terrain from Step 2, feed both the ground `Sum` and this floating island `Sum` into a **MaxFunction** node — it keeps whichever region is more solid.
+> To combine with ground terrain from Step 2, feed both the ground `Sum` and this floating island `Sum` into a **Max** node — it keeps whichever region is more solid.
 
 ---
 
-## Step 5 — Basic Caves (Negate + MinFunction)
+## Step 5 — Basic Caves (Inverter + Min)
 
-Caves are carved by taking a 3D noise field, negating it so high-noise areas become empty, then using `MinFunction` to keep only areas solid in *both* the terrain and the cave mask.
+Caves are carved by taking a 3D noise field, inverting it so high-noise areas become empty, then using `Min` to keep only areas solid in *both* the terrain and the cave mask.
 
-**Nodes needed:** terrain (from above) + `SimplexNoise3D` → `Negate` → `MinFunction` → `Terrain Out`
+**Nodes needed:** terrain (from above) + `SimplexNoise3D` → `Inverter` → `Min` → `Terrain Out`
 
-1. Start with your terrain graph from Step 2 or Step 3 feeding into a node — call this your **terrain density**.
+1. Start with your terrain graph from Step 2 or Step 3 — call this your **terrain density**.
 2. Add a second **SimplexNoise3D**. Set `Frequency` to `0.04`, `Amplitude` to `1.2`, `Octaves` to `2`. Higher frequency = smaller, more numerous caves.
-3. Add **Negate** — connect `SimplexNoise3D` into it. This flips the sign: where noise was high (positive) it becomes negative (empty), carving out space.
-4. Add **MinFunction** — connect your terrain density and the `Negate` output into it.
-5. Connect `MinFunction` → `Terrain Out`.
+3. Add **Inverter** — connect `SimplexNoise3D` into it. This flips the sign: where noise was high (positive) it becomes negative (empty), carving out space.
+4. Add **Min** — connect your terrain density and the `Inverter` output into it.
+5. Connect `Min` → `Terrain Out`.
 
 ```nodegraph
 {
@@ -181,21 +184,21 @@ Caves are carved by taking a 3D noise field, negating it so high-noise areas bec
   "nodes": [
     { "id": "terr", "label": "Terrain (Sum)", "category": "terrain", "sub": "from Step 2 or 3",  "x": 0,   "y": 40  },
     { "id": "cn",   "label": "SimplexNoise3D","category": "terrain", "sub": "Freq 0.04 Oct 2",   "x": 0,   "y": 150 },
-    { "id": "neg",  "label": "Negate",        "category": "math",    "sub": "flip cave mask",    "x": 240, "y": 150 },
-    { "id": "min",  "label": "MinFunction",   "category": "math",    "sub": "carve",             "x": 440, "y": 95  },
+    { "id": "inv",  "label": "Inverter",      "category": "math",    "sub": "flip cave mask",    "x": 240, "y": 150 },
+    { "id": "min",  "label": "Min",           "category": "math",    "sub": "carve",             "x": 440, "y": 95  },
     { "id": "out",  "label": "Terrain Out",   "category": "output",                               "x": 640, "y": 95  }
   ],
   "edges": [
     { "from": "terr", "to": "min" },
-    { "from": "cn",   "to": "neg" },
-    { "from": "neg",  "to": "min", "label": "cave mask" },
+    { "from": "cn",   "to": "inv" },
+    { "from": "inv",  "to": "min", "label": "cave mask" },
     { "from": "min",  "to": "out", "label": "density" }
   ],
   "steps": [
     { "nodeId": "terr", "text": "Your existing terrain density — the hills, mountains, or plains graph from the earlier steps. This defines where the solid ground is before carving." },
     { "nodeId": "cn",   "text": "A separate SimplexNoise3D node used only for cave shapes. Higher Frequency (0.04) creates smaller, tighter caves. Lower (0.01) creates large open caverns. Increase Octaves for more organic, branching passages." },
-    { "nodeId": "neg",  "text": "Negate multiplies the cave noise by –1. Areas that were positive (high noise) become negative. This creates a mask where high-noise zones are air — exactly where caves should be." },
-    { "nodeId": "min",  "text": "MinFunction keeps the lower of the two inputs at every point. Terrain is solid (positive) where there are no caves. The cave mask is negative where caves should be. MinFunction outputs negative there — carving through solid terrain. Both inputs must be positive for a block to exist." },
+    { "nodeId": "inv",  "text": "Inverter multiplies the cave noise by –1. Areas that were positive (high noise) become negative. This creates a mask where high-noise zones are air — exactly where caves should be." },
+    { "nodeId": "min",  "text": "Min keeps the lower of the two inputs at every point. Terrain is solid (positive) where there are no caves. The cave mask is negative where caves should be. Min outputs negative there — carving through solid terrain. Both inputs must be positive for a block to exist." },
     { "nodeId": "out",  "text": "The final carved density reaches Terrain Out. The result is your terrain shape with caves hollowed out where the 3D noise was strong enough. Adjust cave noise Frequency and Amplitude to control cave size and density." }
   ]
 }
@@ -213,41 +216,43 @@ Caves are carved by taking a 3D noise field, negating it so high-noise areas bec
 
 ---
 
-## Step 6 — Deep Caves with Height Limiting (Conditional)
+## Step 6 — Deep Caves with Height Limiting
 
-Caves should only appear underground, not punching through the surface. Use `Conditional` to enable carving only below a certain Y level.
+Caves that punch through the surface look wrong. Use `YValue` + `CurveMapper` to create a mask that fades the cave carving to zero above a target Y level, then multiply it against the cave noise before passing it into `Min`.
 
-**Nodes needed:** Add `CoordinateY` + `Conditional` between the cave mask and `MinFunction`
+**Nodes needed:** Add `YValue` + `CurveMapper` + `Amplitude` between the cave noise and `Min`
 
-1. Add **CoordinateY** — outputs the current Y coordinate as a raw number.
-2. Add **Conditional**. Set `Threshold` to `55` (below sea level). Connect `CoordinateY` as the `Condition` input. Connect the cave `Negate` output as `TrueInput`. Connect a **Constant** (Value `1.0`, always solid — no carving) as `FalseInput`.
-3. The conditional now outputs the cave mask below Y=55 and solid (no carving) above it.
-4. Feed this into `MinFunction` as before.
+1. Add **YValue** — outputs the current Y coordinate.
+2. Add **CurveMapper** (Manual). Draw a curve that outputs `1.0` below Y=55 and ramps down to `0` between Y=55 and Y=70, staying at `0` above. This is the cave mask weight.
+3. Add **Amplitude** — connect `Inverter` output as one input and `CurveMapper` output as the other. This scales the cave mask to zero above the cutoff height.
+4. Feed the `Amplitude` output into `Min` instead of the raw `Inverter`.
 
 ```nodegraph
 {
-  "height": 240,
+  "height": 260,
   "nodes": [
-    { "id": "terr", "label": "Terrain",      "category": "terrain", "sub": "from Step 2–3",     "x": 0,   "y": 40  },
-    { "id": "cn",   "label": "CaveNoise3D",  "category": "terrain", "sub": "Freq 0.04",          "x": 0,   "y": 150 },
-    { "id": "neg",  "label": "Negate",       "category": "math",    "sub": "flip",               "x": 180, "y": 150 },
-    { "id": "cy",   "label": "CoordinateY",  "category": "terrain", "sub": "raw Y value",        "x": 0,   "y": 220 },
-    { "id": "cond", "label": "Conditional",  "category": "filter",  "sub": "Y < 55 → carve",    "x": 360, "y": 185 },
-    { "id": "min",  "label": "MinFunction",  "category": "math",    "sub": "carve",              "x": 560, "y": 112 },
-    { "id": "out",  "label": "Terrain Out",  "category": "output",                               "x": 760, "y": 112 }
+    { "id": "terr", "label": "Terrain",     "category": "terrain", "sub": "from Step 2–3",       "x": 0,   "y": 40  },
+    { "id": "cn",   "label": "SimplexNoise3D","category": "terrain","sub": "Freq 0.04",           "x": 0,   "y": 140 },
+    { "id": "inv",  "label": "Inverter",    "category": "math",    "sub": "flip",                 "x": 200, "y": 140 },
+    { "id": "yv",   "label": "YValue",      "category": "terrain", "sub": "raw Y",                "x": 0,   "y": 230 },
+    { "id": "cm",   "label": "CurveMapper", "category": "filter",  "sub": "1.0 below Y55, 0 above","x": 200, "y": 230 },
+    { "id": "amp",  "label": "Amplitude",   "category": "math",    "sub": "scale by height mask", "x": 400, "y": 185 },
+    { "id": "min",  "label": "Min",         "category": "math",    "sub": "carve",                "x": 580, "y": 112 },
+    { "id": "out",  "label": "Terrain Out", "category": "output",                                  "x": 760, "y": 112 }
   ],
   "edges": [
     { "from": "terr", "to": "min" },
-    { "from": "cn",   "to": "neg" },
-    { "from": "neg",  "to": "cond", "label": "TrueInput" },
-    { "from": "cy",   "to": "cond", "label": "Condition" },
-    { "from": "cond", "to": "min",  "label": "cave mask" },
-    { "from": "min",  "to": "out",  "label": "density" }
+    { "from": "cn",   "to": "inv" },
+    { "from": "inv",  "to": "amp", "label": "cave mask" },
+    { "from": "yv",   "to": "cm"  },
+    { "from": "cm",   "to": "amp", "label": "height weight" },
+    { "from": "amp",  "to": "min", "label": "masked caves" },
+    { "from": "min",  "to": "out", "label": "density" }
   ]
 }
 ```
 
-> Change `Threshold` to push caves deeper (`40`) or higher (`70`). Set it above sea level to get surface-breaking cave entrances.
+> Adjust the `CurveMapper` ramp to control where caves fade out. A sharper transition creates a more defined cave ceiling; a gradual ramp blends caves into the surface naturally.
 
 ---
 
@@ -257,9 +262,9 @@ Caves should only appear underground, not punching through the surface. Use `Con
 |-------------|-----------|
 | Flat ground | `BaseHeight` → `Terrain Out` |
 | Rolling hills | `BaseHeight` + `SimplexNoise2D` → `Sum` |
-| Sharp mountains | `BaseHeight` → `CurveFunction` + `SimplexNoise2D` → `Sum` |
-| Floating islands / overhangs | `SimplexNoise3D` + `YGradient` → `Sum` |
-| Caves (any terrain) | terrain + `SimplexNoise3D` → `Negate` → `MinFunction` |
-| Underground-only caves | Add `CoordinateY` + `Conditional` before `MinFunction` |
+| Sharp mountains | `BaseHeight` → `CurveMapper` + `SimplexNoise2D` → `Sum` |
+| Floating islands / overhangs | `SimplexNoise3D` + `YValue` + `CurveMapper` → `Sum` |
+| Caves (any terrain) | terrain + `SimplexNoise3D` → `Inverter` → `Min` |
+| Underground-only caves | Add `YValue` + `CurveMapper` + `Amplitude` before `Min` |
 
 > **Next:** Add materials to your terrain in the [Biome System guide](../guides/hytale-worldgen-v2-biome-system.md), or explore more combinations in [Node Combinations](../guides/node-combinations.md).

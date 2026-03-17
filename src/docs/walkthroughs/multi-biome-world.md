@@ -87,14 +87,14 @@ Moderate hills — same structure, higher amplitude and frequency:
 
 ### Mountains terrain
 
-Steep ridges using a CurveFunction to create cliff faces:
+Steep ridges using a CurveMapper to create cliff faces:
 
 ```nodegraph
 {
   "height": 220,
   "nodes": [
-    { "id": "bh",  "label": "BaseHeight",    "category": "terrain", "sub": "Y = 64",             "x": 0,   "y": 20  },
-    { "id": "cf",  "label": "CurveFunction", "category": "filter",  "sub": "Manual S-curve",     "x": 220, "y": 20  },
+    { "id": "bh",  "label": "BaseHeight",   "category": "terrain", "sub": "Y = 64",             "x": 0,   "y": 20  },
+    { "id": "cf",  "label": "CurveMapper",  "category": "filter",  "sub": "Manual S-curve",     "x": 220, "y": 20  },
     { "id": "sn",  "label": "SimplexNoise2D","category": "terrain", "sub": "Freq 0.005 Amp 22",  "x": 0,   "y": 130 },
     { "id": "sum", "label": "Sum",           "category": "math",                                  "x": 420, "y": 75  },
     { "id": "out", "label": "Terrain Out",   "category": "output",                                "x": 620, "y": 75  }

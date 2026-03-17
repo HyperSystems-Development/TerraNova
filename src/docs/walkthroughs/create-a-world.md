@@ -58,7 +58,7 @@ Now add surface variation:
 
 Terrain is solid, but every block is the same material until you add a **Material Provider**.
 
-1. Right-click → **Add Node** → **Material** → **HeightGradientMaterial** (or similar from the Material category).
+1. Right-click → **Add Node** → **Material** → **HeightGradient** (or another type from the Material category).
 2. In the properties panel, set the top layer to **Grass** and a lower layer to **Stone**.
 3. Connect `HeightGradientMaterial` to the **Material** input on `Terrain Out`.
 4. Generate to see block types applied.
