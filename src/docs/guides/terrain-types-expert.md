@@ -291,11 +291,16 @@ This carves an ellipsoid void from terrain — but only where terrain is already
 | `FastGradientWarp` | Single-octave only; in-game uses full fBm warp accumulation | High — warp appears smoother/weaker than final |
 | `SmoothMin` / `SmoothMax` | Different polynomial; blending curve shape differs slightly | Low |
 | `SmoothClamp` | Compounds both SmoothMin + SmoothMax errors | Low |
-| `SimplexNoise2D/3D` | Different permutation table → different feature positions per seed | Medium — design correct, but exact positions shift |
+| `SmoothFloor` / `SmoothCeiling` | Transition band width differs ~10–15% at non-default smoothness | Low |
+| `SimplexNoise2D/3D` | Different permutation table → different feature positions per seed; 3D also has 12.5% amplitude error | Medium — design correct, but exact positions and 3D intensity shift |
 | `CellNoise2D/3D` | Different hash → cell boundaries in different XZ positions | Medium |
+| `CellNoise2D/3D` (Curve/Density ReturnType) | Raw `d1` returned instead of delegating to curve or child density | Medium — curve-mapped cell effects show raw distance instead |
+| `Switch` / `SwitchState` | Simplified XOR position hash instead of Java's SeedBox.mix() | Medium — some positions select the wrong branch |
 | `MultiMix` (>4 inputs) | Index overflow → banding artifacts at transitions | Medium |
 | `YSampled` | `SampleDistance` hardcoded to 4 regardless of config | Medium if you set a non-default step |
 | `Gradient` | Doesn't account for `Scale` node transforms | Medium if used inside a scaled context |
+| Shape SDFs with Rotation | `Cube`, `Ellipsoid`, `Cuboid`, `Cylinder` ignore their Rotation parameter | Medium — rotated shapes appear axis-aligned |
+| `Shell` | Inner radius and `Thickness` parameter ignored; renders as solid shape | High — hollow shells appear filled |
 
 **Practical workflow for nodes with critical preview gaps:**
 
@@ -370,7 +375,147 @@ Sum:
 
 ---
 
-## Expert Summary
+## 8. Optimization Reference
+
+This section collects every performance lever available in the density system, with concrete guidance on when to use each one and what it costs if you skip it.
+
+### The cost model in brief
+
+Every block in every generated chunk causes a full root-to-leaf traversal of the density graph. There is no frame budget — generation blocks the chunk thread. For a 16×384×16 chunk that's 98,304 evaluations per chunk, multiplied by whatever the root node costs.
+
+**Relative evaluation cost (order of magnitude):**
+
+| Node | Relative cost | Notes |
+|------|--------------|-------|
+| `Constant`, axis accessors (`XValue`, `YValue`, `ZValue`) | ~1× | Essentially free |
+| `Sum`, `Min`, `Max`, `Abs`, `Multiplier`, `Clamp` | ~1× | Pure arithmetic |
+| `Normalizer`, `CurveMapper` | ~2–5× | Lookup/polynomial evaluation |
+| `SimplexNoise2D` (1 oct) | ~10× | Permutation + gradient lookup |
+| `SimplexNoise2D` (N oct) | ~10N× | Linear with octave count |
+| `SimplexNoise3D` (1 oct) | ~25× | Higher-dimensional |
+| `CellNoise2D` | ~20× | Neighborhood search |
+| `CellNoise3D` | ~50× | 3D neighborhood search |
+| `Gradient` | 2× child | Central differences |
+| `FastGradientWarp` | child + ~25× | One extra 3D noise eval |
+| `GradientWarp` (3D) | child + 6× warp cost | Six evaluations of warp density |
+| `GradientWarp` (2D) | child + 4× warp cost | Four evaluations |
+| `YSampled` (wrapping X) | ~X/4 | Amortizes child to 1-in-4 Y blocks |
+| `Cache` (hit) | ~1× | LRU scan |
+| `Cache` (miss) | child + scan | Net overhead on miss |
+
+---
+
+### Lever 1: YSampled — vertical amortization
+
+Wrap the highest-cost part of your graph in `YSampled`. Every 4 blocks vertically, the child is evaluated; intermediate blocks are linearly interpolated.
+
+**Where to place it:**
+- Wrap the expensive terrain subgraph — the part containing high-octave noise or deep warp chains — not the root output.
+- Placing `YSampled` deep in the graph saves more evaluations than placing it at the top, because you're short-circuiting the expensive branches.
+
+**When NOT to use it:**
+- On features thinner than `SampleDistance` blocks vertically (e.g., thin cave ceilings, narrow ore veins). The interpolation will smooth them out or miss them entirely.
+- On `SimplexNoise3D` that drives overhangs — the Y interpolation will distort overhang geometry.
+- Inside a `GradientWarp` warp source — the warp gradient is estimated from finite differences; interpolating it introduces visible warping artifacts.
+
+**The hardcoded-4 caveat:** TerraNova's preview hardcodes `SampleDistance` to 4 regardless of your config. If you need a different step in-game, test it there — the preview won't reflect it.
+
+---
+
+### Lever 2: Cache — DAG deduplication
+
+`Cache` stores recent position→result pairs and returns the cached value when the same position is queried again. It only helps when the same node is referenced by multiple downstream consumers at the same position in the same chunk pass.
+
+**When it helps:**
+- A shared noise (`Exported` node) consumed by both terrain density and a material provider at the same XZ column.
+- A `Gradient` node whose expensive child is also consumed directly elsewhere in the graph (the DAG diamond problem).
+
+**When it does not help (don't add Cache here):**
+- Nodes that are only consumed once — cache lookup overhead with no hits.
+- Nodes evaluated by consumers at different positions — the cache will never hit.
+
+**Capacity rule:** Almost always `2–4`. The LRU scan cost grows linearly with capacity. Never exceed `4`.
+
+```
+Correct:   expensive → Cache(capacity=3) → consumer A
+                                        → consumer B
+                                        → consumer C
+
+Wrong:     expensive → Cache(capacity=32)  ← large capacity = long scan per hit
+```
+
+---
+
+### Lever 3: FastGradientWarp over GradientWarp
+
+`GradientWarp` (3D) costs 6 extra evaluations of the warp density per sample point — one per axis per direction of the finite difference. `FastGradientWarp` computes the warp direction analytically from the simplex gradient, costing 1 extra evaluation.
+
+**The tradeoff:** FastGradientWarp is ~6× cheaper. The visual difference: FastGradientWarp warp directions are smoother and less multi-scale than GradientWarp. For most surface terrain, this difference is not noticeable. For tight, tightly-controlled warping, it may matter.
+
+**Use FastGradientWarp by default.** Only reach for `GradientWarp` if the visual character of FastGradientWarp is clearly insufficient after testing in-game.
+
+**Preview accuracy:** `FastGradientWarp` previews (unlike `GradientWarp` which returns 0), but uses single-octave warp instead of full fBm — the preview will look smoother and less warped than the in-game result.
+
+---
+
+### Lever 4: Octave budget
+
+Every octave in `SimplexNoise2D` adds ~10× to its cost; every octave in `SimplexNoise3D` adds ~25×. The octave budget is the highest-leverage dial in any graph.
+
+**Practical guidelines:**
+
+| Use case | 2D octaves | 3D octaves |
+|----------|-----------|-----------|
+| Continent / biome selector | 1–2 | — |
+| Broad terrain height | 3–4 | — |
+| Hill and ridge detail | 4–5 | — |
+| Cave volume | — | 2–3 |
+| Surface texture / micro-roughness | 2–3 | 1–2 |
+| Warp source for FastGradientWarp | 1–2 | 1–2 |
+| Warp source for GradientWarp | 1 (keep it cheap) | 1 |
+
+The octave count for a warp source is especially important — GradientWarp evaluates the warp density 6× per point, so a 4-octave warp source costs 4×10×6 = 240× baseline, just for the warp field.
+
+---
+
+### Lever 5: 2D vs 3D noise
+
+`SimplexNoise3D` costs ~2.5× more than `SimplexNoise2D`. Use 2D noise for everything that only needs to vary in the horizontal plane (height fields, biome selection, surface material variation). Use 3D noise only when vertical variation is genuinely needed (caves, overhangs, volumetric features).
+
+A common pattern: broad terrain in 2D (cheap), fine surface roughness in 3D at low amplitude (adds overhang capability without 3D noise dominating the graph).
+
+---
+
+### Lever 6: Scale before expensive nodes
+
+Scaling coordinate space with a `Scale` node does not change evaluation cost — it's a coordinate transform, not an extra evaluation. Use `Scale` to set noise frequency instead of putting a high-frequency `SimplexNoise` after a low-frequency one in the same graph branch. Separate frequency layers should be separate noise nodes, not the same node with a different `Scale` ancestor.
+
+**But watch `Gradient` under Scale:** `Gradient` does not account for Scale transforms in TerraNova's preview, so the slope magnitude will be under- or over-estimated by the Scale factor. This is a preview-only issue; in-game the Gradient step accounts for the context's cumulative scale.
+
+---
+
+### Lever 7: SingleInstance for shared stateless nodes
+
+When an expensive, stateless noise subgraph is referenced by multiple biomes or multiple consumers, mark it `SingleInstance: true` in the `Exported` node. This avoids rebuilding the permutation table and node structure for each reference — a memory saving, not a compute saving.
+
+**Safe only for stateless nodes.** See the SingleInstance thread-safety table in [section 3](#3-graph-sharing-and-performance-exported--imported--singleinstance) for the full list.
+
+---
+
+### Optimization checklist
+
+Before exporting a complex graph, run through this list:
+
+- [ ] Is the highest-octave noise wrapped in `YSampled`?
+- [ ] Is `YSampled` placed around the expensive subgraph, not the root?
+- [ ] Are any nodes referenced by multiple consumers without a `Cache`?
+- [ ] Are all warp sources using `FastGradientWarp` unless you have a specific reason for `GradientWarp`?
+- [ ] Are warp source octaves kept to 1–2?
+- [ ] Is 3D noise only used where vertical variation is actually needed?
+- [ ] Are any octave counts above 5 on a hot path? (If so, can they be reduced without losing the key visual?)
+- [ ] Does the graph have any DAG diamonds (a node with two or more downstream consumers) without `Cache`?
+
+---
 
 | Technique | Core insight |
 |-----------|-------------|
@@ -379,7 +524,8 @@ Sum:
 | `SingleInstance` export | Safe for stateless nodes (noise, constants, pure math); unsafe for anything with `rChildContext` (Scale, Warp, Positions*) |
 | `Cache` strategy | Only helps when the same position is queried multiple times by multiple consumers in the same pass; capacity ≤4 |
 | `Terrain` accessor | Safe in material providers (after terrain is finalized); circular if used inside the terrain graph itself; preview returns 0 |
-| Preview gaps | `GradientWarp`, `VectorWarp`, `BaseHeight`, `CellWallDistance`, `Terrain`, `Imported` all return 0 in preview — design around this |
+| Preview gaps | `GradientWarp`, `VectorWarp`, `BaseHeight`, `CellWallDistance`, `Terrain`, `Imported` return 0; `Shell`, SDF rotation, `Switch` hash, noise seed positions all differ |
 | Graph topology | Cost is per-block and multiplicative; `YSampled` wraps the expensive subgraph; `Cache` fixes DAG diamonds; avoid nested `Gradient` |
+| Optimization | `YSampled` (vertical amortization), `Cache` (DAG deduplication), `FastGradientWarp` > `GradientWarp`, octave budget, 2D over 3D, `SingleInstance` for shared statics |
 
 > **See also:** [Complex Terrain Techniques](./terrain-types-advanced.md) for the advanced recipes these expert patterns build on. [Terrain Types and Node Recipes](./terrain-types.md) for the foundational outcomes.

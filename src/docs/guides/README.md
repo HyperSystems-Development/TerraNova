@@ -10,5 +10,6 @@ This section contains in-depth guides covering key TerraNova workflows and world
 - **[Node Combination Patterns](./node-combinations.md)** — common ways to wire nodes together, with visual flow diagrams for each pattern.
 - **[Terrain Types and Node Recipes](./terrain-types.md)** — organized by terrain outcome: plains, mountains, mesas, floating islands, caves, warped terrain, dunes, archipelagos, and complex layered worlds.
 - **[Complex Terrain Techniques](./terrain-types-advanced.md)** — advanced recipes: double domain warp, slope detection with Gradient, depth-zoned Switch branching, Voronoi river networks, altitude-scaled Amplitude, VectorWarp directional distortion, overhangs, and manual multi-scale noise stacks.
+- **[Expert Terrain Techniques](./terrain-types-expert.md)** — system-level knowledge: MultiMix N-way blending, PositionsPinch/Twist, SingleInstance thread safety, Cache strategy, the Terrain accessor, full preview vs. runtime gap reference, graph topology, and the optimization reference (YSampled placement, octave budget, FastGradientWarp vs GradientWarp, Cache vs DAG diamonds).
 
 > More guides will be added over time. If you want to contribute, see [Contributing](../contributing.md).
