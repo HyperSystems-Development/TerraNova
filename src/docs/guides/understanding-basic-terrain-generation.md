@@ -26,6 +26,12 @@ For example, a 2D noise map can be thought of as a heightmap where:
 
 These values are then combined with other nodes to produce terrain.
 
+The key parameters on noise nodes are:
+- **`Scale`** — controls the frequency of features (lower = broader hills, higher = finer detail). Good starting values: `0.003–0.01` for large terrain features, `0.01–0.05` for smaller hills.
+- **`Octaves`** — layers of noise stacked together; more octaves add fine detail at the cost of performance. 4–6 is typical for natural-looking terrain.
+- **`Persistence`** — how much each successive octave contributes (around `0.5` by default; higher values produce rougher, craggier terrain)
+- **`Lacunarity`** — how much the frequency increases per octave (around `2.0` by default)
+
 ---
 
 ## CurveMapper and BaseHeight
@@ -53,6 +59,8 @@ The most common pairing is:
 ```
 
 > In the properties panel, set `CurveMapper`'s Curve type to **Manual** and draw your terrain profile. The x-axis of the curve is the input value from `BaseHeight`; the y-axis is the output density.
+
+> **Under the hood:** `BaseHeight` is essentially `YValue` with a fixed offset applied — it crosses zero at the configured Y level, is positive above it, and negative below. You can replicate it manually with an `OffsetConstant` node wrapping a `YValue` node if you need more precise control (e.g. `Offset: -80` gives a surface at Y=80).
 
 ---
 
@@ -133,7 +141,7 @@ To carve caves, evaluate a 3D noise field and use `Min` to keep only regions tha
 }
 ```
 
-> `Inverter` flips the noise so that high-noise areas become negative (empty), carving caves out of otherwise solid terrain.
+> `Inverter` flips the noise so that high-noise areas become negative (empty), carving caves out of otherwise solid terrain. A typical cave noise setup uses `Scale: 0.04` with `Octaves: 2–3` — too many octaves makes caves look noisy and thin; too few produces large featureless voids.
 
 ---
 

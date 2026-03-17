@@ -110,14 +110,30 @@ Material providers determine which block fills each solid voxel.
 
 | Type | Purpose |
 |------|---------|
+| `Constant` | Returns the same material everywhere; used as the final fallback in provider chains |
+| `Solidity` | Branches between two sub-providers based on whether the voxel is solid or fluid |
 | `SpaceAndDepth` | Assigns materials based on space and depth context; the primary provider. Configured with a Layers list and LayerContext. |
-| `DownwardDepth` | Assigns material based on depth measured downward from the surface |
-| `UpwardDepth` | Assigns material based on depth measured upward |
-| `DownwardSpace` | Assigns material based on open space measured downward |
-| `UpwardSpace` | Assigns material based on open space measured upward |
+| `DownwardDepth` | Assigns material to blocks within N blocks below the nearest air gap (surface layers like grass/dirt) |
+| `UpwardDepth` | Assigns material to blocks within N blocks above the nearest air gap below (cave floor layers) |
+| `DownwardSpace` | Assigns material based on open air space measured downward (cave ceiling detection) |
+| `UpwardSpace` | Assigns material based on open air space measured upward |
 | `Striped` | Applies a repeating striped pattern |
-| `Solidity` | Assigns material based on solidity context |
 | `TerrainDensity` | Assigns material based on the terrain density value |
+
+All provider types support a `Skip: true` field to disable the provider during development without removing it from the config.
+
+### Material Context Fields
+
+At runtime, providers receive a `Context` object with the following fields available for driving decisions:
+
+| Field | Description |
+|-------|-------------|
+| `x, y, z` | Block position in world coordinates |
+| `density` | Terrain density at this position (higher = deeper/more solid) |
+| `downwardDepth` | Solid blocks below the nearest air gap above — `0` is the surface block |
+| `upwardDepth` | Solid blocks above the nearest air gap below — used for cave floors |
+| `downwardSpace` | Air blocks below this position |
+| `upwardSpace` | Air blocks above this position |
 
 ### Layer Types (used inside SpaceAndDepth)
 
@@ -127,6 +143,10 @@ Material providers determine which block fills each solid voxel.
 | `NoiseThickness` | A layer whose thickness varies with noise |
 | `RangeThickness` | A layer within a fixed value range |
 | `WeightedThickness` | A layer whose thickness is drawn from weighted random values |
+
+### Block Rotation
+
+Materials support a `Rotation` field with `Yaw`, `Pitch`, and `Roll` each accepting `"None"`, `"Ninety"`, `"OneEighty"`, or `"TwoSeventy"`. If a rotation node is connected in the editor, it overrides any manual rotation setting on the material.
 
 ---
 
@@ -184,18 +204,42 @@ Position providers define *where* props, structures, and spawn points are placed
 
 ## Prop Types
 
-Props are objects placed on generated terrain (trees, boulders, structures).
+Props are objects placed on generated terrain (trees, boulders, structures). All prop types support `Skip: true` to disable during testing without removing from the config.
+
+### Core Types
 
 | Type | Purpose |
 |------|---------|
-| `Box` | Places blocks in a box region |
+| `Prefab` | Pastes a saved structure from the prefab library |
+| `Queue` | Evaluates sub-props in order, using the first that succeeds |
+| `Union` | Evaluates all sub-props, combining results |
+| `Weighted` | Randomly selects from weighted prop options |
+| `Offset` | Translates a sub-prop by a fixed offset |
+| `PondFiller` | Fills enclosed terrain depressions with fluid blocks (lakes, ponds) |
+
+### Compositional Types (current)
+
+The modern approach separates *what* to place from *how* to search and *how* to orient. Wrap a pure shape with modifier nodes:
+
+| Type | Purpose |
+|------|---------|
+| `Cuboid` | Fills a rectangular volume with a material provider (replaces `Box`) |
+| `Manual` | Places blocks at explicit positions |
+| `Locator` | Wraps any prop with scanner + pattern + cap logic |
+| `Mask` | Wraps a prop with a block-mask filter (restricts which blocks can be replaced) |
+| `StaticRotator` | Applies a fixed rotation to a prop |
+| `RandomRotator` | Applies random rotation — automatically enables 4-way horizontal variety |
+| `Orienter` | Pattern-validated rotation selection for direction-aware placement (cliff faces, walls) |
+| `DensitySelector` | Selects a prop based on density range at the placement position |
+
+### Legacy Types (still functional)
+
+| Type | Purpose |
+|------|---------|
+| `Box` | Places blocks in a box region (superseded by `Cuboid` + `Locator`) |
 | `Cluster` | Groups multiple prop placements |
 | `Column` | Vertical column of blocks |
 | `Density` | Density-driven placement |
-| `Prefab` | Pastes a saved structure from the prefab library |
-| `Queue` | Sequential prop execution |
-| `Union` | Combines multiple props |
-| `Weighted` | Randomly selects from weighted prop options |
 
 ---
 
