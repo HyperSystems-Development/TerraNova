@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ChevronLeft, ChevronRight, ChevronDown, Folder, FileText, X,
   BookOpen, Map as MapIcon, Wrench, Library, ScrollText, GitPullRequest, Copy, Check,
-  Compass, GraduationCap, LayoutTemplate,
+  Compass, GraduationCap, LayoutTemplate, Hash, List,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -81,6 +81,54 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   contributing:    GitPullRequest,
 };
 
+/** Returns [{label, slug}] segments for a slug like "guides/node-combinations" */
+function breadcrumbsFromSlug(slug: string): Array<{ label: string; slug: string }> {
+  const parts = slug.split("/");
+  // Strip README/index from the last segment for display
+  if (/^(readme|index)$/i.test(parts[parts.length - 1]) && parts.length > 1) {
+    parts.pop();
+  }
+  const crumbs: Array<{ label: string; slug: string }> = [];
+  for (let i = 0; i < parts.length; i++) {
+    const crumbSlug = parts.slice(0, i + 1).join("/");
+    const section = ROOT_SECTION_ORDER.find((s) => s.key === parts[0]);
+    const label = i === 0
+      ? (section?.title ?? titleFromSlug(parts[0]))
+      : titleFromSlug(parts[i]);
+    crumbs.push({ label, slug: crumbSlug });
+  }
+  return crumbs;
+}
+
+type TocEntry = { id: string; text: string; level: number };
+
+/** Extract h2 and h3 headings from raw markdown for the on-page TOC. */
+function parseToc(md: string): TocEntry[] {
+  const entries: TocEntry[] = [];
+  const seen = new Map<string, number>();
+  const headingRe = /^(#{2,3})\s+(.+)$/gm;
+  let match: RegExpExecArray | null;
+  while ((match = headingRe.exec(md))) {
+    const level = match[1].length;
+    // Strip inline markdown: backtick code, bold/italic markers, links
+    const text = match[2].trim()
+      .replace(/`[^`]*`/g, (m) => m.slice(1, -1))
+      .replace(/[*_]+([^*_]+)[*_]+/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+    // github-slugger: lowercase, replace spaces with -, strip non-alphanumeric except - and spaces
+    const base = text.toLowerCase()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+    const count = seen.get(base) ?? 0;
+    const id = count === 0 ? base : `${base}-${count}`;
+    seen.set(base, count + 1);
+    entries.push({ id, text: match[2].trim(), level });
+  }
+  return entries;
+}
+
 function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
   const sectionMap = new Map<string, FolderNode>();
   const sections: FolderNode[] = ROOT_SECTION_ORDER.map((section) => {
@@ -134,6 +182,7 @@ function DocTreeNodeItem({
   onSelect,
   collapsed,
   onToggleCollapse,
+  activeItemRef,
   depth = 0,
 }: {
   node: DocTreeNodeData;
@@ -141,20 +190,21 @@ function DocTreeNodeItem({
   onSelect: (slug: string) => void;
   collapsed: Record<string, boolean>;
   onToggleCollapse: (slug: string) => void;
+  activeItemRef: React.RefObject<HTMLButtonElement | null>;
   depth?: number;
 }) {
-  const indent = depth * 12; // left indent per depth level
-  const basePadding = 10; // always keep a small left margin for the icon
+  const indent = depth * 12;
+  const basePadding = 10;
   const isCollapsed = node.type === "folder" && collapsed[node.slug];
 
   if (node.type === "file") {
     const isSelected = selectedSlug === node.slug;
     const sectionKey = node.slug.split("/")[0];
     const Icon = depth === 0 ? (SECTION_ICONS[sectionKey] ?? FileText) : FileText;
-    // Top-level file items match folder header weight; nested items are smaller and muted
     const isTopLevel = depth === 0;
     return (
       <button
+        ref={isSelected ? (el) => { (activeItemRef as React.MutableRefObject<HTMLButtonElement | null>).current = el; } : undefined}
         type="button"
         className={`docs-file flex w-full items-center gap-2 text-left border-l-2 transition-colors ${
           isTopLevel ? "py-2 text-sm font-semibold" : "py-1.5 text-[13px]"
@@ -178,6 +228,7 @@ function DocTreeNodeItem({
   return (
     <div className="docs-folder mt-0.5">
       <button
+        ref={isFolderSelected ? (el) => { (activeItemRef as React.MutableRefObject<HTMLButtonElement | null>).current = el; } : undefined}
         type="button"
         className={`flex w-full items-center gap-2 py-2 pr-3 text-sm font-semibold border-l-2 ${
           isFolderSelected
@@ -208,6 +259,7 @@ function DocTreeNodeItem({
               onSelect={onSelect}
               collapsed={collapsed}
               onToggleCollapse={onToggleCollapse}
+              activeItemRef={activeItemRef}
               depth={depth + 1}
             />
           ))}
@@ -335,6 +387,76 @@ function RelatedDocs({
   );
 }
 
+function DocToc({ entries, contentRef }: { entries: TocEntry[]; contentRef: React.RefObject<HTMLDivElement | null> }) {
+  const [open, setOpen] = useState(true);
+  const [activeId, setActiveId] = useState<string>("");
+
+  // Reset open state when entries change (new doc loaded)
+  useEffect(() => {
+    setOpen(true);
+    setActiveId("");
+  }, [entries]);
+
+  useEffect(() => {
+    const contentEl = contentRef.current;
+    if (!contentEl || entries.length === 0) return;
+    const headingEls = entries
+      .map(({ id }) => contentEl.querySelector(`#${CSS.escape(id)}`) as HTMLElement | null)
+      .filter(Boolean) as HTMLElement[];
+    if (headingEls.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (obs) => {
+        const visible = obs.filter((o) => o.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible.length > 0) setActiveId(visible[0].target.id);
+      },
+      { root: contentEl, rootMargin: "0px 0px -60% 0px", threshold: 0 },
+    );
+    headingEls.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [entries, contentRef]);
+
+  if (entries.length < 2) return null;
+
+  return (
+    <div className="mb-5 rounded border border-tn-border bg-tn-panel/60">
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-tn-text-muted uppercase tracking-wide hover:text-tn-text focus:outline-none"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <List className="h-3.5 w-3.5 shrink-0" />
+        <span className="flex-1 text-left">On this page</span>
+        {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+      </button>
+      {open && (
+        <div className="pb-2 border-t border-tn-border">
+          {entries.map(({ id, text, level }) => (
+            <button
+              key={id}
+              type="button"
+              className={`flex w-full items-center gap-1.5 px-3 py-1 text-left transition-colors ${
+                level === 3 ? "pl-6 text-[12px]" : "text-[13px]"
+              } ${
+                activeId === id
+                  ? "text-tn-accent"
+                  : "text-tn-text-muted hover:text-tn-text"
+              }`}
+              onClick={() => {
+                const el = contentRef.current?.querySelector(`#${CSS.escape(id)}`);
+                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            >
+              {level === 3 && <span className="text-tn-border">╴</span>}
+              <span className="truncate">{text}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DocsPanel() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [rawMd, setRawMd] = useState<string>("");
@@ -366,6 +488,8 @@ export function DocsPanel() {
   });
   const prevCollapsedFoldersRef = useRef<Record<string, boolean> | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
+  const activeItemRef = useRef<HTMLButtonElement | null>(null);
 
   const entries = useMemo<DocEntry[]>(() => {
     const list: DocEntry[] = [];
@@ -378,6 +502,7 @@ export function DocsPanel() {
   }, []);
 
   const docTree = useMemo(() => buildDocTree(entries), [entries]);
+  const tocEntries = useMemo(() => parseToc(rawMd), [rawMd]);
 
   const getAllFolderSlugs = useCallback((nodes: DocTreeNodeData[]): string[] => {
     const slugs: string[] = [];
@@ -613,6 +738,18 @@ export function DocsPanel() {
     return () => el.removeEventListener("scroll", onScroll);
   }, [selectedSlug]); // re-attach when doc changes so progress resets
 
+  // Sidebar auto-scroll: keep active item visible
+  useEffect(() => {
+    const item = activeItemRef.current;
+    const container = sidebarScrollRef.current;
+    if (!item || !container) return;
+    const itemRect = item.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    if (itemRect.top < containerRect.top || itemRect.bottom > containerRect.bottom) {
+      item.scrollIntoView({ block: "nearest" });
+    }
+  }, [selectedSlug]);
+
   // Auto-expand all sidebar folders when a search is active
   useEffect(() => {
     if (filter.trim()) {
@@ -703,6 +840,26 @@ export function DocsPanel() {
     },
     code: ({ className, children, ...props }: React.ComponentPropsWithoutRef<"code">) =>
       <code className={className} {...props}>{children}</code>,
+    h2: ({ id, children, ...props }: React.ComponentPropsWithoutRef<"h2">) => (
+      <h2 {...props} id={id} className="group flex items-center gap-2">
+        {children}
+        {id && (
+          <a href={`#${id}`} className="opacity-0 group-hover:opacity-100 transition-opacity text-tn-text-muted hover:text-tn-accent" aria-label="Link to section" onClick={(e) => { e.preventDefault(); const el = contentRef.current?.querySelector(`#${CSS.escape(id)}`); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
+            <Hash className="h-4 w-4" />
+          </a>
+        )}
+      </h2>
+    ),
+    h3: ({ id, children, ...props }: React.ComponentPropsWithoutRef<"h3">) => (
+      <h3 {...props} id={id} className="group flex items-center gap-2">
+        {children}
+        {id && (
+          <a href={`#${id}`} className="opacity-0 group-hover:opacity-100 transition-opacity text-tn-text-muted hover:text-tn-accent" aria-label="Link to section" onClick={(e) => { e.preventDefault(); const el = contentRef.current?.querySelector(`#${CSS.escape(id)}`); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
+            <Hash className="h-3.5 w-3.5" />
+          </a>
+        )}
+      </h3>
+    ),
   }), [entries, selectedSlug, handleLinkClick]);
 
   return (
@@ -740,19 +897,24 @@ export function DocsPanel() {
             <ChevronLeft className="h-4 w-4" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          {filteredTree.map((node) => (
-            <DocTreeNodeItem
-              key={`${node.type}-${node.slug}`}
-              node={node}
-              selectedSlug={selectedSlug}
-              onSelect={loadDoc}
-              collapsed={collapsedFolders}
-              onToggleCollapse={(slug) =>
-                setCollapsedFolders((prev) => ({ ...prev, [slug]: !prev[slug] }))
-              }
-            />
-          ))}
+        <div className="flex-1 overflow-y-auto" ref={sidebarScrollRef}>
+          {filteredTree.length === 0 && filter.trim() ? (
+            <div className="px-4 py-6 text-center text-xs text-tn-text-muted">No results for "{filter}"</div>
+          ) : (
+            filteredTree.map((node) => (
+              <DocTreeNodeItem
+                key={`${node.type}-${node.slug}`}
+                node={node}
+                selectedSlug={selectedSlug}
+                onSelect={loadDoc}
+                collapsed={collapsedFolders}
+                onToggleCollapse={(slug) =>
+                  setCollapsedFolders((prev) => ({ ...prev, [slug]: !prev[slug] }))
+                }
+                activeItemRef={activeItemRef}
+              />
+            ))
+          )}
         </div>
       </div>
 
@@ -767,14 +929,14 @@ export function DocsPanel() {
 
         <div
           className="flex-1 overflow-y-auto p-6 pb-16 docs-content"
-        id="docs-content"
-        ref={contentRef}
-        onKeyDown={(e) => {
-          if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); navBack(); }
-          if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); navForward(); }
-        }}
-        tabIndex={-1}
-      >
+          id="docs-content"
+          ref={contentRef}
+          onKeyDown={(e) => {
+            if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); navBack(); }
+            if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); navForward(); }
+          }}
+          tabIndex={-1}
+        >
         {selectedSlug ? (
           <>
             <div className="flex items-center justify-between mb-4">
@@ -810,7 +972,20 @@ export function DocsPanel() {
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="text-sm font-semibold text-tn-text">{titleFromSlug(selectedSlug)}</div>
+                <div className="flex items-center gap-1 text-sm min-w-0">
+                  {breadcrumbsFromSlug(selectedSlug).map((crumb, i, arr) => (
+                    <span key={crumb.slug} className="flex items-center gap-1 min-w-0">
+                      {i < arr.length - 1 ? (
+                        <>
+                          <span className="text-tn-text-muted truncate max-w-[80px]">{crumb.label}</span>
+                          <ChevronRight className="h-3 w-3 text-tn-border shrink-0" />
+                        </>
+                      ) : (
+                        <span className="font-semibold text-tn-text truncate">{crumb.label}</span>
+                      )}
+                    </span>
+                  ))}
+                </div>
               </div>
               {walkthroughSteps.length > 0 && (
                 <button
@@ -868,6 +1043,7 @@ export function DocsPanel() {
               </div>
             ) : (
               <>
+                <DocToc entries={tocEntries} contentRef={contentRef} />
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeSlug, rehypeHighlight]}
