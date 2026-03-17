@@ -6,6 +6,7 @@ import { NodePalette } from "@/components/editor/NodePalette";
 import { BookmarkPanel } from "@/components/editor/BookmarkPanel";
 import { CenterPanel } from "@/components/editor/CenterPanel";
 import { PropertyPanel } from "@/components/properties/PropertyPanel";
+import { DocsPanel } from "@/components/docs/DocsPanel";
 import { HistoryPanel } from "@/components/editor/HistoryPanel";
 import { ValidationPanel } from "@/components/editor/ValidationPanel";
 import { Toolbar } from "@/components/layout/Toolbar";
@@ -277,7 +278,9 @@ export function PanelLayout() {
 
   const leftPanelVisible = useUIStore((s) => s.leftPanelVisible);
   const rightPanelVisible = useUIStore((s) => s.rightPanelVisible);
+  const rightPanelMode = useUIStore((s) => s.rightPanelMode);
   const setRightPanelVisible = useUIStore((s) => s.setRightPanelVisible);
+  const setRightPanelMode = useUIStore((s) => s.setRightPanelMode);
   const useAccordion = useUIStore((s) => s.useAccordionSidebar);
   const compactAssetInspector = useUIStore((s) => s.compactAssetInspector);
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
@@ -384,12 +387,35 @@ export function PanelLayout() {
             <ChevronRight className="h-4 w-4" />
           </button>
 
-          {/* Right panel: properties */}
+          {/* Right panel: properties / docs */}
           <div
-            className="flex flex-col bg-tn-surface border-l border-tn-border overflow-y-auto shrink-0 transition-all duration-150"
+            className="flex flex-col bg-tn-surface border-l border-tn-border overflow-hidden shrink-0 transition-all duration-150 min-h-0"
             style={{ width: displayRightWidth }}
           >
-            <PropertyPanel />
+            <div className="flex items-center border-b border-tn-border bg-tn-panel/70 px-3 py-2">
+              <button
+                className={`text-[11px] font-semibold px-2 py-1 rounded ${
+                  rightPanelMode === "properties"
+                    ? "bg-tn-accent/20 text-tn-text"
+                    : "text-tn-text-muted hover:bg-tn-accent/10"
+                }`}
+                onClick={() => setRightPanelMode("properties")}
+              >
+                Properties
+              </button>
+              <button
+                className={`ml-2 text-[11px] font-semibold px-2 py-1 rounded ${
+                  rightPanelMode === "docs"
+                    ? "bg-tn-accent/20 text-tn-text"
+                    : "text-tn-text-muted hover:bg-tn-accent/10"
+                }`}
+                onClick={() => setRightPanelMode("docs")}
+              >
+                Docs
+              </button>
+              <div className="flex-1" />
+            </div>
+            {rightPanelMode === "docs" ? <DocsPanel /> : <PropertyPanel />}
           </div>
         </>
       )}

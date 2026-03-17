@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { ReactFlowProvider } from "@xyflow/react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { getVersion } from "@tauri-apps/api/app";
@@ -28,6 +30,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useToastStore } from "@/stores/toastStore";
 import type { SvgExportOptions } from "@/utils/exportSvg";
 import { useReactFlow } from "@xyflow/react";
+import { useTauriIO } from "@/hooks/useTauriIO";
 import { useGlobalKeyboardShortcuts } from "@/hooks/useGlobalKeyboardShortcuts";
 import { useInstantSave } from "@/hooks/useInstantSave";
 import { useSessionRestore } from "@/hooks/useSessionRestore";
@@ -45,6 +48,7 @@ export default function App() {
   useSessionRestore();
 
   const projectPath = useProjectStore((s) => s.projectPath);
+  const { openFile } = useTauriIO();
 
   const [showDialog, setShowDialog] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -130,6 +134,41 @@ export default function App() {
       unlisten.then((fn) => fn());
     };
   }, [openDialog]);
+
+  // ---- Support opening files from the OS (drag/drop + Open With) ----
+  useEffect(() => {
+    let unlisten: UnlistenFn | null = null;
+
+    // Drag/drop into window
+    void (async () => {
+      try {
+        unlisten = await listen<{ paths: string[] }>("tauri://file-drop", (event) => {
+          const paths = event.payload?.paths;
+          if (paths && paths.length > 0) {
+            openFile(paths[0]);
+          }
+        });
+      } catch {
+        // Not running in a Tauri environment.
+      }
+    })();
+
+    // Open via OS file association / "Open with" (launch arg)
+    void (async () => {
+      try {
+        const filePath = await invoke<string | null>("get_launch_file");
+        if (filePath) {
+          openFile(filePath);
+        }
+      } catch {
+        // Not running in a Tauri environment.
+      }
+    })();
+
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [openFile]);
 
   // ---- Toolbar: File > Close Project / Ctrl+W ----
   const requestCloseProject = useCallback(() => {

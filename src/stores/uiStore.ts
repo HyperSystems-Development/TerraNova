@@ -11,7 +11,17 @@ function getStoredBool(key: string, fallback: boolean): boolean {
   }
 }
 
-function persist(key: string, value: boolean) {
+function getStoredString(key: string, fallback: string): string {
+  try {
+    const v = localStorage.getItem(key);
+    if (v === null) return fallback;
+    return v;
+  } catch {
+    return fallback;
+  }
+}
+
+function persist(key: string, value: string | boolean) {
   try {
     localStorage.setItem(key, String(value));
   } catch {
@@ -98,13 +108,16 @@ function persistBookmarks(bookmarks: Map<number, Bookmark>) {
   }
 }
 
-interface UIState {
+export type RightPanelMode = "properties" | "docs";
+
+export interface UIState {
   showGrid: boolean;
   snapToGrid: boolean;
   gridSize: number;
   showMinimap: boolean;
   leftPanelVisible: boolean;
   rightPanelVisible: boolean;
+  rightPanelMode: RightPanelMode;
   compactAssetInspector: boolean;
   helpMode: boolean;
 
@@ -128,6 +141,7 @@ interface UIState {
   toggleRightPanel: () => void;
   toggleAssetInspectorCompact: () => void;
   toggleHelpMode: () => void;
+  setRightPanelMode: (mode: RightPanelMode) => void;
 
   // Props deletion confirmation
   setSuppressPropDeleteConfirm: (value: boolean) => void;
@@ -154,6 +168,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   rightPanelVisible: getStoredBool("tn-rightPanel", true),
   compactAssetInspector: getStoredBool("tn-compactAssetInspector", false),
   helpMode: false,
+  rightPanelMode: getStoredString("tn-rightPanelMode", "properties") as RightPanelMode,
   suppressPropDeleteConfirm: getStoredBool("tn-suppressPropDeleteConfirm", false),
   useAccordionSidebar: getStoredBool("tn-accordionSidebar", false),
   sidebarSectionOrder: getStoredJson<SidebarSectionId[]>("tn-sidebar-order", DEFAULT_SECTION_ORDER),
@@ -203,6 +218,11 @@ export const useUIStore = create<UIState>((set, get) => ({
   setSuppressPropDeleteConfirm: (value) => {
     persist("tn-suppressPropDeleteConfirm", value);
     set({ suppressPropDeleteConfirm: value });
+  },
+
+  setRightPanelMode: (mode: RightPanelMode) => {
+    persist("tn-rightPanelMode", mode);
+    set({ rightPanelMode: mode });
   },
 
   toggleAccordionSidebar: () => {
