@@ -289,8 +289,10 @@ export function DocsPanel() {
   const [navHistory, setNavHistory] = useState<string[]>([]);
   const [navIndex, setNavIndex] = useState(-1);
   const navIndexRef = useRef(-1);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [docIndex, setDocIndex] = useState<Record<string, string>>({});
   const [backlinks, setBacklinks] = useState<Record<string, string[]>>({});
+  const [outboundLinks, setOutboundLinks] = useState<Record<string, string[]>>({});
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>(() => {
     try {
       const stored = localStorage.getItem("tn-docs-collapsed");
@@ -489,16 +491,15 @@ export function DocsPanel() {
 
     async function buildIndex() {
       const index: Record<string, string> = {};
-      const links: Record<string, Set<string>> = {};
+      const inbound: Record<string, Set<string>> = {};
+      const outbound: Record<string, Set<string>> = {};
 
-      // Load all docs in parallel
       await Promise.all(
         entries.map(async (entry) => {
           const text = await entry.loader();
           if (cancelled) return;
           index[entry.slug] = text;
 
-          // Find links to other docs
           const linkRegex = /\]\(([^)]+)\)/g;
           let match: RegExpExecArray | null;
           while ((match = linkRegex.exec(text))) {
@@ -506,10 +507,11 @@ export function DocsPanel() {
             const resolved = resolveLinkSlug(entry.slug, href);
             if (!resolved) continue;
             const targetSlug = resolved.slug;
-            // Ignore self-references (e.g. intra-doc anchors)
             if (targetSlug === entry.slug) continue;
-            if (!links[targetSlug]) links[targetSlug] = new Set();
-            links[targetSlug].add(entry.slug);
+            if (!inbound[targetSlug]) inbound[targetSlug] = new Set();
+            inbound[targetSlug].add(entry.slug);
+            if (!outbound[entry.slug]) outbound[entry.slug] = new Set();
+            outbound[entry.slug].add(targetSlug);
           }
         }),
       );
@@ -517,11 +519,8 @@ export function DocsPanel() {
       if (cancelled) return;
 
       setDocIndex(index);
-      setBacklinks(
-        Object.fromEntries(
-          Object.entries(links).map(([k, v]) => [k, Array.from(v)]),
-        ),
-      );
+      setBacklinks(Object.fromEntries(Object.entries(inbound).map(([k, v]) => [k, Array.from(v)])));
+      setOutboundLinks(Object.fromEntries(Object.entries(outbound).map(([k, v]) => [k, Array.from(v)])));
     }
 
     buildIndex();
@@ -547,6 +546,25 @@ export function DocsPanel() {
       // ignore
     }
   }, [sidebarCollapsed]);
+
+  // Reading progress bar
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    function onScroll() {
+      const scrollable = el!.scrollHeight - el!.clientHeight;
+      setScrollProgress(scrollable > 0 ? el!.scrollTop / scrollable : 0);
+    }
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [selectedSlug]); // re-attach when doc changes so progress resets
+
+  // Auto-expand all sidebar folders when a search is active
+  useEffect(() => {
+    if (filter.trim()) {
+      setCollapsedFolders({});
+    }
+  }, [filter]);
 
   const handleLinkClick = useCallback(
     (href: string) => {
@@ -687,6 +705,15 @@ export function DocsPanel() {
         </div>
       </div>
 
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Reading progress bar */}
+        <div className="h-0.5 w-full bg-tn-border shrink-0">
+          <div
+            className="h-full bg-tn-accent transition-[width] duration-75"
+            style={{ width: `${scrollProgress * 100}%` }}
+          />
+        </div>
+
       <div
         className="flex-1 overflow-y-auto p-6 pb-16 docs-content"
         id="docs-content"
@@ -799,22 +826,38 @@ export function DocsPanel() {
                   {rawMd}
                 </ReactMarkdown>
 
-                {backlinks[selectedSlug]?.length > 0 && (
-                  <div className="mt-6 border-t border-tn-border pt-4">
-                    <div className="text-sm font-semibold text-tn-text">Referenced by</div>
-                    <ul className="mt-2 list-none space-y-1 text-tn-text-muted">
-                      {backlinks[selectedSlug].map((ref) => (
-                        <li key={ref} className="pl-2">
-                          <button
-                            type="button"
-                            className="text-tn-accent hover:underline"
-                            onClick={() => loadDoc(ref)}
-                          >
-                            {titleFromSlug(ref)}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                {(backlinks[selectedSlug]?.length > 0 || outboundLinks[selectedSlug]?.length > 0) && (
+                  <div className="mt-6 border-t border-tn-border pt-4 flex gap-8">
+                    {backlinks[selectedSlug]?.length > 0 && (
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-tn-text mb-2">Referenced by</div>
+                        <ul className="list-none space-y-1">
+                          {backlinks[selectedSlug].map((ref) => (
+                            <li key={ref} className="pl-2">
+                              <button type="button" className="text-tn-accent hover:underline text-sm" onClick={() => loadDoc(ref)}>
+                                {titleFromSlug(ref)}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {outboundLinks[selectedSlug]?.length > 0 && (
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-tn-text mb-2">See also</div>
+                        <ul className="list-none space-y-1">
+                          {outboundLinks[selectedSlug]
+                            .filter((slug) => entries.some((e) => e.slug === slug))
+                            .map((slug) => (
+                              <li key={slug} className="pl-2">
+                                <button type="button" className="text-tn-accent hover:underline text-sm" onClick={() => loadDoc(slug)}>
+                                  {titleFromSlug(slug)}
+                                </button>
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
               </>
@@ -823,6 +866,7 @@ export function DocsPanel() {
         ) : (
           <div className="text-tn-text-muted">Select a document to view.</div>
         )}
+      </div>
       </div>
     </div>
   );
