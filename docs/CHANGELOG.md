@@ -2,6 +2,31 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystems-Development/TerraNova) are documented in this file.
 
+## [Unreleased] — 2026-03-16
+
+### Documentation
+
+- **Three-tier terrain guide series** — New guides organized by terrain outcome rather than node type:
+  - `guides/terrain-types.md` — 12 terrain types (plains, hills, mountains, mesas, floating islands, caves, depth-faded caves, warped terrain, warped caves, dunes, archipelago, complex layered) with nodegraph diagrams, key parameters, and variations
+  - `guides/terrain-types-advanced.md` — 8 advanced techniques: double domain warp, slope detection, depth-zoned Switch branching, Voronoi river networks, altitude-scaled Amplitude, VectorWarp directional distortion, overhangs, and manual multi-scale noise stacks
+  - `guides/terrain-types-expert.md` — 8 expert topics: MultiMix N-way blending, PositionsPinch/Twist, SingleInstance thread safety, Cache strategy, Terrain accessor, full preview vs. runtime gap reference table, graph topology and cost model, and a new optimization reference section
+
+- **Preview gap warnings** — Added critical callouts to every recipe that uses `GradientWarp`, `VectorWarp`, or `BaseHeight` in `terrain-types.md`, `terrain-types-advanced.md`, and `node-combinations.md` (pattern 8), noting that these nodes return `0.0` in TerraNova's preview evaluator and must be tested in-game
+
+- **Troubleshooting — Preview vs. Runtime section** — New section in `troubleshooting.md` with a table of all 6 zero-returning nodes (`GradientWarp`, `VectorWarp`, `BaseHeight`, `CellWallDistance`, `Terrain`, `Imported`), their preview behavior, and per-node workarounds
+
+- **Reference corrections** — `reference/README.md` updated with missing material provider types (`Constant`, `Solidity`), full `MaterialProvider.Context` fields table, block rotation reference, `Skip: true` field note, and Prop Types split into Core / Compositional / Legacy sections
+
+- **Biome system corrections** — `guides/hytale-worldgen-v2-biome-system.md` corrected JSON field names (`Frequency` → `Scale`), added `FloatingFunctionNodes` + Export/Import section, fixed `EnvironmentProvider`/`TintProvider` type names, and added prop `Runtime` stage ordering table
+
+- **Expert preview gap table expanded** — `terrain-types-expert.md` section 6 updated from 6 entries to 15, adding `Shell`, SDF rotation (`Cube`/`Ellipsoid`/`Cuboid`/`Cylinder`), `Switch`/`SwitchState`, `SmoothFloor`/`SmoothCeiling`, `CellNoise` Curve/Density ReturnType, and `SimplexNoise3D` amplitude error (12.5%)
+
+- **Arithmetic fix** — `terrain-types-advanced.md` section 1: corrected chained `GradientWarp` cost from `6+6+1=13` to `6+6+2=14`
+
+- **Cross-reference wiring** — Added links to the new terrain guide series from `guides/README.md`, `guides/node-combinations.md`, `walkthroughs/terrain-and-caves.md`, and `troubleshooting.md`
+
+---
+
 ## [1.5.9 McCal's QoL] - 2026-03-14
 
 ### Features
