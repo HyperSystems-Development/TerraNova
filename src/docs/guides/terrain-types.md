@@ -75,7 +75,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "id": "cm",  "label": "CurveMapper",   "category": "density",   "sub": "S-curve profile",  "x": 200, "y": 20 },
     { "id": "sn",  "label": "SimplexNoise2D","category": "density",   "sub": "Scale 0.005 Oct 4","x": 0,   "y": 140 },
     { "id": "sum", "label": "Sum",           "category": "density",                               "x": 400, "y": 80 },
-    { "id": "ys",  "label": "YSampled",      "category": "density",   "sub": "step = 4",          "x": 580, "y": 80 },
+    { "id": "ys",  "label": "YSampled",      "category": "density",   "sub": "SampleDistance 4",          "x": 580, "y": 80 },
     { "id": "out", "label": "Terrain Out",   "category": "output",                                "x": 760, "y": 80 }
   ],
   "edges": [
@@ -91,7 +91,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
 **Key parameters:**
 - `SimplexNoise2D` Scale`*`: `0.005`, Octaves: `4`, Persistence: `0.5` — gives broad hills with natural detail layering
 - `CurveMapper`: draw a gentle S-curve — the input is the height offset, the output is the density; a steeper S produces more defined hilltops and valley floors
-- `YSampled` step: `4` — safe default; increase to `8` if performance is critical, but visual smoothing becomes noticeable above `8`
+- `YSampled` `SampleDistance`: `4` — safe default; increase to `8` if performance is critical, but visual smoothing becomes noticeable above `8`
 
 **Variations:**
 - `Scale: 0.003` → wider, more gradual hills
@@ -120,7 +120,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "id": "rc",  "label": "Constant",      "category": "density",   "sub": "Value 0.4",           "x": 200, "y": 265 },
     { "id": "amp", "label": "Multiplier",    "category": "density",   "sub": "× 0.4",               "x": 380, "y": 230 },
     { "id": "sum", "label": "Sum",           "category": "density",                                  "x": 560, "y": 100 },
-    { "id": "ys",  "label": "YSampled",      "category": "density",   "sub": "step = 4",             "x": 740, "y": 100 },
+    { "id": "ys",  "label": "YSampled",      "category": "density",   "sub": "SampleDistance 4",             "x": 740, "y": 100 },
     { "id": "out", "label": "Terrain Out",   "category": "output",                                   "x": 920, "y": 100 }
   ],
   "edges": [
@@ -253,7 +253,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
   "height": 240,
   "nodes": [
     { "id": "terrain", "label": "Sum (terrain)", "category": "density",  "sub": "from above",      "x": 0,   "y": 40 },
-    { "id": "ys",      "label": "YSampled",      "category": "density",  "sub": "step = 4",        "x": 200, "y": 40 },
+    { "id": "ys",      "label": "YSampled",      "category": "density",  "sub": "SampleDistance 4",        "x": 200, "y": 40 },
     { "id": "sn3",     "label": "SimplexNoise3D","category": "density",  "sub": "ScaleXZ 0.02 Oct 3","x": 0, "y": 160 },
     { "id": "sc",      "label": "SmoothClamp",   "category": "density",  "sub": "Wall ±0.3 R 0.1", "x": 200, "y": 160 },
     { "id": "inv",     "label": "Inverter",      "category": "density",  "sub": "flip to carve",   "x": 380, "y": 160 },
@@ -338,7 +338,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "id": "gw",  "label": "GradientWarp",   "category": "density",  "sub": "Factor 8 Range 2",  "x": 220, "y": 50 },
     { "id": "bh",  "label": "BaseHeight",     "category": "density",  "sub": "Y = 64",            "x": 420, "y": 0 },
     { "id": "sum", "label": "Sum",            "category": "density",                               "x": 600, "y": 60 },
-    { "id": "ys",  "label": "YSampled",       "category": "density",  "sub": "step = 4",          "x": 780, "y": 60 },
+    { "id": "ys",  "label": "YSampled",       "category": "density",  "sub": "SampleDistance 4",          "x": 780, "y": 60 },
     { "id": "out", "label": "Terrain Out",    "category": "output",                                "x": 960, "y": 60 }
   ],
   "edges": [
@@ -512,7 +512,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "id": "plains","label": "Sum (plains)",  "category": "density",  "sub": "BaseHeight+noise",     "x": 0,   "y": 110 },
     { "id": "mts",  "label": "Sum (mountains)","category": "density",  "sub": "high amp ridges",      "x": 0,   "y": 200 },
     { "id": "mix",  "label": "Mix",            "category": "density",  "sub": "biome blend",          "x": 380, "y": 110 },
-    { "id": "ys",   "label": "YSampled",       "category": "density",  "sub": "step = 4",             "x": 560, "y": 110 },
+    { "id": "ys",   "label": "YSampled",       "category": "density",  "sub": "SampleDistance 4",             "x": 560, "y": 110 },
     { "id": "sn3",  "label": "SimplexNoise3D", "category": "density",  "sub": "ScaleXZ 0.02 Oct 3",   "x": 0,   "y": 290 },
     { "id": "sc",   "label": "SmoothClamp",    "category": "density",  "sub": "Wall ±0.3 R 0.1",      "x": 200, "y": 290 },
     { "id": "inv",  "label": "Inverter",       "category": "density",  "sub": "cave mask",            "x": 380, "y": 290 },

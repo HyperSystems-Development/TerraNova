@@ -366,7 +366,7 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "id": "sn",  "label": "SimplexNoise2D", "category": "generative", "sub": "surface",        "x": 0,   "y": 30 },
     { "id": "cf",  "label": "CurveMapper",    "category": "filter",     "sub": "height profile", "x": 240, "y": 0  },
     { "id": "sum", "label": "Sum",            "category": "math",                               "x": 480, "y": 30 },
-    { "id": "ys",  "label": "YSampled",       "category": "terrain",    "sub": "step = 4",       "x": 680, "y": 30 },
+    { "id": "ys",  "label": "YSampled",       "category": "terrain",    "sub": "SampleDistance 4",       "x": 680, "y": 30 },
     { "id": "out", "label": "Output",         "category": "output",                             "x": 900, "y": 30 }
   ],
   "edges": [
@@ -395,7 +395,7 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "id": "cf",  "label": "CurveMapper",    "category": "filter",     "sub": "height profile",    "x": 240, "y": 0   },
     { "id": "sn",  "label": "SimplexNoise2D", "category": "generative", "sub": "surface variation", "x": 0,   "y": 110 },
     { "id": "sum", "label": "Sum",            "category": "math",       "sub": "base terrain",      "x": 480, "y": 50  },
-    { "id": "ys",  "label": "YSampled",       "category": "terrain",    "sub": "step = 4",          "x": 680, "y": 50  },
+    { "id": "ys",  "label": "YSampled",       "category": "terrain",    "sub": "SampleDistance 4",          "x": 680, "y": 50  },
     { "id": "c3",  "label": "SimplexNoise3D", "category": "generative", "sub": "cave noise",        "x": 0,   "y": 210 },
     { "id": "inv", "label": "Inverter",       "category": "math",       "sub": "flip to hollow",    "x": 240, "y": 210 },
     { "id": "mn",  "label": "Min",            "category": "math",       "sub": "carve caves",       "x": 860, "y": 130 },

@@ -154,7 +154,7 @@ Evaluating a full density graph at every Y level is expensive. `YSampled` wraps 
   "height": 180,
   "nodes": [
     { "id": "cm",  "label": "CurveMapper", "category": "density",                       "x": 0,   "y": 70 },
-    { "id": "ys",  "label": "YSampled",    "category": "density", "sub": "step = 4",    "x": 200, "y": 70 },
+    { "id": "ys",  "label": "YSampled",    "category": "density", "sub": "SampleDistance 4",    "x": 200, "y": 70 },
     { "id": "sum", "label": "Sum",         "category": "density",                       "x": 380, "y": 70 },
     { "id": "out", "label": "Terrain Out", "category": "output",                        "x": 540, "y": 70 }
   ],

@@ -27,7 +27,7 @@ Prerequisites: everything in [Complex Terrain Techniques](./terrain-types-advanc
     { "id": "mt",   "label": "Sum (mountains)","category": "density",  "sub": "high amp + ridges",   "x": 0,   "y": 260 },
     { "id": "al",   "label": "Sum (alpine)",   "category": "density",  "sub": "peaks + cliff curve", "x": 0,   "y": 340 },
     { "id": "mm",   "label": "MultiMix",       "category": "density",  "sub": "keys 0.25 0.5 0.75",  "x": 420, "y": 170 },
-    { "id": "ys",   "label": "YSampled",       "category": "density",  "sub": "step = 4",            "x": 620, "y": 170 },
+    { "id": "ys",   "label": "YSampled",       "category": "density",  "sub": "SampleDistance 4",            "x": 620, "y": 170 },
     { "id": "out",  "label": "Terrain Out",    "category": "output",                                 "x": 800, "y": 170 }
   ],
   "edges": [
@@ -75,7 +75,7 @@ Prerequisites: everything in [Complex Terrain Techniques](./terrain-types-advanc
     { "id": "sn",    "label": "SimplexNoise2D",    "category": "density", "sub": "Scale 0.006 Oct 4", "x": 0,   "y": 150 },
     { "id": "bh",    "label": "BaseHeight",        "category": "density", "sub": "Y = 64",            "x": 0,   "y": 220 },
     { "id": "sum",   "label": "Sum",               "category": "density", "sub": "base terrain",      "x": 440, "y": 175 },
-    { "id": "ys",    "label": "YSampled",          "category": "density", "sub": "step = 4",          "x": 620, "y": 175 },
+    { "id": "ys",    "label": "YSampled",          "category": "density", "sub": "SampleDistance 4",          "x": 620, "y": 175 },
     { "id": "out",   "label": "Terrain Out",       "category": "output",                              "x": 800, "y": 175 }
   ],
   "edges": [

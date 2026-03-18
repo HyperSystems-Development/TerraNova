@@ -27,7 +27,7 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
     { "id": "sum",  "label": "Sum",              "category": "density",                                "x": 220, "y": 85 },
     { "id": "fw1",  "label": "FastGradientWarp", "category": "density",  "sub": "Scale 0.003 Factor 6","x": 420, "y": 85 },
     { "id": "fw2",  "label": "FastGradientWarp", "category": "density",  "sub": "Scale 0.012 Factor 3","x": 620, "y": 85 },
-    { "id": "ys",   "label": "YSampled",         "category": "density",  "sub": "step = 4",            "x": 820, "y": 85 },
+    { "id": "ys",   "label": "YSampled",         "category": "density",  "sub": "SampleDistance 4",            "x": 820, "y": 85 },
     { "id": "out",  "label": "Terrain Out",      "category": "output",                                 "x": 1000,"y": 85 }
   ],
   "edges": [
@@ -163,7 +163,7 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
     { "id": "cwd",  "label": "CellWallDistance","category": "density",  "sub": "wall proximity",     "x": 0,   "y": 210 },
     { "id": "cm",   "label": "CurveMapper",     "category": "density",  "sub": "valley carve curve", "x": 200, "y": 210 },
     { "id": "smn",  "label": "SmoothMin",       "category": "density",  "sub": "radius 0.2",         "x": 580, "y": 150 },
-    { "id": "ys",   "label": "YSampled",        "category": "density",  "sub": "step = 4",           "x": 760, "y": 150 },
+    { "id": "ys",   "label": "YSampled",        "category": "density",  "sub": "SampleDistance 4",           "x": 760, "y": 150 },
     { "id": "out",  "label": "Terrain Out",     "category": "output",                                "x": 940, "y": 150 }
   ],
   "edges": [
@@ -211,7 +211,7 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
     { "id": "amp",  "label": "Amplitude",       "category": "density",  "sub": "FunctionForY",        "x": 380, "y": 100 },
     { "id": "bh",   "label": "BaseHeight",      "category": "density",  "sub": "Y = 64",              "x": 0,   "y": 0 },
     { "id": "sum",  "label": "Sum",             "category": "density",                                "x": 580, "y": 60 },
-    { "id": "ys",   "label": "YSampled",        "category": "density",  "sub": "step = 4",            "x": 760, "y": 60 },
+    { "id": "ys",   "label": "YSampled",        "category": "density",  "sub": "SampleDistance 4",            "x": 760, "y": 60 },
     { "id": "out",  "label": "Terrain Out",     "category": "output",                                 "x": 940, "y": 60 }
   ],
   "edges": [
@@ -258,7 +258,7 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
     { "id": "mag",  "label": "SimplexNoise2D",  "category": "density",  "sub": "Scale 0.004 Oct 1",  "x": 0,   "y": 220 },
     { "id": "nr",   "label": "Normalizer",      "category": "density",  "sub": "[−1,1]→[0,12]",     "x": 200, "y": 220 },
     { "id": "vw",   "label": "VectorWarp",      "category": "density",  "sub": "Dir (1,0.2,0)",      "x": 440, "y": 155 },
-    { "id": "ys",   "label": "YSampled",        "category": "density",  "sub": "step = 4",           "x": 640, "y": 155 },
+    { "id": "ys",   "label": "YSampled",        "category": "density",  "sub": "SampleDistance 4",           "x": 640, "y": 155 },
     { "id": "out",  "label": "Terrain Out",     "category": "output",                                "x": 820, "y": 155 }
   ],
   "edges": [
@@ -315,7 +315,7 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
     { "id": "wn",   "label": "SimplexNoise3D",  "category": "density",  "sub": "ScaleXZ 0.006 Oct 2", "x": 0,   "y": 250 },
     { "id": "gw",   "label": "GradientWarp",    "category": "density",  "sub": "Factor 18 2D=false",  "x": 460, "y": 170 },
     { "id": "sc",   "label": "SmoothClamp",     "category": "density",  "sub": "Wall ±1.0 R 0.15",    "x": 660, "y": 170 },
-    { "id": "ys",   "label": "YSampled",        "category": "density",  "sub": "step = 4",            "x": 860, "y": 170 },
+    { "id": "ys",   "label": "YSampled",        "category": "density",  "sub": "SampleDistance 4",            "x": 860, "y": 170 },
     { "id": "out",  "label": "Terrain Out",     "category": "output",                                 "x": 1040,"y": 170 }
   ],
   "edges": [
@@ -367,7 +367,7 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
     { "id": "a2",   "label": "Multiplier",      "category": "density",  "sub": "× 0.25",              "x": 380, "y": 160 },
     { "id": "a3",   "label": "Multiplier",      "category": "density",  "sub": "× 0.1",               "x": 380, "y": 240 },
     { "id": "sum",  "label": "Sum",             "category": "density",  "sub": "all layers",          "x": 580, "y": 140 },
-    { "id": "ys",   "label": "YSampled",        "category": "density",  "sub": "step = 4",            "x": 760, "y": 140 },
+    { "id": "ys",   "label": "YSampled",        "category": "density",  "sub": "SampleDistance 4",            "x": 760, "y": 140 },
     { "id": "out",  "label": "Terrain Out",     "category": "output",                                 "x": 940, "y": 140 }
   ],
   "edges": [
