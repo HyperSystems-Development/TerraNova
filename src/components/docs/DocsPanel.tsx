@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ChevronLeft, ChevronRight, ChevronDown, Folder, FileText, X,
   BookOpen, Map as MapIcon, Wrench, Library, ScrollText, GitPullRequest, Copy, Check,
-  Compass, GraduationCap, LayoutTemplate, Hash, List,
+  Compass, GraduationCap, LayoutTemplate, Hash, List, Settings,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -11,6 +11,32 @@ import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
 import { MermaidDiagram } from "@/components/docs/MermaidDiagram";
 import { DocNodeGraph, parseNodeGraph } from "@/components/docs/DocNodeGraph";
+
+// ── Docs settings ────────────────────────────────────────────────────────────
+type DocsSettings = {
+  showDifficultyTags: boolean;
+  compactTree: boolean;
+  showProgressBar: boolean;
+  showTocByDefault: boolean;
+  showFolderCount: boolean;
+};
+
+const DEFAULT_SETTINGS: DocsSettings = {
+  showDifficultyTags: true,
+  compactTree: false,
+  showProgressBar: true,
+  showTocByDefault: true,
+  showFolderCount: true,
+};
+
+function loadSettings(): DocsSettings {
+  try {
+    const raw = localStorage.getItem("tn-docs-settings");
+    return raw ? { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<DocsSettings>) } : DEFAULT_SETTINGS;
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
 
 // Import all markdown docs under src/docs
 // Note: Vite now prefers `query: '?raw'` rather than `as: 'raw'`.
@@ -245,6 +271,7 @@ function DocTreeNodeItem({
   collapsed,
   onToggleCollapse,
   activeItemRef,
+  settings = DEFAULT_SETTINGS,
   depth = 0,
 }: {
   node: DocTreeNodeData;
@@ -253,6 +280,7 @@ function DocTreeNodeItem({
   collapsed: Record<string, boolean>;
   onToggleCollapse: (slug: string) => void;
   activeItemRef: React.RefObject<HTMLButtonElement | null>;
+  settings?: DocsSettings;
   depth?: number;
 }) {
   const indent = depth * 12;
@@ -265,12 +293,13 @@ function DocTreeNodeItem({
     const Icon = depth === 0 ? (SECTION_ICONS[sectionKey] ?? FileText) : FileText;
     const isTopLevel = depth === 0;
     const tags = node.tags ?? [];
+    const compact = settings.compactTree;
     return (
       <button
         ref={isSelected ? (el) => { (activeItemRef as React.MutableRefObject<HTMLButtonElement | null>).current = el; } : undefined}
         type="button"
         className={`docs-file flex w-full items-center gap-2 text-left border-l-2 transition-colors ${
-          isTopLevel ? "py-2 text-sm font-semibold" : "py-1.5 text-[13px]"
+          isTopLevel ? `${compact ? "py-1" : "py-2"} text-sm font-semibold` : `${compact ? "py-0.5" : "py-1.5"} text-[13px]`
         } ${
           isSelected
             ? "border-tn-accent bg-tn-accent/20 text-tn-text"
@@ -281,7 +310,7 @@ function DocTreeNodeItem({
       >
         <Icon className="h-4 w-4 shrink-0" />
         <span className="flex-1 truncate min-w-0">{node.title}</span>
-        {tags.map((tag) => {
+        {settings.showDifficultyTags && tags.map((tag) => {
           const style = TAG_STYLES[tag];
           if (!style) return null;
           return (
@@ -301,12 +330,13 @@ function DocTreeNodeItem({
   const readmeSlug = node.slug + "/README";
   const isFolderSelected = selectedSlug === readmeSlug;
   const childCount = node.children.length;
+  const compact = settings.compactTree;
   return (
     <div className="docs-folder mt-0.5">
       <button
         ref={isFolderSelected ? (el) => { (activeItemRef as React.MutableRefObject<HTMLButtonElement | null>).current = el; } : undefined}
         type="button"
-        className={`flex w-full items-center gap-2 py-2 pr-3 text-sm font-semibold border-l-2 ${
+        className={`flex w-full items-center gap-2 ${compact ? "py-1" : "py-2"} pr-3 text-sm font-semibold border-l-2 ${
           isFolderSelected
             ? "border-tn-accent bg-tn-accent/20 text-tn-text"
             : `border-transparent ${isCollapsed ? "text-tn-text-muted" : "text-tn-text"}`
@@ -320,7 +350,7 @@ function DocTreeNodeItem({
       >
         <FolderIcon className="h-4 w-4 shrink-0" />
         <span className="flex-1 truncate">{node.title}</span>
-        {isCollapsed && (
+        {isCollapsed && settings.showFolderCount && (
           <span className="text-[10px] text-tn-text-muted tabular-nums shrink-0 mr-0.5">{childCount}</span>
         )}
         {isCollapsed
@@ -339,6 +369,7 @@ function DocTreeNodeItem({
               collapsed={collapsed}
               onToggleCollapse={onToggleCollapse}
               activeItemRef={activeItemRef}
+              settings={settings}
               depth={depth + 1}
             />
           ))}
@@ -466,15 +497,15 @@ function RelatedDocs({
   );
 }
 
-function DocToc({ entries, contentRef }: { entries: TocEntry[]; contentRef: React.RefObject<HTMLDivElement | null> }) {
-  const [open, setOpen] = useState(true);
+function DocToc({ entries, contentRef, defaultOpen = true }: { entries: TocEntry[]; contentRef: React.RefObject<HTMLDivElement | null>; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [activeId, setActiveId] = useState<string>("");
 
   // Reset open state when entries change (new doc loaded)
   useEffect(() => {
-    setOpen(true);
+    setOpen(defaultOpen);
     setActiveId("");
-  }, [entries]);
+  }, [entries, defaultOpen]);
 
   useEffect(() => {
     const contentEl = contentRef.current;
@@ -535,6 +566,43 @@ function DocToc({ entries, contentRef }: { entries: TocEntry[]; contentRef: Reac
   );
 }
 
+function SettingsSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted mb-1.5">{label}</div>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function SettingsToggle({
+  label, description, value, onChange,
+}: { label: string; description: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div
+      className="flex items-start gap-2.5 cursor-pointer group"
+      onClick={() => onChange(!value)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onChange(!value); } }}
+    >
+      <div
+        role="switch"
+        aria-checked={value}
+        className={`mt-0.5 w-8 h-4 rounded-full shrink-0 transition-colors relative ${value ? "bg-tn-accent" : "bg-tn-border"}`}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${value ? "translate-x-4" : "translate-x-0"}`}
+        />
+      </div>
+      <div className="min-w-0">
+        <div className="text-[12px] font-medium text-tn-text leading-tight">{label}</div>
+        <div className="text-[10px] text-tn-text-muted leading-tight mt-0.5">{description}</div>
+      </div>
+    </div>
+  );
+}
+
 export function DocsPanel() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [rawMd, setRawMd] = useState<string>("");
@@ -565,6 +633,11 @@ export function DocsPanel() {
       return false;
     }
   });
+  const [settings, setSettings] = useState<DocsSettings>(() => loadSettings() ?? DEFAULT_SETTINGS);
+  const [showSettings, setShowSettings] = useState(false);
+  // Per-doc scroll position memory: slug → scrollTop
+  const scrollMemoryRef = useRef<Record<string, number>>({});
+  const prevSlugRef = useRef<string | null>(null);
   const prevCollapsedFoldersRef = useRef<Record<string, boolean> | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
@@ -665,10 +738,17 @@ export function DocsPanel() {
         setSelectedSlug(slug);
         return;
       }
+
+      // Save scroll position of the doc we're leaving
+      if (prevSlugRef.current && contentRef.current && prevSlugRef.current !== slug) {
+        scrollMemoryRef.current[prevSlugRef.current] = contentRef.current.scrollTop;
+      }
+
       // Strip HTML comments (e.g. <!-- walkthrough -->) before rendering
       const cleaned = text.replace(/<!--[\s\S]*?-->/g, "");
       setRawMd(cleaned);
       setSelectedSlug(slug);
+      prevSlugRef.current = slug;
 
       // Persist last-read slug
       try { localStorage.setItem("tn-docs-last-slug", slug); } catch { /* ignore */ }
@@ -707,6 +787,12 @@ export function DocsPanel() {
           const el = contentRef.current?.querySelector(`#${CSS.escape(anchor)}`);
           if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 50);
+      } else {
+        // Restore saved scroll position for this doc (if any), otherwise reset to top
+        const savedScroll = scrollMemoryRef.current[slug] ?? 0;
+        setTimeout(() => {
+          if (contentRef.current) contentRef.current.scrollTop = savedScroll;
+        }, 20);
       }
     },
     [entries],
@@ -806,6 +892,11 @@ export function DocsPanel() {
       // ignore
     }
   }, [sidebarCollapsed]);
+
+  // Persist docs settings
+  useEffect(() => {
+    try { localStorage.setItem("tn-docs-settings", JSON.stringify(settings)); } catch { /* ignore */ }
+  }, [settings]);
 
   // Reading progress bar
   useEffect(() => {
@@ -979,24 +1070,35 @@ export function DocsPanel() {
         }`}
       >
         <div className="border-b border-tn-border px-3 py-2 flex items-center gap-1.5">
-          <div className="relative flex-1">
-            <input
-              className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 pr-6 text-sm text-tn-text focus:outline-none focus:border-tn-accent"
-              placeholder="Search docs…"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            />
-            {filter && (
-              <button
-                type="button"
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-tn-text-muted hover:text-tn-text focus:outline-none"
-                onClick={() => setFilter("")}
-                title="Clear search"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+          {!showSettings && (
+            <div className="relative flex-1">
+              <input
+                className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 pr-6 text-sm text-tn-text focus:outline-none focus:border-tn-accent"
+                placeholder="Search docs…"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+              />
+              {filter && (
+                <button
+                  type="button"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-tn-text-muted hover:text-tn-text focus:outline-none"
+                  onClick={() => setFilter("")}
+                  title="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
+          {showSettings && <span className="flex-1 text-xs font-semibold text-tn-text-muted uppercase tracking-wide pl-1">Settings</span>}
+          <button
+            type="button"
+            className={`flex items-center justify-center w-6 h-6 shrink-0 rounded focus:outline-none transition-colors ${showSettings ? "text-tn-accent bg-tn-accent/15" : "text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"}`}
+            onClick={() => setShowSettings((v) => !v)}
+            title="Docs settings"
+          >
+            <Settings className="h-3.5 w-3.5" />
+          </button>
           <button
             type="button"
             className="flex items-center justify-center w-6 h-6 shrink-0 rounded text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text focus:outline-none"
@@ -1006,35 +1108,85 @@ export function DocsPanel() {
             <ChevronLeft className="h-4 w-4" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto" ref={sidebarScrollRef}>
-          {filteredTree.length === 0 && filter.trim() ? (
-            <div className="px-4 py-6 text-center text-xs text-tn-text-muted">No results for "{filter}"</div>
-          ) : (
-            filteredTree.map((node) => (
-              <DocTreeNodeItem
-                key={`${node.type}-${node.slug}`}
-                node={node}
-                selectedSlug={selectedSlug}
-                onSelect={loadDoc}
-                collapsed={collapsedFolders}
-                onToggleCollapse={(slug) =>
-                  setCollapsedFolders((prev) => ({ ...prev, [slug]: !prev[slug] }))
-                }
-                activeItemRef={activeItemRef}
+
+        {showSettings ? (
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+            <SettingsSection label="Tree">
+              <SettingsToggle
+                label="Difficulty tags"
+                description="Show basic / intermediate / expert badges"
+                value={settings.showDifficultyTags}
+                onChange={(v) => setSettings((s) => ({ ...s, showDifficultyTags: v }))}
               />
-            ))
-          )}
-        </div>
+              <SettingsToggle
+                label="Compact tree"
+                description="Tighter row spacing for more items visible"
+                value={settings.compactTree}
+                onChange={(v) => setSettings((s) => ({ ...s, compactTree: v }))}
+              />
+              <SettingsToggle
+                label="Folder item count"
+                description="Show item count on collapsed folders"
+                value={settings.showFolderCount}
+                onChange={(v) => setSettings((s) => ({ ...s, showFolderCount: v }))}
+              />
+            </SettingsSection>
+            <SettingsSection label="Reading">
+              <SettingsToggle
+                label="Reading progress bar"
+                description="Thin bar showing scroll progress"
+                value={settings.showProgressBar}
+                onChange={(v) => setSettings((s) => ({ ...s, showProgressBar: v }))}
+              />
+              <SettingsToggle
+                label="Table of contents open"
+                description="Expand TOC by default when loading a doc"
+                value={settings.showTocByDefault}
+                onChange={(v) => setSettings((s) => ({ ...s, showTocByDefault: v }))}
+              />
+            </SettingsSection>
+            <button
+              type="button"
+              className="mt-2 text-[11px] text-tn-text-muted hover:text-tn-text underline"
+              onClick={() => setSettings(DEFAULT_SETTINGS)}
+            >
+              Reset to defaults
+            </button>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto" ref={sidebarScrollRef}>
+            {filteredTree.length === 0 && filter.trim() ? (
+              <div className="px-4 py-6 text-center text-xs text-tn-text-muted">No results for "{filter}"</div>
+            ) : (
+              filteredTree.map((node) => (
+                <DocTreeNodeItem
+                  key={`${node.type}-${node.slug}`}
+                  node={node}
+                  selectedSlug={selectedSlug}
+                  onSelect={loadDoc}
+                  collapsed={collapsedFolders}
+                  onToggleCollapse={(slug) =>
+                    setCollapsedFolders((prev) => ({ ...prev, [slug]: !prev[slug] }))
+                  }
+                  activeItemRef={activeItemRef}
+                  settings={settings}
+                />
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 flex flex-col min-h-0">
         {/* Reading progress bar */}
-        <div className="h-0.5 w-full bg-tn-border shrink-0">
-          <div
-            className="h-full bg-tn-accent transition-[width] duration-75"
-            style={{ width: `${scrollProgress * 100}%` }}
-          />
-        </div>
+        {settings.showProgressBar && (
+          <div className="h-0.5 w-full bg-tn-border shrink-0">
+            <div
+              className="h-full bg-tn-accent transition-[width] duration-75"
+              style={{ width: `${scrollProgress * 100}%` }}
+            />
+          </div>
+        )}
 
         <div
           className="flex-1 overflow-y-auto p-6 pb-16 docs-content"
@@ -1161,7 +1313,7 @@ export function DocsPanel() {
                     </div>
                   </div>
                 )}
-                <DocToc entries={tocEntries} contentRef={contentRef} />
+                <DocToc entries={tocEntries} contentRef={contentRef} defaultOpen={settings.showTocByDefault} />
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   rehypePlugins={[rehypeSlug, rehypeHighlight]}
