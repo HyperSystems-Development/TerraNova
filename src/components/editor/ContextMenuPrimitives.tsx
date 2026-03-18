@@ -8,16 +8,16 @@ export function ContextMenuSubmenu({ label, children }: ContextMenuSubmenuProps)
   const [open, setOpen] = useState(false);
   return (
     <div
-      className="relative group"
+      className="relative"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      <button className="w-full text-left px-3 py-1.5 flex justify-between gap-4 text-tn-text hover:bg-tn-accent/20">
+      <button className="w-full text-left px-3 py-1.5 flex justify-between items-center gap-4 text-tn-text hover:bg-tn-accent/15 transition-colors">
         <span>{label}</span>
-        <span className="text-tn-text-muted text-[10px]">▶</span>
+        <span className="text-tn-text-muted/60 text-[11px]">▶</span>
       </button>
       {open && (
-        <div className="absolute left-full top-0 bg-tn-surface border border-tn-border rounded-lg shadow-xl py-1 min-w-[180px] z-[101]">
+        <div className="absolute left-full top-0 bg-tn-surface border border-tn-border rounded-lg shadow-2xl py-1 min-w-[180px] z-[101]">
           {children}
         </div>
       )}
@@ -71,7 +71,7 @@ export function ContextMenuOverlay({ x, y, onClose, children }: ContextMenuOverl
     <div className="fixed inset-0 z-[100]" onMouseDown={onClose} onContextMenu={(e) => e.preventDefault()}>
       <div
         ref={menuRef}
-        className="absolute bg-tn-surface border border-tn-border rounded-lg shadow-xl py-1 min-w-[180px] text-[12px]"
+        className="absolute bg-tn-surface border border-tn-border rounded-lg shadow-2xl py-1 min-w-[190px] text-[12px]"
         style={{ left: x, top: y }}
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -91,10 +91,10 @@ interface ContextMenuItemProps {
 export function ContextMenuItem({ label, shortcut, disabled, onClick }: ContextMenuItemProps) {
   return (
     <button
-      className={`w-full text-left px-3 py-1.5 flex justify-between gap-4 ${
+      className={`w-full text-left px-3 py-1.5 flex justify-between items-center gap-4 transition-colors ${
         disabled
-          ? "text-tn-text-muted/40 cursor-default"
-          : "text-tn-text hover:bg-tn-accent/20"
+          ? "text-tn-text-muted/30 cursor-default"
+          : "text-tn-text hover:bg-tn-accent/15"
       }`}
       disabled={disabled}
       onClick={() => {
@@ -102,11 +102,11 @@ export function ContextMenuItem({ label, shortcut, disabled, onClick }: ContextM
       }}
     >
       <span>{label}</span>
-      {shortcut && <span className="text-tn-text-muted text-[10px]">{shortcut}</span>}
+      {shortcut && <span className="text-tn-text-muted/50 text-[11px] font-mono shrink-0">{shortcut}</span>}
     </button>
   );
 }
 
 export function ContextMenuSeparator() {
-  return <div className="border-t border-tn-border my-1" />;
+  return <div className="border-t border-tn-border/60 my-1 mx-2" />;
 }

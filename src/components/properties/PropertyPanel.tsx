@@ -1419,28 +1419,28 @@ export function PropertyPanel() {
 
   return (
     <div className="flex flex-col p-3 gap-3">
-      <div className="border-b border-tn-border pb-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">{displayTypeName}</h3>
+      <div className="border-b border-tn-border pb-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[13px] font-semibold text-tn-text leading-tight">{displayTypeName}</h3>
           <button
             onClick={toggleHelpMode}
             title={helpMode ? "Exit help mode (?)" : "Toggle help mode (?)"}
-            className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold border transition-colors ${
+            className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[10px] font-bold border transition-colors ${
               helpMode
-                ? "bg-sky-500/20 border-sky-500/50 text-sky-300"
-                : "border-tn-border text-tn-text-muted hover:border-tn-text-muted"
+                ? "bg-tn-accent/20 border-tn-accent/60 text-tn-accent"
+                : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-accent"
             }`}
           >
             ?
           </button>
         </div>
-        <p className="text-xs text-tn-text-muted">ID: {selectedNode.id}</p>
+        <p className="mt-1 text-[10px] text-tn-text-muted/60 font-mono truncate" title={selectedNode.id}>{selectedNode.id}</p>
       </div>
 
       {helpMode && (
-        <div className="text-[10px] px-2 py-1.5 rounded border bg-sky-500/10 border-sky-500/30 text-sky-300 flex items-center gap-1.5">
+        <div className="text-[10px] px-2 py-1.5 rounded border bg-tn-accent/10 border-tn-accent/30 text-tn-accent flex items-center gap-1.5">
           <span className="font-bold">?</span>
-          <span>Help mode active — click any field for extended docs. Press <kbd className="px-1 py-0.5 bg-sky-500/20 rounded text-[9px]">?</kbd> to exit.</span>
+          <span>Help mode active — click any field for extended docs. Press <kbd className="px-1 py-0.5 bg-tn-accent/20 rounded text-[9px]">?</kbd> to exit.</span>
         </div>
       )}
 

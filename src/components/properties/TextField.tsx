@@ -15,7 +15,7 @@ export function TextField({ label, value, placeholder, description, suggestions,
   const listId = useId();
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs text-tn-text-muted flex items-center">
+      <label className="text-[11px] text-tn-text-muted flex items-center gap-1">
         {label}
         {description && <FieldTooltip description={description} />}
       </label>
@@ -26,7 +26,7 @@ export function TextField({ label, value, placeholder, description, suggestions,
         list={suggestions && suggestions.length > 0 ? listId : undefined}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
-        className="px-2 py-1 text-sm bg-tn-bg border border-tn-border rounded"
+        className="px-2 py-1 text-xs bg-tn-bg border border-tn-border rounded focus:outline-none focus:border-tn-accent/60 transition-colors"
       />
       {suggestions && suggestions.length > 0 && (
         <datalist id={listId}>
