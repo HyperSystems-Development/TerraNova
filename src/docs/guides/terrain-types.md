@@ -376,7 +376,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
 {
   "height": 260,
   "nodes": [
-    { "id": "wn",   "label": "SimplexNoise3D", "category": "density", "sub": "Scale 0.008 Oct 2",   "x": 0,   "y": 0 },
+    { "id": "wn",   "label": "SimplexNoise2D", "category": "density", "sub": "Scale 0.008 Oct 2",   "x": 0,   "y": 0 },
     { "id": "sn3",  "label": "SimplexNoise3D", "category": "density", "sub": "ScaleXZ 0.015 Oct 3", "x": 0,   "y": 100 },
     { "id": "gw",   "label": "GradientWarp",   "category": "density", "sub": "Factor 8 2D=false",   "x": 220, "y": 50 },
     { "id": "sc",   "label": "SmoothClamp",    "category": "density", "sub": "Wall ±0.3 R 0.05",    "x": 440, "y": 50 },

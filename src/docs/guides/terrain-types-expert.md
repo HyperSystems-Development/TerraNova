@@ -32,11 +32,11 @@ Prerequisites: everything in [Complex Terrain Techniques](./terrain-types-advanc
   ],
   "edges": [
     { "from": "sel", "to": "nr" },
-    { "from": "nr",  "to": "mm",  "label": "input 0 (selector)" },
-    { "from": "pl",  "to": "mm",  "label": "input 1" },
-    { "from": "hl",  "to": "mm",  "label": "input 2" },
-    { "from": "mt",  "to": "mm",  "label": "input 3" },
-    { "from": "al",  "to": "mm",  "label": "input 4" },
+    { "from": "nr",  "to": "mm",  "label": "selector (Key 0)" },
+    { "from": "pl",  "to": "mm",  "label": "Key 0.25" },
+    { "from": "hl",  "to": "mm",  "label": "Key 0.5" },
+    { "from": "mt",  "to": "mm",  "label": "Key 0.75" },
+    { "from": "al",  "to": "mm",  "label": "Key 1.0" },
     { "from": "mm",  "to": "ys" },
     { "from": "ys",  "to": "out" }
   ]
@@ -45,8 +45,8 @@ Prerequisites: everything in [Complex Terrain Techniques](./terrain-types-advanc
 
 **Key parameters:**
 - Selector Scale`*`: `0.0008` — very low frequency so terrain type zones are continent-sized; `0.003` for smaller biome patches
-- Selector must be **input 0**; the segment terrain graphs are inputs 1–N in order
-- `Keys`\*: four keys for four segments: `[{Value: 0.0}, {Value: 0.33}, {Value: 0.66}, {Value: 1.0}]` — three transition zones at roughly equal thirds; adjust breakpoints to make some zones wider
+- All inputs (selector + segments) connect to the single `densities` port; `Keys` maps each input to a position in the blend space
+- `Keys`\*: array of values, one per input: `[0.0, 0.25, 0.5, 0.75, 1.0]` — the selector density is compared against these; the output blends between the two bracketing inputs; adjust spacing to make some zones wider
 
 **How MultiMix transitions work:** Between key `i` and key `i+1`, the output is a `lerp` between segment input `i` and segment input `i+1`. At key values exactly, the output is purely the corresponding segment. A selector of `0.33` is pure hills. A selector of `0.165` (midpoint between 0 and 0.33) is a 50/50 blend of plains and hills.
 
@@ -70,18 +70,18 @@ Prerequisites: everything in [Complex Terrain Techniques](./terrain-types-advanc
 {
   "height": 240,
   "nodes": [
-    { "id": "grid",  "label": "PositionsCellNoise","category": "density", "sub": "tree grid positions","x": 0,   "y": 40 },
-    { "id": "pinch", "label": "PositionsPinch",    "category": "density", "sub": "strength 0.4 r 8",  "x": 220, "y": 40 },
-    { "id": "sn",    "label": "SimplexNoise2D",    "category": "density", "sub": "Scale 0.006 Oct 4", "x": 0,   "y": 150 },
-    { "id": "bh",    "label": "BaseHeight",        "category": "density", "sub": "Y = 64",            "x": 0,   "y": 220 },
-    { "id": "sum",   "label": "Sum",               "category": "density", "sub": "base terrain",      "x": 440, "y": 175 },
-    { "id": "ys",    "label": "YSampled",          "category": "density", "sub": "SampleDistance 4",          "x": 620, "y": 175 },
-    { "id": "out",   "label": "Terrain Out",       "category": "output",                              "x": 800, "y": 175 }
+    { "id": "grid",  "label": "PositionsCellNoise","category": "density", "sub": "no inputs — outputs positions", "x": 0,   "y": 40 },
+    { "id": "sn",    "label": "SimplexNoise2D",    "category": "density", "sub": "Scale 0.006 Oct 4",             "x": 0,   "y": 150 },
+    { "id": "bh",    "label": "BaseHeight",        "category": "density", "sub": "Y = 64",                        "x": 0,   "y": 220 },
+    { "id": "pinch", "label": "PositionsPinch",    "category": "density", "sub": "wraps noise input",             "x": 220, "y": 150 },
+    { "id": "sum",   "label": "Sum",               "category": "density", "sub": "base terrain",                  "x": 440, "y": 175 },
+    { "id": "ys",    "label": "YSampled",          "category": "density", "sub": "SampleDistance 4",              "x": 620, "y": 175 },
+    { "id": "out",   "label": "Terrain Out",       "category": "output",                                          "x": 800, "y": 175 }
   ],
   "edges": [
-    { "from": "grid",  "to": "pinch", "label": "positions" },
+    { "from": "grid",  "to": "sum",   "label": "positions density" },
+    { "from": "sn",    "to": "pinch", "label": "child density" },
     { "from": "pinch", "to": "sum",   "label": "pinched noise" },
-    { "from": "sn",    "to": "sum" },
     { "from": "bh",    "to": "sum" },
     { "from": "sum",   "to": "ys" },
     { "from": "ys",    "to": "out" }
@@ -89,15 +89,14 @@ Prerequisites: everything in [Complex Terrain Techniques](./terrain-types-advanc
 }
 ```
 
-**What pinch does to terrain:** Space near each position-provider point is compressed inward (positive strength) or expanded outward (negative strength). Compressed space means noise features appear smaller and more detailed near the point. Expanded space makes features stretch outward from it — terrain appears to flow away from the center. The result is terrain that subtly reacts to where objects are placed, creating natural-feeling clearings or mounding around features.
+**What pinch does to terrain:** `PositionsPinch` wraps a child density and compresses or stretches its coordinate space relative to position-provider anchor points. The result is terrain that subtly reacts to where objects are placed, creating natural-feeling clearings or mounding around features.
 
 **Key parameters:**
-- `PositionsPinch` strength`*`: `0.2–0.6` — how aggressively space is warped; above `0.8` produces severe distortion
-- `PositionsPinch` radius: `6–12` — the falloff distance in blocks; beyond this radius the effect is zero
-- Negative strength inverts the direction (expands instead of compresses)
+- `PositionsPinch` has no configurable fields — its behaviour is controlled entirely by the upstream positions context set by `PositionsCellNoise`
+- Negative strength inverts the direction (expands instead of compresses) — controlled at the positions-provider level
 
 **`PositionsTwist` recipe — spiral terrain around feature points:**
-Same structure, but replace `PositionsPinch` with `PositionsTwist`. The terrain rotates progressively around the vertical axis through each position-provider point. Low twist angles (`5–15°`) produce subtle spiral striations; high angles (`45–90°`) produce dramatic centrifuge-like terrain rotation around features.
+Same structure, but replace `PositionsPinch` with `PositionsTwist`. `PositionsTwist` also has no configurable fields — it rotates coordinate space progressively around the vertical axis through each position-provider anchor point. Low-frequency noise inputs produce subtle spiral striations; high-frequency inputs produce dramatic centrifuge-like rotation around features.
 
 **Critical ordering note:** `PositionsCellNoise` must be evaluated before `PositionsPinch`/`PositionsTwist` in the graph — it's what populates `positionsAnchor`. The `Positions*` distortion nodes read that anchor and apply their transform. Evaluating them out of order produces undefined behavior (they'll use whatever anchor was last set, which could be from a completely different node).
 
