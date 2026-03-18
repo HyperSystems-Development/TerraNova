@@ -1466,17 +1466,36 @@ export function PropertyPanel() {
 
       {typeof fields["_comment"] === "string" && fields["_comment"] && (
         <div
-          className="flex gap-2 px-2.5 py-2 rounded border text-[11px] leading-relaxed"
+          className="flex flex-col gap-1 px-2.5 py-2 rounded border text-[11px] leading-relaxed"
           style={{
             background: "rgba(251, 191, 36, 0.07)",
             borderColor: "rgba(251, 191, 36, 0.25)",
             color: "rgb(253, 224, 71)",
           }}
         >
-          <span style={{ fontSize: 13, lineHeight: 1, marginTop: 1, flexShrink: 0 }}>✎</span>
-          <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-            {fields["_comment"] as string}
-          </span>
+          <span style={{ fontSize: 10, fontWeight: 600, opacity: 0.6, letterSpacing: "0.05em", textTransform: "uppercase" }}>Note</span>
+          <textarea
+            value={fields["_comment"] as string}
+            onChange={(e) => handleContinuousChange("_comment", e.target.value)}
+            onBlur={handleBlur}
+            rows={3}
+            style={{
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              resize: "vertical",
+              color: "inherit",
+              fontSize: "inherit",
+              fontFamily: "inherit",
+              lineHeight: "inherit",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              overflowWrap: "anywhere",
+              width: "100%",
+              minWidth: 0,
+              padding: 0,
+            }}
+          />
         </div>
       )}
 
