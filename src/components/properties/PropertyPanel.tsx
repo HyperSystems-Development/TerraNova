@@ -1464,7 +1464,23 @@ export function PropertyPanel() {
         </div>
       )}
 
-      {Object.entries(fields).filter(([key]) => !key.startsWith("__")).map(([key, value]) => {
+      {typeof fields["_comment"] === "string" && fields["_comment"] && (
+        <div
+          className="flex gap-2 px-2.5 py-2 rounded border text-[11px] leading-relaxed"
+          style={{
+            background: "rgba(251, 191, 36, 0.07)",
+            borderColor: "rgba(251, 191, 36, 0.25)",
+            color: "rgb(253, 224, 71)",
+          }}
+        >
+          <span style={{ fontSize: 13, lineHeight: 1, marginTop: 1, flexShrink: 0 }}>✎</span>
+          <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            {fields["_comment"] as string}
+          </span>
+        </div>
+      )}
+
+      {Object.entries(fields).filter(([key]) => !key.startsWith("__") && key !== "_comment").map(([key, value]) => {
         const fieldLabel = getFieldDisplayName(typeName, key);
         const transform = typeof value === "number" ? getFieldTransform(typeName, key) : null;
         const constraint = typeConstraints[key] ?? typeConstraints[fieldLabel];
