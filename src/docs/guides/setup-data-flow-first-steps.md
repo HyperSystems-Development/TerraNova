@@ -86,4 +86,4 @@ Connect `BaseHeight -> Terrain Out` and click Generate to see a flat plane at Y=
 
 - [Understanding Basic Terrain Generation](./understanding-basic-terrain-generation.md) -- how density, noise, and curves combine to make terrain
 - [Node Combinations](./node-combinations.md) -- practical patterns for common terrain types
-- [Hytale WorldGen V2 Biome System](./hytale-worldgen-v2-biome-system.md) -- how biomes are structured and selected
+- [Hytale WorldGen V2 Biome System](./biome-system.md) -- how biomes are structured and selected

@@ -199,4 +199,4 @@ Select a biome → switch to the **Material** tab in the editor → build the ma
 | 6 | Tested and tuned boundary appearance |
 | 7 | Added per-biome materials |
 
-> **Next:** Add props to each biome in the [Props and Prefab Placement guide](../guides/hytale-worldgen-v2-biome-system.md#props), or learn material layering in the [Biome System guide](../guides/hytale-worldgen-v2-biome-system.md).
+> **Next:** Add props to each biome in the [Props and Prefab Placement guide](../guides/biome-system.md#props), or learn material layering in the [Biome System guide](../guides/biome-system.md).

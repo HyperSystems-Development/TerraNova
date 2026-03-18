@@ -73,4 +73,4 @@ Terrain is solid, but every block is the same material until you add a **Materia
 
 ---
 
-> **Next:** Read the [Biome System guide](../guides/hytale-worldgen-v2-biome-system.md) to add multiple biomes with transitions, or the [Node Combinations guide](../guides/node-combinations.md) to learn common terrain patterns.
+> **Next:** Read the [Biome System guide](../guides/biome-system.md) to add multiple biomes with transitions, or the [Node Combinations guide](../guides/node-combinations.md) to learn common terrain patterns.

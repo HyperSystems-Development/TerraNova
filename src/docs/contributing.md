@@ -26,7 +26,7 @@ src/docs/
     setup-data-flow-first-steps.md
     understanding-basic-terrain-generation.md
     node-combinations.md
-    hytale-worldgen-v2-biome-system.md
+    biome-system.md
     [future] terrain/       -- split into terrain/ and biomes/ once 6+ files each
     [future] biomes/
 

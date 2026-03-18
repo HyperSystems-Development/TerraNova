@@ -36,7 +36,8 @@ function tagsFromSlug(slug: string): string[] {
   else if (name.includes("expert"))                                                       tags.push("expert");
   else if (name.includes("advanced") || name.includes("sculpting") || name.includes("composition")) tags.push("advanced");
   else if (name.includes("terrain-types") || name.includes("node-combinations") ||
-           name.includes("multi-biome") || name.includes("terrain-and-caves"))            tags.push("intermediate");
+           name.includes("multi-biome") || name.includes("terrain-and-caves") ||
+           name.includes("biome-system"))                                                  tags.push("intermediate");
   else if (name.includes("basic") || name.includes("data-flow") ||
            name.includes("create-a-world") || name.includes("setup") ||
            name.includes("understanding"))                                                tags.push("basic");
@@ -51,8 +52,27 @@ function slugFromPath(path: string) {
 }
 
 const SLUG_TITLE_OVERRIDES: Record<string, string> = {
-  "glossary/asset-node-editor-nodes": "Node Editor Nodes",
-  "glossary/in-game-commands":        "In-Game Commands",
+  // Glossary
+  "glossary/asset-node-editor-nodes":               "Node Editor Nodes",
+  "glossary/in-game-commands":                       "In-Game Commands",
+  // Guides
+  "guides/biome-system":                             "Biome System",
+  "guides/node-combinations":                        "Node Combinations",
+  "guides/setup-data-flow-first-steps":              "Data Flow & First Steps",
+  "guides/understanding-basic-terrain-generation":   "Basic Terrain Generation",
+  "guides/terrain-types":                            "Terrain Types",
+  "guides/terrain-types-advanced":                   "Complex Terrain",
+  "guides/terrain-types-expert":                     "Expert Terrain",
+  "guides/terrain-sculpting-advanced":               "Terrain Sculpting",
+  "guides/terrain-composition-expert":               "Terrain Composition",
+  "guides/terrain-experimental":                     "Experimental Terrain",
+  // Walkthroughs
+  "walkthroughs/data-flow-first-steps":              "Data Flow & First Steps",
+  "walkthroughs/basic-terrain-generation":           "Basic Terrain Generation",
+  "walkthroughs/create-a-world":                     "Create a World",
+  "walkthroughs/terrain-and-caves":                  "Terrain & Caves",
+  "walkthroughs/multi-biome-world":                  "Multi-Biome World",
+  "walkthroughs/periodic-density-stripes":           "Density Stripes",
 };
 
 function titleFromSlug(slug: string) {
@@ -162,6 +182,25 @@ function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
     section.children.push({ type: "file", title, slug: entry.slug, tags: tagsFromSlug(entry.slug) });
   }
 
+  const DIFFICULTY_ORDER: Record<string, number> = {
+    basic: 0, intermediate: 1, advanced: 2, expert: 3, experimental: 4,
+  };
+  function difficultyRank(node: DocTreeNodeData): number {
+    if (node.type !== "file") return -1;
+    const tag = (node.tags ?? []).find((t) => t in DIFFICULTY_ORDER);
+    return tag !== undefined ? DIFFICULTY_ORDER[tag] : -1;
+  }
+  function sortByDifficulty(nodes: DocTreeNodeData[]): DocTreeNodeData[] {
+    return [...nodes].sort((a, b) => {
+      const da = difficultyRank(a);
+      const db = difficultyRank(b);
+      if (da === -1 && db === -1) return 0; // untagged: preserve order
+      if (da === -1) return 1;              // untagged sinks to bottom
+      if (db === -1) return -1;
+      return da - db;
+    });
+  }
+
   // Build final tree: sections with multiple children become folder nodes;
   // sections whose only child is a same-named top-level file collapse to a file node directly.
   const result: DocTreeNodeData[] = [];
@@ -182,7 +221,7 @@ function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
       // Single file section (e.g. overview, introduction) -- no folder wrapper needed
       result.push({ type: "file", title: section.title, slug: meaningful[0].slug });
     } else {
-      result.push({ ...section, children: meaningful });
+      result.push({ ...section, children: sortByDifficulty(meaningful) });
     }
   }
 

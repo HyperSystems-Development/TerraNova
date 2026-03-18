@@ -1,4 +1,4 @@
-# Guide: Hytale WorldGen V2 Biome System
+# Guide: Biome System
 
 **Difficulty:** Intermediate
 

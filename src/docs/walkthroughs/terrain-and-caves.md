@@ -277,4 +277,4 @@ Caves that punch through the surface look wrong. Use `YValue` + `CurveMapper` to
 | Caves (any terrain) | terrain + `SimplexNoise3D` → `Inverter` → `Min` |
 | Underground-only caves | Add `YValue` + `CurveMapper` + `Multiplier` before `Min` |
 
-> **Next:** Add materials to your terrain in the [Biome System guide](../guides/hytale-worldgen-v2-biome-system.md), or explore more combinations in [Node Combinations](../guides/node-combinations.md). For more terrain shapes organized by outcome, see [Terrain Types and Node Recipes](../guides/terrain-types.md).
+> **Next:** Add materials to your terrain in the [Biome System guide](../guides/biome-system.md), or explore more combinations in [Node Combinations](../guides/node-combinations.md). For more terrain shapes organized by outcome, see [Terrain Types and Node Recipes](../guides/terrain-types.md).

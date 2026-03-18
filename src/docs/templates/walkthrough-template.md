@@ -113,4 +113,4 @@ Continue building. Aim for a working, testable result by the end of this step.
 | What Step 2 achieved | `NodeA` + `NodeB` -> `Sum` |
 | What Step 3 achieved | Add what you used |
 
-> **Next:** Link to what the reader should do next -- e.g. [Biome System guide](../guides/hytale-worldgen-v2-biome-system.md) or [Node Combinations](../guides/node-combinations.md).
+> **Next:** Link to what the reader should do next -- e.g. [Biome System guide](../guides/biome-system.md) or [Node Combinations](../guides/node-combinations.md).
