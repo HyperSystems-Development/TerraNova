@@ -47,6 +47,28 @@ export function CanvasContextMenu({ x, y, onClose, onQuickAdd }: CanvasContextMe
           onClose();
         }}
       />
+      <ContextMenuItem
+        label="Add Frame"
+        onClick={() => {
+          const flowPos = reactFlow.screenToFlowPosition({ x, y });
+          const id = `frame-${crypto.randomUUID()}`;
+          const { nodes, setNodes, commitState } = useEditorStore.getState();
+          setNodes([
+            {
+              id,
+              type: "frame",
+              position: flowPos,
+              data: { type: "frame", name: "", width: 400, height: 300 },
+              draggable: true,
+              selectable: true,
+              zIndex: -1,
+            },
+            ...nodes,
+          ]);
+          commitState("Add frame");
+          onClose();
+        }}
+      />
       <ContextMenuSeparator />
       <ContextMenuItem
         label="Paste"
