@@ -11,7 +11,7 @@
   - Only use node names that exist in the Hytale engine bundle (terranova-bundle.json)
   - No em-dashes (--) -- use double hyphens (--) instead
   - All nodegraph blocks use valid JSON
-  - Links to other docs use relative paths (e.g. ../guides/node-combinations.md)
+  - Links to other docs use relative paths (e.g. ../guides/world/node-combinations.md)
   - Remove all comments before submitting
 -->
 
@@ -107,4 +107,4 @@ List the mistakes beginners make with this topic.
 
 ---
 
-> **Next:** Link to related docs -- e.g. [Node Combinations](../guides/node-combinations.md) or [Walkthrough: Terrain and Caves](../walkthroughs/terrain-and-caves.md).
+> **Next:** Link to related docs -- e.g. [Node Combinations](../guides/world/node-combinations.md) or [Walkthrough: Terrain and Caves](../walkthroughs/terrain-and-caves.md).

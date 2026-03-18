@@ -12,6 +12,109 @@ import rehypeHighlight from "rehype-highlight";
 import { MermaidDiagram } from "@/components/docs/MermaidDiagram";
 import { DocNodeGraph, parseNodeGraph } from "@/components/docs/DocNodeGraph";
 
+// ── Inline node pill ─────────────────────────────────────────────────────────
+// Category colours match DocNodeGraph's CATEGORY_COLORS palette.
+const NODE_CATEGORY_COLORS: Record<string, string> = {
+  generative:  "#4A90D9",
+  filter:      "#7B68AE",
+  math:        "#2D9B83",
+  position:    "#3D8B37",
+  terrain:     "#B8763C",
+  shape:       "#C45B84",
+  material:    "#C87D3A",
+  prop:        "#C76B6B",
+  scanner:     "#5AACA6",
+  biome:       "#4E9E8F",
+  worldstruct: "#5A6FA0",
+  framework:   "#8C8878",
+  output:      "#b5924c",
+  curve:       "#A67EB8",
+};
+
+/** Known node → category lookup so authors can write `node:SimplexNoise2D` without specifying category. */
+const NODE_DEFAULT_CATEGORY: Record<string, string> = {
+  // Generative
+  SimplexNoise2D: "generative", SimplexNoise3D: "generative",
+  CellNoise2D: "generative", CellNoise3D: "generative",
+  CellWallDistance: "generative", Abs: "generative",
+  // Math / combinators
+  Sum: "math", Min: "math", Max: "math", Mix: "math",
+  SmoothMin: "math", SmoothMax: "math", Multiplier: "math",
+  Inverter: "math", Normalizer: "math", Constant: "math",
+  Amplitude: "math", MultiMix: "math",
+  // Filter / transform
+  CurveMapper: "filter", YSampled: "filter", GradientWarp: "filter",
+  FastGradientWarp: "filter", VectorWarp: "filter",
+  Switch: "filter", SwitchState: "filter",
+  Cache: "filter", Cache2D: "filter",
+  Pow: "filter", Sqrt: "filter",
+  // Position / coordinate
+  BaseHeight: "position", YValue: "position",
+  XOverride: "position", YOverride: "position", ZOverride: "position",
+  Scale: "position", Slider: "position", Rotator: "position", Anchor: "position",
+  DistanceToBiomeEdge: "position",
+  // Terrain
+  TerrainAccessor: "terrain", Terrain: "terrain",
+  Imported: "terrain", Exported: "terrain", SingleInstance: "terrain",
+  // Shape SDF
+  Ellipsoid: "shape", Plane: "shape", Cylinder: "shape",
+  Cuboid: "shape", Shell: "shape",
+  // Output
+  "Terrain Out": "output",
+  // Material
+  SpaceAndDepth: "material", ConstantThickness: "material",
+  NoiseThickness: "material", RangeThickness: "material",
+  WeightedThickness: "material", Queue: "material",
+  DownwardDepth: "material", UpwardDepth: "material",
+  DownwardSpace: "material", UpwardSpace: "material",
+  // Prop / scanner
+  Prefab: "prop", Cluster: "prop", Weighted: "prop", PondFiller: "prop",
+  Occurrence: "prop", Jitter2d: "prop", SimpleHorizontal: "prop",
+  ColumnLinear: "scanner", ColumnRandom: "scanner", Area: "scanner",
+};
+
+/**
+ * Renders an inline TerraNova node pill.
+ * Syntax in markdown: `node:NodeName` or `node:NodeName|category`
+ */
+function NodePill({ name, category }: { name: string; category?: string }) {
+  const cat = category ?? NODE_DEFAULT_CATEGORY[name] ?? "generative";
+  const color = NODE_CATEGORY_COLORS[cat] ?? NODE_CATEGORY_COLORS.generative;
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        borderRadius: 4,
+        border: `1.5px solid ${color}88`,
+        background: `${color}1a`,
+        padding: "1px 7px 1px 5px",
+        fontSize: "0.8em",
+        fontFamily: "inherit",
+        fontWeight: 600,
+        color,
+        verticalAlign: "middle",
+        whiteSpace: "nowrap",
+        lineHeight: 1.5,
+        letterSpacing: "0.01em",
+      }}
+    >
+      <span
+        style={{
+          display: "inline-block",
+          width: 7,
+          height: 7,
+          borderRadius: "50%",
+          background: color,
+          flexShrink: 0,
+        }}
+      />
+      {name}
+    </span>
+  );
+}
+
 // ── Docs settings ────────────────────────────────────────────────────────────
 type DocsSettings = {
   showDifficultyTags: boolean;
@@ -1081,8 +1184,16 @@ export function DocsPanel() {
       }
       return <blockquote {...props}>{children}</blockquote>;
     },
-    code: ({ className, children, ...props }: React.ComponentPropsWithoutRef<"code">) =>
-      <code className={className} {...props}>{children}</code>,
+    code: ({ className, children, ...props }: React.ComponentPropsWithoutRef<"code">) => {
+      // Inline node pill: `node:NodeName` or `node:NodeName|category`
+      const text = String(children ?? "");
+      if (!className && text.startsWith("node:")) {
+        const rest = text.slice(5);
+        const [name, cat] = rest.split("|", 2);
+        return <NodePill name={name.trim()} category={cat?.trim()} />;
+      }
+      return <code className={className} {...props}>{children}</code>;
+    },
     h2: ({ id, children, ...props }: React.ComponentPropsWithoutRef<"h2">) => (
       <h2 {...props} id={id} className="group flex items-center gap-2">
         {children}

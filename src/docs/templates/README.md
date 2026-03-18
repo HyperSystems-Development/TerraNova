@@ -49,7 +49,7 @@ Three biomes (Plains, Forest, Mountains) selected by a simplex noise map. Each b
 2. Copy the world project folder into the `templates/` directory of your TerraNova installation.
 3. It will appear in the **New World** dialog on next launch.
 
-> See the [Biome System guide](../guides/biome-system.md) and [Node Combinations](../guides/node-combinations.md) for the patterns these templates use.
+> See the [Biome System guide](../guides/world/biome-system.md) and [Node Combinations](../guides/world/node-combinations.md) for the patterns these templates use.
 
 ---
 

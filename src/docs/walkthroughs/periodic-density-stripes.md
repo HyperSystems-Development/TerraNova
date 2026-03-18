@@ -175,4 +175,4 @@ The noise shifts the compressed X input — the stripe boundaries wobble organic
 
 ---
 
-> **Next:** Combine this with the [Terrain and Caves walkthrough](./terrain-and-caves.md) to layer stripes into a full terrain setup, or read about [Node Combinations](../guides/node-combinations.md) for more advanced density patterns. For a deep dive into the curve types used here, see [Curves Explained](../guides/curves-explained.md).
+> **Next:** Combine this with the [Terrain and Caves walkthrough](./terrain-and-caves.md) to layer stripes into a full terrain setup, or read about [Node Combinations](../guides/world/node-combinations.md) for more advanced density patterns. For a deep dive into the curve types used here, see [Curves Explained](../guides/world/curves-explained.md).

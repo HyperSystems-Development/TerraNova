@@ -14,6 +14,21 @@ Material providers only run on voxels where density is positive (i.e. solid). Ai
 
 A `MaterialProviderAsset` wraps a single top-level provider. That provider is evaluated independently for every solid voxel and returns a block reference plus optional rotation.
 
+### Provider types at a glance
+
+| Node | Role |
+|---|---|
+| `node:SpaceAndDepth` | Primary layering provider — assigns materials from the surface inward |
+| `node:ConstantThickness` | Fixed-depth layer (e.g. always 1 block of grass) |
+| `node:NoiseThickness` | Layer thickness driven by a 2D noise function |
+| `node:RangeThickness` | Random thickness within a min–max range |
+| `node:WeightedThickness` | Thickness chosen by probability weight |
+| `node:Queue` | Try providers in order; first match wins |
+| `node:DownwardDepth` | Context: depth from top surface downward |
+| `node:UpwardDepth` | Context: depth from cave floor upward |
+| `node:DownwardSpace` | Context: air gap below (cave ceilings) |
+| `node:UpwardSpace` | Context: air gap above (underside features) |
+
 > [!NOTE]
 > The material provider is **constructed before terrain density is evaluated**. It cannot inspect the final shape of the terrain around a voxel — it can only use the runtime context fields listed below. See [Common Mistakes](#common-mistakes) for the practical consequence of this constraint.
 
