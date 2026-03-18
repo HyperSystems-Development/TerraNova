@@ -24,9 +24,24 @@ type DocEntry = {
 };
 
 type FolderNode = { type: "folder"; title: string; slug: string; children: DocTreeNodeData[] };
-type FileNode = { type: "file"; title: string; slug: string };
+type FileNode = { type: "file"; title: string; slug: string; tags?: string[] };
 
 type DocTreeNodeData = FolderNode | FileNode;
+
+/** Derive display tags from a slug — difficulty level + content type hints */
+function tagsFromSlug(slug: string): string[] {
+  const tags: string[] = [];
+  const name = slug.split("/").pop() ?? "";
+  if (name.includes("experimental"))                                                      tags.push("experimental");
+  else if (name.includes("expert"))                                                       tags.push("expert");
+  else if (name.includes("advanced") || name.includes("sculpting") || name.includes("composition")) tags.push("advanced");
+  else if (name.includes("terrain-types") || name.includes("node-combinations") ||
+           name.includes("multi-biome") || name.includes("terrain-and-caves"))            tags.push("intermediate");
+  else if (name.includes("basic") || name.includes("data-flow") ||
+           name.includes("create-a-world") || name.includes("setup") ||
+           name.includes("understanding"))                                                tags.push("basic");
+  return tags;
+}
 
 function slugFromPath(path: string) {
   // Vite returns paths like "../docs/overview.md" or "../../docs/guides/foo.md"
@@ -144,7 +159,7 @@ function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
     const sectionKey = parts.length === 1 ? entry.slug : parts[0];
     const section = sectionMap.get(sectionKey) ?? otherSection;
     const title = parts.length === 1 ? entry.title : titleFromSlug(parts.slice(1).join("/"));
-    section.children.push({ type: "file", title, slug: entry.slug });
+    section.children.push({ type: "file", title, slug: entry.slug, tags: tagsFromSlug(entry.slug) });
   }
 
   // Build final tree: sections with multiple children become folder nodes;
@@ -176,6 +191,14 @@ function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
   return result;
 }
 
+const TAG_STYLES: Record<string, { label: string; className: string }> = {
+  basic:        { label: "basic",        className: "text-green-400 border-green-400/30 bg-green-400/10" },
+  intermediate: { label: "intermediate", className: "text-sky-400 border-sky-400/30 bg-sky-400/10" },
+  advanced:     { label: "advanced",     className: "text-amber-400 border-amber-400/30 bg-amber-400/10" },
+  expert:       { label: "expert",       className: "text-purple-400 border-purple-400/30 bg-purple-400/10" },
+  experimental: { label: "⚗",           className: "text-orange-400 border-orange-400/30 bg-orange-400/10" },
+};
+
 function DocTreeNodeItem({
   node,
   selectedSlug,
@@ -202,6 +225,7 @@ function DocTreeNodeItem({
     const sectionKey = node.slug.split("/")[0];
     const Icon = depth === 0 ? (SECTION_ICONS[sectionKey] ?? FileText) : FileText;
     const isTopLevel = depth === 0;
+    const tags = node.tags ?? [];
     return (
       <button
         ref={isSelected ? (el) => { (activeItemRef as React.MutableRefObject<HTMLButtonElement | null>).current = el; } : undefined}
@@ -217,7 +241,19 @@ function DocTreeNodeItem({
         onClick={() => onSelect(node.slug)}
       >
         <Icon className="h-4 w-4 shrink-0" />
-        <span className="flex-1 truncate">{node.title}</span>
+        <span className="flex-1 truncate min-w-0">{node.title}</span>
+        {tags.map((tag) => {
+          const style = TAG_STYLES[tag];
+          if (!style) return null;
+          return (
+            <span
+              key={tag}
+              className={`shrink-0 text-[9px] font-semibold uppercase tracking-wide border rounded px-1 py-px leading-tight ${style.className}`}
+            >
+              {style.label}
+            </span>
+          );
+        })}
       </button>
     );
   }
@@ -225,6 +261,7 @@ function DocTreeNodeItem({
   const FolderIcon = SECTION_ICONS[node.slug] ?? Folder;
   const readmeSlug = node.slug + "/README";
   const isFolderSelected = selectedSlug === readmeSlug;
+  const childCount = node.children.length;
   return (
     <div className="docs-folder mt-0.5">
       <button
@@ -244,6 +281,9 @@ function DocTreeNodeItem({
       >
         <FolderIcon className="h-4 w-4 shrink-0" />
         <span className="flex-1 truncate">{node.title}</span>
+        {isCollapsed && (
+          <span className="text-[10px] text-tn-text-muted tabular-nums shrink-0 mr-0.5">{childCount}</span>
+        )}
         {isCollapsed
           ? <ChevronRight className="h-3 w-3 text-tn-text-muted shrink-0" />
           : <ChevronDown className="h-3 w-3 text-tn-text-muted shrink-0" />
