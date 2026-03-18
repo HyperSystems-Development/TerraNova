@@ -837,6 +837,33 @@ export function DocsPanel() {
         </div>
       );
     },
+    blockquote: ({ children, ...props }: React.ComponentPropsWithoutRef<"blockquote">) => {
+      const childArray = Array.isArray(children) ? children : [children];
+      const firstChild = childArray[0] as React.ReactElement<{ children?: React.ReactNode }> | undefined;
+      const firstText = firstChild?.props?.children;
+      const firstStr = Array.isArray(firstText) ? String(firstText[0] ?? "") : String(firstText ?? "");
+      const alertMatch = /^\[!(NOTE|TIP|WARNING|IMPORTANT)\]/.exec(firstStr.trim());
+      if (alertMatch) {
+        const type = alertMatch[1].toLowerCase() as "note" | "tip" | "warning" | "important";
+        const labels: Record<string, string> = { note: "Note", tip: "Tip", warning: "Warning", important: "Important" };
+        const rest = childArray.map((child, i) => {
+          if (i !== 0) return child;
+          const el = child as React.ReactElement<{ children?: React.ReactNode }>;
+          const pChildren = Array.isArray(el.props?.children) ? el.props.children : [el.props?.children];
+          const stripped = (pChildren as React.ReactNode[]).map((c, j) =>
+            j === 0 ? String(c).replace(/^\[!(NOTE|TIP|WARNING|IMPORTANT)\]\s*/i, "") : c
+          );
+          return <p key="p0">{stripped}</p>;
+        });
+        return (
+          <blockquote {...props} data-callout={type}>
+            <span className="callout-label">{labels[type]}</span>
+            {rest}
+          </blockquote>
+        );
+      }
+      return <blockquote {...props}>{children}</blockquote>;
+    },
     code: ({ className, children, ...props }: React.ComponentPropsWithoutRef<"code">) =>
       <code className={className} {...props}>{children}</code>,
     h2: ({ id, children, ...props }: React.ComponentPropsWithoutRef<"h2">) => (

@@ -200,8 +200,77 @@ body,
 .docs-content blockquote {
   border-left: 3px solid rgba(181, 147, 80, 0.6);
   padding-left: 1em;
+  padding-top: 0.25em;
+  padding-bottom: 0.25em;
   color: rgba(232, 226, 217, 0.8);
   margin: 1.25em 0;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Callout variants — set via data-callout attribute on blockquote by DocsPanel renderer */
+
+/* Note — teal */
+.docs-content blockquote[data-callout="note"] {
+  border-left-color: rgba(64, 196, 212, 0.75);
+  background: rgba(64, 196, 212, 0.07);
+  color: rgba(232, 226, 217, 0.9);
+}
+.docs-content blockquote[data-callout="note"] .callout-label {
+  color: rgba(64, 196, 212, 0.95);
+  font-weight: 700;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: 0.25em;
+}
+
+/* Tip — green */
+.docs-content blockquote[data-callout="tip"] {
+  border-left-color: rgba(80, 200, 120, 0.75);
+  background: rgba(80, 200, 120, 0.07);
+  color: rgba(232, 226, 217, 0.9);
+}
+.docs-content blockquote[data-callout="tip"] .callout-label {
+  color: rgba(80, 200, 120, 0.95);
+  font-weight: 700;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: 0.25em;
+}
+
+/* Warning — red-orange */
+.docs-content blockquote[data-callout="warning"] {
+  border-left-color: rgba(220, 80, 60, 0.75);
+  background: rgba(220, 80, 60, 0.07);
+  color: rgba(232, 226, 217, 0.9);
+}
+.docs-content blockquote[data-callout="warning"] .callout-label {
+  color: rgba(220, 100, 80, 0.95);
+  font-weight: 700;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: 0.25em;
+}
+
+/* Important — purple */
+.docs-content blockquote[data-callout="important"] {
+  border-left-color: rgba(160, 100, 220, 0.75);
+  background: rgba(160, 100, 220, 0.07);
+  color: rgba(232, 226, 217, 0.9);
+}
+.docs-content blockquote[data-callout="important"] .callout-label {
+  color: rgba(180, 130, 230, 0.95);
+  font-weight: 700;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: block;
+  margin-bottom: 0.25em;
 }
 
 .docs-content ul,
