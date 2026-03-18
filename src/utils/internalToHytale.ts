@@ -1870,19 +1870,31 @@ export function internalToHytaleBiome(
 // ---------------------------------------------------------------------------
 
 function generateNodeEditorMetadata(nodes: Node[]): Record<string, unknown> {
-  const nodePositions: Record<string, { x: number; y: number }> = {};
+  const $Nodes: Record<string, unknown> = {};
+  const $Comments: unknown[] = [];
+
   for (const node of nodes) {
-    nodePositions[node.id] = {
-      x: node.position.x,
-      y: node.position.y,
-    };
+    if (node.type === "comment") {
+      const d = node.data as { text?: string; width?: number; height?: number };
+      $Comments.push({
+        "$Text": d.text ?? "",
+        "$Position": { "$x": node.position.x, "$y": node.position.y },
+        "$Width": d.width ?? 200,
+        "$Height": d.height ?? 80,
+      });
+    } else {
+      $Nodes[node.id] = {
+        "$Position": { "$x": node.position.x, "$y": node.position.y },
+      };
+    }
   }
 
   return {
-    Positions: nodePositions,
-    Groups: [],
-    FloatingNodes: [],
-    Links: [],
-    Comments: [],
+    $Nodes,
+    $FloatingNodes: [],
+    $Links: [],
+    $Groups: [],
+    $Comments,
+    $WorkspaceID: "",
   };
 }

@@ -134,6 +134,9 @@ import {
 // ── Groups ────────────────────────────────────────────────────────────
 import { GroupNode } from "./GroupNode";
 
+// ── Comments ──────────────────────────────────────────────────────────
+import { CommentNode } from "./CommentNode";
+
 // ── Root ──────────────────────────────────────────────────────────────
 import { RootNode } from "./RootNode";
 
@@ -459,6 +462,9 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
 
   // ── Groups ──────────────────────────────────────────────────────────
   group: GroupNode,
+
+  // ── Comments ─────────────────────────────────────────────────────────
+  comment: CommentNode,
 
   // ── Root ────────────────────────────────────────────────────────────
   Root: RootNode,

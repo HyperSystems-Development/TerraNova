@@ -21,10 +21,11 @@ import {
   isInstanceFile,
   isSettingsFile,
   isWeatherFile,
-  normalizeImport,
+  normalizeImportWithMeta,
   normalizeExport,
   internalToHytaleBiome,
 } from "@/utils/fileTypeDetection";
+import type { ImportMetadata } from "@/utils/hytaleToInternal";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { getDirname, findServerRoot, isPathInProject } from "@/utils/pathUtils";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
@@ -36,6 +37,45 @@ import { useUIStore } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { resolveBiomeAtmosphere } from "@/utils/resolveBiomeAtmosphere";
+
+/**
+ * Apply node positions from $NodeEditorMetadata.$Nodes to a set of React Flow nodes.
+ * Nodes whose id matches a key in nodePositions get their position overridden.
+ * Also appends any comment nodes from hytaleComments.
+ * Only applies positions when autoLayoutOnOpen is disabled (positions are meaningless after auto-layout).
+ */
+function applyImportMetadata(
+  nodes: import("@xyflow/react").Node[],
+  metadata: ImportMetadata | null,
+): import("@xyflow/react").Node[] {
+  if (!metadata) return nodes;
+
+  const applyPositions = !useSettingsStore.getState().autoLayoutOnOpen;
+
+  let result = nodes;
+  if (applyPositions && Object.keys(metadata.nodePositions).length > 0) {
+    result = nodes.map((n) => {
+      const pos = metadata.nodePositions[n.id];
+      if (!pos) return n;
+      return { ...n, position: { x: pos.x, y: pos.y } };
+    });
+  }
+
+  // Inject comment nodes
+  if (metadata.hytaleComments.length > 0) {
+    const commentNodes: import("@xyflow/react").Node[] = metadata.hytaleComments.map((c, i) => ({
+      id: `comment-import-${i}-${crypto.randomUUID()}`,
+      type: "comment",
+      position: { x: c.x, y: c.y },
+      data: { type: "comment", text: c.text, width: c.width, height: c.height },
+      draggable: true,
+      selectable: true,
+    }));
+    result = [...result, ...commentNodes];
+  }
+
+  return result;
+}
 
 /**
  * Conditionally run autoLayout based on the autoLayoutOnOpen setting.
@@ -403,9 +443,13 @@ export function useTauriIO() {
         const rawContent = await readAssetFile(filePath);
 
         // Auto-detect Hytale native format and normalize to internal
-        const content = (rawContent && typeof rawContent === "object")
-          ? normalizeImport(rawContent as Record<string, unknown>)
-          : rawContent;
+        let importMeta: ImportMetadata | null = null;
+        let content: unknown = rawContent;
+        if (rawContent && typeof rawContent === "object") {
+          const { content: normalized, metadata } = normalizeImportWithMeta(rawContent as Record<string, unknown>);
+          content = normalized;
+          importMeta = metadata;
+        }
 
         if (content && typeof content === "object" && isEnvironmentFile(content as Record<string, unknown>, filePath)) {
           useEditorStore.setState({
@@ -475,7 +519,7 @@ export function useTauriIO() {
             if (density && typeof density === "object" && "Type" in (density as Record<string, unknown>)) {
               const { nodes: newNodes, edges: newEdges } = jsonToGraph(density as Record<string, unknown>);
               const layoutedNodes = await maybeAutoLayout(newNodes, newEdges);
-              setNodes(layoutedNodes);
+              setNodes(applyImportMetadata(layoutedNodes, importMeta));
               setEdges(newEdges);
             } else {
               setNodes([]);
@@ -495,7 +539,7 @@ export function useTauriIO() {
 
             // Auto-layout for clean positioning instead of naive x-300 offsets
             const layoutedNodes = await maybeAutoLayout(newNodes, newEdges);
-            setNodes(layoutedNodes);
+            setNodes(applyImportMetadata(layoutedNodes, importMeta));
             setEdges(newEdges);
 
             // Clear biome-specific state that may be left over from a previous biome file
@@ -640,7 +684,24 @@ export function useTauriIO() {
 
           // Load first section into canvas
           const firstKey = sectionKeys[0] ?? null;
-          const firstSection = firstKey ? sections[firstKey] : null;
+          let firstSection = firstKey ? sections[firstKey] : null;
+
+          // Inject comment nodes from $NodeEditorMetadata into the first section
+          if (importMeta && importMeta.hytaleComments.length > 0 && firstSection) {
+            const commentNodes: import("@xyflow/react").Node[] = importMeta.hytaleComments.map((c, i) => ({
+              id: `comment-import-${i}-${crypto.randomUUID()}`,
+              type: "comment",
+              position: { x: c.x, y: c.y },
+              data: { type: "comment", text: c.text, width: c.width, height: c.height },
+              draggable: true,
+              selectable: true,
+            }));
+            firstSection = {
+              ...firstSection,
+              nodes: [...firstSection.nodes, ...commentNodes],
+            };
+            sections[firstKey!] = firstSection;
+          }
 
           // Atomic state update — sets ALL biome state at once to avoid race conditions.
           // Sections already have their initial history entry from extractBiomeSections(),
