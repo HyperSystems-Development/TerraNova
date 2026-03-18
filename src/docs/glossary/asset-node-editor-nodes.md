@@ -36,11 +36,17 @@ BaseHeight -> CurveMapper -> Sum
 
 A 2D coherent noise generator. Outputs between -1 and 1. Adds horizontal variation to terrain (hills, valleys).
 
-Key fields: `Frequency` (scale of features), `Amplitude` (height of features), `Octaves` (layers of detail).
+Key fields: `Scale` (sampling frequency — lower = broader features), `Octaves` (layers of detail), `Persistence` (amplitude decay per octave), `Lacunarity` (frequency multiplier per octave), `Seed` (noise pattern).
+
+> **Note:** `SimplexNoise2D` has no built-in amplitude field. To scale the output, use a `Multiplier` node with the noise as one input and a `Constant { Value: X }` as the other.
 
 ### SimplexNoise3D
 
 A 3D coherent noise generator. Outputs between -1 and 1. Enables caves, overhangs, and floating islands by varying density in all three dimensions.
+
+Key fields: `ScaleXZ` (horizontal sampling frequency), `ScaleY` (vertical sampling frequency), `Octaves`, `Persistence`, `Lacunarity`, `Seed`.
+
+> **Note:** `SimplexNoise3D` uses `ScaleXZ` and `ScaleY` (not `Scale` or `Frequency`). Separate horizontal and vertical scale lets tunnels be wider than they are tall.
 
 ### CellNoise2D / CellNoise3D
 

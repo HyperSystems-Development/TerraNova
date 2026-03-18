@@ -10,8 +10,8 @@ The density system is the mathematical backbone of terrain generation. Every ter
 | Node | Purpose |
 |------|---------|
 | `Constant` | Outputs a fixed value regardless of position |
-| `AmplitudeConstant` | Scales a density by a constant factor |
-| `OffsetConstant` | Adds a fixed offset to a density value |
+| `AmplitudeConstant` | Legacy stub — no configurable fields. Use `Multiplier` + `Constant` instead |
+| `OffsetConstant` | Legacy stub — no configurable fields. Use `Sum` + `Constant` instead |
 
 ### Noise
 | Node | Purpose |
@@ -52,8 +52,8 @@ The density system is the mathematical backbone of terrain generation. Every ter
 |------|---------|
 | `Scale` | Scale the coordinate space (zooms in/out on noise) |
 | `Offset` | Translate the coordinate space |
-| `Amplitude` | Multiply two density inputs together |
-| `AmplitudeConstant` | Multiply output value by a constant |
+| `Amplitude` | Legacy Y-dependent multiplier — scales one density input by a `FunctionForY` curve |
+| `AmplitudeConstant` | Legacy stub — no configurable fields. Use `Multiplier` + `Constant` instead |
 | `Rotator` | Rotate the coordinate space |
 | `Inverter` | Multiply by -1 (flips solid/empty) |
 | `VectorWarp` | Warp position by a full 3D vector field |

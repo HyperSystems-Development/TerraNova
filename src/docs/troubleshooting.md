@@ -39,7 +39,7 @@ Several nodes return `0.0` or a simplified value in TerraNova's preview evaluato
 |------|-----------------|------------|
 | `GradientWarp` | Returns `0.0` — warped terrain completely absent | Tune the child terrain without warping; test warp in-game only |
 | `VectorWarp` | Returns `0.0` — directional distortion invisible | Same as above |
-| `BaseHeight` | Returns `0.0` — terrain anchors at Y=0 | Temporarily replace with `OffsetConstant { Offset: -64, Input: YValue }` while previewing |
+| `BaseHeight` | Returns `0.0` — terrain anchors at Y=0 | Temporarily replace with `Sum { Inputs: [YValue, Constant { Value: -64 }] }` while previewing |
 | `CellWallDistance` | Returns `0.0` — Voronoi valley carving invisible | Use `CellNoise2D` distance output as a proxy during preview |
 | `Terrain` | Returns `0.0` — terrain re-queries broken | Only usable in material providers; test slope-based materials in-game |
 | `Imported` | Returns `0.0` — cross-asset references unresolved | Replace with inline copies during preview iteration |

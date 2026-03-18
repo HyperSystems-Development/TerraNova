@@ -26,7 +26,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 **The recipe:** `BaseHeight` → `Sum` → `Terrain Out`, with a low-amplitude `SimplexNoise2D` adding minimal variation.
 
-> **Preview gap:** `BaseHeight` returns `0.0` in TerraNova's preview — terrain will appear anchored at Y=0 instead of your configured Y level. Workaround: temporarily replace `BaseHeight` with `OffsetConstant { Offset: -64, Input: YValue }` while previewing, then restore `BaseHeight` before export.
+> **Preview gap:** `BaseHeight` returns `0.0` in TerraNova's preview — terrain will appear anchored at Y=0 instead of your configured Y level. Workaround: temporarily replace `BaseHeight` with `Sum { Inputs: [YValue, Constant { Value: -64 }] }` while previewing, then restore `BaseHeight` before export.
 
 ```nodegraph
 {
@@ -34,14 +34,16 @@ Parameters marked with `*` are the ones most worth tweaking first.
   "nodes": [
     { "id": "bh",  "label": "BaseHeight",    "category": "density",   "sub": "Y = 64",        "x": 0,   "y": 40 },
     { "id": "sn",  "label": "SimplexNoise2D","category": "density",   "sub": "Scale 0.008",   "x": 0,   "y": 120 },
-    { "id": "amp", "label": "AmplitudeConstant","category": "density", "sub": "x 0.1",         "x": 200, "y": 120 },
-    { "id": "sum", "label": "Sum",           "category": "density",                            "x": 380, "y": 80 },
-    { "id": "out", "label": "Terrain Out",   "category": "output",                             "x": 560, "y": 80 }
+    { "id": "c",   "label": "Constant",     "category": "density",   "sub": "Value 0.1",     "x": 0,   "y": 185 },
+    { "id": "mul", "label": "Multiplier",   "category": "density",   "sub": "× 0.1",         "x": 200, "y": 145 },
+    { "id": "sum", "label": "Sum",          "category": "density",                            "x": 380, "y": 80 },
+    { "id": "out", "label": "Terrain Out",  "category": "output",                             "x": 560, "y": 80 }
   ],
   "edges": [
     { "from": "bh",  "to": "sum" },
-    { "from": "sn",  "to": "amp" },
-    { "from": "amp", "to": "sum", "label": "x 0.1" },
+    { "from": "sn",  "to": "mul" },
+    { "from": "c",   "to": "mul" },
+    { "from": "mul", "to": "sum", "label": "× 0.1" },
     { "from": "sum", "to": "out" }
   ]
 }
@@ -50,7 +52,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
 **Key parameters:**
 - `BaseHeight` Y: `64` — the base surface level
 - `SimplexNoise2D` Scale`*`: `0.008` — lower = broader, smoother undulation
-- `AmplitudeConstant`\*: `0.1` — controls how much height variation there is; `0.05` is nearly flat, `0.2` starts to feel hilly
+- `Constant Value` (Multiplier scale)\*: `0.1` — controls how much height variation there is; `0.05` is nearly flat, `0.2` starts to feel hilly
 
 **Variations:**
 - Remove the noise entirely for a perfectly flat debug surface
@@ -104,7 +106,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 **The recipe:** Same structure as rolling hills, but with a much steeper CurveMapper, higher BaseHeight, and larger noise amplitude. Adding `Abs` on a second noise layer folds it into sharp ridges.
 
-> **Preview gap:** `BaseHeight` returns `0.0` in TerraNova's preview. Replace with `OffsetConstant { Offset: -80, Input: YValue }` while tuning, then restore before export.
+> **Preview gap:** `BaseHeight` returns `0.0` in TerraNova's preview. Replace with `Sum { Inputs: [YValue, Constant { Value: -80 }] }` while tuning, then restore before export.
 
 ```nodegraph
 {
@@ -115,7 +117,8 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "id": "sn",  "label": "SimplexNoise2D","category": "density",   "sub": "Scale 0.004 Oct 5",   "x": 0,   "y": 110 },
     { "id": "sn2", "label": "SimplexNoise2D","category": "density",   "sub": "Scale 0.012 Oct 3",   "x": 0,   "y": 200 },
     { "id": "abs", "label": "Abs",           "category": "density",   "sub": "ridge folds",         "x": 200, "y": 200 },
-    { "id": "amp", "label": "AmplitudeConstant","category": "density", "sub": "x 0.4",              "x": 380, "y": 200 },
+    { "id": "rc",  "label": "Constant",      "category": "density",   "sub": "Value 0.4",           "x": 200, "y": 265 },
+    { "id": "amp", "label": "Multiplier",    "category": "density",   "sub": "× 0.4",               "x": 380, "y": 230 },
     { "id": "sum", "label": "Sum",           "category": "density",                                  "x": 560, "y": 100 },
     { "id": "ys",  "label": "YSampled",      "category": "density",   "sub": "step = 4",             "x": 740, "y": 100 },
     { "id": "out", "label": "Terrain Out",   "category": "output",                                   "x": 920, "y": 100 }
@@ -126,6 +129,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "from": "sn",  "to": "sum", "label": "base hills" },
     { "from": "sn2", "to": "abs" },
     { "from": "abs", "to": "amp" },
+    { "from": "rc",  "to": "amp" },
     { "from": "amp", "to": "sum", "label": "ridges" },
     { "from": "sum", "to": "ys" },
     { "from": "ys",  "to": "out" }
@@ -138,7 +142,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
 - `CurveMapper`: steep S-curve, or even a curve that rises sharply then flattens — creates distinct bases and summits
 - Base noise Scale: `0.004`, Octaves: `5`, Persistence: `0.5` — broad mountainous forms
 - Ridge noise Scale`*`: `0.012`, Octaves: `3` — `Abs` folds it to create sharp ridgelines
-- Ridge `AmplitudeConstant`\*: `0.3–0.5` — controls how prominent the ridges are relative to the base shape
+- Ridge `Constant Value` (Multiplier scale)\*: `0.3–0.5` — controls how prominent the ridges are relative to the base shape
 
 **Why `Abs` makes ridges:** `Abs` folds all negative noise values to positive — it takes the absolute value of Simplex noise output. A smooth valley at −0.6 becomes a spike at +0.6. Wherever noise crosses zero, there is now a sharp peak. Applied at a higher frequency, this creates the jagged ridgeline silhouette of mountain ranges.
 
@@ -155,7 +159,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 **The recipe:** A `CurveMapper` with a flat segment at the top (clamped curve) controls the height profile. `SmoothClamp` on the final density keeps the top surface flat without a hard edge.
 
-> **Preview gap:** `BaseHeight` returns `0.0` in preview. Replace with `OffsetConstant { Offset: -64, Input: YValue }` while tuning.
+> **Preview gap:** `BaseHeight` returns `0.0` in preview. Replace with `Sum { Inputs: [YValue, Constant { Value: -64 }] }` while tuning.
 
 ```nodegraph
 {
@@ -206,7 +210,8 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "id": "pl",  "label": "Plane",         "category": "density",   "sub": "Y base cut",     "x": 0,   "y": 100 },
     { "id": "mx",  "label": "Max",           "category": "density",   "sub": "intersect",      "x": 260, "y": 50 },
     { "id": "sn",  "label": "SimplexNoise2D","category": "density",   "sub": "Scale 0.01 Oct 3","x": 0,  "y": 190 },
-    { "id": "amp", "label": "AmplitudeConstant","category": "density", "sub": "x 0.15",         "x": 200, "y": 190 },
+    { "id": "sc",  "label": "Constant",      "category": "density",   "sub": "Value 0.15",      "x": 0,  "y": 255 },
+    { "id": "mul", "label": "Multiplier",    "category": "density",   "sub": "× 0.15",          "x": 200, "y": 220 },
     { "id": "sum", "label": "Sum",           "category": "density",                             "x": 440, "y": 120 },
     { "id": "out", "label": "Terrain Out",   "category": "output",                              "x": 640, "y": 120 }
   ],
@@ -214,8 +219,9 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "from": "el",  "to": "mx" },
     { "from": "pl",  "to": "mx", "label": "bottom cut" },
     { "from": "mx",  "to": "sum", "label": "island shape" },
-    { "from": "sn",  "to": "amp" },
-    { "from": "amp", "to": "sum", "label": "surface detail" },
+    { "from": "sn",  "to": "mul" },
+    { "from": "sc",  "to": "mul" },
+    { "from": "mul", "to": "sum", "label": "surface detail" },
     { "from": "sum", "to": "out" }
   ]
 }
@@ -414,17 +420,19 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "id": "bh",  "label": "BaseHeight",    "category": "density",  "sub": "Y = 62",             "x": 0,   "y": 20 },
     { "id": "sn1", "label": "SimplexNoise2D","category": "density",  "sub": "ScaleX 0.004 ScaleZ 0.012","x": 0, "y": 120 },
     { "id": "sn2", "label": "SimplexNoise2D","category": "density",  "sub": "ScaleX 0.012 ScaleZ 0.004","x": 0, "y": 200 },
-    { "id": "mix", "label": "Mix",           "category": "density",  "sub": "factor 0.5",         "x": 260, "y": 160 },
-    { "id": "amp", "label": "AmplitudeConstant","category": "density","sub": "x 0.35",             "x": 440, "y": 160 },
-    { "id": "sum", "label": "Sum",           "category": "density",                               "x": 600, "y": 90 },
-    { "id": "out", "label": "Terrain Out",   "category": "output",                                "x": 800, "y": 90 }
+    { "id": "mix", "label": "Mix",      "category": "density",  "sub": "factor 0.5",   "x": 260, "y": 160 },
+    { "id": "dc",  "label": "Constant", "category": "density",  "sub": "Value 0.35",   "x": 440, "y": 225 },
+    { "id": "mul", "label": "Multiplier","category": "density", "sub": "× 0.35",       "x": 440, "y": 160 },
+    { "id": "sum", "label": "Sum",      "category": "density",                         "x": 620, "y": 90 },
+    { "id": "out", "label": "Terrain Out","category": "output",                        "x": 820, "y": 90 }
   ],
   "edges": [
     { "from": "bh",  "to": "sum" },
     { "from": "sn1", "to": "mix", "label": "A" },
     { "from": "sn2", "to": "mix", "label": "B" },
-    { "from": "mix", "to": "amp" },
-    { "from": "amp", "to": "sum" },
+    { "from": "mix", "to": "mul" },
+    { "from": "dc",  "to": "mul" },
+    { "from": "mul", "to": "sum" },
     { "from": "sum", "to": "out" }
   ]
 }
@@ -434,7 +442,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
 - `sn1` ScaleX`*`: `0.004`, ScaleZ: `0.012` — elongated in one axis; the 3:1 ratio gives the directional dune feel
 - `sn2` reverses that ratio: ScaleX `0.012`, ScaleZ `0.004` — the cross-grain noise
 - `Mix` factor: `0.5` — blends both grain directions equally; bias toward one for a stronger prevailing direction
-- Amplitude`*`: `0.25–0.4` — dune height; too high and they look like mountains
+- `Constant Value` (Multiplier scale)\*: `0.25–0.4` — dune height; too high and they look like mountains
 
 **Variations:**
 - Use just one grain direction (remove mix, use only `sn1`) for stark, aligned dune ridges
@@ -458,8 +466,9 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "id": "cm",  "label": "CurveMapper",   "category": "density",  "sub": "island cutoff",     "x": 380, "y": 60 },
     { "id": "bh",  "label": "BaseHeight",    "category": "density",  "sub": "Y = 62",            "x": 0,   "y": 160 },
     { "id": "sn",  "label": "SimplexNoise2D","category": "density",  "sub": "Scale 0.01 Oct 3",  "x": 0,   "y": 230 },
-    { "id": "amp", "label": "AmplitudeConstant","category": "density","sub": "x 0.2",             "x": 200, "y": 230 },
-    { "id": "mul", "label": "Multiplier",    "category": "density",  "sub": "mask x terrain",    "x": 560, "y": 130 },
+    { "id": "ac",  "label": "Constant",     "category": "density",  "sub": "Value 0.2",         "x": 0,   "y": 295 },
+    { "id": "sc",  "label": "Multiplier",   "category": "density",  "sub": "× 0.2",             "x": 200, "y": 260 },
+    { "id": "mul", "label": "Multiplier",   "category": "density",  "sub": "mask × terrain",    "x": 560, "y": 130 },
     { "id": "sum", "label": "Sum",           "category": "density",                               "x": 720, "y": 130 },
     { "id": "out", "label": "Terrain Out",   "category": "output",                                "x": 900, "y": 130 }
   ],
@@ -468,8 +477,9 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "from": "nr",  "to": "cm" },
     { "from": "cm",  "to": "mul", "label": "island mask" },
     { "from": "bh",  "to": "sum" },
-    { "from": "sn",  "to": "amp" },
-    { "from": "amp", "to": "mul", "label": "terrain noise" },
+    { "from": "sn",  "to": "sc" },
+    { "from": "ac",  "to": "sc" },
+    { "from": "sc",  "to": "mul", "label": "terrain noise" },
     { "from": "mul", "to": "sum", "label": "masked terrain" },
     { "from": "sum", "to": "out" }
   ]

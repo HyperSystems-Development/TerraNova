@@ -19,7 +19,7 @@ A single flat biome with mild hills, grass/stone layered materials, and scattere
   "Biomes": [
     { "Biome": "Island", "Min": -1.0, "Max": 1.0 }
   ],
-  "Density": { "Type": "SimplexNoise2D", "Frequency": 0.001 },
+  "Density": { "Type": "SimplexNoise2D", "Scale": 0.001 },
   "DefaultBiome": "Island"
 }
 ```
@@ -37,7 +37,7 @@ Three biomes (Plains, Forest, Mountains) selected by a simplex noise map. Each b
     { "Biome": "Forest",    "Min": -0.3, "Max":  0.3 },
     { "Biome": "Mountains", "Min":  0.3, "Max":  1.0 }
   ],
-  "Density": { "Type": "SimplexNoise2D", "Frequency": 0.0008 },
+  "Density": { "Type": "SimplexNoise2D", "Scale": 0.0008 },
   "DefaultBiome": "Plains",
   "DefaultTransitionDistance": 48
 }

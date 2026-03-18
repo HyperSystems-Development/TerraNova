@@ -306,7 +306,7 @@ This carves an ellipsoid void from terrain — but only where terrain is already
 
 1. **GradientWarp / VectorWarp:** Build and tune the child terrain first without warping. Once the unwarped shape looks right in preview, add the warp node and test exclusively in-game. Rely on the warp parameter descriptions in [Complex Terrain Techniques](./terrain-types-advanced.md) for factor guidance rather than preview iteration.
 
-2. **BaseHeight:** Use the 2D heatmap preview and watch the density value readout at Y=64. If it reads near 0 when it should read your height offset, your BaseHeight node is hitting the preview gap. Work around it by temporarily replacing `BaseHeight` with `OffsetConstant { Offset: -64, Input: YValue }` during preview, which is a faithful implementation.
+2. **BaseHeight:** Use the 2D heatmap preview and watch the density value readout at Y=64. If it reads near 0 when it should read your height offset, your BaseHeight node is hitting the preview gap. Work around it by temporarily replacing `BaseHeight` with `Sum { Inputs: [YValue, Constant { Value: -64 }] }` during preview, which is a faithful implementation.
 
 3. **Export/Import:** Replace `Imported` references with inline copies during preview-time iteration. Restore the `Imported` reference before JSON export.
 

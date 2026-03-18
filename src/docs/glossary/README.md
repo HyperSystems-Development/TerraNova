@@ -43,8 +43,8 @@ This section defines key terms used in TerraNova and Hytale WorldGen V2.
 | `Normalizer` | Remaps a value range, e.g. [-2, 2] to [-1, 1]. Use after `Sum` to keep density in expected range. |
 | `Inverter` | Multiplies by -1. Flips solid and empty -- used to turn noise into a cave mask. |
 | `Scale` | Multiplies the coordinate space by a factor. Zooms noise in or out. |
-| `Amplitude` | Multiplies two density inputs together. |
-| `AmplitudeConstant` | Multiplies a density by a fixed constant. |
+| `Amplitude` | Legacy Y-dependent amplitude multiplier. Takes one density input and a `FunctionForY` curve (e.g. `YValue → CurveMapper`) to scale the input by a value that varies with height. Prefer `Multiplier` for two-input multiplication. |
+| `AmplitudeConstant` | Legacy stub with no configurable fields. Use `Multiplier` + `Constant` to scale a density by a fixed constant. |
 | `Clamp` | Limits output to a min/max range. Prevents runaway values. |
 | `SmoothMin` | Like `Min` but with a smooth blend zone at the boundary. |
 | `SmoothMax` | Like `Max` but with a smooth blend zone. |

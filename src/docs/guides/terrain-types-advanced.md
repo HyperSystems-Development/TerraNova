@@ -197,7 +197,7 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
 
 **What it looks like:** Terrain where noise amplitude changes continuously with height — rocky and rough near the surface, becoming smoother deeper down, or jagged peaks that intensify at higher altitudes. The detail level itself varies by elevation.
 
-**Why it's complex:** `AmplitudeConstant` applies a fixed scale. `Amplitude` applies a scale that is itself a density function — you wire a `FunctionForY` (a 1D density evaluated only at the current Y) to control how the amplitude varies with elevation.
+**Why it's complex:** A fixed scale is achieved with `Multiplier` + `Constant`. `Amplitude` is different — it applies a scale that is itself a density function — you wire a `FunctionForY` (a 1D density evaluated only at the current Y) to control how the amplitude varies with elevation.
 
 **The recipe:** `Amplitude` node wrapping the main noise, with a `CurveMapper` on `YValue` as the `FunctionForY`. The curve defines the amplitude envelope across the vertical range.
 
@@ -357,21 +357,27 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
   "height": 280,
   "nodes": [
     { "id": "bh",   "label": "BaseHeight",      "category": "density",  "sub": "Y = 64",              "x": 0,   "y": 0 },
-    { "id": "n1",   "label": "SimplexNoise2D",  "category": "density",  "sub": "Scale 0.0015 Oct 2 A 0.6","x": 0, "y": 80 },
-    { "id": "n2",   "label": "SimplexNoise2D",  "category": "density",  "sub": "Scale 0.007 Oct 3 A 0.25","x": 0, "y": 160 },
-    { "id": "n3",   "label": "SimplexNoise3D",  "category": "density",  "sub": "ScaleXZ 0.03 Oct 2 A 0.1","x": 0, "y": 240 },
-    { "id": "a1",   "label": "AmplitudeConstant","category": "density", "sub": "x 0.6",               "x": 220, "y": 80 },
-    { "id": "a2",   "label": "AmplitudeConstant","category": "density", "sub": "x 0.25",              "x": 220, "y": 160 },
-    { "id": "a3",   "label": "AmplitudeConstant","category": "density", "sub": "x 0.1",               "x": 220, "y": 240 },
-    { "id": "sum",  "label": "Sum",             "category": "density",  "sub": "all layers",          "x": 420, "y": 140 },
-    { "id": "ys",   "label": "YSampled",        "category": "density",  "sub": "step = 4",            "x": 600, "y": 140 },
-    { "id": "out",  "label": "Terrain Out",     "category": "output",                                 "x": 780, "y": 140 }
+    { "id": "n1",   "label": "SimplexNoise2D",  "category": "density",  "sub": "Scale 0.0015 Oct 2",   "x": 0, "y": 80 },
+    { "id": "n2",   "label": "SimplexNoise2D",  "category": "density",  "sub": "Scale 0.007 Oct 3",    "x": 0, "y": 160 },
+    { "id": "n3",   "label": "SimplexNoise3D",  "category": "density",  "sub": "ScaleXZ 0.03 Oct 2",   "x": 0, "y": 240 },
+    { "id": "c1",   "label": "Constant",        "category": "density",  "sub": "Value 0.6",            "x": 220, "y": 30 },
+    { "id": "c2",   "label": "Constant",        "category": "density",  "sub": "Value 0.25",           "x": 220, "y": 120 },
+    { "id": "c3",   "label": "Constant",        "category": "density",  "sub": "Value 0.1",            "x": 220, "y": 210 },
+    { "id": "a1",   "label": "Multiplier",      "category": "density",  "sub": "× 0.6",               "x": 380, "y": 80 },
+    { "id": "a2",   "label": "Multiplier",      "category": "density",  "sub": "× 0.25",              "x": 380, "y": 160 },
+    { "id": "a3",   "label": "Multiplier",      "category": "density",  "sub": "× 0.1",               "x": 380, "y": 240 },
+    { "id": "sum",  "label": "Sum",             "category": "density",  "sub": "all layers",          "x": 580, "y": 140 },
+    { "id": "ys",   "label": "YSampled",        "category": "density",  "sub": "step = 4",            "x": 760, "y": 140 },
+    { "id": "out",  "label": "Terrain Out",     "category": "output",                                 "x": 940, "y": 140 }
   ],
   "edges": [
     { "from": "bh",  "to": "sum" },
     { "from": "n1",  "to": "a1" },
+    { "from": "c1",  "to": "a1" },
     { "from": "n2",  "to": "a2" },
+    { "from": "c2",  "to": "a2" },
     { "from": "n3",  "to": "a3" },
+    { "from": "c3",  "to": "a3" },
     { "from": "a1",  "to": "sum", "label": "broad" },
     { "from": "a2",  "to": "sum", "label": "mid" },
     { "from": "a3",  "to": "sum", "label": "fine" },

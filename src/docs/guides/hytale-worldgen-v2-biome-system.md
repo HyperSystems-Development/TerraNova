@@ -51,12 +51,12 @@ At every (x, z) coordinate, the world evaluates a **biome selector density** -- 
     { "Biome": "Forest",    "Min": -0.3, "Max":  0.3 },
     { "Biome": "Mountains", "Min":  0.3, "Max":  1.0 }
   ],
-  "Density": { "Type": "SimplexNoise2D", "Frequency": 0.001 },
+  "Density": { "Type": "SimplexNoise2D", "Scale": 0.001 },
   "DefaultBiome": "Plains"
 }
 ```
 
-- **`Density`** is any density node -- `SimplexNoise2D` is typical. A low `Frequency` (0.001) produces large, gradual biome regions.
+- **`Density`** is any density node -- `SimplexNoise2D` is typical. A low `Scale` (0.001) produces large, gradual biome regions.
 - **`DefaultBiome`** is used if no range matches (e.g. exactly on a boundary edge case).
 - Ranges should cover the full -1 to 1 span with no gaps.
 
@@ -64,7 +64,7 @@ At every (x, z) coordinate, the world evaluates a **biome selector density** -- 
 {
   "height": 220,
   "nodes": [
-    { "id": "sn",  "label": "SimplexNoise2D", "category": "terrain",     "sub": "Freq 0.001",    "x": 0,   "y": 80  },
+    { "id": "sn",  "label": "SimplexNoise2D", "category": "terrain",     "sub": "Scale 0.001",   "x": 0,   "y": 80  },
     { "id": "sel", "label": "Biome Selector", "category": "worldstruct", "sub": "range map",     "x": 220, "y": 80  },
     { "id": "pl",  "label": "Plains",         "category": "biome",       "sub": "-1.0 to -0.3",  "x": 440, "y": 0   },
     { "id": "fo",  "label": "Forest",         "category": "biome",       "sub": "-0.3 to 0.3",   "x": 440, "y": 80  },
@@ -107,7 +107,7 @@ Each biome has a `Terrain` density function that defines its vertical shape. In 
   "Density": {
     "Type": "Sum",
     "Inputs": [
-      { "Type": "BaseHeight", "Height": 64 },
+      { "Type": "BaseHeight", "BaseHeightName": "surface", "Distance": true },
       { "Type": "SimplexNoise2D", "Scale": 0.01, "Octaves": 4 }
     ]
   }
@@ -121,14 +121,14 @@ Each biome has a `Terrain` density function that defines its vertical shape. In 
   "Density": {
     "Type": "Sum",
     "Inputs": [
-      { "Type": "BaseHeight", "Height": 80 },
+      { "Type": "BaseHeight", "BaseHeightName": "surface", "Distance": true },
       { "Type": "CurveMapper", "Input": { "Type": "SimplexNoise2D", "Scale": 0.005, "Octaves": 6 } }
     ]
   }
 }
 ```
 
-Two biomes can share a base structure but differ in parameters — e.g. same noise type, different `Height` and `Scale`. The `Scale` field on noise nodes controls feature size (lower = broader); `Octaves` controls detail layering.
+Two biomes can share a base structure but differ in parameters — e.g. same noise type, different `BaseHeightName` (which named height they reference) and `Scale`. The `Scale` field on noise nodes controls feature size (lower = broader); `Octaves` controls detail layering.
 
 ---
 

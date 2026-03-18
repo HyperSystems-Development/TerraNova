@@ -89,7 +89,8 @@ Stripes alone produce floating geometry. In practice, combine them with terrain 
     { "id": "cx",   "label": "XValue",           "category": "terrain", "sub": "raw X",            "x": 0,   "y": 130 },
     { "id": "mod",  "label": "Modulo",           "category": "math",    "sub": "Divisor = 100",    "x": 200, "y": 130 },
     { "id": "cf",   "label": "CurveMapper",      "category": "filter",  "sub": "sine 0→100",       "x": 380, "y": 130 },
-    { "id": "amp",  "label": "AmplitudeConstant","category": "math",    "sub": "× 0.3",            "x": 560, "y": 130 },
+    { "id": "sc",   "label": "Constant",         "category": "math",    "sub": "Value 0.3",        "x": 560, "y": 195 },
+    { "id": "amp",  "label": "Multiplier",       "category": "math",    "sub": "× 0.3",            "x": 560, "y": 130 },
     { "id": "sum",  "label": "Sum",              "category": "math",                                "x": 720, "y": 80  },
     { "id": "out",  "label": "Terrain Out",      "category": "output",                              "x": 900, "y": 80  }
   ],
@@ -98,13 +99,14 @@ Stripes alone produce floating geometry. In practice, combine them with terrain 
     { "from": "cx",   "to": "mod" },
     { "from": "mod",  "to": "cf"  },
     { "from": "cf",   "to": "amp" },
+    { "from": "sc",   "to": "amp" },
     { "from": "amp",  "to": "sum", "label": "stripe modifier" },
     { "from": "sum",  "to": "out", "label": "density" }
   ]
 }
 ```
 
-`AmplitudeConstant` (× 0.3) keeps the stripe subtle — it nudges the terrain surface rather than overpowering it. Increase it to make stripes more pronounced.
+The `Multiplier` (with `Constant { Value: 0.3 }`) keeps the stripe subtle — it nudges the terrain surface rather than overpowering it. Increase the `Constant Value` to make stripes more pronounced.
 
 ### Cave-carving stripes (Min)
 
@@ -120,7 +122,7 @@ To carve stripe-shaped tunnels through terrain:
 
 Pure `Modulo` stripes are perfectly regular — they look artificial. Add noise to offset the stripe phase:
 
-1. Add **SimplexNoise2D** (Frequency `0.005`, Amplitude `20`).
+1. Add **SimplexNoise2D** (Scale `0.005`). To scale the phase offset, add a **Multiplier** with a **Constant** (`Value: 0.4`) as its second input.
 2. Add a **Sum** between `XValue` and `Modulo`.
 3. Connect `XValue` → `Sum`, `SimplexNoise2D` → `Sum`, then `Sum` → `Modulo`.
 
@@ -131,7 +133,7 @@ The noise shifts the X input before Modulo wraps it — the stripe boundaries wo
   "height": 200,
   "nodes": [
     { "id": "cx",   "label": "XValue",       "category": "terrain", "sub": "raw X",            "x": 0,   "y": 30  },
-    { "id": "sn",   "label": "SimplexNoise2D","category": "terrain", "sub": "Freq 0.005 Amp 20","x": 0,   "y": 130 },
+    { "id": "sn",   "label": "SimplexNoise2D","category": "terrain", "sub": "Scale 0.005",     "x": 0,   "y": 130 },
     { "id": "sum",  "label": "Sum",          "category": "math",    "sub": "offset X by noise", "x": 220, "y": 80  },
     { "id": "mod",  "label": "Modulo",       "category": "math",    "sub": "Divisor = 100",     "x": 420, "y": 80  },
     { "id": "cf",   "label": "CurveMapper",  "category": "filter",  "sub": "sine 0→100",        "x": 600, "y": 80  },
@@ -155,8 +157,8 @@ The noise shifts the X input before Modulo wraps it — the stripe boundaries wo
 |------|---------------|
 | Wider stripes | Increase `Modulo` Divisor |
 | Narrower stripes | Decrease `Modulo` Divisor |
-| Stronger stripe effect | Increase `AmplitudeConstant` multiplier |
-| Subtle stripe effect | Decrease `AmplitudeConstant` multiplier |
+| Stronger stripe effect | Increase `Constant Value` on the `Multiplier` |
+| Subtle stripe effect | Decrease `Constant Value` on the `Multiplier` |
 | Wavy / organic stripe edges | Add `SimplexNoise2D` before `Modulo` (Step 4) |
 | Horizontal sediment layers | Replace `XValue` with `YValue` |
 | North–south stripes | Replace `XValue` with `ZValue` |

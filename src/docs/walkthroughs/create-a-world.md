@@ -32,7 +32,7 @@ The simplest possible terrain: a flat ground plane at Y=64.
 Now add surface variation:
 
 5. Right-click → **Add Node** → **Noise** → **SimplexNoise2D**.
-6. Set `Scale` to `0.01` and `Amplitude` to `8`.
+6. Set `Scale` to `0.01` and `Octaves` to `3`.
 7. Right-click → **Add Node** → **Math** → **Sum**.
 8. Connect `BaseHeight` → `Sum`, connect `SimplexNoise2D` → `Sum`, then connect `Sum` → `Terrain Out`.
 9. Click **Generate** again. The terrain now has rolling hills.
@@ -58,9 +58,9 @@ Now add surface variation:
 
 Terrain is solid, but every block is the same material until you add a **Material Provider**.
 
-1. Right-click → **Add Node** → **Material** → **HeightGradient** (or another type from the Material category).
-2. In the properties panel, set the top layer to **Grass** and a lower layer to **Stone**.
-3. Connect `HeightGradientMaterial` to the **Material** input on `Terrain Out`.
+1. Right-click → **Add Node** → **Material** → **SpaceAndDepth** (or another type from the Material category).
+2. In the properties panel, add `ConstantThickness` layers — set the top layer to **Grass** and a lower layer to **Stone**.
+3. Connect `SpaceAndDepth` to the **Material** input on `Terrain Out`.
 4. Generate to see block types applied.
 
 > If you only see density shape in the preview and not block colors, make sure your preview mode is set to **Blocks** not **Density** (toggle in the toolbar).

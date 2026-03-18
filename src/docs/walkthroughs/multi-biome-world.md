@@ -65,7 +65,7 @@ Simple flat ground with gentle undulation:
   "height": 160,
   "nodes": [
     { "id": "bh",  "label": "BaseHeight",    "category": "terrain", "sub": "Y = 64",          "x": 0,   "y": 40 },
-    { "id": "sn",  "label": "SimplexNoise2D","category": "terrain", "sub": "Freq 0.01 Amp 4",  "x": 0,   "y": 130 },
+    { "id": "sn",  "label": "SimplexNoise2D","category": "terrain", "sub": "Scale 0.01 Oct 3", "x": 0,   "y": 130 },
     { "id": "sum", "label": "Sum",           "category": "math",                               "x": 240, "y": 85 },
     { "id": "out", "label": "Terrain Out",   "category": "output",                             "x": 440, "y": 85 }
   ],
@@ -82,7 +82,7 @@ Simple flat ground with gentle undulation:
 Moderate hills — same structure, higher amplitude and frequency:
 
 - `BaseHeight` Y = 64
-- `SimplexNoise2D` Frequency `0.008`, Amplitude `14`
+- `SimplexNoise2D` Scale `0.008`, Octaves `4`, then `Multiplier` with `Constant { Value: 0.2 }` to scale the output
 - `Sum` → `Terrain Out`
 
 ### Mountains terrain
@@ -95,7 +95,7 @@ Steep ridges using a CurveMapper to create cliff faces:
   "nodes": [
     { "id": "bh",  "label": "BaseHeight",   "category": "terrain", "sub": "Y = 64",             "x": 0,   "y": 20  },
     { "id": "cf",  "label": "CurveMapper",  "category": "filter",  "sub": "Manual S-curve",     "x": 220, "y": 20  },
-    { "id": "sn",  "label": "SimplexNoise2D","category": "terrain", "sub": "Freq 0.005 Amp 22",  "x": 0,   "y": 130 },
+    { "id": "sn",  "label": "SimplexNoise2D","category": "terrain", "sub": "Scale 0.005 Oct 5",  "x": 0,   "y": 130 },
     { "id": "sum", "label": "Sum",           "category": "math",                                  "x": 420, "y": 75  },
     { "id": "out", "label": "Terrain Out",   "category": "output",                                "x": 620, "y": 75  }
   ],
@@ -177,8 +177,8 @@ Generate a preview and look for the biome boundaries.
 
 Each biome has its own material provider. Select each biome and configure:
 
-- **Plains:** `HeightGradient` — Grass at top, Dirt below, Stone at depth
-- **Forest:** `HeightGradient` — Grass/Dirt/Stone (same structure, possibly different grass tint)
+- **Plains:** `SpaceAndDepth` with `ConstantThickness` layers — Grass at top, Dirt below, Stone at depth
+- **Forest:** `SpaceAndDepth` — Grass/Dirt/Stone (same structure, possibly different grass tint)
 - **Mountains:** `SpaceAndDepth` with `ConstantThickness` layers — Stone surface, deeper Stone, Gravel veins
 
 Select a biome → switch to the **Material** tab in the editor → build the material graph there.

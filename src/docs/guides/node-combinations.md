@@ -40,7 +40,7 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "nr", "to": "out", "label": "0 to 1" }
   ],
   "steps": [
-    { "nodeId": "n",   "text": "SimplexNoise2D generates a smooth, continuous noise field. At each (x,z) coordinate it outputs a value between -1 and +1. You set the Frequency to control how zoomed-in the pattern is -- lower frequency means broader hills." },
+    { "nodeId": "n",   "text": "SimplexNoise2D generates a smooth, continuous noise field. At each (x,z) coordinate it outputs a value between -1 and +1. You set the Scale to control how zoomed-in the pattern is -- lower Scale means broader hills." },
     { "nodeId": "nr",  "text": "Normalizer remaps the incoming range to a new range. Here it takes [-1, 1] from the noise and maps it to [0, 1]. This is required before using noise as a Mix factor, since Mix expects a 0-1 weight." },
     { "nodeId": "out", "text": "The output carries a clean 0-1 value ready to drive a Mix, a material layer selection, or any other node that expects a normalized input." }
   ]
@@ -129,7 +129,7 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
 
 ---
 
-## 5. Scale + Offset (AmplitudeConstant + Constant to Sum)
+## 5. Scale + Offset (Multiplier + Constant to Sum)
 
 **What it does:** Multiply a density by a constant scale factor, then add a fixed offset. Useful when you need independent control over scale and offset.
 
@@ -137,17 +137,19 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
 
 ```nodegraph
 {
-  "height": 200,
+  "height": 220,
   "nodes": [
-    { "id": "src", "label": "SimplexNoise2D",    "category": "generative", "sub": "source",     "x": 0,   "y": 70 },
-    { "id": "amp", "label": "AmplitudeConstant", "category": "math",       "sub": "x 2.0",      "x": 240, "y": 20 },
-    { "id": "con", "label": "Constant",          "category": "math",       "sub": "offset +0.5","x": 240, "y": 130 },
-    { "id": "sum", "label": "Sum",               "category": "math",                            "x": 480, "y": 70 },
-    { "id": "out", "label": "Output",            "category": "output",                          "x": 700, "y": 70 }
+    { "id": "src", "label": "SimplexNoise2D", "category": "generative", "sub": "source",      "x": 0,   "y": 70 },
+    { "id": "sc",  "label": "Constant",       "category": "math",       "sub": "Value 2.0",   "x": 0,   "y": 145 },
+    { "id": "mul", "label": "Multiplier",     "category": "math",       "sub": "× 2.0",       "x": 240, "y": 100 },
+    { "id": "con", "label": "Constant",       "category": "math",       "sub": "offset +0.5", "x": 240, "y": 185 },
+    { "id": "sum", "label": "Sum",            "category": "math",                              "x": 480, "y": 130 },
+    { "id": "out", "label": "Output",         "category": "output",                            "x": 700, "y": 130 }
   ],
   "edges": [
-    { "from": "src", "to": "amp" },
-    { "from": "amp", "to": "sum" },
+    { "from": "src", "to": "mul" },
+    { "from": "sc",  "to": "mul" },
+    { "from": "mul", "to": "sum" },
     { "from": "con", "to": "sum", "label": "+0.5" },
     { "from": "sum", "to": "out" }
   ]
@@ -334,9 +336,9 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
 {
   "height": 240,
   "nodes": [
-    { "id": "n1",  "label": "SimplexNoise2D", "category": "generative", "sub": "Freq 0.005 Amp 1.0",  "x": 0,   "y": 0   },
-    { "id": "n2",  "label": "SimplexNoise2D", "category": "generative", "sub": "Freq 0.02  Amp 0.5",  "x": 0,   "y": 90  },
-    { "id": "n3",  "label": "SimplexNoise2D", "category": "generative", "sub": "Freq 0.08  Amp 0.25", "x": 0,   "y": 180 },
+    { "id": "n1",  "label": "SimplexNoise2D", "category": "generative", "sub": "Scale 0.005 Oct 2",  "x": 0,   "y": 0   },
+    { "id": "n2",  "label": "SimplexNoise2D", "category": "generative", "sub": "Scale 0.02  Oct 3",  "x": 0,   "y": 90  },
+    { "id": "n3",  "label": "SimplexNoise2D", "category": "generative", "sub": "Scale 0.08  Oct 2",  "x": 0,   "y": 180 },
     { "id": "sum", "label": "Sum",            "category": "math",       "sub": "stack octaves",       "x": 290, "y": 90  },
     { "id": "out", "label": "Output",         "category": "output",                                   "x": 530, "y": 90  }
   ],
