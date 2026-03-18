@@ -3,7 +3,7 @@
 Each section shows a common wiring pattern -- what nodes to connect and why. The diagrams mirror how they look in the actual editor.
 
 **Beginner?** Start with patterns 1-4, then try the [Basic Terrain Generation guide](./understanding-basic-terrain-generation.md).
-**Advanced?** Patterns 7-13 cover blending, warping, shape SDFs, and full terrain stacks.
+**Advanced?** Patterns 7-14 cover blending, warping, shape SDFs, and full terrain stacks. Pattern 15 covers the skylands altitude band technique.
 
 ---
 
@@ -424,5 +424,56 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
   ]
 }
 ```
+
+---
+
+## 15. Skylands Altitude Band
+
+**What it does:** Defines a floating sky island layer at a specific altitude band using `BaseHeight` in distance mode. Everything outside the Y band is air; within the band, `SimplexNoise3D` shapes individual islands.
+
+**When to use it:** Any world type where terrain exists only at specific altitude ranges — sky islands, floating continents, layered void worlds.
+
+> [!IMPORTANT]
+> `BaseHeight` must have `Distance: true` for this pattern to work. In distance mode it outputs the raw Y distance from the named height rather than a clamped density value, allowing the `CurveMapper` to define the precise altitude band.
+
+```nodegraph
+{
+  "height": 260,
+  "nodes": [
+    { "id": "bh",  "label": "BaseHeight",    "category": "position", "sub": "Distance=true Base", "x": 0,   "y": 20  },
+    { "id": "cm",  "label": "CurveMapper",   "category": "filter",   "sub": "band peak at Y=110", "x": 200, "y": 20  },
+    { "id": "sn3", "label": "SimplexNoise3D","category": "generative","sub": "ScaleXZ 100 Oct 1",  "x": 0,   "y": 120 },
+    { "id": "si",  "label": "Sum",           "category": "math",     "sub": "noise + band",       "x": 380, "y": 70  },
+    { "id": "nr",  "label": "Normalizer",    "category": "filter",   "sub": "[-1,1]→[-1,1]",      "x": 560, "y": 70  },
+    { "id": "out", "label": "Terrain Out",   "category": "output",                                "x": 760, "y": 70  }
+  ],
+  "edges": [
+    { "from": "bh",  "to": "cm" },
+    { "from": "cm",  "to": "si",  "label": "altitude band" },
+    { "from": "sn3", "to": "si",  "label": "3D variation" },
+    { "from": "si",  "to": "nr" },
+    { "from": "nr",  "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "bh",  "text": "BaseHeight with Distance=true outputs the raw Y position relative to the named height. At BaseHeightName='Base' (Y=0), it simply outputs the world Y coordinate. This is the raw altitude value the band curve will work with." },
+    { "nodeId": "cm",  "text": "CurveMapper with a Manual band curve: -1 at Y=-30 (air below), +1 at Y=110 (solid at peak), -1 at Y=210 (air above). This curve defines the altitude window where islands can exist. Outside the window, everything is forced to air." },
+    { "nodeId": "sn3", "text": "SimplexNoise3D varies in all three dimensions. This breaks the flat slab that the band curve alone would create — islands get irregular tops, organic undersides, and holes. ScaleXZ=100 gives broad island shapes; Octaves=1 keeps them smooth." },
+    { "nodeId": "si",  "text": "Sum adds the band curve and the 3D noise. Within the altitude band the band curve is positive; noise pushes some areas over and under the solid threshold, carving the island edges." },
+    { "nodeId": "nr",  "text": "Normalizer clamps the combined output back to [-1, 1]. The Sum of two ±1 signals could reach ±2 — normalizing prevents downstream nodes from receiving out-of-range values. Add more island layers by summing additional band paths before Terrain Out." }
+  ]
+}
+```
+
+**Band curve construction (Manual points):**
+
+| X (Y distance) | Y (density output) |
+|---|---|
+| −30 | −1 (air below) |
+| 110 | +1 (solid peak) |
+| 210 | −1 (air above) |
+
+To add a second island layer at a higher altitude, add another `BaseHeight(Distance:true) → CurveMapper(peak at Y=240, range 200–280) → Multiplier(× Constant 1)` path and feed it into the outer `Sum` before `Terrain Out`. See [Terrain Types and Node Recipes](./terrain-types.md#5b-skylands-altitude-band-approach) for the full multi-layer recipe.
+
+---
 
 > **See also:** [Terrain Types and Node Recipes](./terrain-types.md) organizes these patterns by terrain outcome (plains, mountains, caves, dunes, etc.) with full working recipes. [Complex Terrain Techniques](./terrain-types-advanced.md) covers advanced combinations. [Expert Terrain Techniques](./terrain-types-expert.md) covers preview gaps, optimization, and graph topology.

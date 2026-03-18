@@ -339,6 +339,57 @@ These are two separate parameters people often confuse:
 
 ---
 
+### Recipe: Skylands altitude band
+
+This is the real-world technique used in Hytale skylands mods. It creates terrain that exists only within a vertical Y range — open air above and below, floating islands in the middle.
+
+```
+density = Sum(
+  Normalizer(
+    Sum(
+      SimplexNoise3D(ScaleXZ=100, ScaleY=50),    ← 3D variation for organic island shapes
+      CurveMapper(band_curve,                     ← defines the Y band where islands exist
+        BaseHeight(Distance=true, Name="Base"))   ← outputs raw Y position
+    )
+  ),
+  Multiplier(                                     ← optional: second island layer higher up
+    CurveMapper(upper_band_curve,
+      BaseHeight(Distance=true, Name="Base")),
+    Constant(1)
+  )
+)
+```
+
+**The key step: `BaseHeight` with `Distance: true`**
+
+Normally, `BaseHeight` outputs a clamped density — strongly positive below the surface, strongly negative above. This is fine for ground-based terrain but useless for altitude bands, because the density gradient already forces everything above the surface to be air.
+
+With `Distance: true`, `BaseHeight` outputs the **raw Y coordinate minus the named height** — a distance value, not a density. At `BaseHeightName: "Base"` (typically `Y: 0`), this simply outputs the world Y position.
+
+The `CurveMapper` then maps that Y value to density via a hand-drawn band curve:
+
+```
+Y = -30  →  density = -1   (air below the island band)
+Y = 110  →  density = +1   (solid at the peak altitude)
+Y = 210  →  density = -1   (air above the island band)
+```
+
+Anything outside the range is forced to air. The curve peak defines the altitude center of the island layer.
+
+**Why add `SimplexNoise3D`:**
+
+The band curve alone produces a flat solid slab — a perfect horizontal layer of infinite terrain. `SimplexNoise3D` breaks that into individual island chunks. Where the 3D noise is negative, it pulls the sum below zero within the altitude band → air → gap between islands. Where the noise is positive, it reinforces the band curve → solid → island mass.
+
+**Why `Normalizer` wraps the inner `Sum`:**
+
+`SimplexNoise3D` (±1) plus the band curve (±1) can sum to ±2. `Normalizer` maps `[-2, 2]` back to `[-1, 1]` so the outer `Sum` (which adds the second island layer) receives predictable inputs.
+
+**Adding more island layers:**
+
+Each additional layer is a `BaseHeight(Distance) → CurveMapper(different Y band) → Multiplier(× Constant)` path, summed at the end. The `Constant` acts as a layer weight — setting it to 1 adds the layer at full strength, lower values make it a subtle secondary feature.
+
+---
+
 ### Recipe: Biome blending
 
 The challenge is that you want two completely different terrain functions — desert plateaus vs forest hills — to coexist without a hard seam.

@@ -196,7 +196,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 ---
 
-## 5. Floating Islands
+## 5. Floating Islands (SDF approach)
 
 **What it looks like:** Chunks of terrain suspended in air, with nothing below. Classic fantasy or sky-world feel.
 
@@ -249,6 +249,87 @@ Parameters marked with `*` are the ones most worth tweaking first.
 - Multiple ellipsoids combined with `Sum` or `SmoothMax` for clustered island chains
 - Tilt the `Plane` `PlaneNormal` slightly (e.g. `[0.1, 1, 0]`) for angled undersides
 - Add a `SimplexNoise3D` with `Inverter` + `Min` to hollow out caves underneath the island
+
+---
+
+## 5b. Skylands (Altitude Band Approach)
+
+**What it looks like:** A world composed entirely of floating sky islands at specific altitude bands — solid terrain existing only within defined Y ranges, with open air above and below. Multiple island layers can exist at different heights.
+
+This technique is based on real-world usage in Hytale skylands mods and is the correct approach for skylands biomes.
+
+> [!IMPORTANT]
+> The key to this technique is `BaseHeight` with `Distance: true`. In distance mode, `BaseHeight` outputs the raw world Y coordinate minus the named height — a plain distance value, not a density gradient. This lets `CurveMapper` define a precise altitude band where terrain can exist.
+
+**How it works:**
+
+1. `BaseHeight` (Distance: true) at named height `"Base"` (Y=0) outputs the raw Y position
+2. A `CurveMapper` with a Manual band curve maps Y→density: solid at Y≈110, air above Y≈210 and below Y≈-30
+3. `SimplexNoise3D` adds 3D variation so islands have irregular edges and underbellies, not flat planes
+4. A `Normalizer` stabilizes the sum of noise + band curve to a predictable [-1, 1] range
+5. An optional second path adds an upper island ceiling band (Y≈240) via another `CurveMapper` × `Constant`, summed with the main path
+
+```nodegraph
+{
+  "height": 340,
+  "nodes": [
+    { "id": "bh1",  "label": "BaseHeight",    "category": "density",  "sub": "Distance=true Base", "x": 0,   "y": 20  },
+    { "id": "cm1",  "label": "CurveMapper",   "category": "filter",   "sub": "band: peak Y=110",   "x": 200, "y": 20  },
+    { "id": "sn3",  "label": "SimplexNoise3D","category": "density",  "sub": "ScaleXZ=100 Oct=1",  "x": 0,   "y": 110 },
+    { "id": "si",   "label": "Sum",           "category": "math",     "sub": "noise + band",       "x": 380, "y": 65  },
+    { "id": "nr",   "label": "Normalizer",    "category": "filter",   "sub": "[-1,1]→[-1,1]",      "x": 560, "y": 65  },
+    { "id": "bh2",  "label": "BaseHeight",    "category": "density",  "sub": "Distance=true Base", "x": 0,   "y": 220 },
+    { "id": "cm2",  "label": "CurveMapper",   "category": "filter",   "sub": "band: peak Y=240",   "x": 200, "y": 220 },
+    { "id": "con",  "label": "Constant",      "category": "density",  "sub": "Value 1",            "x": 200, "y": 290 },
+    { "id": "mul",  "label": "Multiplier",    "category": "math",     "sub": "upper layer",        "x": 380, "y": 255 },
+    { "id": "sum",  "label": "Sum",           "category": "math",     "sub": "combine layers",     "x": 720, "y": 150 },
+    { "id": "out",  "label": "Terrain Out",   "category": "output",                                "x": 920, "y": 150 }
+  ],
+  "edges": [
+    { "from": "bh1", "to": "cm1" },
+    { "from": "cm1", "to": "si",  "label": "altitude band" },
+    { "from": "sn3", "to": "si",  "label": "3D variation" },
+    { "from": "si",  "to": "nr" },
+    { "from": "nr",  "to": "sum", "label": "main layer" },
+    { "from": "bh2", "to": "cm2" },
+    { "from": "cm2", "to": "mul" },
+    { "from": "con", "to": "mul" },
+    { "from": "mul", "to": "sum", "label": "upper layer" },
+    { "from": "sum", "to": "out" }
+  ]
+}
+```
+
+**Band curve shape (CurveMapper Manual points):**
+
+The first CurveMapper defines where the main island layer exists:
+
+| Y distance from Base | Output density | Meaning |
+|---|---|---|
+| −30 | −1 | Air far below |
+| 110 | +1 | Solid at peak altitude |
+| 210 | −1 | Air far above |
+
+Draw a Manual curve that rises from −1 at −30, peaks at +1 around 110, then falls back to −1 at 210. Everything outside this range is air; the peak band is solid.
+
+The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the range 200–280, creating a second island layer higher up.
+
+**Key parameters:**
+- `BaseHeight` `Distance: true`\* — **required** — without this, BaseHeight outputs a clamped density, not a raw Y position; the band curve would not work
+- `BaseHeight` `BaseHeightName: "Base"`\* — references the named height defined in the WorldStructure JSON (typically `Y: 0` so Distance=raw Y)
+- `SimplexNoise3D` ScaleXZ`*`: `100`, ScaleY: `50` — large scale gives broad island shapes; `Octaves: 1` keeps islands smooth rather than jagged
+- `Normalizer` — stabilizes Sum output to `[-1, 1]`; prevents the noise + curve combination from pushing density too far positive or negative
+- Second path `Constant Value: 1` — the Multiplier outputs the band curve × 1, which is just the band curve value; this creates the upper layer additive contribution
+
+**Why `SimplexNoise3D` and not `SimplexNoise2D`:** 2D noise varies only horizontally — you'd get flat slab islands with identical cross-sections at every X/Z position. 3D noise varies vertically too, so islands have irregular, organic undersides and tops, with holes and overhangs where the noise dips negative within the altitude band.
+
+**Why `Normalizer` wraps the inner `Sum`:** The inner `Sum` of `SimplexNoise3D` (±1) and the band curve (±1) can reach ±2. Without normalization, the outer `Sum` combining both layers could push values well beyond ±2, making the density field hard to reason about and potentially blowing out cave carving or material selection downstream.
+
+**Variations:**
+- Add more island bands at different altitudes by repeating the `BaseHeight(Distance) → CurveMapper → Multiplier(Constant)` path and summing
+- Carve caves through the islands with the standard `SimplexNoise3D → Inverter → Min` pattern outside the island density
+- Add surface materials using the `DownwardSpace` / `UpwardSpace` providers to detect grass tops and cave ceilings
+- Use a biome map (`Imported` density from a separate biome graph) to spatially restrict which island bands appear where
 
 ---
 
@@ -561,7 +642,8 @@ Parameters marked with `*` are the ones most worth tweaking first.
 | Natural rolling hills | + `CurveMapper` + `YSampled` |
 | Mountains with ridges | + `Abs` on a second noise layer |
 | Flat-topped mesas | + `SmoothClamp` as a ceiling |
-| Floating islands | `Ellipsoid` + `Plane` + `Max` |
+| Floating islands (SDF) | `Ellipsoid` + `Plane` + `Max` |
+| Skylands / altitude bands | `BaseHeight(Distance:true)` → `CurveMapper` band curve + `SimplexNoise3D` → `Normalizer` |
 | Simple caves | `SimplexNoise3D` + `SmoothClamp` + `Inverter` + `Min` |
 | Caves that fade at surface | + `YValue` + `CurveMapper` depth gate |
 | Organic / flowing terrain | Wrap noise in `GradientWarp` |
