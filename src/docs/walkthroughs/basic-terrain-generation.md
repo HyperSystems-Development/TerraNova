@@ -61,14 +61,17 @@ A flat profile produces completely flat terrain. `SimplexNoise2D` adds horizonta
   "height": 160,
   "nodes": [
     { "id": "sn",  "label": "SimplexNoise2D", "category": "density", "sub": "Scale 0.01",  "x": 0,   "y": 60 },
-    { "id": "out", "label": "Terrain Out",    "category": "output",                        "x": 220, "y": 60 }
+    { "id": "sum", "label": "Sum",            "category": "math",                           "x": 220, "y": 60 },
+    { "id": "out", "label": "Terrain Out",    "category": "output",                         "x": 420, "y": 60 }
   ],
   "edges": [
-    { "from": "sn", "to": "out", "label": "−1 to 1" }
+    { "from": "sn",  "to": "sum", "label": "−1 to 1" },
+    { "from": "sum", "to": "out", "label": "density" }
   ],
   "steps": [
-    { "nodeId": "sn",  "text": "SimplexNoise2D alone gives you floating terrain — half solid, half air, with no concept of a surface. Scale 0.01 gives ~100-block wide features. Try this on its own to see what pure noise looks like before combining it with a height signal." },
-    { "nodeId": "out", "text": "The density here is pure noise — no vertical structure. The world cuts through the noise at density=0, giving floating islands and caves everywhere. This is not finished terrain, but it shows noise's raw output." }
+    { "nodeId": "sn",  "text": "SimplexNoise2D alone gives floating terrain — half solid, half air, with no concept of a surface. Scale 0.01 gives ~100-block wide features. On its own this is not useful, but it shows what raw noise looks like before a height signal is added." },
+    { "nodeId": "sum", "text": "Sum is always the final combinator before Terrain Out. Right now it only has one input, but the next step adds BaseHeight and CurveMapper here too. Routing through Sum keeps the graph extensible." },
+    { "nodeId": "out", "text": "Terrain Out receives the density. With only noise fed in, the surface is chaotic — floating blobs everywhere. This is a stepping stone; adding BaseHeight in the next section gives it a proper ground plane." }
   ]
 }
 ```

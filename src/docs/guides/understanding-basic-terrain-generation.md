@@ -68,15 +68,19 @@ The most common pairing is:
 
 A flat height profile with no noise produces completely flat terrain. Adding `SimplexNoise2D` introduces horizontal variation -- hills, valleys, and uneven ground.
 
+Always route density through `Sum` into `Terrain Out` — even when you have a single source. This matches the correct data flow pattern and makes it easy to add more inputs later.
+
 ```nodegraph
 {
   "height": 160,
   "nodes": [
-    { "id": "sn",   "label": "SimplexNoise2D", "category": "density", "sub": "Scale 0.01", "x": 0,   "y": 60 },
-    { "id": "out",  "label": "Terrain Out",    "category": "output",                       "x": 220, "y": 60 }
+    { "id": "sn",  "label": "SimplexNoise2D", "category": "density", "sub": "Scale 0.01", "x": 0,   "y": 60 },
+    { "id": "sum", "label": "Sum",            "category": "math",                          "x": 220, "y": 60 },
+    { "id": "out", "label": "Terrain Out",    "category": "output",                        "x": 420, "y": 60 }
   ],
   "edges": [
-    { "from": "sn", "to": "out", "label": "-1 to 1" }
+    { "from": "sn",  "to": "sum", "label": "-1 to 1" },
+    { "from": "sum", "to": "out", "label": "density" }
   ]
 }
 ```

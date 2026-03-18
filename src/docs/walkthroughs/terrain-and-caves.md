@@ -8,13 +8,13 @@ This walkthrough takes you through building four distinct terrain types from scr
 
 The simplest terrain: a flat surface at a fixed height. This is the starting point every other shape builds from.
 
-**Nodes needed:** `BaseHeight` → `Terrain Out`
+**Nodes needed:** `BaseHeight` → `Sum` → `Terrain Out`
 
-`BaseHeight` outputs `0` at a reference Y level. Positive above it, negative below. The world generator places solid blocks wherever density is positive — so this alone gives a perfectly flat plane.
+`BaseHeight` outputs `0` at a reference Y level — negative above it (air), positive below (solid). The world generator places solid blocks wherever density is positive, so this alone gives a perfectly flat plane.
 
 1. Right-click the canvas → **Add Node** → **Terrain** → **BaseHeight**
 2. In the properties panel set `Distance` to `false` (default).
-3. Connect `BaseHeight` → `Terrain Out`.
+3. Add a **Sum** node. Connect `BaseHeight` → `Sum` → `Terrain Out`.
 4. Click **Generate**. You should see a flat plane.
 
 ```nodegraph
@@ -22,15 +22,17 @@ The simplest terrain: a flat surface at a fixed height. This is the starting poi
   "height": 140,
   "nodes": [
     { "id": "bh",  "label": "BaseHeight",  "category": "terrain", "sub": "Y = 64",     "x": 0,   "y": 40 },
-    { "id": "out", "label": "Terrain Out", "category": "output",                        "x": 240, "y": 40 }
+    { "id": "sum", "label": "Sum",         "category": "math",                          "x": 240, "y": 40 },
+    { "id": "out", "label": "Terrain Out", "category": "output",                        "x": 440, "y": 40 }
   ],
   "edges": [
-    { "from": "bh", "to": "out", "label": "density" }
+    { "from": "bh",  "to": "sum", "label": "density" },
+    { "from": "sum", "to": "out", "label": "density" }
   ]
 }
 ```
 
-> **Key insight:** `BaseHeight` is always your vertical anchor. Every other terrain shape is a modification layered on top of it.
+> **Key insight:** Always route through `Sum` into `Terrain Out` — even when there is only one input. Every additional terrain layer (noise, caves, shapes) gets added into the same `Sum`, keeping the graph easy to extend.
 
 > **Preview gap:** `BaseHeight` returns `0.0` in TerraNova's preview — the plane will appear at Y=0 instead of Y=64. This is expected. The correct height is used when generating in-game.
 
