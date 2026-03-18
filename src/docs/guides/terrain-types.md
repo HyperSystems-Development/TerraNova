@@ -200,27 +200,34 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 **What it looks like:** Chunks of terrain suspended in air, with nothing below. Classic fantasy or sky-world feel.
 
-**The recipe:** An `Ellipsoid` SDF defines the island volume. `Max` intersects it with a `Plane` SDF to cut off the bottom. `SimplexNoise2D` adds surface variation on top.
+**The recipe:** An `Ellipsoid` SDF (with a `Curve` input) defines the island volume. `Max` intersects it with a `Plane` SDF (also requiring a `Curve` input) to cut off the bottom. `SimplexNoise2D` adds surface variation on top.
+
+> [!IMPORTANT]
+> Both `Ellipsoid` and `Plane` require a `Curve` node connection — this is a required input, not optional. Without it the node produces no output. Use a `CurveMapper` or a named curve asset as the curve source.
 
 ```nodegraph
 {
-  "height": 260,
+  "height": 300,
   "nodes": [
-    { "id": "el",  "label": "Ellipsoid",     "category": "density",   "sub": "r 200,60,200",   "x": 0,   "y": 0 },
-    { "id": "pl",  "label": "Plane",         "category": "density",   "sub": "Y base cut",     "x": 0,   "y": 100 },
-    { "id": "mx",  "label": "Max",           "category": "density",   "sub": "intersect",      "x": 260, "y": 50 },
-    { "id": "sn",  "label": "SimplexNoise2D","category": "density",   "sub": "Scale 0.01 Oct 3","x": 0,  "y": 190 },
-    { "id": "sc",  "label": "Constant",      "category": "density",   "sub": "Value 0.15",      "x": 0,  "y": 255 },
-    { "id": "mul", "label": "Multiplier",    "category": "density",   "sub": "× 0.15",          "x": 200, "y": 220 },
-    { "id": "sum", "label": "Sum",           "category": "density",                             "x": 440, "y": 120 },
-    { "id": "out", "label": "Terrain Out",   "category": "output",                              "x": 640, "y": 120 }
+    { "id": "ec",  "label": "CurveMapper",   "category": "filter",    "sub": "DistanceExponential", "x": 0,   "y": 0   },
+    { "id": "el",  "label": "Ellipsoid",     "category": "density",   "sub": "Scale [200,60,200]",  "x": 220, "y": 0   },
+    { "id": "pc",  "label": "CurveMapper",   "category": "filter",    "sub": "plane falloff",       "x": 0,   "y": 110 },
+    { "id": "pl",  "label": "Plane",         "category": "density",   "sub": "Normal [0,1,0]",      "x": 220, "y": 110 },
+    { "id": "mx",  "label": "Max",           "category": "density",   "sub": "intersect",           "x": 440, "y": 55  },
+    { "id": "sn",  "label": "SimplexNoise2D","category": "density",   "sub": "Scale 0.01 Oct 3",    "x": 0,   "y": 220 },
+    { "id": "nc",  "label": "Constant",      "category": "math",      "sub": "Value 0.15",          "x": 0,   "y": 280 },
+    { "id": "mul", "label": "Multiplier",    "category": "math",      "sub": "× 0.15",              "x": 220, "y": 250 },
+    { "id": "sum", "label": "Sum",           "category": "math",                                    "x": 600, "y": 140 },
+    { "id": "out", "label": "Terrain Out",   "category": "output",                                  "x": 800, "y": 140 }
   ],
   "edges": [
+    { "from": "ec",  "to": "el",  "label": "curve" },
     { "from": "el",  "to": "mx" },
-    { "from": "pl",  "to": "mx", "label": "bottom cut" },
+    { "from": "pc",  "to": "pl",  "label": "curve" },
+    { "from": "pl",  "to": "mx",  "label": "bottom cut" },
     { "from": "mx",  "to": "sum", "label": "island shape" },
     { "from": "sn",  "to": "mul" },
-    { "from": "sc",  "to": "mul" },
+    { "from": "nc",  "to": "mul" },
     { "from": "mul", "to": "sum", "label": "surface detail" },
     { "from": "sum", "to": "out" }
   ]
@@ -228,8 +235,11 @@ Parameters marked with `*` are the ones most worth tweaking first.
 ```
 
 **Key parameters:**
-- `Ellipsoid`\* radii: `X=200, Y=60, Z=200` — controls island width and thickness; smaller Y = thinner disc
-- `Plane` height: set to cut the bottom half of the ellipsoid, leaving a rounded top and flat underside
+- `Ellipsoid` `Scale`: `[200, 60, 200]` — controls island width and thickness as a vector3d; smaller Y = thinner disc, smaller X/Z = narrower footprint
+- `Ellipsoid` `Curve`: required — shapes the SDF falloff from center to edge; a convex/exponential curve gives a smooth rounded underside
+- `Plane` `PlaneNormal`: `[0, 1, 0]` — points straight up, creating a horizontal cut; tilt for angled undersides
+- `Plane` `IsAnchored`: `false` — unanchored plane follows world origin; set `true` to anchor to a position
+- `Plane` `Curve`: required — shapes the density at the plane surface; a linear ramp creates a sharp cut
 - `Max` — keeps only points that are solid in *both* the ellipsoid AND above the plane; this is intersection logic
 - Surface noise amplitude: `0.1–0.2` — small enough that it doesn't punch through the island edges
 
@@ -237,7 +247,7 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 **Variations:**
 - Multiple ellipsoids combined with `Sum` or `SmoothMax` for clustered island chains
-- Vary Y radius per island using different `Ellipsoid` sizes in a `Weighted` prop
+- Tilt the `Plane` `PlaneNormal` slightly (e.g. `[0.1, 1, 0]`) for angled undersides
 - Add a `SimplexNoise3D` with `Inverter` + `Min` to hollow out caves underneath the island
 
 ---

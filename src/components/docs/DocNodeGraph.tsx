@@ -4,12 +4,16 @@ import {
   ReactFlowProvider,
   Background,
   BackgroundVariant,
+  BaseEdge,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
   Handle,
   Position,
   MarkerType,
   useReactFlow,
   type Node,
   type Edge,
+  type EdgeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -60,13 +64,15 @@ export interface DocNodeGraphProps {
   steps?: DocGraphStep[];
 }
 
-const NODE_W = 160;
+const NODE_W = 200;
+// Docs were authored with 160px-wide nodes. Scale x positions so wider nodes don't overlap.
+const X_SCALE = 1.6;
 
 function makeRFNode(n: DocGraphNode, focusedId: string | null, hasSteps: boolean): Node {
   const color = CATEGORY_COLORS[n.category ?? "default"] ?? CATEGORY_COLORS.default;
   return {
     id: n.id,
-    position: { x: n.x, y: n.y },
+    position: { x: n.x * X_SCALE, y: n.y },
     data: { label: n.label, sub: n.sub, color, focused: focusedId === n.id, hasSteps },
     type: "docNode",
     style: { width: NODE_W },
@@ -81,12 +87,60 @@ function makeRFEdge(e: DocGraphEdge, i: number, focusedId: string | null, hasSte
     source: e.from,
     target: e.to,
     label: e.label,
-    type: "smoothstep",
+    type: "docEdge",
     markerEnd: { type: MarkerType.ArrowClosed, color, width: 18, height: 18 },
     style: { stroke: color, strokeWidth: 2, opacity: dimmed ? 0.3 : 1 },
-    labelStyle: { fill: dimmed ? "#4a4438" : "#c4baa8", fontSize: 11 },
-    labelBgStyle: { fill: "#1c1a17", fillOpacity: 0.9 },
+    data: { dimmed },
   };
+}
+
+function DocEdge({
+  id, sourceX, sourceY, targetX, targetY,
+  sourcePosition, targetPosition,
+  label, style, markerEnd, data,
+}: EdgeProps) {
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX, sourceY, targetX, targetY,
+    sourcePosition, targetPosition,
+  });
+
+  // Offset label toward the source end (30% along) to avoid landing on midpoint nodes
+  const lx = sourceX + (labelX - sourceX) * 0.55;
+  const ly = sourceY + (labelY - sourceY) * 0.55;
+
+  const dimmed = data?.dimmed as boolean | undefined;
+  const textColor = dimmed ? "#4a4438" : "#c4baa8";
+  const bgColor = "#1c1a17";
+  const borderColor = dimmed ? "#2e2b25" : "#4a4438";
+
+  return (
+    <>
+      <BaseEdge id={id} path={edgePath} style={style} markerEnd={markerEnd as string} />
+      {label && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: "absolute",
+              transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)`,
+              pointerEvents: "none",
+              zIndex: 9999,
+              background: bgColor,
+              color: textColor,
+              border: `1px solid ${borderColor}`,
+              borderRadius: 6,
+              fontSize: 11,
+              padding: "3px 8px",
+              whiteSpace: "nowrap",
+              lineHeight: 1.4,
+            }}
+            className="nodrag nopan"
+          >
+            {label as string}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
 }
 
 function DocNode({ data }: { data: { label: string; sub?: string; color: string; focused: boolean; hasSteps: boolean } }) {
@@ -104,11 +158,11 @@ function DocNode({ data }: { data: { label: string; sub?: string; color: string;
       className="rounded border bg-tn-panel text-tn-text select-none overflow-hidden"
     >
       <Handle type="target" position={Position.Left} style={{ background: "#6b5f4e", border: "none", width: 8, height: 8 }} />
-      <div style={{ background: data.color }} className="px-2.5 py-1 text-[13px] font-semibold text-white leading-tight truncate">
+      <div style={{ background: data.color }} className="px-3 py-1.5 text-[13px] font-semibold text-white leading-tight truncate">
         {data.label}
       </div>
       {data.sub && (
-        <div className="px-2.5 py-0.5 text-[11px] text-tn-text-muted truncate">{data.sub}</div>
+        <div className="px-3 py-1 text-[11px] text-tn-text-muted truncate">{data.sub}</div>
       )}
       <Handle type="source" position={Position.Right} style={{ background: "#6b5f4e", border: "none", width: 8, height: 8 }} />
     </div>
@@ -116,6 +170,7 @@ function DocNode({ data }: { data: { label: string; sub?: string; color: string;
 }
 
 const nodeTypes = { docNode: DocNode };
+const edgeTypes = { docEdge: DocEdge };
 
 function DocFlowInner({
   rfNodes,
@@ -152,6 +207,7 @@ function DocFlowInner({
       nodes={rfNodes}
       edges={rfEdges}
       nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
       fitView
       fitViewOptions={{ padding: 0.3, minZoom: 0.4, maxZoom: 1.5 }}
       nodesDraggable={false}
