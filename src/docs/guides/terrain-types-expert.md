@@ -164,7 +164,7 @@ Inputs:
   0: { Type: Exported, ExportAs: "shared_noise", ... }    ← registers first
   1: { Type: Sum, Inputs: [
          { Type: Imported, Name: "shared_noise" },         ← resolves safely
-         { Type: BaseHeight, Height: 64 }
+         { Type: BaseHeight, BaseHeightName: "surface", Distance: false }
        ]}
 ```
 

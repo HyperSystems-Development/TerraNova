@@ -25,7 +25,7 @@ This walkthrough takes you from a blank project to a working world with terrain,
 The simplest possible terrain: a flat ground plane at Y=64.
 
 1. Right-click the canvas → **Add Node** → **Terrain** → **BaseHeight**.
-2. Set its `Height` property to `64` in the properties panel on the right.
+2. In the properties panel, set `BaseHeightName` to the name of your configured base height (e.g. `"surface"`) and leave `Distance` unchecked.
 3. Drag the output pin of `BaseHeight` to the input of `Terrain Out`.
 4. Click **Generate** (toolbar or Ctrl+G) to preview. You should see a flat plane.
 
@@ -41,7 +41,7 @@ Now add surface variation:
 {
   "height": 200,
   "nodes": [
-    { "id": "bh",  "label": "BaseHeight",    "category": "terrain", "sub": "Height = 64",  "x": 0,   "y": 30 },
+    { "id": "bh",  "label": "BaseHeight",    "category": "terrain", "sub": "Y = 64",       "x": 0,   "y": 30 },
     { "id": "sn",  "label": "SimplexNoise2D","category": "terrain", "sub": "Scale 0.01",   "x": 0,   "y": 130 },
     { "id": "sum", "label": "Sum",           "category": "math",                            "x": 220, "y": 80 },
     { "id": "out", "label": "Terrain Out",   "category": "output",                          "x": 420, "y": 80 }

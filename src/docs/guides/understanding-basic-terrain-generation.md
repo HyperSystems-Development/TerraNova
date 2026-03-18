@@ -72,7 +72,7 @@ A flat height profile with no noise produces completely flat terrain. Adding `Si
 {
   "height": 160,
   "nodes": [
-    { "id": "sn",   "label": "SimplexNoise2D", "category": "density", "sub": "Freq 0.01", "x": 0,   "y": 60 },
+    { "id": "sn",   "label": "SimplexNoise2D", "category": "density", "sub": "Scale 0.01", "x": 0,   "y": 60 },
     { "id": "out",  "label": "Terrain Out",    "category": "output",                       "x": 220, "y": 60 }
   ],
   "edges": [
@@ -97,7 +97,7 @@ To create varied terrain, combine the height-based curve with noise using a `Sum
   "nodes": [
     { "id": "bh",  "label": "BaseHeight",    "category": "density", "sub": "Y = 64",        "x": 0,   "y": 20 },
     { "id": "cm",  "label": "CurveMapper",   "category": "density", "sub": "height profile", "x": 200, "y": 20 },
-    { "id": "sn",  "label": "SimplexNoise2D","category": "density", "sub": "Freq 0.01",      "x": 0,   "y": 130 },
+    { "id": "sn",  "label": "SimplexNoise2D","category": "density", "sub": "Scale 0.01",     "x": 0,   "y": 130 },
     { "id": "sum", "label": "Sum",           "category": "density",                          "x": 400, "y": 75 },
     { "id": "out", "label": "Terrain Out",   "category": "output",                           "x": 580, "y": 75 }
   ],
@@ -127,7 +127,7 @@ To carve caves, evaluate a 3D noise field and use `Min` to keep only regions tha
   "height": 220,
   "nodes": [
     { "id": "terrain", "label": "Sum (terrain)", "category": "density", "sub": "from above",  "x": 0,   "y": 60 },
-    { "id": "sn3",     "label": "SimplexNoise3D","category": "density", "sub": "Freq 0.04",   "x": 0,   "y": 155 },
+    { "id": "sn3",     "label": "SimplexNoise3D","category": "density", "sub": "ScaleXZ 0.04", "x": 0,   "y": 155 },
     { "id": "inv",     "label": "Inverter",      "category": "density", "sub": "flip caves",  "x": 200, "y": 155 },
     { "id": "min",     "label": "Min",           "category": "density", "sub": "carve",       "x": 370, "y": 100 },
     { "id": "out",     "label": "Terrain Out",   "category": "output",                        "x": 540, "y": 100 }
