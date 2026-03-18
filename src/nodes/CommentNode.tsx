@@ -30,7 +30,10 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
 
   const handleCommit = useCallback(() => {
     setIsEditing(false);
-    useEditorStore.getState().updateNodeField(id, "text", editText);
+    const { nodes, setNodes } = useEditorStore.getState();
+    setNodes(nodes.map((n) =>
+      n.id !== id ? n : { ...n, data: { ...n.data as object, text: editText } }
+    ));
   }, [id, editText]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {

@@ -74,6 +74,20 @@ function applyImportMetadata(
     result = [...result, ...commentNodes];
   }
 
+  // Inject frame nodes from $Groups (rendered behind everything else)
+  if (metadata.hytaleGroups.length > 0) {
+    const frameNodes: import("@xyflow/react").Node[] = metadata.hytaleGroups.map((g, i) => ({
+      id: `frame-import-${i}-${crypto.randomUUID()}`,
+      type: "frame",
+      position: { x: g.x, y: g.y },
+      data: { type: "frame", name: g.name, width: g.width, height: g.height },
+      draggable: true,
+      selectable: true,
+      zIndex: -1,
+    }));
+    result = [...frameNodes, ...result];
+  }
+
   return result;
 }
 
@@ -686,21 +700,44 @@ export function useTauriIO() {
           const firstKey = sectionKeys[0] ?? null;
           let firstSection = firstKey ? sections[firstKey] : null;
 
-          // Inject comment nodes from $NodeEditorMetadata into the first section
-          if (importMeta && importMeta.hytaleComments.length > 0 && firstSection) {
-            const commentNodes: import("@xyflow/react").Node[] = importMeta.hytaleComments.map((c, i) => ({
-              id: `comment-import-${i}-${crypto.randomUUID()}`,
-              type: "comment",
-              position: { x: c.x, y: c.y },
-              data: { type: "comment", text: c.text, width: c.width, height: c.height },
-              draggable: true,
-              selectable: true,
-            }));
-            firstSection = {
-              ...firstSection,
-              nodes: [...firstSection.nodes, ...commentNodes],
-            };
-            sections[firstKey!] = firstSection;
+          // Inject comment + frame nodes from $NodeEditorMetadata into the first section
+          if (importMeta && firstSection) {
+            const extraNodes: import("@xyflow/react").Node[] = [];
+
+            if (importMeta.hytaleGroups.length > 0) {
+              importMeta.hytaleGroups.forEach((g, i) => {
+                extraNodes.push({
+                  id: `frame-import-${i}-${crypto.randomUUID()}`,
+                  type: "frame",
+                  position: { x: g.x, y: g.y },
+                  data: { type: "frame", name: g.name, width: g.width, height: g.height },
+                  draggable: true,
+                  selectable: true,
+                  zIndex: -1,
+                });
+              });
+            }
+
+            if (importMeta.hytaleComments.length > 0) {
+              importMeta.hytaleComments.forEach((c, i) => {
+                extraNodes.push({
+                  id: `comment-import-${i}-${crypto.randomUUID()}`,
+                  type: "comment",
+                  position: { x: c.x, y: c.y },
+                  data: { type: "comment", text: c.text, width: c.width, height: c.height },
+                  draggable: true,
+                  selectable: true,
+                });
+              });
+            }
+
+            if (extraNodes.length > 0) {
+              firstSection = {
+                ...firstSection,
+                nodes: [...extraNodes, ...firstSection.nodes],
+              };
+              sections[firstKey!] = firstSection;
+            }
           }
 
           // Atomic state update — sets ALL biome state at once to avoid race conditions.

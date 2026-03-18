@@ -1872,6 +1872,7 @@ export function internalToHytaleBiome(
 function generateNodeEditorMetadata(nodes: Node[]): Record<string, unknown> {
   const $Nodes: Record<string, unknown> = {};
   const $Comments: unknown[] = [];
+  const $Groups: unknown[] = [];
 
   for (const node of nodes) {
     if (node.type === "comment") {
@@ -1881,6 +1882,14 @@ function generateNodeEditorMetadata(nodes: Node[]): Record<string, unknown> {
         "$Position": { "$x": node.position.x, "$y": node.position.y },
         "$Width": d.width ?? 200,
         "$Height": d.height ?? 80,
+      });
+    } else if (node.type === "frame") {
+      const d = node.data as { name?: string; width?: number; height?: number };
+      $Groups.push({
+        "$Position": { "$x": node.position.x, "$y": node.position.y },
+        "$width": d.width ?? 400,
+        "$height": d.height ?? 300,
+        "$name": d.name ?? "",
       });
     } else {
       $Nodes[node.id] = {
@@ -1893,7 +1902,7 @@ function generateNodeEditorMetadata(nodes: Node[]): Record<string, unknown> {
     $Nodes,
     $FloatingNodes: [],
     $Links: [],
-    $Groups: [],
+    $Groups,
     $Comments,
     $WorkspaceID: "",
   };

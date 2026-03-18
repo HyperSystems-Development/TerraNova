@@ -37,6 +37,15 @@ export interface HytaleComment {
   height: number;
 }
 
+/** Shape of a group (frame) entry from Hytale's $NodeEditorMetadata.$Groups */
+export interface HytaleGroup {
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 /** Side-channel storage for import metadata */
 export interface ImportMetadata {
   nodeEditorMetadata?: Record<string, unknown>;
@@ -44,19 +53,23 @@ export interface ImportMetadata {
   nodePositions: Record<string, { x: number; y: number }>;
   /** Parsed comments from $NodeEditorMetadata.$Comments */
   hytaleComments: HytaleComment[];
+  /** Parsed groups (frames) from $NodeEditorMetadata.$Groups */
+  hytaleGroups: HytaleGroup[];
   comments: Record<string, string>;
   nodeIds: Record<string, string>;
 }
 
 /**
- * Parse $NodeEditorMetadata into structured position + comment data.
+ * Parse $NodeEditorMetadata into structured position, comment, and group data.
  */
 export function parseNodeEditorMetadata(raw: Record<string, unknown>): {
   nodePositions: Record<string, { x: number; y: number }>;
   hytaleComments: HytaleComment[];
+  hytaleGroups: HytaleGroup[];
 } {
   const nodePositions: Record<string, { x: number; y: number }> = {};
   const hytaleComments: HytaleComment[] = [];
+  const hytaleGroups: HytaleGroup[] = [];
 
   const $Nodes = raw["$Nodes"] as Record<string, unknown> | undefined;
   if ($Nodes && typeof $Nodes === "object") {
@@ -89,7 +102,23 @@ export function parseNodeEditorMetadata(raw: Record<string, unknown>): {
     }
   }
 
-  return { nodePositions, hytaleComments };
+  const $Groups = raw["$Groups"] as unknown[] | undefined;
+  if (Array.isArray($Groups)) {
+    for (const g of $Groups) {
+      if (!g || typeof g !== "object") continue;
+      const group = g as Record<string, unknown>;
+      const pos = group["$Position"] as Record<string, unknown> | undefined;
+      hytaleGroups.push({
+        name: (group["$name"] as string) ?? "",
+        x: (pos?.["$x"] as number) ?? 0,
+        y: (pos?.["$y"] as number) ?? 0,
+        width: (group["$width"] as number) ?? 400,
+        height: (group["$height"] as number) ?? 300,
+      });
+    }
+  }
+
+  return { nodePositions, hytaleComments, hytaleGroups };
 }
 
 // ---------------------------------------------------------------------------
@@ -1319,6 +1348,7 @@ export function hytaleToInternal(
     nodeIds: {},
     nodePositions: {},
     hytaleComments: [],
+    hytaleGroups: [],
   };
 
   // Collect $NodeEditorMetadata from root
@@ -1328,6 +1358,7 @@ export function hytaleToInternal(
     const parsed = parseNodeEditorMetadata(raw);
     metadata.nodePositions = parsed.nodePositions;
     metadata.hytaleComments = parsed.hytaleComments;
+    metadata.hytaleGroups = parsed.hytaleGroups;
   }
 
   const result = transformNodeToInternal(json, {}, metadata);
@@ -1396,6 +1427,7 @@ export function hytaleToInternalBiome(
     nodeIds: {},
     nodePositions: {},
     hytaleComments: [],
+    hytaleGroups: [],
   };
 
   if ("$NodeEditorMetadata" in json) {
@@ -1404,6 +1436,7 @@ export function hytaleToInternalBiome(
     const parsed = parseNodeEditorMetadata(raw);
     metadata.nodePositions = parsed.nodePositions;
     metadata.hytaleComments = parsed.hytaleComments;
+    metadata.hytaleGroups = parsed.hytaleGroups;
   }
 
   const output: Record<string, unknown> = {};
