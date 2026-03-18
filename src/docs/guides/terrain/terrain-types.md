@@ -4,7 +4,7 @@
 
 This guide is organized by **what terrain you want to make**, not by which nodes exist. Each section describes the visual result, explains why the node combination produces it, and gives you working parameters to start from.
 
-For node wiring diagrams organized by pattern instead of outcome, see [Node Combination Patterns](./node-combinations.md).
+For node wiring diagrams organized by pattern instead of outcome, see [Node Combination Patterns](../world/node-combinations.md).
 
 ---
 
@@ -652,4 +652,4 @@ The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the ra
 | Island chains | `CellNoise2D` → `Normalizer` → `CurveMapper` mask |
 | Multi-style terrain | Low-freq selector → `Mix` between two terrain graphs |
 
-> **Next steps:** [Node Combination Patterns](./node-combinations.md) shows the individual building blocks behind each recipe. [Understanding Basic Terrain Generation](./understanding-basic-terrain-generation.md) covers density fundamentals if any of the concepts here are unclear.
+> **Next steps:** [Node Combination Patterns](../world/node-combinations.md) shows the individual building blocks behind each recipe. [Understanding Basic Terrain Generation](../understanding-basic-terrain-generation.md) covers density fundamentals if any of the concepts here are unclear.

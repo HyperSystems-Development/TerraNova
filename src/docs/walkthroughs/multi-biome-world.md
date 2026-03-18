@@ -199,4 +199,4 @@ Select a biome → switch to the **Material** tab in the editor → build the ma
 | 6 | Tested and tuned boundary appearance |
 | 7 | Added per-biome materials |
 
-> **Next:** Add props to each biome in the [Props and Prefab Placement guide](../guides/biome-system.md#props), or learn material layering in the [Biome System guide](../guides/biome-system.md). To understand how the biome blending math works, see [Terrain Math Explained](../guides/terrain-math-explained.md).
+> **Next:** Add props to each biome in the [Props and Prefab Placement guide](../guides/world/biome-system.md#props), or learn material layering in the [Biome System guide](../guides/world/biome-system.md). To understand how the biome blending math works, see [Terrain Math Explained](../guides/terrain/terrain-math-explained.md).

@@ -60,7 +60,7 @@ The most common pairing is:
 
 > In the properties panel, set `CurveMapper`'s Curve type to **Manual** and draw your terrain profile. The x-axis of the curve is the input value from `BaseHeight`; the y-axis is the output density.
 
-> **Under the hood:** `BaseHeight` crosses zero at the configured Y level — it is **negative above** (air) and **positive below** (solid ground). You can replicate it manually with a `Sum` of `YValue` and `Constant { Value: -80 }` if you need precise control (e.g. `Value: -80` gives a surface at Y=80). See [Terrain Math Explained](./terrain-math-explained.md) for a full breakdown of how density maps to terrain.
+> **Under the hood:** `BaseHeight` crosses zero at the configured Y level — it is **negative above** (air) and **positive below** (solid ground). You can replicate it manually with a `Sum` of `YValue` and `Constant { Value: -80 }` if you need precise control (e.g. `Value: -80` gives a surface at Y=80). See [Terrain Math Explained](./terrain/terrain-math-explained.md) for a full breakdown of how density maps to terrain.
 
 ---
 
@@ -179,6 +179,6 @@ Evaluating a full density graph at every Y level is expensive. `YSampled` wraps 
 
 ## See Also
 
-- [Terrain Math Explained](./terrain-math-explained.md) — the formulas behind noise Scale, Octaves, Persistence, and how combining nodes produces specific terrain shapes
-- [Curves Explained](./curves-explained.md) — detailed guide to curve types (Manual, DistanceExponential, DistanceS, Clamp, and more) used inside CurveMapper
-- [Node Combinations](./node-combinations.md) — practical wiring patterns for common terrain setups
+- [Terrain Math Explained](./terrain/terrain-math-explained.md) — the formulas behind noise Scale, Octaves, Persistence, and how combining nodes produces specific terrain shapes
+- [Curves Explained](./world/curves-explained.md) — detailed guide to curve types (Manual, DistanceExponential, DistanceS, Clamp, and more) used inside CurveMapper
+- [Node Combinations](./world/node-combinations.md) — practical wiring patterns for common terrain setups

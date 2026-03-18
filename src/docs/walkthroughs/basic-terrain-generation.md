@@ -181,4 +181,4 @@ Evaluating a full density graph at every Y level is expensive. `YSampled` wraps 
 
 ---
 
-> **Next:** Try [Terrain Types and Node Recipes](../guides/terrain-types.md) to see these concepts applied to specific terrain outcomes — mesas, floating islands, striped caves, and more.
+> **Next:** Try [Terrain Types and Node Recipes](../guides/terrain/terrain-types.md) to see these concepts applied to specific terrain outcomes — mesas, floating islands, striped caves, and more.

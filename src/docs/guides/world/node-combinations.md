@@ -2,7 +2,7 @@
 
 Each section shows a common wiring pattern -- what nodes to connect and why. The diagrams mirror how they look in the actual editor.
 
-**Beginner?** Start with patterns 1-4, then try the [Basic Terrain Generation guide](./understanding-basic-terrain-generation.md).
+**Beginner?** Start with patterns 1-4, then try the [Basic Terrain Generation guide](../understanding-basic-terrain-generation.md).
 **Advanced?** Patterns 7-14 cover blending, warping, shape SDFs, and full terrain stacks. Pattern 15 covers the skylands altitude band technique.
 
 ---
@@ -472,8 +472,8 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
 | 110 | +1 (solid peak) |
 | 210 | −1 (air above) |
 
-To add a second island layer at a higher altitude, add another `BaseHeight(Distance:true) → CurveMapper(peak at Y=240, range 200–280) → Multiplier(× Constant 1)` path and feed it into the outer `Sum` before `Terrain Out`. See [Terrain Types and Node Recipes](./terrain-types.md#5b-skylands-altitude-band-approach) for the full multi-layer recipe.
+To add a second island layer at a higher altitude, add another `BaseHeight(Distance:true) → CurveMapper(peak at Y=240, range 200–280) → Multiplier(× Constant 1)` path and feed it into the outer `Sum` before `Terrain Out`. See [Terrain Types and Node Recipes](../terrain/terrain-types.md#5b-skylands-altitude-band-approach) for the full multi-layer recipe.
 
 ---
 
-> **See also:** [Terrain Types and Node Recipes](./terrain-types.md) organizes these patterns by terrain outcome (plains, mountains, caves, dunes, etc.) with full working recipes. [Complex Terrain Techniques](./terrain-types-advanced.md) covers advanced combinations. [Expert Terrain Techniques](./terrain-types-expert.md) covers preview gaps, optimization, and graph topology.
+> **See also:** [Terrain Types and Node Recipes](../terrain/terrain-types.md) organizes these patterns by terrain outcome (plains, mountains, caves, dunes, etc.) with full working recipes. [Complex Terrain Techniques](../terrain/terrain-types-advanced.md) covers advanced combinations. [Expert Terrain Techniques](../terrain/terrain-types-expert.md) covers preview gaps, optimization, and graph topology.

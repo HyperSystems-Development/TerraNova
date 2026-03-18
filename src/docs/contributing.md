@@ -211,7 +211,7 @@ If a node only exists in the editor and not in the bundle, note it clearly as ed
 Use relative paths for all internal links:
 
 ```markdown
-[Node Combinations](../guides/node-combinations.md)
+[Node Combinations](../guides/world/node-combinations.md)
 [Walkthrough: Terrain and Caves](./terrain-and-caves.md)
 [Getting Started](../getting-started.md)
 ```

@@ -315,4 +315,4 @@ A biome then references `"TreeGrid"` via a `Framework` position provider instead
 7. Use the **Framework** to share position providers and constants across biomes without duplication.
 8. Use **`FloatingFunctionNodes`** with `Exported`/`Imported` to share computed density values between subsystems. Note that `MaterialProvider` is built before terrain density, so material providers must import from floating nodes, not from the terrain graph.
 
-> **See also:** [Node Combinations](./node-combinations.md) for terrain density patterns, [Reference](../reference/README.md) for full type listings, [Glossary](../glossary/README.md) for term definitions
+> **See also:** [Node Combinations](./node-combinations.md) for terrain density patterns, [Reference](../../reference/README.md) for full type listings, [Glossary](../../glossary/README.md) for term definitions

@@ -546,5 +546,5 @@ Very large jitter values can push positions into adjacent chunks before the scan
 
 ## See Also
 
-- [`../reference/README.md`](../reference/README.md) — schema reference for all prop types, position providers, and scanners
-- [`./biome-system.md`](./biome-system.md) — how props fit into the wider biome asset structure
+- [`../../reference/README.md`](../../reference/README.md) — schema reference for all prop types, position providers, and scanners
+- [`../world/biome-system.md`](../world/biome-system.md) — how props fit into the wider biome asset structure

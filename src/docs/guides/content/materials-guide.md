@@ -403,6 +403,6 @@ The `density` context field gives you the raw density value at a voxel, but this
 
 ## See Also
 
-- [Reference Index](../reference/README.md)
-- [Biome System](./biome-system.md)
-- [Terrain Math Explained](./terrain-math-explained.md)
+- [Reference Index](../../reference/README.md)
+- [Biome System](../world/biome-system.md)
+- [Terrain Math Explained](../terrain/terrain-math-explained.md)

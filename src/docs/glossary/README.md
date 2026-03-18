@@ -73,7 +73,7 @@ Material providers determine which block fills each solid voxel. The main provid
 
 ### Curve Types (used inside CurveMapper and as inputs to Ellipsoid / Plane)
 
-Curves are a separate asset type — they remap a number from one value to another. They are used inside `CurveMapper`, and as required port inputs on `Ellipsoid` and `Plane`. See [Curves Explained](../guides/curves-explained.md) for a full guide.
+Curves are a separate asset type — they remap a number from one value to another. They are used inside `CurveMapper`, and as required port inputs on `Ellipsoid` and `Plane`. See [Curves Explained](../guides/world/curves-explained.md) for a full guide.
 
 | Curve Type | Summary |
 |------------|---------|
@@ -102,5 +102,5 @@ Curves are a separate asset type — they remap a number from one value to anoth
 - [Asset Node Editor Nodes](./asset-node-editor-nodes.md) -- detailed node reference for the editor
 - [In-Game Commands](./in-game-commands.md) -- console commands for worldgen
 - [Reference](../reference/README.md) -- full technical reference
-- [Terrain Math Explained](../guides/terrain-math-explained.md) -- the math behind noise, combinators, and density parameters
-- [Curves Explained](../guides/curves-explained.md) -- full guide to every curve type and when to use each
+- [Terrain Math Explained](../guides/terrain/terrain-math-explained.md) -- the math behind noise, combinators, and density parameters
+- [Curves Explained](../guides/world/curves-explained.md) -- full guide to every curve type and when to use each

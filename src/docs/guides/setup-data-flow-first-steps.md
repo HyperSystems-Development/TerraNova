@@ -87,9 +87,9 @@ Connect `BaseHeight -> Terrain Out` and click Generate to see a flat plane at Y=
 **New to TerraNova?** Follow these in order:
 1. [Create a World](../walkthroughs/create-a-world.md) — hands-on: build your first working world from scratch
 2. [Understanding Basic Terrain Generation](./understanding-basic-terrain-generation.md) — how density, noise, and curves combine to make terrain
-3. [Terrain Math Explained](./terrain-math-explained.md) — the math behind every node parameter, with tuning tables
-4. [Curves Explained](./curves-explained.md) — what curve assets are and when to use each type
+3. [Terrain Math Explained](./terrain/terrain-math-explained.md) — the math behind every node parameter, with tuning tables
+4. [Curves Explained](./world/curves-explained.md) — what curve assets are and when to use each type
 
 **Going deeper:**
-- [Node Combinations](./node-combinations.md) — practical patterns for common terrain types
-- [Biome System](./biome-system.md) -- how biomes are structured and selected
+- [Node Combinations](./world/node-combinations.md) — practical patterns for common terrain types
+- [Biome System](./world/biome-system.md) -- how biomes are structured and selected

@@ -183,7 +183,7 @@ Exponential falloff. Useful when you want a value that drops off quickly near a 
 
 ## Curve Types
 
-Curves are a separate asset type used inside `CurveMapper` and as required inputs on `Ellipsoid` and `Plane`. See [Curves Explained](../guides/curves-explained.md) for the full guide.
+Curves are a separate asset type used inside `CurveMapper` and as required inputs on `Ellipsoid` and `Plane`. See [Curves Explained](../guides/world/curves-explained.md) for the full guide.
 
 | Curve | Effect |
 |-------|--------|

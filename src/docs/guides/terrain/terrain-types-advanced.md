@@ -4,7 +4,7 @@
 
 This guide covers terrain types that require nodes or patterns not covered in [Terrain Types and Node Recipes](./terrain-types.md). Each section tackles a specific complex outcome and explains what makes it harder — and why the recipe works.
 
-Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNoise2D/3D`, `Min`/`Max`, and `YSampled`. If any of those are unfamiliar, start with the [basic terrain guide](./understanding-basic-terrain-generation.md) first.
+Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNoise2D/3D`, `Min`/`Max`, and `YSampled`. If any of those are unfamiliar, start with the [basic terrain guide](../understanding-basic-terrain-generation.md) first.
 
 ---
 
@@ -419,4 +419,4 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
 | Overhang (3D GradientWarp) | High | Genuine overhangs are essential to the look |
 | Manual multi-scale stack | Proportional to layer count | You need precise control over each frequency |
 
-> **See also:** [Terrain Types and Node Recipes](./terrain-types.md) for the foundational terrain setups. [Node Combination Patterns](./node-combinations.md) for individual node building blocks. [Reference](../reference/README.md) for complete node type listings.
+> **See also:** [Terrain Types and Node Recipes](./terrain-types.md) for the foundational terrain setups. [Node Combination Patterns](../world/node-combinations.md) for individual node building blocks. [Reference](../../reference/README.md) for complete node type listings.
