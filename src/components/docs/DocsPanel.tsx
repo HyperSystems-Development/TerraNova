@@ -478,6 +478,7 @@ export function DocsPanel() {
   const [walkthroughActive, setWalkthroughActive] = useState(false);
   const [walkthroughStep, setWalkthroughStep] = useState(0);
   const [walkthroughSteps, setWalkthroughSteps] = useState<Array<{ title: string; content: string }>>([]);
+  const [isExperimental, setIsExperimental] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem("tn-docs-sidebar-collapsed") === "true";
@@ -604,6 +605,9 @@ export function DocsPanel() {
         navIndexRef.current = newIndex;
         setNavIndex(newIndex);
       }
+
+      // Detect experimental flag
+      setIsExperimental(text.includes("<!-- experimental -->"));
 
       // Parse walkthrough steps if applicable
       if (text.includes("<!-- walkthrough -->")) {
@@ -1069,6 +1073,15 @@ export function DocsPanel() {
               </div>
             ) : (
               <>
+                {isExperimental && (
+                  <div className="mb-5 flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-500/08 px-4 py-3 text-sm" style={{ background: "rgba(245,158,11,0.07)" }}>
+                    <span className="mt-0.5 shrink-0 text-base leading-none">⚗️</span>
+                    <div>
+                      <span className="font-semibold text-amber-400">Experimental</span>
+                      <span className="text-tn-text-muted"> — techniques in this guide push beyond normal usage. Expect artifacts, high costs, or behaviour that may change in future updates.</span>
+                    </div>
+                  </div>
+                )}
                 <DocToc entries={tocEntries} contentRef={contentRef} />
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}

@@ -311,3 +311,10 @@ body,
     stroke-dashoffset: -12;
   }
 }
+
+/* Doc node graph: active edge flow animation */
+@keyframes edge-flow {
+  to {
+    stroke-dashoffset: -9;
+  }
+}

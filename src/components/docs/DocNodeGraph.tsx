@@ -73,7 +73,7 @@ function makeRFNode(n: DocGraphNode, focusedId: string | null, hasSteps: boolean
   return {
     id: n.id,
     position: { x: n.x * X_SCALE, y: n.y },
-    data: { label: n.label, sub: n.sub, color, focused: focusedId === n.id, hasSteps },
+    data: { label: n.label, sub: n.sub, category: n.category, color, focused: focusedId === n.id, hasSteps },
     type: "docNode",
     style: { width: NODE_W },
   };
@@ -81,7 +81,8 @@ function makeRFNode(n: DocGraphNode, focusedId: string | null, hasSteps: boolean
 
 function makeRFEdge(e: DocGraphEdge, i: number, focusedId: string | null, hasSteps: boolean): Edge {
   const dimmed = hasSteps && focusedId !== null && e.from !== focusedId && e.to !== focusedId;
-  const color = dimmed ? "#3a3428" : "#6b5f4e";
+  const active = hasSteps && focusedId !== null && !dimmed;
+  const color = dimmed ? "#3a3428" : active ? "#b5924c" : "#6b5f4e";
   return {
     id: e.id ?? `e-${i}`,
     source: e.from,
@@ -89,7 +90,13 @@ function makeRFEdge(e: DocGraphEdge, i: number, focusedId: string | null, hasSte
     label: e.label,
     type: "docEdge",
     markerEnd: { type: MarkerType.ArrowClosed, color, width: 18, height: 18 },
-    style: { stroke: color, strokeWidth: 2, opacity: dimmed ? 0.3 : 1 },
+    style: {
+      stroke: color,
+      strokeWidth: active ? 2.5 : 2,
+      opacity: dimmed ? 0.25 : 1,
+      strokeDasharray: active ? "6 3" : undefined,
+      animation: active ? "edge-flow 0.6s linear infinite" : undefined,
+    },
     data: { dimmed },
   };
 }
@@ -143,28 +150,42 @@ function DocEdge({
   );
 }
 
-function DocNode({ data }: { data: { label: string; sub?: string; color: string; focused: boolean; hasSteps: boolean } }) {
+function DocNode({ data }: { data: { label: string; sub?: string; color: string; category?: string; focused: boolean; hasSteps: boolean } }) {
   const dimmed = data.hasSteps && !data.focused;
-  const glow = data.focused ? `0 0 0 2.5px ${data.color}, 0 0 18px ${data.color}99` : undefined;
+  const glow = data.focused ? `0 0 0 2px ${data.color}, 0 0 16px ${data.color}88` : undefined;
+  const handleStyle = { background: data.color, border: "2px solid #1c1a17", width: 10, height: 10, borderRadius: "50%" };
   return (
     <div
       style={{
-        borderColor: data.color,
-        borderWidth: 1.5,
-        opacity: dimmed ? 0.35 : 1,
+        borderColor: data.focused ? data.color : `${data.color}88`,
+        borderWidth: data.focused ? 2 : 1.5,
+        opacity: dimmed ? 0.3 : 1,
         boxShadow: glow,
-        transition: "opacity 0.2s, box-shadow 0.2s",
+        transition: "opacity 0.2s, box-shadow 0.2s, border-color 0.2s",
       }}
-      className="rounded border bg-tn-panel text-tn-text select-none overflow-hidden"
+      className="rounded-md border bg-tn-panel text-tn-text select-none overflow-hidden"
     >
-      <Handle type="target" position={Position.Left} style={{ background: "#6b5f4e", border: "none", width: 8, height: 8 }} />
+      <Handle type="target" position={Position.Left} style={handleStyle} />
+      {/* Colored header */}
       <div style={{ background: data.color }} className="px-3 py-1.5 text-[13px] font-semibold text-white leading-tight truncate">
         {data.label}
       </div>
-      {data.sub && (
-        <div className="px-3 py-1 text-[11px] text-tn-text-muted truncate">{data.sub}</div>
-      )}
-      <Handle type="source" position={Position.Right} style={{ background: "#6b5f4e", border: "none", width: 8, height: 8 }} />
+      {/* Sub-label + category badge row */}
+      <div className="flex items-center justify-between gap-1 px-2.5 py-1 min-h-[22px]">
+        {data.sub
+          ? <span className="text-[11px] text-tn-text-muted truncate flex-1">{data.sub}</span>
+          : <span className="flex-1" />
+        }
+        {data.category && (
+          <span
+            style={{ color: data.color, borderColor: `${data.color}44`, background: `${data.color}14` }}
+            className="text-[9px] font-medium uppercase tracking-wider border rounded px-1 py-px shrink-0 leading-tight"
+          >
+            {data.category}
+          </span>
+        )}
+      </div>
+      <Handle type="source" position={Position.Right} style={handleStyle} />
     </div>
   );
 }
@@ -253,33 +274,43 @@ export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraph
 
       {hasSteps && (
         <div
-          className="border-t border-tn-border bg-tn-panel/60 px-4 py-3"
+          className="border-t border-tn-border bg-tn-panel/60 px-4 pt-2 pb-3"
           onKeyDown={(e) => {
             if (e.key === "ArrowLeft") setStepIndex((s) => Math.max(0, s - 1));
             if (e.key === "ArrowRight") setStepIndex((s) => Math.min(steps.length - 1, s + 1));
           }}
           tabIndex={0}
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] text-tn-text-muted" aria-live="polite">
-              Step {stepIndex + 1} of {steps.length}
+          {/* Progress bar */}
+          <div className="flex items-center gap-2 mb-2.5">
+            <div className="flex-1 h-1 rounded-full bg-tn-border overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${((stepIndex + 1) / steps.length) * 100}%`,
+                  background: "var(--tn-accent, #b5924c)",
+                }}
+              />
+            </div>
+            <span className="text-[11px] text-tn-text-muted shrink-0" aria-live="polite">
+              {stepIndex + 1} / {steps.length}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
-                className="px-3 py-1 text-xs rounded border border-tn-border text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text disabled:opacity-30"
+                className="px-2.5 py-0.5 text-xs rounded border border-tn-border text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text disabled:opacity-30 transition-colors"
                 disabled={stepIndex === 0}
                 onClick={() => setStepIndex((s) => s - 1)}
               >
-                ← Prev
+                ←
               </button>
               <button
                 type="button"
-                className="px-3 py-1 text-xs rounded border border-tn-border text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text disabled:opacity-30"
+                className="px-2.5 py-0.5 text-xs rounded border border-tn-border text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text disabled:opacity-30 transition-colors"
                 disabled={stepIndex === steps.length - 1}
                 onClick={() => setStepIndex((s) => s + 1)}
               >
-                Next →
+                →
               </button>
             </div>
           </div>
