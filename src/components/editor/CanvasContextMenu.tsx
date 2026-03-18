@@ -26,6 +26,27 @@ export function CanvasContextMenu({ x, y, onClose, onQuickAdd }: CanvasContextMe
           onQuickAdd();
         }}
       />
+      <ContextMenuItem
+        label="Add Comment"
+        onClick={() => {
+          const flowPos = reactFlow.screenToFlowPosition({ x, y });
+          const id = `comment-${crypto.randomUUID()}`;
+          const { nodes, setNodes, commitState } = useEditorStore.getState();
+          setNodes([
+            ...nodes,
+            {
+              id,
+              type: "comment",
+              position: flowPos,
+              data: { type: "comment", text: "", width: 200, height: 80 },
+              draggable: true,
+              selectable: true,
+            },
+          ]);
+          commitState("Add comment");
+          onClose();
+        }}
+      />
       <ContextMenuSeparator />
       <ContextMenuItem
         label="Paste"
