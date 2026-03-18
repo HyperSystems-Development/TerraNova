@@ -58,17 +58,17 @@ type DocTreeNodeData = FolderNode | FileNode;
 function tagsFromSlug(slug: string): string[] {
   const tags: string[] = [];
   const name = slug.split("/").pop() ?? "";
-  if (name.includes("experimental"))                                                      tags.push("experimental");
-  else if (name.includes("expert"))                                                       tags.push("expert");
+  if (name.includes("experimental"))                                                        tags.push("experimental");
+  else if (name.includes("expert"))                                                         tags.push("expert");
   else if (name.includes("advanced") || name.includes("sculpting") || name.includes("composition")) tags.push("advanced");
   else if (name.includes("terrain-types") || name.includes("node-combinations") ||
-           name.includes("multi-biome") || name.includes("terrain-and-caves") ||
-           name.includes("biome-system") || name.includes("terrain-math") ||
+           name.includes("multi-biome")   || name.includes("terrain-and-caves")  ||
+           name.includes("biome-system")  || name.includes("terrain-math")       ||
            name.includes("curves-explained") || name.includes("materials-guide") ||
-           name.includes("props-and-placement"))                                           tags.push("intermediate");
+           name.includes("props-and-placement") || name.includes("periodic"))              tags.push("intermediate");
   else if (name.includes("basic") || name.includes("data-flow") ||
            name.includes("create-a-world") || name.includes("setup") ||
-           name.includes("understanding"))                                                tags.push("basic");
+           name.includes("understanding"))                                                  tags.push("basic");
   return tags;
 }
 
@@ -81,30 +81,37 @@ function slugFromPath(path: string) {
 
 const SLUG_TITLE_OVERRIDES: Record<string, string> = {
   // Glossary
-  "glossary/asset-node-editor-nodes":               "Node Editor Nodes",
-  "glossary/in-game-commands":                       "In-Game Commands",
-  // Guides
-  "guides/biome-system":                             "Biome System",
-  "guides/node-combinations":                        "Node Combinations",
-  "guides/terrain-math-explained":                   "Terrain Math Explained",
-  "guides/curves-explained":                         "Curves Explained",
-  "guides/materials-guide":                          "Materials Guide",
-  "guides/props-and-placement":                      "Props & Placement",
-  "guides/setup-data-flow-first-steps":              "Data Flow & First Steps",
-  "guides/understanding-basic-terrain-generation":   "Basic Terrain Generation",
-  "guides/terrain-types":                            "Terrain Types",
-  "guides/terrain-types-advanced":                   "Complex Terrain",
-  "guides/terrain-types-expert":                     "Expert Terrain",
-  "guides/terrain-sculpting-advanced":               "Terrain Sculpting",
-  "guides/terrain-composition-expert":               "Terrain Composition",
-  "guides/terrain-experimental":                     "Experimental Terrain",
+  "glossary/asset-node-editor-nodes":                        "Node Editor Nodes",
+  "glossary/in-game-commands":                               "In-Game Commands",
+  // Guides — sub-folder display names
+  "guides/terrain":                                          "Terrain",
+  "guides/world":                                            "World Building",
+  "guides/content":                                          "Content",
+  // Guides root
+  "guides/setup-data-flow-first-steps":                      "Data Flow & First Steps",
+  "guides/understanding-basic-terrain-generation":           "Basic Terrain Generation",
+  // Guides/terrain
+  "guides/terrain/terrain-types":                            "Terrain Types",
+  "guides/terrain/terrain-types-advanced":                   "Complex Terrain",
+  "guides/terrain/terrain-types-expert":                     "Expert Terrain",
+  "guides/terrain/terrain-sculpting-advanced":               "Terrain Sculpting",
+  "guides/terrain/terrain-composition-expert":               "Terrain Composition",
+  "guides/terrain/terrain-experimental":                     "Experimental Terrain",
+  "guides/terrain/terrain-math-explained":                   "Terrain Math",
+  // Guides/world
+  "guides/world/biome-system":                               "Biome System",
+  "guides/world/node-combinations":                          "Node Combinations",
+  "guides/world/curves-explained":                           "Curves Explained",
+  // Guides/content
+  "guides/content/materials-guide":                          "Materials Guide",
+  "guides/content/props-and-placement":                      "Props & Placement",
   // Walkthroughs
-  "walkthroughs/data-flow-first-steps":              "Data Flow & First Steps",
-  "walkthroughs/basic-terrain-generation":           "Basic Terrain Generation",
-  "walkthroughs/create-a-world":                     "Create a World",
-  "walkthroughs/terrain-and-caves":                  "Terrain & Caves",
-  "walkthroughs/multi-biome-world":                  "Multi-Biome World",
-  "walkthroughs/periodic-density-stripes":           "Density Stripes",
+  "walkthroughs/data-flow-first-steps":                      "Data Flow & First Steps",
+  "walkthroughs/basic-terrain-generation":                   "Basic Terrain Generation",
+  "walkthroughs/create-a-world":                             "Create a World",
+  "walkthroughs/terrain-and-caves":                          "Terrain & Caves",
+  "walkthroughs/multi-biome-world":                          "Multi-Biome World",
+  "walkthroughs/periodic-density-stripes":                   "Density Stripes",
 };
 
 function titleFromSlug(slug: string) {
@@ -197,23 +204,6 @@ function parseToc(md: string): TocEntry[] {
 }
 
 function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
-  const sectionMap = new Map<string, FolderNode>();
-  const sections: FolderNode[] = ROOT_SECTION_ORDER.map((section) => {
-    const folder: FolderNode = { type: "folder", title: section.title, slug: section.slug, children: [] };
-    sectionMap.set(section.key, folder);
-    return folder;
-  });
-
-  const otherSection: FolderNode = { type: "folder", title: "Other", slug: "other", children: [] };
-
-  for (const entry of entries) {
-    const parts = entry.slug.split("/");
-    const sectionKey = parts.length === 1 ? entry.slug : parts[0];
-    const section = sectionMap.get(sectionKey) ?? otherSection;
-    const title = parts.length === 1 ? entry.title : titleFromSlug(parts.slice(1).join("/"));
-    section.children.push({ type: "file", title, slug: entry.slug, tags: tagsFromSlug(entry.slug) });
-  }
-
   const DIFFICULTY_ORDER: Record<string, number> = {
     basic: 0, intermediate: 1, advanced: 2, expert: 3, experimental: 4,
   };
@@ -222,43 +212,90 @@ function buildDocTree(entries: DocEntry[]): DocTreeNodeData[] {
     const tag = (node.tags ?? []).find((t) => t in DIFFICULTY_ORDER);
     return tag !== undefined ? DIFFICULTY_ORDER[tag] : -1;
   }
-  function sortByDifficulty(nodes: DocTreeNodeData[]): DocTreeNodeData[] {
-    return [...nodes].sort((a, b) => {
-      const da = difficultyRank(a);
-      const db = difficultyRank(b);
-      if (da === -1 && db === -1) return 0; // untagged: preserve order
-      if (da === -1) return 1;              // untagged sinks to bottom
-      if (db === -1) return -1;
-      return da - db;
-    });
+  function sortRecursive(nodes: DocTreeNodeData[]): DocTreeNodeData[] {
+    return [...nodes]
+      .sort((a, b) => {
+        // Folders sort before files (alphabetically within each group)
+        if (a.type === "folder" && b.type !== "folder") return -1;
+        if (a.type !== "folder" && b.type === "folder") return 1;
+        if (a.type === "file" && b.type === "file") {
+          const da = difficultyRank(a), db = difficultyRank(b);
+          if (da !== -1 || db !== -1) {
+            if (da === -1) return 1;
+            if (db === -1) return -1;
+            return da - db;
+          }
+        }
+        return 0;
+      })
+      .map((n) => n.type === "folder" ? { ...n, children: sortRecursive(n.children) } : n);
   }
 
-  // Build final tree: sections with multiple children become folder nodes;
-  // sections whose only child is a same-named top-level file collapse to a file node directly.
-  const result: DocTreeNodeData[] = [];
-
-  for (const section of sections) {
-    if (section.children.length === 0) continue;
-
-    // Always strip README/index files -- the folder header loads them on click
-    const meaningful = section.children.filter((child) =>
-      child.type !== "file" || !/\/(readme|index)$/i.test(child.slug)
+  /** Recursively insert an entry under parentFolder, using remainingParts to navigate/create sub-folders. */
+  function insertIntoFolder(parentFolder: FolderNode, remainingParts: string[], entry: DocEntry): void {
+    if (remainingParts.length === 1) {
+      parentFolder.children.push({
+        type: "file",
+        title: SLUG_TITLE_OVERRIDES[entry.slug] ?? titleFromSlug(remainingParts[0]),
+        slug: entry.slug,
+        tags: tagsFromSlug(entry.slug),
+      });
+      return;
+    }
+    const [head, ...tail] = remainingParts;
+    const childSlug = parentFolder.slug + "/" + head;
+    let subfolder = parentFolder.children.find(
+      (c): c is FolderNode => c.type === "folder" && c.slug === childSlug,
     );
+    if (!subfolder) {
+      subfolder = {
+        type: "folder",
+        title: SLUG_TITLE_OVERRIDES[childSlug] ?? titleFromSlug(head),
+        slug: childSlug,
+        children: [],
+      };
+      parentFolder.children.push(subfolder);
+    }
+    insertIntoFolder(subfolder, tail, entry);
+  }
 
-    if (meaningful.length === 0) {
-      // Only a README existed -- expose it as a single file node with the section title
-      const only = section.children[0];
-      result.push({ type: "file", title: section.title, slug: only.slug });
-    } else if (meaningful.length === 1 && section.children.length === 1) {
-      // Single file section (e.g. overview, introduction) -- no folder wrapper needed
-      result.push({ type: "file", title: section.title, slug: meaningful[0].slug });
+  const sectionMap = new Map<string, FolderNode>();
+  const sections: FolderNode[] = ROOT_SECTION_ORDER.map((section) => {
+    const folder: FolderNode = { type: "folder", title: section.title, slug: section.slug, children: [] };
+    sectionMap.set(section.key, folder);
+    return folder;
+  });
+  const otherSection: FolderNode = { type: "folder", title: "Other", slug: "other", children: [] };
+
+  for (const entry of entries) {
+    const parts = entry.slug.split("/");
+    const sectionKey = parts[0];
+    const section = sectionMap.get(sectionKey) ?? otherSection;
+    if (parts.length === 1) {
+      // Top-level file (overview, troubleshooting, etc.)
+      section.children.push({ type: "file", title: entry.title, slug: entry.slug, tags: tagsFromSlug(entry.slug) });
     } else {
-      result.push({ ...section, children: sortByDifficulty(meaningful) });
+      insertIntoFolder(section, parts.slice(1), entry);
     }
   }
 
+  // Build final tree: collapse single-file sections, strip README nodes from folder display
+  const result: DocTreeNodeData[] = [];
+  for (const section of sections) {
+    if (section.children.length === 0) continue;
+    const meaningful = section.children.filter((child) =>
+      child.type !== "file" || !/\/(readme|index)$/i.test(child.slug),
+    );
+    if (meaningful.length === 0) {
+      const only = section.children[0];
+      result.push({ type: "file", title: section.title, slug: only.slug });
+    } else if (meaningful.length === 1 && section.children.length === 1) {
+      result.push({ type: "file", title: section.title, slug: meaningful[0].slug });
+    } else {
+      result.push({ ...section, children: sortRecursive(meaningful) });
+    }
+  }
   if (otherSection.children.length > 0) result.push(otherSection);
-
   return result;
 }
 
