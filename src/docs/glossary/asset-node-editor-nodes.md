@@ -92,7 +92,35 @@ A performance optimization wrapper. Instead of evaluating the wrapped density at
 
 ### GradientWarp
 
-Displaces the sampling position using another density function. Creates twisted, turbulent terrain. `FastGradientWarp` is a cheaper version.
+Displaces the sampling position using another density function. Creates twisted, turbulent terrain. `FastGradientWarp` is a cheaper version with similar results at lower cost — prefer it unless you need maximum quality.
+
+### Gradient
+
+Computes the density gradient (rate of change) at a point. The output is a 3D vector — use the Y component to detect surface slope. Steep terrain has a large Y gradient; flat terrain has a small one. Used for slope-based material assignment and terrain terracing.
+
+### Switch
+
+Routes between multiple density inputs based on a `SwitchState`. Allows branching logic in a graph — e.g. use one cave density system below Y=40 and another above it.
+
+### Multiplier
+
+Multiplies all density inputs together. The primary way to scale noise amplitude — use with a `Constant` node:
+```
+Multiplier(SimplexNoise2D, Constant { Value: 0.35 })
+```
+This produces noise at 35% of its natural amplitude.
+
+### CellWallDistance
+
+Outputs the distance to the nearest Voronoi cell wall. Produces a value near 0 at cell edges and near 1 at cell centers. Used to carve river channel networks, crack patterns, and biome-internal region divisions.
+
+### Cache / Cache2D
+
+Memoization nodes. `Cache` stores evaluated density values for a 3D region; `Cache2D` stores a 2D slice. Use when the same subgraph is referenced by multiple downstream nodes to avoid evaluating it twice. Significant performance gain in DAG-diamond patterns.
+
+### Exported / Imported
+
+`Exported` marks a density subgraph as a reusable named output accessible from other graphs. `Imported` references an exported graph from another asset. Used to share a single terrain density function across multiple biome assets without duplicating the graph.
 
 ### DistanceToBiomeEdge
 
@@ -148,6 +176,23 @@ An S-shaped curve providing smooth ease-in and ease-out transitions. Used for na
 ### DistanceExponential
 
 Exponential falloff. Useful when you want a value that drops off quickly near a boundary.
+
+---
+
+---
+
+## Curve Types
+
+Curves are a separate asset type used inside `CurveMapper` and as required inputs on `Ellipsoid` and `Plane`. See [Curves Explained](../guides/curves-explained.md) for the full guide.
+
+| Curve | Effect |
+|-------|--------|
+| `Manual` | Custom control-point spline — most flexible |
+| `DistanceExponential` | Exponential falloff from a surface — crisp island edges |
+| `DistanceS` | S-shaped transition — beaches, gradual biome edges |
+| `Clamp` / `SmoothClamp` | Hard / smooth range limiting |
+| `Floor` / `Ceiling` | One-sided range enforcement |
+| `Inverter` | Flip the curve: `1 - input` |
 
 ---
 

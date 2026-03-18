@@ -48,6 +48,7 @@ This section defines key terms used in TerraNova and Hytale WorldGen V2.
 | `Clamp` | Limits output to a min/max range. Prevents runaway values. |
 | `SmoothMin` | Like `Min` but with a smooth blend zone at the boundary. |
 | `SmoothMax` | Like `Max` but with a smooth blend zone. |
+| `Multiplier` | Multiplies all density inputs together. Use with `Constant` to scale amplitude: `Multiplier(noise, Constant { Value: 0.4 })`. |
 
 ### Axis Nodes
 
@@ -70,15 +71,20 @@ Material providers determine which block fills each solid voxel. The main provid
 | `UpwardSpace` | Assigns material based on space measured upward. |
 | `Striped` | Applies a striped material pattern. |
 
-### Curve Types (used inside CurveMapper)
+### Curve Types (used inside CurveMapper and as inputs to Ellipsoid / Plane)
 
-These are not standalone nodes -- they are curve types you select in the `CurveMapper` properties panel.
+Curves are a separate asset type — they remap a number from one value to another. They are used inside `CurveMapper`, and as required port inputs on `Ellipsoid` and `Plane`. See [Curves Explained](../guides/curves-explained.md) for a full guide.
 
 | Curve Type | Summary |
 |------------|---------|
 | `Manual` | A hand-drawn spline. You place control points to define the exact remapping shape. |
-| `DistanceExponential` | Exponential falloff curve -- useful for smooth distance-based fades. |
-| `DistanceS` | S-shaped curve for smooth transitions at both ends of a range. |
+| `DistanceExponential` | Exponential falloff — solid core that fades quickly to air. Fields: `Range`, `ExponentA`. |
+| `DistanceS` | S-shaped curve for smooth transitions with a controlled mid-zone. Fields: `Range`, `Transition`, `TransitionSmooth`, `ExponentA`, `ExponentB`. |
+| `Clamp` / `SmoothClamp` | Hard / smooth limit on output range. Fields: `WallA` (upper), `WallB` (lower). |
+| `Floor` / `SmoothFloor` | Enforce a minimum value only. |
+| `Ceiling` / `SmoothCeiling` | Enforce a maximum value only. |
+| `Inverter` | Output = `1 - input`. Flips a curve shape. |
+| `Sum`, `Min`, `Max`, `Multiplier` | Combine two curves mathematically (curve-space equivalents of density combinators). |
 
 ## File Formats
 
@@ -96,3 +102,5 @@ These are not standalone nodes -- they are curve types you select in the `CurveM
 - [Asset Node Editor Nodes](./asset-node-editor-nodes.md) -- detailed node reference for the editor
 - [In-Game Commands](./in-game-commands.md) -- console commands for worldgen
 - [Reference](../reference/README.md) -- full technical reference
+- [Terrain Math Explained](../guides/terrain-math-explained.md) -- the math behind noise, combinators, and density parameters
+- [Curves Explained](../guides/curves-explained.md) -- full guide to every curve type and when to use each

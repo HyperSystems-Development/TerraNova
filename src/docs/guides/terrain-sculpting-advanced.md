@@ -276,3 +276,12 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `Mix`, `Simp
 | Shoreline shaping | Low (profile CurveMapper + noise) | World has large water bodies with varied coastlines |
 
 > **See also:** [Complex Terrain Techniques](./terrain-types-advanced.md) for techniques this guide builds on. [Expert Terrain Techniques](./terrain-types-expert.md) for system-level graph and performance knowledge. [Node Combination Patterns](./node-combinations.md) for individual node building blocks.
+
+---
+
+## See Also
+
+- [Curves Explained](./curves-explained.md) — S-curves, DistanceS, Manual curves used in biome-edge blending and terracing
+- [Terrain Math Explained](./terrain-math-explained.md) — the math behind GradientWarp strength, Mix weights, and SmoothMin blending
+- [Complex Terrain Techniques](./terrain-types-advanced.md) — prerequisite patterns: double domain warp, Gradient slope detection
+- [Expert Terrain Techniques](./terrain-types-expert.md) — system-level techniques: YSampled placement rules, Cache strategy
