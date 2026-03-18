@@ -62,7 +62,7 @@ Any `Material` field accepts an optional rotation object. Each axis accepts `"No
 
 ## SpaceAndDepth — the Primary Provider
 
-`SpaceAndDepth` is the workhorse provider. It walks through an ordered list of **layers** from the surface (or floor) inward, assigning a material to each layer in sequence. Once all layers are consumed, remaining solid voxels get no assignment from this provider (a fallback such as `Queue` or `Constant` is typically placed beneath it).
+`node:SpaceAndDepth` is the workhorse provider. It walks through an ordered list of **layers** from the surface (or floor) inward, assigning a material to each layer in sequence. Once all layers are consumed, remaining solid voxels get no assignment from this provider (a fallback such as `node:Queue` is typically placed beneath it).
 
 ### Fields
 

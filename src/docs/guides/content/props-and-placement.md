@@ -16,6 +16,21 @@ Props are defined in the `Props` array of a `BiomeAsset`. Each entry combines th
 2. **A scanner** — takes each candidate position and searches for an exact surface Y coordinate
 3. **A prop** — decides what to place at each confirmed surface point
 
+### Pipeline nodes at a glance
+
+| Node | Stage | Role |
+|---|---|---|
+| `node:Occurrence` | Position | Random scatter at a given density per chunk |
+| `node:Jitter2d` | Position | Grid-based scatter with per-cell random offset |
+| `node:SimpleHorizontal` | Position | Fixed positions relative to a parent prop |
+| `node:ColumnLinear` | Scanner | Scans top-down for the first solid block |
+| `node:ColumnRandom` | Scanner | Picks a random solid block in a column |
+| `node:Area` | Scanner | Finds all surface positions in a 2D area |
+| `node:Prefab` | Prop | Places a saved structure file |
+| `node:Cluster` | Prop | Places multiple child props around a point |
+| `node:Weighted` | Prop | Randomly picks one child prop by weight |
+| `node:PondFiller` | Prop | Fills a depression with a fluid block |
+
 Because props run after terrain and material generation, they can query the world's block data to find surfaces, detect block types, and react to the terrain that already exists.
 
 > [!NOTE]
@@ -43,11 +58,11 @@ Position Provider
   World block data
 ```
 
-**Stage 1 — Position provider:** Generates or filters a set of (X, Z) candidate positions within the chunk being generated. This is where you control density, altitude range, clustering, and random spread.
+**Stage 1 — Position provider** (`node:Occurrence`, `node:Jitter2d`, `node:SimpleHorizontal`): Generates or filters a set of (X, Z) candidate positions within the chunk being generated. This is where you control density, altitude range, clustering, and random spread.
 
-**Stage 2 — Scanner:** For each candidate position, the scanner searches the world for a valid surface. A surface scan going top-down finds the first solid block from above (normal terrain surface). A bottom-up scan finds the ceiling of a cave or the floor from below.
+**Stage 2 — Scanner** (`node:ColumnLinear`, `node:ColumnRandom`, `node:Area`): For each candidate position, the scanner searches the world for a valid surface. A surface scan going top-down finds the first solid block from above (normal terrain surface). A bottom-up scan finds the ceiling of a cave or the floor from below.
 
-**Stage 3 — Prop:** Receives each confirmed (X, Y, Z) result and executes placement — writing blocks, loading a prefab, filling a pond, or delegating to a child prop.
+**Stage 3 — Prop** (`node:Prefab`, `node:Cluster`, `node:Weighted`, `node:PondFiller`): Receives each confirmed (X, Y, Z) result and executes placement — writing blocks, loading a prefab, filling a pond, or delegating to a child prop.
 
 > [!TIP]
 > If a scanner finds no valid surface at a position, that position is silently skipped. This is intentional — it means your prop naturally avoids cliffs, cave entrances, and other irregular surfaces without you needing to add extra filtering.
