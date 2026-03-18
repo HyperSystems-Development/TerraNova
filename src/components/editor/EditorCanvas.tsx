@@ -71,19 +71,25 @@ function getNodeColor(node: Node): string {
 function useResolvedNodes() {
   const nodes = useEditorStore((s) => s.nodes);
   const selectedPreviewNodeId = usePreviewStore((s) => s.selectedPreviewNodeId);
-  return useMemo(
+
+  // Stable type-resolution pass — only reruns when nodes change
+  const typeResolved = useMemo(
     () =>
-      nodes.map((node) => {
-        const resolved = node.type && node.type in nodeTypes
-          ? node
-          : { ...node, type: "default" };
-        if (selectedPreviewNodeId && node.id === selectedPreviewNodeId) {
-          return { ...resolved, className: "ring-2 ring-cyan-400/60" };
-        }
-        return resolved;
-      }),
-    [nodes, selectedPreviewNodeId],
+      nodes.map((node) =>
+        node.type && node.type in nodeTypes ? node : { ...node, type: "default" },
+      ),
+    [nodes],
   );
+
+  // Overlay preview ring — only reruns when the preview selection or resolved list changes
+  return useMemo(() => {
+    if (!selectedPreviewNodeId) return typeResolved;
+    return typeResolved.map((node) =>
+      node.id === selectedPreviewNodeId
+        ? { ...node, className: "ring-2 ring-cyan-400/60" }
+        : node,
+    );
+  }, [typeResolved, selectedPreviewNodeId]);
 }
 
 // ---------------------------------------------------------------------------
@@ -188,9 +194,8 @@ export function EditorCanvas({
   // ── Input handle selection (for single-port upstream tracing) ───────
   const [selectedHandle, setSelectedHandle] = useState<{ nodeId: string; handleId: string } | null>(null);
 
-  // ── Edge hover state (local refs to avoid store broadcasts) ────────
-  const [hoverTrigger, setHoverTrigger] = useState(0);
-  const hoveredEdgeRef = useRef<Edge | null>(null);
+  // ── Edge hover state ────────────────────────────────────────────────
+  const [hoveredEdge, setHoveredEdge] = useState<Edge | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleConnect = useCallback((connection: Connection) => {
@@ -303,7 +308,6 @@ export function EditorCanvas({
       };
     }
 
-    const hoveredEdge = hoveredEdgeRef.current;
     if (hoveredEdge) {
       // Hover — upstream from edge's source, downstream from edge's target
       const upstream = getUpstreamEdgeIds(hoveredEdge.source, edges);
@@ -319,7 +323,7 @@ export function EditorCanvas({
     }
 
     return empty;
-  }, [selectedHandle, selectedNodeId, edges, hoverTrigger]);
+  }, [selectedHandle, selectedNodeId, edges, hoveredEdge]);
 
   const styledEdges = useMemo(() => {
     const hasInterject = interjectEdgeId !== null;
@@ -402,16 +406,14 @@ export function EditorCanvas({
   const handleEdgeMouseEnter = useCallback((_event: React.MouseEvent, edge: Edge) => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
     hoverTimerRef.current = setTimeout(() => {
-      hoveredEdgeRef.current = edge;
-      setHoverTrigger((t) => t + 1);
+      setHoveredEdge(edge);
     }, 30);
   }, []);
 
   const handleEdgeMouseLeave = useCallback(() => {
     if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
     hoverTimerRef.current = null;
-    hoveredEdgeRef.current = null;
-    setHoverTrigger((t) => t + 1);
+    setHoveredEdge(null);
   }, []);
 
   // Cleanup hover timer on unmount

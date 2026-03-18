@@ -159,8 +159,10 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
   const showOutputIndex = outputs.length >= 2;
   const maxRows = Math.max(inputs.length, outputs.length);
 
-  // Derive array slot index from this node's downstream connection
+  // Derive array slot index from this node's downstream connection.
+  // Only scan edges when we'll actually show the index badge (showIndex).
   const nodeIndex = useStore((s) => {
+    if (!showIndex && !showOutputIndex) return null;
     for (const edge of s.edges) {
       if (edge.source !== id) continue;
       const th = edge.targetHandle;

@@ -1,4 +1,4 @@
-import { Fragment, useState, useCallback } from "react";
+import { Fragment, memo, useState, useCallback } from "react";
 import { Handle, type NodeProps } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
@@ -23,7 +23,7 @@ interface ExternalConnection {
 
 const GROUP_COLOR = "#8B7355";
 
-export function GroupNode({ id, selected, data }: NodeProps) {
+export const GroupNode = memo(function GroupNode({ id, selected, data }: NodeProps) {
   const nodeData = data as unknown as GroupNodeData;
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(nodeData.name);
@@ -166,4 +166,4 @@ export function GroupNode({ id, selected, data }: NodeProps) {
       </div>
     </div>
   );
-}
+});
