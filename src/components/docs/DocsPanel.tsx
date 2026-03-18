@@ -64,7 +64,8 @@ function tagsFromSlug(slug: string): string[] {
   else if (name.includes("terrain-types") || name.includes("node-combinations") ||
            name.includes("multi-biome") || name.includes("terrain-and-caves") ||
            name.includes("biome-system") || name.includes("terrain-math") ||
-           name.includes("curves-explained"))                                              tags.push("intermediate");
+           name.includes("curves-explained") || name.includes("materials-guide") ||
+           name.includes("props-and-placement"))                                           tags.push("intermediate");
   else if (name.includes("basic") || name.includes("data-flow") ||
            name.includes("create-a-world") || name.includes("setup") ||
            name.includes("understanding"))                                                tags.push("basic");
@@ -87,6 +88,8 @@ const SLUG_TITLE_OVERRIDES: Record<string, string> = {
   "guides/node-combinations":                        "Node Combinations",
   "guides/terrain-math-explained":                   "Terrain Math Explained",
   "guides/curves-explained":                         "Curves Explained",
+  "guides/materials-guide":                          "Materials Guide",
+  "guides/props-and-placement":                      "Props & Placement",
   "guides/setup-data-flow-first-steps":              "Data Flow & First Steps",
   "guides/understanding-basic-terrain-generation":   "Basic Terrain Generation",
   "guides/terrain-types":                            "Terrain Types",

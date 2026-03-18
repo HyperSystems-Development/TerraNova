@@ -369,3 +369,83 @@ Where `weight` crosses 0.5, the two terrains are equally mixed — a gradual tra
 | GradientWarp WarpStrength | 0–100 | Clean shapes | Twisted organic forms |
 | SmoothMin Smoothness | 0–50 | Sharp intersection | Smooth blended union |
 | Mix weight | 0–1 | All shape A | All shape B |
+
+---
+
+## Part 7 — Utility and transform nodes
+
+These nodes appear less often but fill specific gaps. Each does one focused mathematical operation.
+
+### Pow
+
+Raises the input density to an exponent:
+```
+output = input ^ Exponent
+```
+
+**Use:** Sharpening peaks. `Abs → Pow(2.0)` turns gentle ridges into sharp spires — squaring values near zero pushes them closer to zero, while values near 1 stay near 1, so the curve bends sharply upward only at the peak.
+
+| Exponent | Shape |
+|----------|-------|
+| 0.5 (Sqrt) | Flattens — small values grow, large ones don't |
+| 1.0 | No change |
+| 2.0 | Sharpens — peaks stand out, base flattens |
+| 3.0+ | Very sharp needle peaks |
+
+### Sqrt
+
+Square root of input density — the inverse of `Pow(2.0)`. Expands small values toward the midpoint. Useful for softening a hard edge produced by `Abs` or an SDF.
+
+### Slider
+
+Translates the sampling coordinates before evaluating the child density:
+```
+x' = x + SlideX
+y' = y + SlideY
+z' = z + SlideZ
+```
+
+Unlike `Offset` (which moves the whole pattern), `Slider` shifts *where the child is sampled from* — effectively repositioning a feature in world space. Use it to place a shape SDF (like `Ellipsoid`) at a specific world position rather than always centred on the origin.
+
+### Rotator
+
+Redefines the Y axis and applies a spin angle to the coordinate space:
+```
+newUp = NewYAxis  (vector3d, e.g. [1,0,0] tilts terrain sideways)
+spin  = SpinAngle (degrees, rotation around newUp)
+```
+
+**Use:** Tilting SDF shapes. An `Ellipsoid` always aligns with the world Y by default. Wrapping it in a `Rotator` with `NewYAxis [0,0,1]` makes it lie on its side — a horizontal tunnel rather than a vertical dome.
+
+> [!NOTE]
+> `Rotator` has a preview gap — rotation is not accurately reflected in the TerraNova preview canvas. The correct orientation is only visible in-game.
+
+### Anchor
+
+Anchors coordinate evaluation relative to a reference position. `Reversed: true` flips the anchor direction. Used in prop placement pipelines to evaluate density relative to the prop's world anchor point rather than absolute world coordinates.
+
+### Shell
+
+Produces a hollow shell around a shape. It requires two curve inputs:
+- `AngleCurve` — maps the angle around the axis to a radius
+- `DistanceCurve` — maps distance from the surface to density
+
+This allows asymmetric hollow shapes — wider on one side, narrow on the other. Primarily used for arch formations, hollow cylinders, and ribbed cave structures.
+
+> [!WARNING]
+> `Shell` inner-radius hollowing does not render correctly in the TerraNova preview — it appears filled solid. The hollow only appears in-game.
+
+---
+
+## Part 8 — Coordinate override nodes
+
+These force a specific coordinate value regardless of world position — useful for creating flat cuts, vertical walls, and layer-locked patterns.
+
+| Node | Effect |
+|------|--------|
+| `XOverride` | Forces X to a constant — all density evaluated at `X = value` regardless of actual X |
+| `YOverride` | Forces Y to a constant — creates a perfectly horizontal density slice |
+| `ZOverride` | Forces Z to a constant |
+
+**Practical use:** `YOverride(64)` on a noise field samples all density at Y=64 regardless of actual height. Feed this into a `Mix` weight to create a material or density pattern that is the same at every altitude — only varying by X and Z.
+
