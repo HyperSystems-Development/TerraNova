@@ -105,7 +105,8 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
   const { getTypeDisplayName } = useLanguage();
   const rfType = type ?? nodeData.type;
   const rfDisplayName = getTypeDisplayName(rfType);
-  const displayName = (rfDisplayName !== rfType) ? rfDisplayName : getTypeDisplayName(nodeData.type);
+  const customLabel = (data as Record<string, unknown>).label as string | undefined;
+  const displayName = customLabel || ((rfDisplayName !== rfType) ? rfDisplayName : getTypeDisplayName(nodeData.type));
   const flowDirection = useSettingsStore((s) => s.flowDirection);
   const inPos = inputPosition(flowDirection);
   const outPos = outputPosition(flowDirection);
@@ -212,7 +213,9 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
         <div className="flex-1 min-w-0">
           {nodeIndex !== null && <span className="opacity-60">[{nodeIndex}] </span>}
           {displayName}
-          {displayName !== nodeData.type && (
+          {customLabel ? (
+            <span className="block text-[9px] font-normal opacity-50">{getTypeDisplayName(nodeData.type)}</span>
+          ) : displayName !== nodeData.type && (
             <span className="block text-[9px] font-normal opacity-50">{nodeData.type}</span>
           )}
         </div>

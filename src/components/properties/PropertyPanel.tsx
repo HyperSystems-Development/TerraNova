@@ -1411,6 +1411,8 @@ export function PropertyPanel() {
   const data = selectedNode.data as Record<string, unknown>;
   const fields = (data.fields as Record<string, unknown>) ?? {};
   const typeName = (data.type as string) ?? "Unknown";
+  const isAnnotationNode = selectedNode.type === "comment" || selectedNode.type === "frame";
+  const customLabel = (data.label as string) ?? "";
   const rfType = selectedNode.type ?? typeName;
   const rfDisplayName = getTypeDisplayName(rfType);
   const displayTypeName = (rfDisplayName !== rfType) ? rfDisplayName : getTypeDisplayName(typeName);
@@ -1443,6 +1445,24 @@ export function PropertyPanel() {
             ?
           </button>
         </div>
+        {!isAnnotationNode && (
+          <input
+            type="text"
+            value={customLabel}
+            placeholder="Custom label…"
+            onChange={(e) => {
+              const { nodes, setNodes } = useEditorStore.getState();
+              setNodes(nodes.map((n) =>
+                n.id !== selectedNode.id ? n : { ...n, data: { ...n.data as object, label: e.target.value || undefined } }
+              ));
+            }}
+            onBlur={() => {
+              if (customLabel !== ((useEditorStore.getState().nodes.find(n => n.id === selectedNode.id)?.data as Record<string, unknown>)?.label ?? "")) return;
+              handleDiscreteChange("label", customLabel);
+            }}
+            className="mt-1.5 w-full px-2 py-0.5 text-xs bg-transparent border border-transparent rounded hover:border-tn-border focus:border-tn-accent/60 focus:outline-none transition-colors placeholder:text-tn-text-muted/30 text-tn-text"
+          />
+        )}
         <button
           className="mt-1 flex items-center gap-1.5 group w-full text-left"
           title="Click to copy node ID"
