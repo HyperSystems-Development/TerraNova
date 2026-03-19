@@ -1413,6 +1413,7 @@ export function PropertyPanel() {
   const typeName = (data.type as string) ?? "Unknown";
   const isAnnotationNode = selectedNode.type === "comment" || selectedNode.type === "frame";
   const customLabel = (data.label as string) ?? "";
+  const isLocked = selectedNode.draggable === false;
   const rfType = selectedNode.type ?? typeName;
   const rfDisplayName = getTypeDisplayName(rfType);
   const displayTypeName = (rfDisplayName !== rfType) ? rfDisplayName : getTypeDisplayName(typeName);
@@ -1433,17 +1434,37 @@ export function PropertyPanel() {
       <div className="border-b border-tn-border pb-2.5">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-[13px] font-semibold text-tn-text leading-tight">{displayTypeName}</h3>
-          <button
-            onClick={toggleHelpMode}
-            title={helpMode ? "Exit help mode (?)" : "Toggle help mode (?)"}
-            className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[10px] font-bold border transition-colors ${
-              helpMode
-                ? "bg-tn-accent/20 border-tn-accent/60 text-tn-accent"
-                : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-accent"
-            }`}
-          >
-            ?
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                const { nodes, setNodes } = useEditorStore.getState();
+                setNodes(nodes.map((n) =>
+                  n.id !== selectedNode.id ? n : { ...n, draggable: isLocked ? undefined : false }
+                ));
+                commitState(`${isLocked ? "Unlock" : "Lock"} node`);
+                setDirty(true);
+              }}
+              title={isLocked ? "Unlock node" : "Lock node position"}
+              className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[10px] border transition-colors ${
+                isLocked
+                  ? "bg-amber-500/20 border-amber-500/60 text-amber-400"
+                  : "border-tn-border text-tn-text-muted hover:border-tn-border/80 hover:text-tn-text"
+              }`}
+            >
+              {isLocked ? "🔒" : "🔓"}
+            </button>
+            <button
+              onClick={toggleHelpMode}
+              title={helpMode ? "Exit help mode (?)" : "Toggle help mode (?)"}
+              className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[10px] font-bold border transition-colors ${
+                helpMode
+                  ? "bg-tn-accent/20 border-tn-accent/60 text-tn-accent"
+                  : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-accent"
+              }`}
+            >
+              ?
+            </button>
+          </div>
         </div>
         {!isAnnotationNode && (
           <input
@@ -1457,8 +1478,8 @@ export function PropertyPanel() {
               ));
             }}
             onBlur={() => {
-              if (customLabel !== ((useEditorStore.getState().nodes.find(n => n.id === selectedNode.id)?.data as Record<string, unknown>)?.label ?? "")) return;
-              handleDiscreteChange("label", customLabel);
+              commitState(`Edit label on ${(selectedNode.data as Record<string, unknown>)?.type as string ?? "node"}`);
+              setDirty(true);
             }}
             className="mt-1.5 w-full px-2 py-0.5 text-xs bg-transparent border border-transparent rounded hover:border-tn-border focus:border-tn-accent/60 focus:outline-none transition-colors placeholder:text-tn-text-muted/30 text-tn-text"
           />

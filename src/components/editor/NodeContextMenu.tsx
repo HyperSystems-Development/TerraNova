@@ -386,6 +386,19 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
           }
         })(); }}
       />
+      <ContextMenuSeparator />
+      <ContextMenuItem
+        label={rightClickedNode?.draggable === false ? "Unlock Node" : "Lock Node"}
+        onClick={() => {
+          const { nodes, setNodes, commitState } = useEditorStore.getState();
+          const isCurrentlyLocked = rightClickedNode?.draggable === false;
+          setNodes(nodes.map((n) =>
+            n.id !== nodeId ? n : { ...n, draggable: isCurrentlyLocked ? undefined : false }
+          ));
+          commitState(isCurrentlyLocked ? "Unlock node" : "Lock node");
+          onClose();
+        }}
+      />
       {!isAnnotation && (
         <>
           <ContextMenuSeparator />

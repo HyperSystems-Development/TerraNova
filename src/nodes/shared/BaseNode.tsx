@@ -15,6 +15,7 @@ import { useDragStore } from "@/stores/dragStore";
 import { isAcceptableTarget } from "@/hooks/useConnectionSuggestions";
 import type { DiagnosticSeverity } from "@/utils/graphDiagnostics";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useEditorStore } from "@/stores/editorStore";
 import { getDensityAccentColor } from "@/schema/densitySubcategories";
 import { HANDLE_REGISTRY } from "@/nodes/handleRegistry";
 import { isLegacyTypeKey } from "@/nodes/shared/legacyTypes";
@@ -107,6 +108,7 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
   const rfDisplayName = getTypeDisplayName(rfType);
   const customLabel = (data as Record<string, unknown>).label as string | undefined;
   const displayName = customLabel || ((rfDisplayName !== rfType) ? rfDisplayName : getTypeDisplayName(nodeData.type));
+  const isLocked = useEditorStore((s) => s.nodes.find((n) => n.id === id)?.draggable === false);
   const flowDirection = useSettingsStore((s) => s.flowDirection);
   const inPos = inputPosition(flowDirection);
   const outPos = outputPosition(flowDirection);
@@ -219,6 +221,14 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
             <span className="block text-[9px] font-normal opacity-50">{nodeData.type}</span>
           )}
         </div>
+        {isLocked && (
+          <span
+            className="shrink-0 opacity-70 text-[10px] leading-none"
+            title="Node position is locked"
+          >
+            🔒
+          </span>
+        )}
         {isOutputNode && (
           <span
             className="shrink-0 px-1 py-px rounded text-[8px] font-bold leading-none"
