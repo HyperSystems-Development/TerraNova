@@ -1,0 +1,8 @@
+# Files that should always keep this fork's version when merging upstream.
+# Run once to register the driver:
+#   git config merge.ours.driver true
+
+package.json            merge=ours
+src-tauri/tauri.conf.json merge=ours
+src-tauri/Cargo.toml    merge=ours
+docs/CHANGELOG.md       merge=ours

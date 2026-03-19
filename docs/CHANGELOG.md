@@ -2,6 +2,42 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystems-Development/TerraNova) are documented in this file.
 
+## [0.1.7-pre.2] — 2026-03-18
+
+### Features
+
+- **Resizable annotation nodes** — `FrameNode` and `CommentNode` now have drag handles (via `NodeResizer`) so their size can be changed freely; dimensions persist to node data
+- **Custom node labels** — Any node can have a custom display label set directly in the Properties panel header; the original type name appears as a subtitle when overridden, and the label is used in node search
+- **Per-node position lock** — A lock toggle (`●`/`○`) in the Properties panel header and a "Lock Node / Unlock Node" context menu item set `draggable: false` on individual nodes; locked nodes show a `●` indicator in their header
+
+### Quality of Life
+
+- **Align / Distribute submenu** — Context menu now exposes the existing `alignNodes`/`distributeNodes` utilities behind an icon grid submenu (6 align + 2 distribute actions)
+- **Select Same Type** — New context menu item selects all nodes of the same type as the right-clicked node
+- **Graph operations hidden for annotation nodes** — Group, Ungroup, Select Upstream/Downstream, Auto Layout, and Set as Root are now hidden for `comment` and `frame` nodes since they are pure UI overlays
+- **`_comment` field callout** — Nodes with a `_comment` field now display it as an editable amber callout block ("Note") in the Properties panel with text wrapping and vertical layout
+- **Properties panel visual polish**
+  - Node type name has a category color accent strip on the left edge
+  - Custom label input has a visible background so it reads as an editable field
+  - Node ID row is now a pill with a subtle border and background
+  - Field spacing tightened from `gap-3` to `gap-2` for a denser layout
+- **Field component polish**
+  - `VectorField` — X/Y/Z axis labels are color-coded red/green/blue
+  - `ColorPickerField` — removed redundant color swatch; color picker and hex input only
+  - `ToggleField` — fixed non-standard `h-4.5` sizing, corrected dot translate
+  - All field labels unified to `text-[11px]` and `focus:border-tn-accent/60`
+- **`CollapsibleEditorSection`** — single `ChevronDown` with CSS rotation replaces icon swap; solid border
+
+### Bug Fixes
+
+- **`useFieldChange` stale closure** — `commitState` and `setDirty` are now stored in refs updated via `useEffect`; the debounce timer always calls the latest version regardless of when it fires
+- **`EditorCanvas` wheel listener cleanup** — removed invalid `passive` flag from `removeEventListener`; replaced `hoverTrigger` state trigger with direct `hoveredEdge` state
+- **`MaterialField` setState after unmount** — `setTimeout` in `onBlur` now checks a `mountedRef` before calling any state setters
+- **`ContextMenuPrimitives` listener re-attach** — `onClose` stored in a ref; `stableClose` registered with `addEventListener` so listeners attach once on mount instead of on every render
+- **`QuickAddDialog` snippet error handling** — `placeSnippetEntry` wrapped in try/catch with user-facing toast on failure
+- **`NodeContextMenu` delete** — delete IIFE wrapped in try/catch
+- **Floating promises** — `DocsPanel`, `StatisticsPanel` clipboard writes given `.catch(() => {})`; `PropertyPanel` `idCopiedTimerRef` cleaned up on unmount
+
 ## [Unreleased] — 2026-03-16
 
 ### Documentation
