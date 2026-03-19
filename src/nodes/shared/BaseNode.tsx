@@ -226,7 +226,7 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
             className="shrink-0 opacity-70 text-[10px] leading-none"
             title="Node position is locked"
           >
-            🔒
+            ●
           </span>
         )}
         {isOutputNode && (

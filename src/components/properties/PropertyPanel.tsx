@@ -1451,7 +1451,7 @@ export function PropertyPanel() {
                   : "border-tn-border text-tn-text-muted hover:border-tn-border/80 hover:text-tn-text"
               }`}
             >
-              {isLocked ? "🔒" : "🔓"}
+              {isLocked ? "●" : "○"}
             </button>
             <button
               onClick={toggleHelpMode}
