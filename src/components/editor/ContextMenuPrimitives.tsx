@@ -1,22 +1,28 @@
 import { useState } from "react";
 interface ContextMenuSubmenuProps {
   label: string;
+  disabled?: boolean;
   children: React.ReactNode;
 }
 
-export function ContextMenuSubmenu({ label, children }: ContextMenuSubmenuProps) {
+export function ContextMenuSubmenu({ label, disabled, children }: ContextMenuSubmenuProps) {
   const [open, setOpen] = useState(false);
   return (
     <div
       className="relative"
-      onMouseEnter={() => setOpen(true)}
+      onMouseEnter={() => { if (!disabled) setOpen(true); }}
       onMouseLeave={() => setOpen(false)}
     >
-      <button className="w-full text-left px-3 py-1.5 flex justify-between items-center gap-4 text-tn-text hover:bg-tn-accent/15 transition-colors">
+      <button
+        className={`w-full text-left px-3 py-1.5 flex justify-between items-center gap-4 transition-colors ${
+          disabled ? "text-tn-text-muted/30 cursor-default" : "text-tn-text hover:bg-tn-accent/15"
+        }`}
+        disabled={disabled}
+      >
         <span>{label}</span>
         <span className="text-tn-text-muted/60 text-[11px]">▶</span>
       </button>
-      {open && (
+      {open && !disabled && (
         <div className="absolute left-full top-0 bg-tn-surface border border-tn-border rounded-lg shadow-2xl py-1 min-w-[180px] z-[101]">
           {children}
         </div>

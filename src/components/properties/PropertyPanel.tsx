@@ -343,6 +343,7 @@ export function PropertyPanel() {
   const compactAssetInspector = useUIStore((s) => s.compactAssetInspector);
   const toggleAssetInspectorCompact = useUIStore((s) => s.toggleAssetInspectorCompact);
   const [expandedField, setExpandedField] = useState<string | null>(null);
+  const [idCopied, setIdCopied] = useState(false);
   const [environmentLookup, setEnvironmentLookup] = useState<EnvironmentNameLookup>({
     status: "idle",
     names: [],
@@ -1434,7 +1435,21 @@ export function PropertyPanel() {
             ?
           </button>
         </div>
-        <p className="mt-1 text-[10px] text-tn-text-muted/60 font-mono truncate" title={selectedNode.id}>{selectedNode.id}</p>
+        <button
+          className="mt-1 flex items-center gap-1.5 group w-full text-left"
+          title="Click to copy node ID"
+          onClick={() => {
+            void navigator.clipboard.writeText(selectedNode.id).then(() => {
+              setIdCopied(true);
+              setTimeout(() => setIdCopied(false), 1500);
+            });
+          }}
+        >
+          <span className="text-[10px] text-tn-text-muted/60 font-mono truncate flex-1 group-hover:text-tn-text-muted transition-colors">{selectedNode.id}</span>
+          <span className={`text-[10px] shrink-0 transition-colors ${idCopied ? "text-tn-accent" : "text-tn-text-muted/30 group-hover:text-tn-text-muted/60"}`}>
+            {idCopied ? "✓" : "⎘"}
+          </span>
+        </button>
       </div>
 
       {helpMode && (
