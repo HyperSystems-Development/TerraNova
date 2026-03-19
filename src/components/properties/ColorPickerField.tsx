@@ -28,7 +28,7 @@ export function ColorPickerField({ label, value, onChange }: ColorPickerFieldPro
           value={displayValue}
           onChange={(e) => onChange(e.target.value)}
           spellCheck={false}
-          className="flex-1 px-2 py-1 text-xs bg-tn-bg border border-tn-border rounded font-mono tracking-wide"
+          className="flex-1 px-2 py-1 text-xs bg-tn-bg border border-tn-border rounded font-mono tracking-wide focus:outline-none focus:border-tn-accent/60 transition-colors"
         />
       </div>
     </div>

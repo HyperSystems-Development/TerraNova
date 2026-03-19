@@ -12,7 +12,7 @@ interface RangeFieldProps {
 export function RangeField({ label, value, description, onChange, onBlur }: RangeFieldProps) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs text-tn-text-muted flex items-center">
+      <label className="text-[11px] text-tn-text-muted flex items-center gap-1">
         {label}
         {description && <FieldTooltip description={description} />}
       </label>

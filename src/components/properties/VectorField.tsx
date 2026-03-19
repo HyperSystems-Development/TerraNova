@@ -11,7 +11,7 @@ interface VectorFieldProps {
 export function VectorField({ label, value, description, onChange, onBlur }: VectorFieldProps) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs text-tn-text-muted flex items-center">
+      <label className="text-[11px] text-tn-text-muted flex items-center gap-1">
         {label}
         {description && <FieldTooltip description={description} />}
       </label>
@@ -26,7 +26,7 @@ export function VectorField({ label, value, description, onChange, onBlur }: Vec
                 onChange({ ...value, [axis]: parseFloat(e.target.value) || 0 })
               }
               onBlur={onBlur}
-              className="w-full px-1.5 py-0.5 text-xs bg-tn-bg border border-tn-border rounded"
+              className="w-full px-1.5 py-1 text-xs bg-tn-bg border border-tn-border rounded focus:outline-none focus:border-tn-accent/60 transition-colors"
             />
           </div>
         ))}

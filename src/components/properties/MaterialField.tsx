@@ -121,7 +121,7 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
               }
             }, 150);
           }}
-          className="flex-1 px-2 py-1 text-sm bg-tn-bg border border-tn-border rounded min-w-0"
+          className="flex-1 px-2 py-1 text-xs bg-tn-bg border border-tn-border rounded min-w-0 focus:outline-none focus:border-tn-accent/60 transition-colors"
           autoComplete="off"
           spellCheck={false}
         />
@@ -130,7 +130,7 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
         <select
           value={category}
           onChange={e => setCategory(e.target.value)}
-          className="px-1 py-1 text-xs rounded border border-tn-border bg-tn-bg text-tn-text-muted"
+          className="px-1 py-1 text-xs rounded border border-tn-border bg-tn-bg text-tn-text focus:outline-none focus:border-tn-accent/60 transition-colors"
           style={{ minWidth: 80 }}
         >
           {MATERIAL_CATEGORIES.map(cat => (
