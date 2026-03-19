@@ -22,6 +22,8 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
   const [palettePreview, setPalettePreview] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => { mountedRef.current = true; return () => { mountedRef.current = false; }; }, []);
 
   // Material categories (prefixes)
   const MATERIAL_CATEGORIES = ["All", "Rock", "Soil", "Plant", "Wood", "Ore", "Fluid", "Rubble", "Barrier", "Deco", "Furniture"];
@@ -114,6 +116,7 @@ export function MaterialField({ label, value, description, onChange, onBlur }: M
           onKeyDown={handleKeyDown}
           onBlur={() => {
             setTimeout(() => {
+              if (!mountedRef.current) return;
               if (!containerRef.current?.matches(":focus-within")) {
                 setOpen(false);
                 if (!HYTALE_MATERIAL_IDS.includes(query)) setQuery(value);

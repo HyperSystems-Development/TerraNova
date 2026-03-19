@@ -30,7 +30,7 @@ export function ContextMenuSubmenu({ label, disabled, children }: ContextMenuSub
     </div>
   );
 }
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useCallback, type ReactNode } from "react";
 
 interface ContextMenuOverlayProps {
   x: number;
@@ -41,6 +41,8 @@ interface ContextMenuOverlayProps {
 
 export function ContextMenuOverlay({ x, y, onClose, children }: ContextMenuOverlayProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   // Clamp position to viewport
   useEffect(() => {
@@ -55,26 +57,25 @@ export function ContextMenuOverlay({ x, y, onClose, children }: ContextMenuOverl
     }
   }, [x, y]);
 
+  const stableClose = useCallback(() => onCloseRef.current(), []);
+
   // Close on Escape, scroll, or resize
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    function handleClose() {
-      onClose();
+      if (e.key === "Escape") stableClose();
     }
     document.addEventListener("keydown", handleKey);
-    window.addEventListener("resize", handleClose);
-    window.addEventListener("scroll", handleClose, true);
+    window.addEventListener("resize", stableClose);
+    window.addEventListener("scroll", stableClose, true);
     return () => {
       document.removeEventListener("keydown", handleKey);
-      window.removeEventListener("resize", handleClose);
-      window.removeEventListener("scroll", handleClose, true);
+      window.removeEventListener("resize", stableClose);
+      window.removeEventListener("scroll", stableClose, true);
     };
-  }, [onClose]);
+  }, [stableClose]);
 
   return (
-    <div className="fixed inset-0 z-[100]" onMouseDown={onClose} onContextMenu={(e) => e.preventDefault()}>
+    <div className="fixed inset-0 z-[100]" onMouseDown={stableClose} onContextMenu={(e) => e.preventDefault()}>
       <div
         ref={menuRef}
         className="absolute bg-tn-surface border border-tn-border rounded-lg shadow-2xl py-1 min-w-[190px] text-[12px]"
