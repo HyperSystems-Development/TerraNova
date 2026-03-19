@@ -29,6 +29,8 @@ import { NODE_TIPS } from "@/schema/nodeTips";
 import { FIELD_DESCRIPTIONS, getShortDescription, getExtendedDescription } from "@/schema/fieldDescriptions";
 import { useLanguage } from "@/languages/useLanguage";
 import { useToastStore } from "@/stores/toastStore";
+import { CATEGORY_COLORS } from "@/schema/types";
+import { ALL_DEFAULTS } from "@/schema/defaults";
 import { copyFile, createDirectory, exportAssetFile, listDirectory, resolveBundledHytaleAssetPath, showInFolder } from "@/utils/ipc";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { joinPath, normalizePath, getDirname } from "@/utils/pathUtils";
@@ -1415,6 +1417,10 @@ export function PropertyPanel() {
   const customLabel = (data.label as string) ?? "";
   const isLocked = selectedNode.draggable === false;
   const rfType = selectedNode.type ?? typeName;
+  const categoryColor = (() => {
+    const entry = ALL_DEFAULTS.find((e) => e.type === typeName || e.type === rfType);
+    return entry ? CATEGORY_COLORS[entry.category] : undefined;
+  })();
   const rfDisplayName = getTypeDisplayName(rfType);
   const displayTypeName = (rfDisplayName !== rfType) ? rfDisplayName : getTypeDisplayName(typeName);
   const typeConstraints = FIELD_CONSTRAINTS[displayTypeName] ?? FIELD_CONSTRAINTS[typeName] ?? {};
@@ -1430,10 +1436,13 @@ export function PropertyPanel() {
     typeName === "DensityDelimited" && (data._biomeField as string | undefined) === "TintProvider";
 
   return (
-    <div className="flex flex-col p-3 gap-3">
+    <div className="flex flex-col p-3 gap-2">
       <div className="border-b border-tn-border pb-2.5">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-[13px] font-semibold text-tn-text leading-tight">{displayTypeName}</h3>
+          <h3
+            className="text-[13px] font-semibold text-tn-text leading-tight"
+            style={categoryColor ? { borderLeft: `3px solid ${categoryColor}`, paddingLeft: 6 } : undefined}
+          >{displayTypeName}</h3>
           <div className="flex items-center gap-1">
             <button
               onClick={() => {
@@ -1481,11 +1490,11 @@ export function PropertyPanel() {
               commitState(`Edit label on ${(selectedNode.data as Record<string, unknown>)?.type as string ?? "node"}`);
               setDirty(true);
             }}
-            className="mt-1.5 w-full px-2 py-0.5 text-xs bg-transparent border border-transparent rounded hover:border-tn-border focus:border-tn-accent/60 focus:outline-none transition-colors placeholder:text-tn-text-muted/30 text-tn-text"
+            className="mt-1.5 w-full px-2 py-0.5 text-xs bg-tn-bg/50 border border-tn-border/40 rounded hover:border-tn-border focus:border-tn-accent/60 focus:outline-none transition-colors placeholder:text-tn-text-muted/30 text-tn-text"
           />
         )}
         <button
-          className="mt-1 flex items-center gap-1.5 group w-full text-left"
+          className="mt-1.5 flex items-center gap-1.5 group w-full text-left px-2 py-1 rounded bg-tn-bg/50 border border-tn-border/30 hover:border-tn-border/60 transition-colors"
           title="Click to copy node ID"
           onClick={() => {
             void navigator.clipboard.writeText(selectedNode.id).then(() => {
@@ -1495,7 +1504,7 @@ export function PropertyPanel() {
             }).catch(() => {});
           }}
         >
-          <span className="text-[10px] text-tn-text-muted/60 font-mono truncate flex-1 group-hover:text-tn-text-muted transition-colors">{selectedNode.id}</span>
+          <span className="text-[10px] text-tn-text-muted/50 font-mono truncate flex-1 group-hover:text-tn-text-muted transition-colors">{selectedNode.id}</span>
           <span className={`text-[10px] shrink-0 transition-colors ${idCopied ? "text-tn-accent" : "text-tn-text-muted/30 group-hover:text-tn-text-muted/60"}`}>
             {idCopied ? "✓" : "⎘"}
           </span>

@@ -18,7 +18,9 @@ export function VectorField({ label, value, description, onChange, onBlur }: Vec
       <div className="flex gap-1">
         {(["x", "y", "z"] as const).map((axis) => (
           <div key={axis} className="flex-1">
-            <label className="text-[10px] text-tn-text-muted uppercase">{axis}</label>
+            <label className={`text-[10px] uppercase font-medium ${
+              axis === "x" ? "text-red-400/70" : axis === "y" ? "text-green-400/70" : "text-blue-400/70"
+            }`}>{axis}</label>
             <input
               type="number"
               value={value[axis]}

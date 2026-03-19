@@ -16,13 +16,13 @@ export function ToggleField({ label, value, description, onChange }: ToggleField
       </label>
       <button
         onClick={() => onChange(!value)}
-        className={`relative shrink-0 w-8 h-4.5 rounded-full transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-tn-accent/50 ${
+        className={`relative shrink-0 w-8 h-4 rounded-full transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-tn-accent/50 ${
           value ? "bg-tn-accent" : "bg-tn-border/80"
         }`}
       >
         <span
-          className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-tn-text transition-transform duration-150 ${
-            value ? "translate-x-3.5" : ""
+          className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-tn-text transition-transform duration-150 ${
+            value ? "translate-x-4" : ""
           }`}
         />
       </button>
