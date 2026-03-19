@@ -371,15 +371,19 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         label="Delete"
         shortcut="Del"
         onClick={() => { void (async () => {
-          if (confirmOnNodeDelete) {
-            const yes = await ask(
-              `Delete ${selectedIds.size} node${selectedIds.size === 1 ? "" : "s"}?`,
-              { title: "Confirm Delete", kind: "warning" },
-            );
-            if (!yes) return;
+          try {
+            if (confirmOnNodeDelete) {
+              const yes = await ask(
+                `Delete ${selectedIds.size} node${selectedIds.size === 1 ? "" : "s"}?`,
+                { title: "Confirm Delete", kind: "warning" },
+              );
+              if (!yes) return;
+            }
+            useEditorStore.getState().removeNodes([...selectedIds]);
+            onClose();
+          } catch {
+            useToastStore.getState().addToast("Could not open delete confirmation", "error");
           }
-          useEditorStore.getState().removeNodes([...selectedIds]);
-          onClose();
         })(); }}
       />
       {!isAnnotation && (

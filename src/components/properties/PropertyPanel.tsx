@@ -344,6 +344,7 @@ export function PropertyPanel() {
   const toggleAssetInspectorCompact = useUIStore((s) => s.toggleAssetInspectorCompact);
   const [expandedField, setExpandedField] = useState<string | null>(null);
   const [idCopied, setIdCopied] = useState(false);
+  const idCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [environmentLookup, setEnvironmentLookup] = useState<EnvironmentNameLookup>({
     status: "idle",
     names: [],
@@ -742,6 +743,13 @@ export function PropertyPanel() {
       flushPendingSnapshot();
     };
   }, [selectedNodeId, flushPendingSnapshot]);
+
+  // Clean up the copy-ID flash timer on unmount so we don't call setState after unmount
+  useEffect(() => {
+    return () => {
+      if (idCopiedTimerRef.current) clearTimeout(idCopiedTimerRef.current);
+    };
+  }, []);
 
   const { debouncedChange: debouncedConfigChange, flush: flushConfig } = useFieldChange(commitState, setDirty, 300);
 
@@ -1441,8 +1449,9 @@ export function PropertyPanel() {
           onClick={() => {
             void navigator.clipboard.writeText(selectedNode.id).then(() => {
               setIdCopied(true);
-              setTimeout(() => setIdCopied(false), 1500);
-            });
+              if (idCopiedTimerRef.current) clearTimeout(idCopiedTimerRef.current);
+              idCopiedTimerRef.current = setTimeout(() => setIdCopied(false), 1500);
+            }).catch(() => {});
           }}
         >
           <span className="text-[10px] text-tn-text-muted/60 font-mono truncate flex-1 group-hover:text-tn-text-muted transition-colors">{selectedNode.id}</span>

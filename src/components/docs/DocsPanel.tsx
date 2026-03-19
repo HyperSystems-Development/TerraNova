@@ -541,7 +541,7 @@ function CopyButton({ text }: { text: string }) {
           setCopied(true);
           if (timerRef.current) clearTimeout(timerRef.current);
           timerRef.current = setTimeout(() => setCopied(false), 1500);
-        });
+        }).catch(() => {});
       }}
     >
       {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
