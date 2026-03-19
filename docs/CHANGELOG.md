@@ -6,60 +6,45 @@ All notable changes to [TerraNova](https://github.com/HyperSystems-Development/T
 
 ### Features
 
-- **Resizable annotation nodes** — `FrameNode` and `CommentNode` now have drag handles (via `NodeResizer`) so their size can be changed freely; dimensions persist to node data
-- **Custom node labels** — Any node can have a custom display label set directly in the Properties panel header; the original type name appears as a subtitle when overridden, and the label is used in node search
-- **Per-node position lock** — A lock toggle (`●`/`○`) in the Properties panel header and a "Lock Node / Unlock Node" context menu item set `draggable: false` on individual nodes; locked nodes show a `●` indicator in their header
+- **Resizable frames and comments** — Frame and comment nodes can now be resized by dragging their edges; size is saved with the node
+- **Custom node labels** — You can now give any node a custom name from the properties panel; the original type shows as a subtitle underneath
+- **Node lock** — Lock a node in place from the properties panel or right-click menu so it can't be accidentally moved; shows a `●` in the node header when locked
 
 ### Quality of Life
 
-- **Align / Distribute submenu** — Context menu now exposes the existing `alignNodes`/`distributeNodes` utilities behind an icon grid submenu (6 align + 2 distribute actions)
-- **Select Same Type** — New context menu item selects all nodes of the same type as the right-clicked node
-- **Graph operations hidden for annotation nodes** — Group, Ungroup, Select Upstream/Downstream, Auto Layout, and Set as Root are now hidden for `comment` and `frame` nodes since they are pure UI overlays
-- **`_comment` field callout** — Nodes with a `_comment` field now display it as an editable amber callout block ("Note") in the Properties panel with text wrapping and vertical layout
-- **Properties panel visual polish**
-  - Node type name has a category color accent strip on the left edge
-  - Custom label input has a visible background so it reads as an editable field
-  - Node ID row is now a pill with a subtle border and background
-  - Field spacing tightened from `gap-3` to `gap-2` for a denser layout
-- **Field component polish**
-  - `VectorField` — X/Y/Z axis labels are color-coded red/green/blue
-  - `ColorPickerField` — removed redundant color swatch; color picker and hex input only
-  - `ToggleField` — fixed non-standard `h-4.5` sizing, corrected dot translate
-  - All field labels unified to `text-[11px]` and `focus:border-tn-accent/60`
-- **`CollapsibleEditorSection`** — single `ChevronDown` with CSS rotation replaces icon swap; solid border
+- **Align / Distribute menu** — Right-click menu now has a proper Align / Distribute submenu with an icon grid for all 6 align and 2 distribute actions
+- **Select Same Type** — New right-click option to select all nodes of the same type at once
+- **Cleaner context menu for frames and comments** — Graph-only options like Group, Select Upstream, and Set as Root are hidden for annotation nodes since they don't apply
+- **Note field** — Nodes with a `_comment` field now show it as a readable and editable amber note block in the properties panel
+- **Properties panel improvements**
+  - Node type name now has a colour strip on the left matching its category
+  - Custom label input is now visibly styled as an editable field
+  - Node ID row has a subtle pill background
+  - Fields are spaced tighter for a cleaner look
+- **Field improvements**
+  - Vector X/Y/Z axis labels are now colour coded red, green, blue
+  - Colour picker no longer shows a redundant swatch next to itself
+  - Toggle switch fixed to the correct size and animation
 
 ### Bug Fixes
 
-- **`useFieldChange` stale closure** — `commitState` and `setDirty` are now stored in refs updated via `useEffect`; the debounce timer always calls the latest version regardless of when it fires
-- **`EditorCanvas` wheel listener cleanup** — removed invalid `passive` flag from `removeEventListener`; replaced `hoverTrigger` state trigger with direct `hoveredEdge` state
-- **`MaterialField` setState after unmount** — `setTimeout` in `onBlur` now checks a `mountedRef` before calling any state setters
-- **`ContextMenuPrimitives` listener re-attach** — `onClose` stored in a ref; `stableClose` registered with `addEventListener` so listeners attach once on mount instead of on every render
-- **`QuickAddDialog` snippet error handling** — `placeSnippetEntry` wrapped in try/catch with user-facing toast on failure
-- **`NodeContextMenu` delete** — delete IIFE wrapped in try/catch
-- **Floating promises** — `DocsPanel`, `StatisticsPanel` clipboard writes given `.catch(() => {})`; `PropertyPanel` `idCopiedTimerRef` cleaned up on unmount
+- Fixed a stale closure bug in field change handling where the debounce timer could call an old version of the commit function
+- Fixed wheel event listener not cleaning up correctly on the editor canvas
+- Fixed material field trying to update state after the component unmounts
+- Fixed context menu event listeners re-attaching on every render instead of once
+- Fixed snippet placement not showing an error if something went wrong
+- Fixed several unhandled promise rejections in clipboard writes and node deletion
 
-## [Unreleased] — 2026-03-16
+## [0.1.7-pre.1] — 2026-03-16
 
 ### Documentation
 
-- **Three-tier terrain guide series** — New guides organized by terrain outcome rather than node type:
-  - `guides/terrain-types.md` — 12 terrain types (plains, hills, mountains, mesas, floating islands, caves, depth-faded caves, warped terrain, warped caves, dunes, archipelago, complex layered) with nodegraph diagrams, key parameters, and variations
-  - `guides/terrain-types-advanced.md` — 8 advanced techniques: double domain warp, slope detection, depth-zoned Switch branching, Voronoi river networks, altitude-scaled Amplitude, VectorWarp directional distortion, overhangs, and manual multi-scale noise stacks
-  - `guides/terrain-types-expert.md` — 8 expert topics: MultiMix N-way blending, PositionsPinch/Twist, SingleInstance thread safety, Cache strategy, Terrain accessor, full preview vs. runtime gap reference table, graph topology and cost model, and a new optimization reference section
-
-- **Preview gap warnings** — Added critical callouts to every recipe that uses `GradientWarp`, `VectorWarp`, or `BaseHeight` in `terrain-types.md`, `terrain-types-advanced.md`, and `node-combinations.md` (pattern 8), noting that these nodes return `0.0` in TerraNova's preview evaluator and must be tested in-game
-
-- **Troubleshooting — Preview vs. Runtime section** — New section in `troubleshooting.md` with a table of all 6 zero-returning nodes (`GradientWarp`, `VectorWarp`, `BaseHeight`, `CellWallDistance`, `Terrain`, `Imported`), their preview behavior, and per-node workarounds
-
-- **Reference corrections** — `reference/README.md` updated with missing material provider types (`Constant`, `Solidity`), full `MaterialProvider.Context` fields table, block rotation reference, `Skip: true` field note, and Prop Types split into Core / Compositional / Legacy sections
-
-- **Biome system corrections** — `guides/hytale-worldgen-v2-biome-system.md` corrected JSON field names (`Frequency` → `Scale`), added `FloatingFunctionNodes` + Export/Import section, fixed `EnvironmentProvider`/`TintProvider` type names, and added prop `Runtime` stage ordering table
-
-- **Expert preview gap table expanded** — `terrain-types-expert.md` section 6 updated from 6 entries to 15, adding `Shell`, SDF rotation (`Cube`/`Ellipsoid`/`Cuboid`/`Cylinder`), `Switch`/`SwitchState`, `SmoothFloor`/`SmoothCeiling`, `CellNoise` Curve/Density ReturnType, and `SimplexNoise3D` amplitude error (12.5%)
-
-- **Arithmetic fix** — `terrain-types-advanced.md` section 1: corrected chained `GradientWarp` cost from `6+6+1=13` to `6+6+2=14`
-
-- **Cross-reference wiring** — Added links to the new terrain guide series from `guides/README.md`, `guides/node-combinations.md`, `walkthroughs/terrain-and-caves.md`, and `troubleshooting.md`
+- **New terrain guide series** — Three new guides covering terrain by outcome rather than by node type: basic types (12 recipes), advanced techniques (8 recipes), and expert topics including optimization, graph cost modelling, and a preview vs. runtime gap reference
+- **Preview gap warnings** — Added callouts throughout the guides for nodes that return `0.0` in the preview evaluator (`GradientWarp`, `VectorWarp`, `BaseHeight`, `CellWallDistance`, `Terrain`, `Imported`) so users know to test them in-game
+- **Troubleshooting section** — New preview vs. runtime table in `troubleshooting.md` with per-node workarounds for all six zero-returning nodes
+- **Reference corrections** — Fixed missing material provider types, added full `MaterialProvider.Context` field table, block rotation reference, and reorganized Prop Types into Core / Compositional / Legacy
+- **Biome system corrections** — Fixed wrong JSON field names (`Frequency` → `Scale`), added missing `FloatingFunctionNodes` and Export/Import sections, fixed provider type names, and added prop runtime stage ordering
+- **Cross-references** — Wired all new guides into the existing `README`, `node-combinations`, `terrain-and-caves`, and `troubleshooting` pages
 
 ---
 
