@@ -146,6 +146,44 @@ describe("readClipboardData", () => {
     expect(result!.nodes).toHaveLength(1);
   });
 
+  it("parses a nodegraph fence when it embeds clipboard data", async () => {
+    const data: ClipboardData = {
+      version: "1",
+      nodes: [makeNode("doc-x")],
+      edges: [],
+    };
+    vi.spyOn(navigator.clipboard, "readText").mockResolvedValue(`\`\`\`nodegraph
+{
+  "height": 220,
+  "nodes": [{ "id": "preview-x", "label": "Constant", "x": 0, "y": 0 }],
+  "edges": [],
+  "clipboardData": ${JSON.stringify(data)}
+}
+\`\`\``);
+
+    const result = await readClipboardData();
+
+    expect(result).toEqual(data);
+  });
+
+  it("parses raw nodegraph JSON when it embeds clipboard data", async () => {
+    const data: ClipboardData = {
+      version: "1",
+      nodes: [makeNode("doc-y")],
+      edges: [makeEdge("doc-y", "doc-y")],
+    };
+    vi.spyOn(navigator.clipboard, "readText").mockResolvedValue(JSON.stringify({
+      height: 220,
+      nodes: [{ id: "preview-y", label: "Sum", x: 0, y: 0 }],
+      edges: [],
+      clipboardData: data,
+    }));
+
+    const result = await readClipboardData();
+
+    expect(result).toEqual(data);
+  });
+
   it("returns null for invalid JSON", async () => {
     vi.spyOn(navigator.clipboard, "readText").mockResolvedValue("not json");
     expect(await readClipboardData()).toBeNull();

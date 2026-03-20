@@ -16,6 +16,7 @@ import {
   type EdgeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import type { ClipboardData } from "@/utils/clipboard";
 
 // Category colour palette matching densitySubcategories.ts
 const CATEGORY_COLORS: Record<string, string> = {
@@ -62,6 +63,8 @@ export interface DocNodeGraphProps {
   edges: DocGraphEdge[];
   height?: number;
   steps?: DocGraphStep[];
+  clipboardData?: ClipboardData;
+  outputNodeId?: string | null;
 }
 
 const NODE_W = 200;

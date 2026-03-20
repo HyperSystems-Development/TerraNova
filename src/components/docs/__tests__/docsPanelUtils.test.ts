@@ -64,6 +64,7 @@ describe("docsPanelUtils", () => {
     expect(graph.edges.length).toBeGreaterThan(0);
     expect(graph.nodes.some((node) => node.label === "Sum")).toBe(true);
     expect(graph.height).toBeGreaterThanOrEqual(200);
+    expect((graph as { clipboardData?: { version?: string } }).clipboardData?.version).toBe("1");
   });
 
   it("wraps docs nodegraphs in a paste-ready markdown fence", () => {
@@ -76,6 +77,17 @@ describe("docsPanelUtils", () => {
     expect(block.startsWith("```nodegraph")).toBe(true);
     expect(block).toContain(`"label": "Sum"`);
     expect(block.endsWith("```")).toBe(true);
+  });
+
+  it("preserves clipboard data when wrapping snippet nodegraphs", () => {
+    const graph = buildSnippetDocNodeGraph(`{
+  "Type": "Constant",
+  "Value": 12
+}`);
+    const block = buildDocNodeGraphMarkdownBlock(graph);
+
+    expect(block).toContain(`"clipboardData"`);
+    expect(block).toContain(`"version": "1"`);
   });
 
   it("strips doc comments and extracts walkthrough steps", () => {

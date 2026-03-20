@@ -119,13 +119,8 @@ export function buildSnippetDocNodeGraph(
   snippetJson: string,
   idPrefix = "doc_snippet_preview",
 ): DocNodeGraphProps {
-  const parsed = JSON.parse(snippetJson);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Snippet must be a JSON object.");
-  }
-
-  const normalized = normalizeImport(parsed as Record<string, unknown>);
-  const { nodes, edges } = jsonToGraph(normalized, 0, 0, idPrefix);
+  const { clipboardData, outputNodeId } = buildSnippetGraphData(snippetJson, idPrefix);
+  const { nodes, edges } = clipboardData;
   const yValues = nodes.map((node) => node.position.y);
   const yMin = yValues.length > 0 ? Math.min(...yValues) : 0;
   const yMax = yValues.length > 0 ? Math.max(...yValues) : 0;
@@ -133,6 +128,8 @@ export function buildSnippetDocNodeGraph(
 
   return {
     height,
+    clipboardData,
+    outputNodeId,
     nodes: nodes.map((node) => {
       const data = (node.data as Record<string, unknown>) ?? {};
       const type = typeof data.type === "string" ? data.type : node.type;

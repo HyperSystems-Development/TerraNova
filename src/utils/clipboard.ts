@@ -6,6 +6,51 @@ export interface ClipboardData {
   edges: Edge[];
 }
 
+const NODEGRAPH_FENCE_REGEX = /^```nodegraph\s*([\s\S]*?)\s*```$/i;
+
+function isClipboardData(value: unknown): value is ClipboardData {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    (value as ClipboardData).version === "1" &&
+    Array.isArray((value as ClipboardData).nodes) &&
+    Array.isArray((value as ClipboardData).edges),
+  );
+}
+
+function extractClipboardData(value: unknown): ClipboardData | null {
+  if (isClipboardData(value)) return value;
+  if (
+    value &&
+    typeof value === "object" &&
+    "clipboardData" in value &&
+    isClipboardData((value as { clipboardData?: unknown }).clipboardData)
+  ) {
+    return (value as { clipboardData: ClipboardData }).clipboardData;
+  }
+  return null;
+}
+
+function parseClipboardText(text: string): ClipboardData | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  try {
+    return extractClipboardData(JSON.parse(trimmed));
+  } catch {
+    // Not direct JSON, continue.
+  }
+
+  const fencedMatch = trimmed.match(NODEGRAPH_FENCE_REGEX);
+  if (!fencedMatch) return null;
+
+  try {
+    return extractClipboardData(JSON.parse(fencedMatch[1].trim()));
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Copy the selected nodes and their internal edges to the system clipboard.
  * Returns the ClipboardData for use as an internal fallback.
@@ -13,8 +58,10 @@ export interface ClipboardData {
 export function copyNodesToClipboard(
   nodes: Node[],
   edges: Edge[],
+  selectedNodeIds?: Iterable<string>,
 ): ClipboardData | null {
-  const selected = nodes.filter((n) => n.selected);
+  const selectedIdSet = selectedNodeIds ? new Set(selectedNodeIds) : null;
+  const selected = nodes.filter((n) => selectedIdSet ? selectedIdSet.has(n.id) : n.selected);
   if (selected.length === 0) return null;
 
   const selectedIds = new Set(selected.map((n) => n.id));
@@ -79,17 +126,9 @@ export function pasteNodesFromClipboard(
 export async function readClipboardData(): Promise<ClipboardData | null> {
   try {
     const text = await navigator.clipboard.readText();
-    const parsed = JSON.parse(text);
-    if (
-      parsed &&
-      parsed.version === "1" &&
-      Array.isArray(parsed.nodes) &&
-      Array.isArray(parsed.edges)
-    ) {
-      return parsed as ClipboardData;
-    }
+    return parseClipboardText(text);
   } catch {
-    // Not valid JSON or clipboard not available
+    // Clipboard not available
   }
   return null;
 }

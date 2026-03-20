@@ -20,6 +20,7 @@ import {
 } from "@/components/docs/docsPanelUtils";
 import { CurveCanvas } from "@/components/properties/CurveCanvas";
 import { autoLayout } from "@/utils/autoLayout";
+import type { ClipboardData } from "@/utils/clipboard";
 import { useEditorStore } from "@/stores/editorStore";
 import { getMutateAndCommit } from "@/stores/slices/historySlice";
 import { useToastStore } from "@/stores/toastStore";
@@ -1086,11 +1087,30 @@ export function DocsPanel() {
     graph: string | Parameters<typeof buildDocNodeGraphMarkdownBlock>[0],
     label?: string,
   ) => {
+    const clipboardData = typeof graph === "object" && graph !== null && "clipboardData" in graph
+      ? (graph as { clipboardData?: unknown }).clipboardData
+      : null;
+    if (
+      clipboardData &&
+      typeof clipboardData === "object" &&
+      (clipboardData as { version?: unknown }).version === "1"
+    ) {
+      useEditorStore.setState({ _clipboardData: clipboardData as ClipboardData });
+    }
+
     const copied = await writeTextToClipboard(buildDocNodeGraphMarkdownBlock(graph));
     addToast(
-      copied
-        ? `${label ?? "Node graph"} block copied. Paste it into docs to render the preview.`
-        : `Could not copy ${label ?? "node graph"} block`,
+      clipboardData
+        ? (
+          copied
+            ? `${label ?? "Node graph"} copied. Paste it into docs or the canvas with Ctrl+V.`
+            : `${label ?? "Node graph"} saved to the TerraNova clipboard. Paste it into the canvas with Ctrl+V.`
+        )
+        : (
+          copied
+            ? `${label ?? "Node graph"} block copied. Paste it into docs to render the preview.`
+            : `Could not copy ${label ?? "node graph"} block`
+        ),
       copied ? "success" : "error",
     );
   }, [addToast, writeTextToClipboard]);
@@ -1375,8 +1395,8 @@ export function DocsPanel() {
                 </div>
                 <ActionPillButton
                   label="Copy Nodegraph"
-                  onClick={() => { void handleCopyNodeGraphBlock(value, "Node graph"); }}
-                  title="Copy a paste-ready nodegraph markdown block"
+                  onClick={() => { void handleCopyNodeGraphBlock(graph, "Node graph"); }}
+                  title={"clipboardData" in graph ? "Copy a docs nodegraph block that also pastes into the canvas" : "Copy a paste-ready nodegraph markdown block"}
                 />
               </div>
               <div className="px-3 py-3">
