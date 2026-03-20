@@ -466,21 +466,10 @@ pub fn list_template_biomes(app: tauri::AppHandle) -> Result<Vec<TemplateBiomeEn
             continue;
         }
         let template_name = template_entry.file_name().to_string_lossy().to_string();
-        let display_name = if template_name.eq_ignore_ascii_case("references") {
-            "Hytale Reference Biomes".to_string()
-        } else {
-            template_name
-                .split(|c: char| c == '-' || c == '_')
-                .map(|w| {
-                    let mut c = w.chars();
-                    match c.next() {
-                        None => String::new(),
-                        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join(" ")
-        };
+        if !crate::io::template::is_visible_template_dir(&template_name) {
+            continue;
+        }
+        let display_name = read_template_display_name(&template_entry.path(), &template_name);
 
         collect_biome_files(
             &template_entry.path(),
@@ -497,6 +486,42 @@ pub fn list_template_biomes(app: tauri::AppHandle) -> Result<Vec<TemplateBiomeEn
 fn is_biome_folder(name: &std::ffi::OsStr) -> bool {
     let s = name.to_string_lossy();
     s.eq_ignore_ascii_case("Biomes") || s.eq_ignore_ascii_case("references")
+}
+
+fn humanize_template_name(template_name: &str) -> String {
+    template_name
+        .split(|c: char| c == '-' || c == '_')
+        .map(|w| {
+            let mut chars = w.chars();
+            match chars.next() {
+                None => String::new(),
+                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn read_template_display_name(template_path: &Path, template_name: &str) -> String {
+    if template_name.eq_ignore_ascii_case("references") {
+        return "Hytale Reference Biomes".to_string();
+    }
+
+    let manifest_path = template_path.join("manifest.json");
+    if manifest_path.is_file() {
+        if let Ok(contents) = fs::read_to_string(&manifest_path) {
+            if let Ok(json) = serde_json::from_str::<Value>(&contents) {
+                if let Some(name) = json.get("name").and_then(Value::as_str) {
+                    let trimmed = name.trim();
+                    if !trimmed.is_empty() {
+                        return trimmed.to_string();
+                    }
+                }
+            }
+        }
+    }
+
+    humanize_template_name(template_name)
 }
 
 const MAX_TEMPLATE_DEPTH: usize = 20;

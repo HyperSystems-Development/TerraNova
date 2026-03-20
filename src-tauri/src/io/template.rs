@@ -7,8 +7,6 @@ pub const BUNDLED_TEMPLATE_DIRS: &[&str] = &[
     "shattered-archipelago",
     "tropical-pirate-islands",
     "eldritch-spirelands",
-    "aqua-subterrain",
-    "mycelium-growth",
 ];
 
 pub fn is_visible_template_dir(name: &str) -> bool {
@@ -35,7 +33,7 @@ pub fn create_from_template(
     }
 
     fs::create_dir_all(target)?;
-    copy_dir_recursive(&template_dir, target)?;
+    copy_template_contents(&template_dir, target)?;
 
     Ok(())
 }
@@ -288,8 +286,6 @@ mod tests {
     #[test]
     fn visible_template_dirs_match_bundled_set_and_references() {
         assert!(is_visible_template_dir("void"));
-        assert!(is_visible_template_dir("aqua-subterrain"));
-        assert!(is_visible_template_dir("mycelium-growth"));
         assert!(is_visible_template_dir("references"));
         assert!(!is_visible_template_dir("FirstTry"));
         assert!(!is_visible_template_dir("FHillsTest"));

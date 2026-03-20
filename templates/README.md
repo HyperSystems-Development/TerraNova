@@ -11,8 +11,6 @@ These directories are surfaced by the app and included in production builds:
 - `shattered-archipelago`
 - `tropical-pirate-islands`
 - `eldritch-spirelands`
-- `aqua-subterrain`
-- `mycelium-growth`
 
 `references/` is also kept here as a biome reference source for the editor, but it is not shown as a new-project starter world.
 
@@ -31,8 +29,6 @@ Bundled templates are normalized into the same on-disk project structure as blan
 ```
 
 Older template folders may still use a legacy root `HytaleGenerator/` layout. TerraNova now rewrites that into `Server/HytaleGenerator/` when creating a project so the resulting project tree stays consistent.
-
-Some bundled templates are mod-derived starter packs. Those keep the original mod structure when that is the safest way to preserve biome, environment, and supporting asset references.
 
 ## Legacy Scratch Templates
 

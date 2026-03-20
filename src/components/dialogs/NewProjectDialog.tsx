@@ -54,7 +54,7 @@ export function NewProjectDialog({ open: isOpen, onClose, defaultTemplate }: New
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="bg-tn-panel border border-tn-border rounded-lg shadow-xl w-[440px] p-5 flex flex-col gap-4"
+        className="bg-tn-panel border border-tn-border rounded-lg shadow-xl w-[520px] max-w-[calc(100vw-2rem)] p-5 flex flex-col gap-4"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-base font-semibold">New Project</h2>
@@ -100,15 +100,29 @@ export function NewProjectDialog({ open: isOpen, onClose, defaultTemplate }: New
               <button
                 key={t.name}
                 onClick={() => setSelectedTemplate(t.name)}
-                className={`text-left px-3 py-2 rounded border text-sm ${
+                className={`text-left px-3 py-2.5 rounded border text-sm transition-colors ${
                   selectedTemplate === t.name
                     ? "border-tn-accent bg-tn-accent/10"
                     : "border-tn-border bg-tn-bg hover:bg-tn-surface"
                 }`}
               >
-                <span className="font-medium">{t.displayName}</span>
-                <span className="ml-2 text-xs text-tn-text-muted">{t.category}</span>
-                <p className="text-xs text-tn-text-muted mt-0.5">{t.description}</p>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="font-medium">{t.displayName}</span>
+                  <span className="text-[11px] text-tn-text-muted">{t.category}</span>
+                </div>
+                <p className="text-xs text-tn-text-muted mt-1 leading-relaxed">{t.description}</p>
+                {t.tags && t.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {t.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-[10px] px-1.5 py-0.5 rounded-full bg-tn-surface border border-tn-border text-tn-text-muted"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </button>
             ))}
           </div>
