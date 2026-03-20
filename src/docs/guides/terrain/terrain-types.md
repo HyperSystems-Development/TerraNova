@@ -4,6 +4,13 @@
 
 This guide is organized by **what terrain you want to make**, not by which nodes exist. Each section describes the visual result, explains why the node combination produces it, and gives you working parameters to start from.
 
+If you are new, do not try to read the whole page in one pass. Start with:
+1. **Flat Plains**
+2. **Rolling Hills**
+3. **Mountains**
+
+Those three patterns teach the core terrain ideas used everywhere else: height anchor, noise variation, and shaping with curves.
+
 For node wiring diagrams organized by pattern instead of outcome, see [Node Combination Patterns](../world/node-combinations.md).
 
 Need a paste-ready starting point instead of a visual recipe? Open [Terrain Snippets](../../reference/terrain-types.md) in the docs pane for copyable JSON, `Copy Graph`, and `Open In Editor` actions.
@@ -20,15 +27,27 @@ Each terrain type shows:
 
 Parameters marked with `*` are the ones most worth tweaking first.
 
+Beginner rule of thumb:
+- change only one starred value at a time
+- generate the preview after each change
+- keep a working version before moving to the next section
+
 ---
 
 ## 1. Flat Plains
 
 **What it looks like:** Gentle, near-flat terrain with very slight undulation. Low hills, wide valleys.
 
+**Start here if:** You want the simplest possible terrain that still teaches the graph flow.
+
 **The recipe:** `BaseHeight` → `Sum` → `Terrain Out`, with a low-amplitude `SimplexNoise2D` adding minimal variation.
 
 > **Preview gap:** `BaseHeight` returns `0.0` in TerraNova's preview — terrain will appear anchored at Y=0 instead of your configured Y level. Workaround: temporarily replace `BaseHeight` with `Sum { Inputs: [YValue, Constant { Value: -64 }] }` while previewing, then restore `BaseHeight` before export.
+
+```curve
+Flat plains profile - almost flat, with only a small noise bump
+[[0,0.95],[0.25,0.95],[0.5,0.9],[0.75,0.95],[1,0.95]]
+```
 
 ```nodegraph
 {
@@ -47,6 +66,13 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "from": "c",   "to": "mul" },
     { "from": "mul", "to": "sum", "label": "× 0.1" },
     { "from": "sum", "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "bh", "text": "BaseHeight is your terrain anchor. It says where the ground level starts before any variation is added." },
+    { "nodeId": "sn", "text": "SimplexNoise2D creates the horizontal variation. Keep it broad and gentle here - this is just enough noise to stop the ground feeling perfectly flat." },
+    { "nodeId": "mul", "text": "Multiplier scales the noise down. This is one of the safest beginner controls: lower values make calmer land, higher values make rougher land." },
+    { "nodeId": "sum", "text": "Sum combines the ground anchor and the small noise variation into one density result." },
+    { "nodeId": "out", "text": "Terrain Out is the final terrain signal. If this graph looks right, you have a stable base to build from." }
   ]
 }
 ```
@@ -67,7 +93,14 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 **What it looks like:** Classic overworld terrain — moderate hills and valleys with smooth transitions, no sharp features.
 
+**Start here if:** Flat plains work, but the world still feels too lifeless.
+
 **The recipe:** `BaseHeight` + `CurveMapper` for the vertical profile, plus `SimplexNoise2D` for horizontal variation, combined with `Sum`. Wrap in `YSampled` for performance.
+
+```curve
+Rolling hills profile - gentle S curve with soft tops and valleys
+[[0,1],[0.18,0.82],[0.38,0.35],[0.5,0],[0.62,-0.35],[0.82,-0.82],[1,-1]]
+```
 
 ```nodegraph
 {
@@ -86,6 +119,14 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "from": "sn",  "to": "sum", "label": "variation" },
     { "from": "sum", "to": "ys" },
     { "from": "ys",  "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "bh", "text": "BaseHeight still provides the vertical anchor. It keeps the terrain tied to a predictable surface level." },
+    { "nodeId": "cm", "text": "CurveMapper is where the hills become intentional. A gentle S shape makes the ground ease into hills instead of jumping into cliffs." },
+    { "nodeId": "sn", "text": "SimplexNoise2D decides where the hills and valleys happen across the map. Lower scale means broader hills." },
+    { "nodeId": "sum", "text": "Sum merges the shaped height profile with the horizontal variation. This is the moment the terrain starts to feel natural." },
+    { "nodeId": "ys", "text": "YSampled is the performance wrapper. It is a good default once the terrain shape already looks correct." },
+    { "nodeId": "out", "text": "Terrain Out now holds a beginner-friendly production pattern: anchor, shape, vary, then optimize." }
   ]
 }
 ```
@@ -106,9 +147,16 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 **What it looks like:** Tall, dramatic terrain with sharp peaks, steep slopes, and exposed rock faces. High amplitude variation.
 
+**Start here if:** Rolling hills are working and you want stronger silhouettes instead of gentle landforms.
+
 **The recipe:** Same structure as rolling hills, but with a much steeper CurveMapper, higher BaseHeight, and larger noise amplitude. Adding `Abs` on a second noise layer folds it into sharp ridges.
 
 > **Preview gap:** `BaseHeight` returns `0.0` in TerraNova's preview. Replace with `Sum { Inputs: [YValue, Constant { Value: -80 }] }` while tuning, then restore before export.
+
+```curve
+Mountain profile - steep middle, flatter base and summit
+[[0,1],[0.15,0.94],[0.35,0.45],[0.5,0],[0.63,-0.55],[0.82,-0.92],[1,-1]]
+```
 
 ```nodegraph
 {
@@ -135,6 +183,15 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "from": "amp", "to": "sum", "label": "ridges" },
     { "from": "sum", "to": "ys" },
     { "from": "ys",  "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "bh", "text": "BaseHeight raises the whole terrain so the mountains start from a higher world level." },
+    { "nodeId": "cm", "text": "CurveMapper steepens the vertical profile. This is what changes the land from hills into cliffs and tall slopes." },
+    { "nodeId": "sn", "text": "The first noise layer provides the large mountain mass. Think of it as the shape of the range." },
+    { "nodeId": "abs", "text": "Abs folds a second noise layer so ridges become sharper and more broken instead of smooth." },
+    { "nodeId": "amp", "text": "Multiplier controls how strongly those ridge details affect the final mountain. This is the knob to turn if the range feels too calm or too chaotic." },
+    { "nodeId": "ys", "text": "YSampled keeps the more expensive terrain stack practical once the form is dialed in." },
+    { "nodeId": "out", "text": "Terrain Out now gives you a mountain recipe that still follows the same beginner logic: anchor, shape, add detail, optimize." }
   ]
 }
 ```
@@ -159,9 +216,16 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 **What it looks like:** Flat-topped elevated landforms with steep cliff walls dropping to lower surrounding terrain. Desert or highland feel.
 
+**Start here if:** You want flat playable tops with obvious cliff edges.
+
 **The recipe:** A `CurveMapper` with a flat segment at the top (clamped curve) controls the height profile. `SmoothClamp` on the final density keeps the top surface flat without a hard edge.
 
 > **Preview gap:** `BaseHeight` returns `0.0` in preview. Replace with `Sum { Inputs: [YValue, Constant { Value: -64 }] }` while tuning.
+
+```curve
+Mesa profile - strong rise into a flat plateau top
+[[0,1],[0.2,0.95],[0.42,0.25],[0.55,0.05],[0.68,0],[0.82,0],[1,0]]
+```
 
 ```nodegraph
 {
@@ -180,6 +244,13 @@ Parameters marked with `*` are the ones most worth tweaking first.
     { "from": "sum", "to": "cm" },
     { "from": "cm",  "to": "sc" },
     { "from": "sc",  "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "bh", "text": "BaseHeight provides the elevation the mesa grows from." },
+    { "nodeId": "sn", "text": "SimplexNoise2D makes each mesa footprint different so the result does not look like a repeated shape." },
+    { "nodeId": "cm", "text": "CurveMapper creates the steep wall and the flat top. This is the most important node in the setup." },
+    { "nodeId": "sc", "text": "SmoothClamp gently enforces the top ceiling so the plateau stays usable and readable instead of becoming spiky." },
+    { "nodeId": "out", "text": "Terrain Out gives you a terrain type that is easy to navigate and easy to recognize in preview." }
   ]
 }
 ```
@@ -206,6 +277,11 @@ Parameters marked with `*` are the ones most worth tweaking first.
 
 > [!IMPORTANT]
 > Both `Ellipsoid` and `Plane` require a `Curve` node connection — this is a required input, not optional. Without it the node produces no output. Use a `CurveMapper` or a named curve asset as the curve source.
+
+```curve
+Floating island underside - rounded body with a trimmed bottom
+[[0,1],[0.2,0.92],[0.45,0.64],[0.7,0.28],[0.88,0.08],[1,0]]
+```
 
 ```nodegraph
 {

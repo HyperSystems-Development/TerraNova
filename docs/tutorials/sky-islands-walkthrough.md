@@ -1,11 +1,19 @@
 # Tutorial: Building a Sky Islands Biome from Scratch
 
+<!-- walkthrough -->
+
 > **Difficulty:** Intermediate
 > **Time:** 30-45 minutes
 > **What you'll learn:** Density function composition, material layering, prop scattering, and how all the pieces of a V2 biome fit together.
 > **End result:** A floating archipelago of islands at varying heights with grass-topped terrain, trees, crystals, and a dreamy atmosphere.
 >
 > **Format note:** All JSON in this tutorial uses **Hytale-native format** — the same format exported by Hytale's in-game editor. `$NodeId` UUIDs are omitted for readability (Hytale generates these automatically), but every other field matches what the server expects.
+
+If this is your first full biome:
+- use the walkthrough mode in the docs pane
+- finish one step before reading the next
+- validate the preview after each terrain change
+- skip the prop sections on the first pass if you only want the island shape working
 
 ---
 
@@ -32,7 +40,14 @@
 
 ## Step 0 — Overview: What We're Building
 
-In Hytale's World Generation V2, terrain is defined by **density functions** — mathematical trees that take a 3D coordinate `(x, y, z)` and return a number. Positive = solid block, negative = air. By composing noise generators, math operations, and coordinate lookups, you can sculpt any terrain shape imaginable.
+In Hytale's World Generation V2, terrain is defined by **density functions** — mathematical trees that take a 3D coordinate `(x, y, z)` and return a number. Positive = solid block, negative = air.
+
+If that sounds abstract, use this simpler mental model:
+- positive = land exists here
+- negative = empty space
+- your graph's job is to decide where land should exist
+
+By composing noise generators, math operations, and coordinate lookups, you can sculpt any terrain shape imaginable.
 
 For Sky Islands, we need to solve three problems:
 
@@ -50,7 +65,7 @@ Here's the mental model:
   ~~                ~~
 ```
 
-Each island is an isolated floating landmass. Let's build it.
+Each island is an isolated floating landmass. We will build it in layers: footprint first, then height, then edge shaping, then materials and props.
 
 ---
 

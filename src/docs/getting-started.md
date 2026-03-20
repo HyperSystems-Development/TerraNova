@@ -2,6 +2,11 @@
 
 This page covers everything you need to know to go from launching the app to having a working world.
 
+If you are new, do these three things first:
+1. Open [Quickstart: Build Your First Pack](../tutorials/quickstart.md).
+2. Make one terrain edit and watch the preview change.
+3. Come back here when you need the editor layout or shortcut reference.
+
 ---
 
 ## Launching the App
