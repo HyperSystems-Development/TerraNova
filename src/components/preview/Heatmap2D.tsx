@@ -330,7 +330,9 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
         canvasTransform, rect.width, rangeMin, rangeMax,
       );
 
-      const n = resolution;
+      // Use actual grid size from values array — may differ from resolution
+      // during progressive coarse passes (e.g. 16×16 while resolution is 128)
+      const n = Math.round(Math.sqrt(values.length));
       const worldRange = rangeMax - rangeMin;
       const col = Math.floor(((world.x - rangeMin) / worldRange) * n);
       const row = Math.floor(((world.z - rangeMin) / worldRange) * n);
@@ -339,10 +341,12 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
         return;
       }
       const idx = row * n + col;
+      const val = values[idx];
+      if (val === undefined) { setHoverInfo(null); return; }
       setHoverInfo({
         x: Math.round(world.x),
         z: Math.round(world.z),
-        value: values[idx],
+        value: val,
       });
     },
     [values, rangeMin, rangeMax, canvasTransform, setCanvasTransform, setCrossSectionLine, getInteractionRect],

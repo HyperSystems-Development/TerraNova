@@ -5,7 +5,6 @@ import { SNIPPET_CATALOG, placeSnippet, type SnippetDefinition } from "@/schema/
 import { AssetCategory, CATEGORY_COLORS } from "@/schema/types";
 import { HANDLE_REGISTRY } from "@/nodes/handleRegistry";
 import { BlockIcon } from "@/components/properties/BlockIcon";
-import { findCompatibleInterjectHandles } from "@/nodes/handleRegistry";
 import { useEditorStore } from "@/stores/editorStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useProjectStore } from "@/stores/projectStore";
@@ -146,31 +145,16 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
     // Filter out legacy types (not present in Hytale pre-release API)
     entries = entries.filter((e) => !isLegacyTypeKey(resolveNodeTypeKey(e)));
 
-    // Connection-aware filtering: only show types with compatible handles
+    // Connection-aware filtering: only show types that have a compatible handle
     if (compatibleCategories && pendingConnection) {
-      // Use findCompatibleInterjectHandles to filter node types
-      const { nodeId } = pendingConnection;
-      // Get connected handles for the node being connected
-      const connectedHandles = (() => {
-        const { edges } = useEditorStore.getState();
-        const connected = new Set<string>();
-        for (const e of edges) {
-          if (e.source === nodeId && e.sourceHandle) connected.add(e.sourceHandle);
-          if (e.target === nodeId && e.targetHandle) connected.add(e.targetHandle);
-        }
-        return connected;
-      })();
-
+      const needsTarget = pendingConnection.handleType === "source"; // dragging from source → need a target handle on the new node
       entries = entries.filter((entry) => {
         const typeKey = resolveNodeTypeKey(entry);
-        // Use findCompatibleInterjectHandles to check for at least one compatible handle
-        const compat = findCompatibleInterjectHandles(
-          typeKey,
-          Array.from(compatibleCategories)[0],
-          Array.from(compatibleCategories)[0],
-          connectedHandles,
+        const handles = HANDLE_REGISTRY[typeKey];
+        if (!handles) return false;
+        return handles.some(
+          (h) => h.type === (needsTarget ? "target" : "source") && compatibleCategories.has(h.category),
         );
-        return !!compat;
       });
     }
 

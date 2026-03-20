@@ -9,6 +9,7 @@ export interface SnippetNodeDef {
   localId: string;
   type: string;          // React Flow node type key (e.g. "SimplexNoise2D")
   displayType: string;   // data.type value
+  label?: string;        // optional friendly name shown on the node
   fields: Record<string, unknown>;
   offsetX: number;
   offsetY: number;
@@ -38,22 +39,10 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     name: "Ridge Noise 2D",
     description: "SimplexNoise2D piped through Abs to create ridge-like terrain",
     nodes: [
-      {
-        localId: "noise",
-        type: "SimplexNoise2D",
-        displayType: "SimplexNoise2D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D },
-        offsetX: 0,
-        offsetY: 0,
-      },
-      {
-        localId: "abs",
-        type: "Abs",
-        displayType: "Abs",
-        fields: {},
-        offsetX: 300,
-        offsetY: 0,
-      },
+      { localId: "noise", type: "SimplexNoise2D", displayType: "SimplexNoise2D", label: "Ridge Source",
+        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D }, offsetX: 0, offsetY: 0 },
+      { localId: "abs", type: "Abs", displayType: "Abs", label: "Ridge Fold",
+        fields: {}, offsetX: 300, offsetY: 0 },
     ],
     edges: [
       { sourceLocal: "noise", targetLocal: "abs", targetHandle: "Input" },
@@ -64,22 +53,10 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     name: "Ridge Noise 3D",
     description: "SimplexNoise3D piped through Abs to create ridge-like terrain",
     nodes: [
-      {
-        localId: "noise",
-        type: "SimplexNoise3D",
-        displayType: "SimplexNoise3D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise3D },
-        offsetX: 0,
-        offsetY: 0,
-      },
-      {
-        localId: "abs",
-        type: "Abs",
-        displayType: "Abs",
-        fields: {},
-        offsetX: 300,
-        offsetY: 0,
-      },
+      { localId: "noise", type: "SimplexNoise3D", displayType: "SimplexNoise3D", label: "Ridge Source",
+        fields: { ...DENSITY_DEFAULTS.SimplexNoise3D }, offsetX: 0, offsetY: 0 },
+      { localId: "abs", type: "Abs", displayType: "Abs", label: "Ridge Fold",
+        fields: {}, offsetX: 300, offsetY: 0 },
     ],
     edges: [
       { sourceLocal: "noise", targetLocal: "abs", targetHandle: "Input" },
@@ -90,22 +67,10 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     name: "Height Gradient",
     description: "CoordinateY normalized to [0,1] range for height-based density",
     nodes: [
-      {
-        localId: "coordY",
-        type: "CoordinateY",
-        displayType: "CoordinateY",
-        fields: {},
-        offsetX: 0,
-        offsetY: 0,
-      },
-      {
-        localId: "normalizer",
-        type: "Normalizer",
-        displayType: "Normalizer",
-        fields: { ...DENSITY_DEFAULTS.Normalizer },
-        offsetX: 300,
-        offsetY: 0,
-      },
+      { localId: "coordY", type: "CoordinateY", displayType: "CoordinateY", label: "World Height",
+        fields: {}, offsetX: 0, offsetY: 0 },
+      { localId: "normalizer", type: "Normalizer", displayType: "Normalizer", label: "Remap 0–1",
+        fields: { ...DENSITY_DEFAULTS.Normalizer }, offsetX: 300, offsetY: 0 },
     ],
     edges: [
       { sourceLocal: "coordY", targetLocal: "normalizer", targetHandle: "Input" },
@@ -116,30 +81,12 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     name: "Linear Transform",
     description: "Scale input by a constant (AmplitudeConstant) then add an offset (Sum + Constant)",
     nodes: [
-      {
-        localId: "amp",
-        type: "AmplitudeConstant",
-        displayType: "AmplitudeConstant",
-        fields: { ...DENSITY_DEFAULTS.AmplitudeConstant },
-        offsetX: 0,
-        offsetY: 0,
-      },
-      {
-        localId: "offset",
-        type: "Constant",
-        displayType: "Constant",
-        fields: { Value: 0.0 },
-        offsetX: 0,
-        offsetY: 150,
-      },
-      {
-        localId: "sum",
-        type: "Sum",
-        displayType: "Sum",
-        fields: {},
-        offsetX: 300,
-        offsetY: 50,
-      },
+      { localId: "amp", type: "AmplitudeConstant", displayType: "AmplitudeConstant", label: "Scale",
+        fields: { ...DENSITY_DEFAULTS.AmplitudeConstant }, offsetX: 0, offsetY: 0 },
+      { localId: "offset", type: "Constant", displayType: "Constant", label: "Offset",
+        fields: { Value: 0.0 }, offsetX: 0, offsetY: 150 },
+      { localId: "sum", type: "Sum", displayType: "Sum", label: "Output",
+        fields: {}, offsetX: 300, offsetY: 50 },
     ],
     edges: [
       { sourceLocal: "amp", targetLocal: "sum", targetHandle: "InputA" },
@@ -410,57 +357,51 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
   {
     id: "double-helix",
     name: "Double Helix",
-    description: "Two intertwined helical tubes — offset strands twisted around the Y axis with an ease-in curve. Adjust Angle for twist rate, Translation X for strand separation, Ceiling for tube thickness",
+    description: "Two intertwined helical tubes — offset strands twisted around the Y axis. Adjust Angle for twist rate, Translation X for strand separation, Ceiling for tube thickness",
     category: "Terrain",
     nodes: [
       // Shared noise source
-      { localId: "noise",      type: "SimplexNoise3D",     displayType: "SimplexNoise3D",     label: "Helix Noise",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise3D, Scale: 8 }, offsetX: 0, offsetY: 150 },
-
-      // Ease-in twist curve: slow twist at base, fast at top
-      { localId: "twistCurve", type: "Curve:Manual",       displayType: "Curve:Manual",       label: "Ease-In Twist",
-        fields: { Points: [[0, 0], [0.3, 0.05], [0.7, 0.5], [1, 1]] }, offsetX: 300, offsetY: 400 },
+      { localId: "noise",    type: "SimplexNoise3D",     displayType: "SimplexNoise3D",     label: "Helix Noise",
+        fields: { ...DENSITY_DEFAULTS.SimplexNoise3D, Scale: 8 }, offsetX: 0, offsetY: 100 },
 
       // Strand A: offset +X, twist, threshold
-      { localId: "transA",     type: "TranslatedPosition", displayType: "TranslatedPosition", label: "Strand A Offset",
+      { localId: "transA",   type: "TranslatedPosition", displayType: "TranslatedPosition", label: "Strand A Offset",
         fields: { Translation: { x: 4, y: 0, z: 0 } }, offsetX: 300, offsetY: 0 },
-      { localId: "twistA",     type: "PositionsTwist",     displayType: "PositionsTwist",     label: "Strand A Twist",
+      { localId: "twistA",   type: "PositionsTwist",     displayType: "PositionsTwist",     label: "Strand A Twist",
         fields: { ...DENSITY_DEFAULTS.PositionsTwist, Angle: 60.0 }, offsetX: 600, offsetY: 0 },
-      { localId: "ceilA",      type: "Ceiling",            displayType: "Ceiling",            label: "Strand A Tube",
+      { localId: "ceilA",    type: "Ceiling",            displayType: "Ceiling",            label: "Strand A Tube",
         fields: { Ceiling: 0.3 }, offsetX: 900, offsetY: 0 },
-      { localId: "negA",       type: "Negate",             displayType: "Negate",             label: "Strand A Solid",
+      { localId: "negA",     type: "Negate",             displayType: "Negate",             label: "Strand A Solid",
         fields: {}, offsetX: 1200, offsetY: 0 },
 
       // Strand B: offset -X, same twist rate, 180° out of phase
-      { localId: "transB",     type: "TranslatedPosition", displayType: "TranslatedPosition", label: "Strand B Offset",
+      { localId: "transB",   type: "TranslatedPosition", displayType: "TranslatedPosition", label: "Strand B Offset",
         fields: { Translation: { x: -4, y: 0, z: 0 } }, offsetX: 300, offsetY: 200 },
-      { localId: "twistB",     type: "PositionsTwist",     displayType: "PositionsTwist",     label: "Strand B Twist",
+      { localId: "twistB",   type: "PositionsTwist",     displayType: "PositionsTwist",     label: "Strand B Twist",
         fields: { ...DENSITY_DEFAULTS.PositionsTwist, Angle: 60.0 }, offsetX: 600, offsetY: 200 },
-      { localId: "ceilB",      type: "Ceiling",            displayType: "Ceiling",            label: "Strand B Tube",
+      { localId: "ceilB",    type: "Ceiling",            displayType: "Ceiling",            label: "Strand B Tube",
         fields: { Ceiling: 0.3 }, offsetX: 900, offsetY: 200 },
-      { localId: "negB",       type: "Negate",             displayType: "Negate",             label: "Strand B Solid",
+      { localId: "negB",     type: "Negate",             displayType: "Negate",             label: "Strand B Solid",
         fields: {}, offsetX: 1200, offsetY: 200 },
 
       // Union both strands
-      { localId: "union",      type: "SmoothMax",          displayType: "SmoothMax",          label: "Union Strands",
+      { localId: "union",    type: "SmoothMax",          displayType: "SmoothMax",          label: "Union Strands",
         fields: { ...DENSITY_DEFAULTS.SmoothMax, Smoothness: 0.5 }, offsetX: 1500, offsetY: 100 },
     ],
     edges: [
-      // Strand A: noise → transA → twistA (with ease-in curve) → ceilA → negA
-      { sourceLocal: "noise",      targetLocal: "transA",    targetHandle: "Input" },
-      { sourceLocal: "transA",     targetLocal: "twistA",    targetHandle: "Input" },
-      { sourceLocal: "twistCurve", targetLocal: "twistA",    targetHandle: "TwistCurve" },
-      { sourceLocal: "twistA",     targetLocal: "ceilA",     targetHandle: "Input" },
-      { sourceLocal: "ceilA",      targetLocal: "negA",      targetHandle: "Input" },
-      // Strand B: noise → transB → twistB (same ease-in curve) → ceilB → negB
-      { sourceLocal: "noise",      targetLocal: "transB",    targetHandle: "Input" },
-      { sourceLocal: "transB",     targetLocal: "twistB",    targetHandle: "Input" },
-      { sourceLocal: "twistCurve", targetLocal: "twistB",    targetHandle: "TwistCurve" },
-      { sourceLocal: "twistB",     targetLocal: "ceilB",     targetHandle: "Input" },
-      { sourceLocal: "ceilB",      targetLocal: "negB",      targetHandle: "Input" },
+      // Strand A: noise → transA → twistA → ceilA → negA
+      { sourceLocal: "noise",  targetLocal: "transA", targetHandle: "Input" },
+      { sourceLocal: "transA", targetLocal: "twistA", targetHandle: "Input" },
+      { sourceLocal: "twistA", targetLocal: "ceilA",  targetHandle: "Input" },
+      { sourceLocal: "ceilA",  targetLocal: "negA",   targetHandle: "Input" },
+      // Strand B: noise → transB → twistB → ceilB → negB
+      { sourceLocal: "noise",  targetLocal: "transB", targetHandle: "Input" },
+      { sourceLocal: "transB", targetLocal: "twistB", targetHandle: "Input" },
+      { sourceLocal: "twistB", targetLocal: "ceilB",  targetHandle: "Input" },
+      { sourceLocal: "ceilB",  targetLocal: "negB",   targetHandle: "Input" },
       // Union
-      { sourceLocal: "negA",       targetLocal: "union",     targetHandle: "Inputs[0]" },
-      { sourceLocal: "negB",       targetLocal: "union",     targetHandle: "Inputs[1]" },
+      { sourceLocal: "negA",   targetLocal: "union",  targetHandle: "Inputs[0]" },
+      { sourceLocal: "negB",   targetLocal: "union",  targetHandle: "Inputs[1]" },
     ],
   },
 
@@ -682,6 +623,7 @@ export function placeSnippet(
     data: {
       type: nodeDef.displayType,
       fields: { ...nodeDef.fields },
+      ...(nodeDef.label ? { label: nodeDef.label } : {}),
     },
     selected: true,
   }));

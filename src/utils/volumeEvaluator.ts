@@ -46,6 +46,8 @@ export function evaluateDensityVolume(
   let minVal = Infinity;
   let maxVal = -Infinity;
 
+  ctx.clearMemo();
+
   for (let yi = 0; yi < ys; yi++) {
     const wy = yMin + yi * stepY;
     const yOffset = yi * n * n;
@@ -61,7 +63,6 @@ export function evaluateDensityVolume(
       for (let xi = 0; xi < n; xi++) {
         const wx = rangeMin + xi * stepXZ;
 
-        ctx.clearMemo();
         const val = ctx.evaluate(ctx.rootId, wx, wy, wz);
 
         const idx = yOffset + zi * n + xi;
