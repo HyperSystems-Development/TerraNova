@@ -131,14 +131,6 @@ body,
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-.docs-content[data-reading-width="narrow"] .docs-reading-shell > :not(.docs-wide-block) {
-  width: min(100%, 680px);
-}
-
-.docs-content[data-reading-width="wide"] .docs-reading-shell > :not(.docs-wide-block) {
-  width: min(100%, 860px);
-}
-
 .docs-reading-shell > :not(.docs-wide-block) {
   width: min(100%, 760px);
   margin-left: auto;

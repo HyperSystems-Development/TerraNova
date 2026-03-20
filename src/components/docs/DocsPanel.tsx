@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { startTransition, useDeferredValue, useMemo, useState, useEffect, useCallback, useRef } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   ChevronLeft, ChevronRight, ChevronDown, Folder, FileText, X,
@@ -11,6 +11,15 @@ import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
 import { MermaidDiagram } from "@/components/docs/MermaidDiagram";
 import { DocNodeGraph, parseNodeGraph } from "@/components/docs/DocNodeGraph";
+import {
+  buildSnippetGraphData,
+  extractWalkthroughSteps,
+  filterDocTree,
+  findFirstFileSlug,
+  getDefaultDocSlug,
+  parseSnippetFence,
+  stripDocComments,
+} from "@/components/docs/docsPanelUtils";
 import { CurveCanvas } from "@/components/properties/CurveCanvas";
 
 // ── Inline node pill ─────────────────────────────────────────────────────────
@@ -798,6 +807,7 @@ export function DocsPanel() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [rawMd, setRawMd] = useState<string>("");
   const [filter, setFilter] = useState("");
+  const deferredFilter = useDeferredValue(filter);
   const [navHistory, setNavHistory] = useState<string[]>([]);
   const [navIndex, setNavIndex] = useState(-1);
   const navIndexRef = useRef(-1);
@@ -859,6 +869,8 @@ export function DocsPanel() {
 
   const docTree = useMemo(() => buildDocTree(entries), [entries]);
   const tocEntries = useMemo(() => parseToc(rawMd), [rawMd]);
+  const normalizedFilter = deferredFilter.trim();
+  const isSearchPending = filter !== deferredFilter;
 
   const getAllFolderSlugs = useCallback((nodes: DocTreeNodeData[]): string[] => {
     const slugs: string[] = [];
@@ -893,8 +905,8 @@ export function DocsPanel() {
   );
 
   const filtered = useMemo(() => {
-    if (!filter.trim()) return entries;
-    const lower = filter.toLowerCase();
+    if (!normalizedFilter) return entries;
+    const lower = normalizedFilter.toLowerCase();
 
     return entries.filter((entry) => {
       const text = docIndex[entry.slug] ?? "";
@@ -904,35 +916,17 @@ export function DocsPanel() {
         text.toLowerCase().includes(lower)
       );
     });
-  }, [entries, filter, docIndex]);
+  }, [docIndex, entries, normalizedFilter]);
 
   const filteredTree = useMemo(() => {
-    if (!filter.trim()) return docTree;
-
-    // Flatten filtered entries into a tree-like object for display
+    if (!normalizedFilter) return docTree;
     const allowed = new Set(filtered.map((e) => e.slug));
-
-    function filterNode(node: DocTreeNodeData): DocTreeNodeData | null {
-      if (node.type === "file") {
-        return allowed.has(node.slug) ? node : null;
-      }
-      const childNodes = node.children
-        .map(filterNode)
-        .filter((n): n is DocTreeNodeData => n !== null);
-      if (childNodes.length > 0) {
-        return { ...node, children: childNodes };
-      }
-      return null;
-    }
-
-    return docTree
-      .map(filterNode)
-      .filter((n): n is DocTreeNodeData => n !== null);
-  }, [filter, docTree, filtered]);
+    return filterDocTree(docTree, allowed) as DocTreeNodeData[];
+  }, [docTree, filtered, normalizedFilter]);
 
   const loadDoc = useCallback(
     async (slug: string, anchor?: string, pushHistory = true) => {
-      const entry = entries.find((e) => e.slug === slug);
+      const entry = entriesBySlug.get(slug);
       if (!entry) return;
       let text: string;
       try {
@@ -950,7 +944,7 @@ export function DocsPanel() {
       }
 
       // Strip HTML comments (e.g. <!-- walkthrough -->) before rendering
-      const cleaned = text.replace(/<!--[\s\S]*?-->/g, "");
+      const cleaned = stripDocComments(text);
       setRawMd(cleaned);
       selectedSlugRef.current = slug;
       setSelectedSlug(slug);
@@ -974,14 +968,8 @@ export function DocsPanel() {
       // Detect experimental flag
       setIsExperimental(text.includes("<!-- experimental -->"));
 
-      // Parse walkthrough steps if applicable
-      if (text.includes("<!-- walkthrough -->")) {
-        const steps: Array<{ title: string; content: string }> = [];
-        const parts = cleaned.split(/^##\s+/m).slice(1);
-        for (const part of parts) {
-          const [titleLine, ...rest] = part.split("\n");
-          steps.push({ title: titleLine.trim(), content: rest.join("\n") });
-        }
+      const steps = extractWalkthroughSteps(text);
+      if (steps.length > 0) {
         setWalkthroughSteps(steps);
       } else {
         setWalkthroughSteps([]);
@@ -1001,7 +989,7 @@ export function DocsPanel() {
         }, 20);
       }
     },
-    [entries],
+    [entriesBySlug],
   );
 
   const navBack = useCallback(() => {
@@ -1070,9 +1058,11 @@ export function DocsPanel() {
 
       if (cancelled) return;
 
-      setDocIndex(index);
-      setBacklinks(Object.fromEntries(Object.entries(inbound).map(([k, v]) => [k, Array.from(v)])));
-      setOutboundLinks(Object.fromEntries(Object.entries(outbound).map(([k, v]) => [k, Array.from(v)])));
+      startTransition(() => {
+        setDocIndex(index);
+        setBacklinks(Object.fromEntries(Object.entries(inbound).map(([k, v]) => [k, Array.from(v)])));
+        setOutboundLinks(Object.fromEntries(Object.entries(outbound).map(([k, v]) => [k, Array.from(v)])));
+      });
     }
 
     buildIndex();
@@ -1131,18 +1121,18 @@ export function DocsPanel() {
 
   // Auto-expand all sidebar folders when a search is active
   useEffect(() => {
-    if (filter.trim()) {
+    if (normalizedFilter) {
       setCollapsedFolders({});
     }
-  }, [filter]);
+  }, [normalizedFilter]);
 
   // Auto-select first result when searching
   useEffect(() => {
-    if (!normalizedFilter || !settings.autoOpenFirstSearchResult) return;
+    if (!normalizedFilter) return;
     const firstSlug = findFirstFileSlug(filteredTree);
     if (firstSlug && firstSlug !== selectedSlug) loadDoc(firstSlug);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredTree, normalizedFilter, selectedSlug, settings.autoOpenFirstSearchResult]);
+  }, [filteredTree, normalizedFilter, selectedSlug]);
 
   const handleLinkClick = useCallback(
     (href: string) => {
@@ -1150,7 +1140,7 @@ export function DocsPanel() {
       const resolved = resolveLinkSlug(slug, href);
       if (!resolved) return false;
 
-      const target = entries.find((e) => e.slug === resolved.slug || e.slug === resolved.slug.replace(/\.md$/, ""));
+      const target = entriesBySlug.get(resolved.slug) ?? entriesBySlug.get(resolved.slug.replace(/\.md$/, ""));
       if (target) {
         loadDoc(target.slug, resolved.anchor);
         return true;
@@ -1164,7 +1154,7 @@ export function DocsPanel() {
 
       return false;
     },
-    [entries, loadDoc],
+    [entriesBySlug, loadDoc],
   );
 
   const mdComponents = useMemo(() => ({
@@ -1174,7 +1164,7 @@ export function DocsPanel() {
       const currentSlug = selectedSlugRef.current ?? "";
       const resolved = !isExternal ? resolveLinkSlug(currentSlug, hrefStr) : null;
       const isInternal = resolved !== null && (
-        entries.some((e) => e.slug === resolved.slug || e.slug === resolved.slug.replace(/\.md$/, "")) ||
+        entriesBySlug.has(resolved.slug) || entriesBySlug.has(resolved.slug.replace(/\.md$/, "")) ||
         (resolved.slug === currentSlug && !!resolved.anchor)
       );
       return (
@@ -1427,17 +1417,7 @@ export function DocsPanel() {
         )}
       </h3>
     ),
-  }), [
-    docsCurveHeight,
-    docsCurveWidthClass,
-    entriesBySlug,
-    handleCopySnippetGraph,
-    handleCopySnippetJson,
-    handleLinkClick,
-    handleOpenSnippetInEditor,
-    shouldWrapCodeBlocks,
-    showCurveStats,
-  ]);
+  }), [entriesBySlug, handleCopySnippetGraph, handleCopySnippetJson, handleLinkClick, handleOpenSnippetInEditor]);
   const selectedEntry = selectedSlug ? entriesBySlug.get(selectedSlug) ?? null : null;
 
   return (
@@ -1576,7 +1556,13 @@ export function DocsPanel() {
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto" ref={sidebarScrollRef}>
-            {filteredTree.length === 0 && filter.trim() ? (
+            {normalizedFilter && (
+              <div className="flex items-center justify-between gap-2 border-b border-tn-border px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-tn-text-muted">
+                {filtered.length} result{filtered.length === 1 ? "" : "s"}
+                {isSearchPending && <span className="text-[9px] tracking-[0.08em] text-tn-text-muted/70">Updating</span>}
+              </div>
+            )}
+            {filteredTree.length === 0 && normalizedFilter ? (
               <div className="px-4 py-6 text-center text-xs text-tn-text-muted">No results for "{filter}"</div>
             ) : (
               filteredTree.map((node) => (
@@ -1623,7 +1609,7 @@ export function DocsPanel() {
         >
         {selectedSlug ? (
           <>
-            <div className={`docs-reader-header mb-5 -mx-6 border-b border-tn-border/80 bg-[rgba(28,26,23,0.88)] px-6 py-4 backdrop-blur-md ${settings.showStickyHeader ? "sticky top-0 z-20" : ""}`}>
+            <div className="docs-reader-header sticky top-0 z-20 mb-5 -mx-6 border-b border-tn-border/80 bg-[rgba(28,26,23,0.88)] px-6 py-4 backdrop-blur-md">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 {sidebarCollapsed && (
@@ -1678,17 +1664,26 @@ export function DocsPanel() {
                   ))}
                 </div>
               </div>
-              {walkthroughSteps.length > 0 && (
-                <button
-                  className="rounded border border-tn-border bg-tn-panel px-3 py-1 text-sm text-tn-text hover:bg-tn-panel/80"
-                  onClick={() => {
-                    setWalkthroughActive((v) => !v);
-                    setWalkthroughStep(0);
-                  }}
-                >
-                  {walkthroughActive ? "Exit Walkthrough" : "Start Walkthrough"}
-                </button>
-              )}
+              <div className="flex items-center gap-3 shrink-0">
+                {selectedEntry && (
+                  <div className="hidden text-right md:block">
+                    <div className="text-[10px] uppercase tracking-[0.08em] text-tn-text-muted/70">Reading</div>
+                    <div className="max-w-[220px] truncate text-sm font-medium text-tn-text">{selectedEntry.title}</div>
+                  </div>
+                )}
+                {walkthroughSteps.length > 0 && (
+                  <button
+                    className="rounded border border-tn-border bg-tn-panel px-3 py-1 text-sm text-tn-text hover:bg-tn-panel/80"
+                    onClick={() => {
+                      setWalkthroughActive((v) => !v);
+                      setWalkthroughStep(0);
+                    }}
+                  >
+                    {walkthroughActive ? "Exit Walkthrough" : "Start Walkthrough"}
+                  </button>
+                )}
+              </div>
+            </div>
             </div>
 
             {walkthroughActive ? (
