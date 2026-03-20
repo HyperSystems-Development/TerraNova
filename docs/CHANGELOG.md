@@ -35,6 +35,25 @@ All notable changes to [TerraNova](https://github.com/HyperSystems-Development/T
 - Fixed snippet placement not showing an error if something went wrong
 - Fixed several unhandled promise rejections in clipboard writes and node deletion
 
+## [0.1.7-pre.3] — 2026-03-20 — QOL, Docs, and Properties Pass
+
+### Documentation
+
+- **Terrain types guide** — New `docs/reference/terrain-types.md` with 12 terrain recipes as copyable `snippet:` blocks (Plains, Rolling Hills, Mountains, Mesas, Floating Islands, Caves, Depth-Faded Caves, Warped Terrain, Warped Caves, Sand Dunes, Archipelago, Complex Layered); each snippet includes terrain name and difficulty badge
+- **Curves reference** — New `docs/reference/curves.md` explaining all curve types (Manual, SmoothStep, Sigmoid, InverseLerp, SquareBump, and the full computed preset list) with `curve:` inline previews for each
+- **Graph reading guide** — New `docs/reference/reading-the-graph.md` explaining the visual language of the node graph: handle colors, edge routing, root node designation, and category color coding
+- **Reference index** — Updated `docs/reference/index.md` to link all three new reference pages
+- **Docs panel snippet blocks** — Added `snippet:` markdown fence to the docs panel renderer: renders a labelled, difficulty-badged, copyable JSON block for terrain recipes
+- **Getting started overhaul** — Rewrote `docs/getting-started.md` with step-by-step first-session flow and links to tutorials
+- **Sky Islands walkthrough** — Added `curve:` fence blocks and prose improvements to `docs/tutorials/sky-islands-walkthrough.md`
+- **Em-dash cleanup** — Replaced all em-dashes in rendered docs with colons or parentheses so screen readers and the docs panel render them consistently
+
+### Quality of Life
+
+- **Terrain curve presets** — Curve canvas now has a second "Terrain:" preset row with 10 terrain-specific presets (Sharp Peak, Plateau, Cliff Edge, Cave Arch, Terrace, Island Falloff, Beach Shore, Ridge Sharpen, Overhang, Gentle Hills)
+- **Docs panel performance** — `selectedSlugRef` pattern prevents unnecessary re-creation of `mdComponents` on every slug change; link click handler no longer takes a stale closure over the current slug
+- **Richer template descriptions** — All 6 bundled templates now have descriptive tags (difficulty, key features, node count) shown in the new project dialog
+
 ## [0.1.7-pre.1] — 2026-03-16
 
 ### Documentation

@@ -226,6 +226,54 @@ export const CURVE_PRESETS: Record<string, [number, number][]> = {
   Step: [[0, 0], [0.49, 0], [0.5, 1], [1, 1]],
 };
 
+/**
+ * Terrain-specific curve presets — named for their effect on terrain shapes.
+ * These appear in the Curve node preset picker when a relevant terrain context is detected.
+ */
+export const TERRAIN_CURVE_PRESETS: Record<string, { points: [number, number][]; description: string }> = {
+  // Height / density shaping
+  "Sharp Peak": {
+    points: [[0, 0], [0.3, 0.2], [0.5, 1], [0.7, 0.2], [1, 0]],
+    description: "Spike in the middle — sharp mountain peaks or narrow ridges",
+  },
+  "Plateau": {
+    points: [[0, 0], [0.2, 0.8], [0.4, 1], [0.6, 1], [0.8, 0.8], [1, 0]],
+    description: "Flat top with steep sides — mesa or plateau terrain",
+  },
+  "Cliff Edge": {
+    points: [[0, 1], [0.45, 0.9], [0.5, 0.1], [0.55, 0], [1, 0]],
+    description: "Rapid hard dropoff — vertical cliff faces and canyon walls",
+  },
+  "Cave Arch": {
+    points: [[0, 0], [0.1, 0], [0.3, 0.9], [0.5, 1], [0.7, 0.9], [0.9, 0], [1, 0]],
+    description: "Strong peak with zero at both ends — carves cave tunnels from density",
+  },
+  "Terrace": {
+    points: [[0, 0], [0.2, 0], [0.21, 0.33], [0.45, 0.33], [0.46, 0.66], [0.7, 0.66], [0.71, 1], [1, 1]],
+    description: "Three stepped bands — terraced cliffs and rice-paddy layering",
+  },
+  "Island Falloff": {
+    points: [[0, 1], [0.3, 0.95], [0.6, 0.6], [0.8, 0.15], [1, 0]],
+    description: "Solid center, tapered edges — island density from center to shore",
+  },
+  "Beach Shore": {
+    points: [[0, 0], [0.35, 0], [0.5, 0.5], [0.65, 1], [1, 1]],
+    description: "Smooth S blend at midpoint — shoreline material transition",
+  },
+  "Ridge Sharpen": {
+    points: [[0, 1], [0.2, 0.5], [0.4, 0.1], [0.6, 0.1], [0.8, 0.5], [1, 1]],
+    description: "Valley dip with high edges — sharpens inverted noise into ridgelines",
+  },
+  "Overhang": {
+    points: [[0, 0], [0.4, 0.2], [0.5, 1], [0.6, 0.8], [0.75, 0.9], [1, 0.3]],
+    description: "Asymmetric bulge — overhanging rock faces and mushroom caps",
+  },
+  "Gentle Hills": {
+    points: [[0, 0], [0.25, 0.35], [0.5, 0.5], [0.75, 0.65], [1, 1]],
+    description: "Compressed S-curve — soft rolling hills with no sharp edges",
+  },
+};
+
 // ---------------------------------------------------------------------------
 // Dispatcher — returns null for types without preview (Blend, Multiplier, etc.)
 // ---------------------------------------------------------------------------

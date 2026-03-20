@@ -220,6 +220,13 @@ We use `CellNoise2D` with large scale values to create big cells, each one becom
 
 Cell noise returns values roughly in the range `0` to `1` with Distance2Div. The *center* of each cell returns high values and the *edges* return low values. We'll use this as our island mask.
 
+```curve
+CellNoise2D output shape — high at cell centers, low at edges
+[[0,0.05],[0.15,0.15],[0.35,0.45],[0.55,0.75],[0.75,0.92],[0.9,0.98],[1,1]]
+```
+
+The curve above is illustrative — actual values depend on your seed and jitter. What matters: values near `1.0` become island interiors; values near `0.0` become the gaps between islands.
+
 > **In TerraNova:** Drop a `CellNoise2D` node and set ScaleX/ScaleZ to `125`. Watch the 2D heatmap — you'll see cell patterns. Each bright region is a cell center, each dark region is a cell edge.
 
 ---
@@ -263,11 +270,17 @@ In Hytale, there's no single `LinearTransform` node. Instead, you **multiply wit
 **Breaking this down:**
 
 `SimplexNoise2D` returns values in roughly `-1` to `1`. `AmplitudeConstant` multiplies by `40`, giving `-40` to `40`. `Sum` with `Constant(110)` shifts the range:
-- Input `-1.0` → `(-1 * 40) + 110 = 70` (lowest islands)
-- Input `0.0` → `(0 * 40) + 110 = 110` (mid islands)
-- Input `1.0` → `(1 * 40) + 110 = 150` (highest islands)
+- Input `-1.0` → `(-1 × 40) + 110 = 70` (lowest islands)
+- Input `0.0` → `(0 × 40) + 110 = 110` (mid islands)
+- Input `1.0` → `(1 × 40) + 110 = 150` (highest islands)
 
 So islands float between Y=70 and Y=150, with most clustered around Y=110.
+
+```bounds
+{"min": 70, "max": 150, "label": "Island height range — where islands float (Y coordinates)"}
+```
+
+This is equivalent to a `LinearRemap` from `[-1, 1]` to `[70, 150]`. Hytale's native format doesn't have `LinearRemap` so we build it manually with `AmplitudeConstant` + `Sum` + `Constant`. In TerraNova's node graph you can use either approach.
 
 **About `Scale: 333`:** This means the noise varies over ~333 blocks. Nearby islands get similar heights, distant ones differ.
 
@@ -467,6 +480,17 @@ In Hytale-native JSON, the full terrain density:
    - `Sum` with `Inverter(YValue)` creates `height - y` — the distance below the island's surface
    - `AmplitudeConstant(Value: 0.067)` = dividing by ~15, controlling island thickness (15 blocks from center to edge vertically)
    - `Clamp(WallA: 0, WallB: 1)` cuts off negative values so there's no terrain above the surface
+
+   ```curve
+   Vertical density profile — thick solid core, tapers at bottom
+   [[0,1],[0.2,1],[0.4,0.9],[0.6,0.6],[0.8,0.2],[1,0]]
+   ```
+
+   ```bounds
+   {"min": -15, "max": 0, "label": "Vertical thickness — 15 blocks below island surface is solid"}
+   ```
+
+   `Clamp(WallA: 0)` is critical — it prevents the `height - y` formula from going negative above the island's top surface, which would create "floating air bubbles" below solid terrain above.
 
 3. **`Multiplier`** multiplies them: solid only where both the island mask AND the vertical shape are positive
 

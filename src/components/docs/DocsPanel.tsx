@@ -11,6 +11,7 @@ import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
 import { MermaidDiagram } from "@/components/docs/MermaidDiagram";
 import { DocNodeGraph, parseNodeGraph } from "@/components/docs/DocNodeGraph";
+import { CurveCanvas } from "@/components/properties/CurveCanvas";
 
 // ── Inline node pill ─────────────────────────────────────────────────────────
 // Category colours match DocNodeGraph's CATEGORY_COLORS palette.
@@ -429,7 +430,7 @@ function DocTreeNodeItem({
   settings?: DocsSettings;
   depth?: number;
 }) {
-  const indent = depth * 12;
+  const indent = depth * 16;
   const basePadding = 10;
   const isCollapsed = node.type === "folder" && collapsed[node.slug];
 
@@ -534,7 +535,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       type="button"
-      className="absolute top-2 right-2 flex items-center justify-center w-7 h-7 rounded border border-tn-border bg-tn-panel/80 text-tn-text-muted hover:text-tn-text hover:bg-tn-accent/10 opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
+      className="absolute top-2 right-2 flex items-center justify-center w-7 h-7 rounded border border-tn-border bg-tn-panel/80 text-tn-text-muted hover:text-tn-text hover:bg-tn-accent/10 opacity-20 group-hover:opacity-100 transition-opacity focus:opacity-100"
       title="Copy"
       onClick={() => {
         navigator.clipboard.writeText(text).then(() => {
@@ -788,6 +789,8 @@ export function DocsPanel() {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
   const activeItemRef = useRef<HTMLButtonElement | null>(null);
+  // Keep a ref in sync with selectedSlug so mdComponents/handleLinkClick don't recreate on every nav
+  const selectedSlugRef = useRef<string | null>(null);
 
   const entries = useMemo<DocEntry[]>(() => {
     const list: DocEntry[] = [];
@@ -881,6 +884,7 @@ export function DocsPanel() {
         text = await entry.loader();
       } catch {
         setRawMd(`> **Error:** Could not load \`${slug}\`. The file may be missing or unreadable.`);
+        selectedSlugRef.current = slug;
         setSelectedSlug(slug);
         return;
       }
@@ -893,6 +897,7 @@ export function DocsPanel() {
       // Strip HTML comments (e.g. <!-- walkthrough -->) before rendering
       const cleaned = text.replace(/<!--[\s\S]*?-->/g, "");
       setRawMd(cleaned);
+      selectedSlugRef.current = slug;
       setSelectedSlug(slug);
       prevSlugRef.current = slug;
 
@@ -1076,9 +1081,27 @@ export function DocsPanel() {
     }
   }, [filter]);
 
+  // Auto-select first result when searching
+  useEffect(() => {
+    if (!filter.trim()) return;
+    const firstFile = (function findFirst(nodes: DocTreeNodeData[]): DocTreeNodeData | null {
+      for (const n of nodes) {
+        if (n.type === "file") return n;
+        if (n.type === "folder") {
+          const found = findFirst(n.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    })(filteredTree);
+    if (firstFile) loadDoc(firstFile.slug);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredTree]);
+
   const handleLinkClick = useCallback(
     (href: string) => {
-      const resolved = resolveLinkSlug(selectedSlug ?? "", href);
+      const slug = selectedSlugRef.current ?? "";
+      const resolved = resolveLinkSlug(slug, href);
       if (!resolved) return false;
 
       const target = entries.find((e) => e.slug === resolved.slug || e.slug === resolved.slug.replace(/\.md$/, ""));
@@ -1088,24 +1111,25 @@ export function DocsPanel() {
       }
 
       // If the link is an anchor within the same document, just scroll
-      if (resolved.slug === selectedSlug && resolved.anchor) {
+      if (resolved.slug === slug && resolved.anchor) {
         loadDoc(resolved.slug, resolved.anchor);
         return true;
       }
 
       return false;
     },
-    [entries, loadDoc, selectedSlug],
+    [entries, loadDoc],
   );
 
   const mdComponents = useMemo(() => ({
     a: ({ href, children, ...props }: React.ComponentPropsWithoutRef<"a">) => {
       const hrefStr = String(href ?? "");
       const isExternal = hrefStr.startsWith("http") || hrefStr.startsWith("mailto:");
-      const resolved = !isExternal ? resolveLinkSlug(selectedSlug ?? "", hrefStr) : null;
+      const currentSlug = selectedSlugRef.current ?? "";
+      const resolved = !isExternal ? resolveLinkSlug(currentSlug, hrefStr) : null;
       const isInternal = resolved !== null && (
         entries.some((e) => e.slug === resolved.slug || e.slug === resolved.slug.replace(/\.md$/, "")) ||
-        (resolved.slug === selectedSlug && !!resolved.anchor)
+        (resolved.slug === currentSlug && !!resolved.anchor)
       );
       return (
         <a
@@ -1149,6 +1173,121 @@ export function DocsPanel() {
       if (lang === "nodegraph") {
         const graph = parseNodeGraph(value);
         if (graph) return <DocNodeGraph {...graph} />;
+      }
+      // curve: fence — renders a read-only CurveCanvas with optional label
+      // Format: first line (optional) = label, rest = JSON point array [[x,y],...]
+      if (lang === "curve") {
+        const lines = value.trim().split("\n");
+        let label: string | undefined;
+        let pointsJson = value.trim();
+        if (!lines[0].trim().startsWith("[") && !lines[0].trim().startsWith("{")) {
+          label = lines[0].trim();
+          pointsJson = lines.slice(1).join("\n").trim();
+        }
+        try {
+          const points = JSON.parse(pointsJson) as [number, number][];
+          return (
+            <div className="my-3 rounded border border-tn-border overflow-hidden">
+              {label && (
+                <div className="px-3 py-1.5 text-[11px] text-tn-text-muted bg-tn-panel border-b border-tn-border font-medium">
+                  {label}
+                </div>
+              )}
+              <CurveCanvas points={points} compact />
+            </div>
+          );
+        } catch {
+          // Fall through to raw code block if JSON parse fails
+        }
+      }
+      // bounds: fence — renders a simple visual range bar with min/max labels
+      // Format: JSON { "min": number, "max": number, "label"?: string }
+      if (lang === "bounds") {
+        try {
+          const parsed = JSON.parse(value) as { min: number; max: number; label?: string };
+          const { min, max, label } = parsed;
+          const range = max - min;
+          const zeroFrac = range === 0 ? 0 : Math.max(0, Math.min(1, (0 - min) / range));
+          const hasZeroCross = min < 0 && max > 0;
+          return (
+            <div className="my-3 rounded border border-tn-border bg-tn-panel overflow-hidden">
+              {label && (
+                <div className="px-3 py-1.5 text-[11px] text-tn-text-muted border-b border-tn-border font-medium">
+                  {label}
+                </div>
+              )}
+              <div className="px-4 py-3 flex flex-col gap-2">
+                <div className="relative h-5 rounded bg-tn-bg border border-tn-border overflow-hidden">
+                  {/* Fill bar from min to max */}
+                  <div
+                    className="absolute top-0 bottom-0 bg-tn-accent/25 border-x border-tn-accent/40"
+                    style={{ left: 0, right: 0 }}
+                  />
+                  {/* Zero line */}
+                  {hasZeroCross && (
+                    <div
+                      className="absolute top-0 bottom-0 w-px bg-tn-text-muted/50"
+                      style={{ left: `${zeroFrac * 100}%` }}
+                    />
+                  )}
+                  {/* Min label */}
+                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-tn-accent font-mono">{min}</span>
+                  {/* Max label */}
+                  <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-tn-accent font-mono">{max}</span>
+                </div>
+                <div className="flex justify-between text-[10px] text-tn-text-muted">
+                  <span>Min: <span className="text-tn-text font-mono">{min}</span></span>
+                  <span>Range: <span className="text-tn-text font-mono">{range.toFixed(3)}</span></span>
+                  <span>Max: <span className="text-tn-text font-mono">{max}</span></span>
+                </div>
+              </div>
+            </div>
+          );
+        } catch {
+          // Fall through to raw code block
+        }
+      }
+      // snippet: fence renders a labelled copyable JSON block styled as a terrain snippet
+      // Format: first line (if not JSON) is the label and optional [difficulty], rest is JSON
+      if (lang === "snippet") {
+        const lines = value.trim().split("\n");
+        let label: string | undefined;
+        let difficulty: string | undefined;
+        let snippetJson = value.trim();
+        if (!lines[0].trim().startsWith("{") && !lines[0].trim().startsWith("[")) {
+          const header = lines[0].trim();
+          const diffMatch = /\[([^\]]+)\]/.exec(header);
+          difficulty = diffMatch?.[1];
+          label = header.replace(/\[[^\]]+\]/, "").trim();
+          snippetJson = lines.slice(1).join("\n").trim();
+        }
+        const difficultyColor: Record<string, string> = {
+          Beginner: "bg-green-500/20 text-green-400 border-green-500/30",
+          Intermediate: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+          Advanced: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+          Expert: "bg-red-500/20 text-red-400 border-red-500/30",
+        };
+        const diffClass = difficulty ? (difficultyColor[difficulty] ?? "bg-tn-surface text-tn-text-muted border-tn-border") : "";
+        return (
+          <div className="my-4 rounded border border-tn-border overflow-hidden">
+            <div className="flex items-center justify-between gap-2 px-3 py-2 bg-tn-panel border-b border-tn-border">
+              <div className="flex items-center gap-2 min-w-0">
+                {label && (
+                  <span className="text-[11px] font-semibold text-tn-text truncate">{label}</span>
+                )}
+                {difficulty && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium shrink-0 ${diffClass}`}>
+                    {difficulty}
+                  </span>
+                )}
+              </div>
+              <CopyButton text={snippetJson} />
+            </div>
+            <pre className="p-3 text-xs text-tn-text-muted overflow-x-auto leading-relaxed bg-tn-bg/60 m-0">
+              <code>{snippetJson}</code>
+            </pre>
+          </div>
+        );
       }
       return (
         <div className="relative group">
@@ -1214,7 +1353,7 @@ export function DocsPanel() {
         )}
       </h3>
     ),
-  }), [entries, selectedSlug, handleLinkClick]);
+  }), [entries, handleLinkClick]);
 
   return (
     <div className="flex h-full">
@@ -1392,7 +1531,13 @@ export function DocsPanel() {
                     <span key={crumb.slug} className="flex items-center gap-1 min-w-0">
                       {i < arr.length - 1 ? (
                         <>
-                          <span className="text-tn-text-muted truncate max-w-[120px]">{crumb.label}</span>
+                          <button
+                            type="button"
+                            className="text-tn-text-muted truncate max-w-[120px] hover:text-tn-text hover:underline transition-colors"
+                            onClick={() => loadDoc(crumb.slug)}
+                          >
+                            {crumb.label}
+                          </button>
                           <ChevronRight className="h-3 w-3 text-tn-border shrink-0" />
                         </>
                       ) : (

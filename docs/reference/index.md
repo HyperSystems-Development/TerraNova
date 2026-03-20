@@ -1,10 +1,12 @@
 # Reference
 
-This section contains reference documentation about nodes, formats, and systems you can use when building in TerraNova.
+Reference documentation for nodes, curves, formats, and systems.
 
 ## Reference docs
 
-- [Node Effects: How Each Node Changes Terrain](./node-effects.md)
+- [Node Effects: How Each Node Changes Terrain](./node-effects.md): what every node category does, with visual curve examples and common terrain patterns
+- [Curves Reference](./curves.md): visual guide to every curve type with live previews and Min/Max explanations
+- [Reading the Node Graph](./reading-the-graph.md): how to interpret any node graph, recognize common patterns, and debug problems
 
 ---
 

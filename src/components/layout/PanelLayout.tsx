@@ -307,6 +307,19 @@ export function PanelLayout() {
     }
   }, [leftWidth, rightWidth]);
 
+  // Ctrl+` toggles between Properties and Docs panels
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key === "`") {
+        e.preventDefault();
+        setRightPanelMode(rightPanelMode === "docs" ? "properties" : "docs");
+        if (!rightPanelVisible) setRightPanelVisible(true);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [rightPanelMode, rightPanelVisible, setRightPanelMode, setRightPanelVisible]);
+
   const handleDrag = useCallback(
     (side: "left" | "right") => (e: React.MouseEvent) => {
       e.preventDefault();
@@ -387,35 +400,45 @@ export function PanelLayout() {
             <ChevronRight className="h-4 w-4" />
           </button>
 
-          {/* Right panel: properties / docs */}
+          {/* Right panel: properties / docs — both stay mounted so scroll+state is preserved */}
           <div
             className="flex flex-col bg-tn-surface border-l border-tn-border overflow-hidden shrink-0 transition-all duration-150 min-h-0"
             style={{ width: displayRightWidth }}
           >
             <div className="flex items-center border-b border-tn-border bg-tn-panel/70 px-3 py-2">
               <button
+                type="button"
                 className={`text-[11px] font-semibold px-2 py-1 rounded ${
                   rightPanelMode === "properties"
                     ? "bg-tn-accent/20 text-tn-text"
                     : "text-tn-text-muted hover:bg-tn-accent/10"
                 }`}
                 onClick={() => setRightPanelMode("properties")}
+                title="Properties (Ctrl+`)"
               >
                 Properties
               </button>
               <button
+                type="button"
                 className={`ml-2 text-[11px] font-semibold px-2 py-1 rounded ${
                   rightPanelMode === "docs"
                     ? "bg-tn-accent/20 text-tn-text"
                     : "text-tn-text-muted hover:bg-tn-accent/10"
                 }`}
                 onClick={() => setRightPanelMode("docs")}
+                title="Docs (Ctrl+`)"
               >
                 Docs
               </button>
               <div className="flex-1" />
             </div>
-            {rightPanelMode === "docs" ? <DocsPanel /> : <PropertyPanel />}
+            {/* Keep both mounted so DocsPanel preserves scroll + nav history when switching */}
+            <div className={`flex-1 min-h-0 ${rightPanelMode === "docs" ? "flex flex-col" : "hidden"}`}>
+              <DocsPanel />
+            </div>
+            <div className={`flex-1 min-h-0 ${rightPanelMode === "properties" ? "flex flex-col" : "hidden"}`}>
+              <PropertyPanel />
+            </div>
           </div>
         </>
       )}
