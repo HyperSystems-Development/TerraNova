@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FolderOpen, FolderPlus, Save, WandSparkles } from "lucide-react";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useEditorStore } from "@/stores/editorStore";
@@ -554,12 +554,12 @@ export function EnvironmentEditorView() {
   }, [currentFile, lookupRevision, projectPath]);
 
   // Determines if a resolved path is from Hytale assets (not inside the current project).
-  function isHytaleAssetPath(resolvedPath: string): boolean {
+  const isHytaleAssetPath = useCallback((resolvedPath: string): boolean => {
     if (!projectPath) return false;
     const norm = resolvedPath.replace(/\\/g, "/").toLowerCase();
     const projNorm = projectPath.replace(/\\/g, "/").toLowerCase();
     return !norm.startsWith(projNorm);
-  }
+  }, [projectPath]);
 
   // Weather IDs in the file that only resolve to Hytale asset paths (not in project).
   const hytaleOnlyIds = useMemo(() => {
@@ -573,7 +573,7 @@ export function EnvironmentEditorView() {
       const p = weatherPathIndex[id.toLowerCase()];
       return p && isHytaleAssetPath(p);
     });
-  }, [rawJsonContent, weatherPathIndex, projectPath]);
+  }, [isHytaleAssetPath, rawJsonContent, weatherPathIndex]);
 
   // Weather IDs referenced but not found anywhere (not in project, not in Hytale assets).
   const missingIds = useMemo(() => {
@@ -586,37 +586,7 @@ export function EnvironmentEditorView() {
     return [...allIds].filter((id) => !weatherPathIndex[id.toLowerCase()]);
   }, [rawJsonContent, weatherPathIndex, lookupStatus]);
 
-  // Auto-copy Hytale weather assets into the project's Server\Weathers folder on file open.
-  // Any unresolved state is surfaced in the Issue Log instead of a toast.
-  useEffect(() => {
-    if (hytaleOnlyIds.length === 0) return;
-    const serverRoot = inferServerRoot(currentFile, projectPath);
-    if (!serverRoot) return;
-    const weathersDir = joinPath(serverRoot, "Weathers");
-    async function autoImport() {
-      let imported = 0;
-      await createDirectory(weathersDir).catch(() => {});
-      for (const id of hytaleOnlyIds) {
-        const srcPath = weatherPathIndex[id.toLowerCase()];
-        if (!srcPath) continue;
-        const fileName = srcPath.split(/[/\\]/).pop() ?? `${id}.json`;
-        const destPath = joinPath(weathersDir, fileName);
-        try {
-          await copyFile(srcPath, destPath);
-          imported += 1;
-        } catch {
-          // Failed imports remain visible in the Issue Log.
-        }
-      }
-      if (imported > 0) {
-        await refreshProjectTreeAndLookup();
-      }
-    }
-    void autoImport();
-  // Only fire when the set of IDs changes (file switch / lookup complete).
-  }, [currentFile, hytaleOnlyIds.join(","), projectPath]);
-
-  const doc = rawJsonContent ?? ({} as EnvironmentDoc);
+  const doc = useMemo(() => rawJsonContent ?? ({} as EnvironmentDoc), [rawJsonContent]);
 
   useEffect(() => {
     let active = true;
@@ -644,7 +614,7 @@ export function EnvironmentEditorView() {
       : inferSuggestedParentEnvironment(currentFile, environmentParentOptions)
   ), [currentFile, doc.Parent, environmentParentOptions]);
 
-  const updateDoc = (updater: (previous: EnvironmentDoc) => EnvironmentDoc) => {
+  const updateDoc = useCallback((updater: (previous: EnvironmentDoc) => EnvironmentDoc) => {
     if (!rawJsonContent) return;
     const next = updater(structuredClone(doc));
     setRawJsonContent(next);
@@ -652,11 +622,11 @@ export function EnvironmentEditorView() {
     if (saveStatus !== "idle") {
       setSaveStatus("idle");
     }
-  };
+  }, [doc, rawJsonContent, saveStatus, setDirty, setRawJsonContent]);
 
   const isWeatherDirMissing = lookupStatus === "error" && (lookupError?.includes("not found") ?? false);
 
-  const refreshProjectTreeAndLookup = async () => {
+  const refreshProjectTreeAndLookup = useCallback(async () => {
     if (projectPath) {
       try {
         const entries = await listDirectory(projectPath);
@@ -668,9 +638,9 @@ export function EnvironmentEditorView() {
     setLookupStatus("loading");
     setLookupError(null);
     setLookupRevision((value) => value + 1);
-  };
+  }, [projectPath, setDirectoryTree]);
 
-  const materializeReferencedWeatherFiles = async ({
+  const materializeReferencedWeatherFiles = useCallback(async ({
     importIds,
     createIds,
   }: {
@@ -728,9 +698,9 @@ export function EnvironmentEditorView() {
     if (failed > 0) {
       addToast(`Failed to materialize ${failed} weather file(s).`, imported > 0 || created > 0 ? "warning" : "error");
     }
-  };
+  }, [addToast, currentFile, projectPath, refreshProjectTreeAndLookup, weatherPathIndex]);
 
-  const handleCreateDefaultWeather = async () => {
+  const handleCreateDefaultWeather = useCallback(async () => {
     const serverRoot = inferServerRoot(currentFile, projectPath);
     if (!serverRoot) return;
     const filePath = joinPath(joinPath(serverRoot, "Weathers"), "Weather_Default.json");
@@ -741,7 +711,38 @@ export function EnvironmentEditorView() {
       setLookupStatus("error");
       setLookupError(String(error));
     }
-  };
+  }, [currentFile, projectPath, refreshProjectTreeAndLookup]);
+
+  const hytaleOnlyIdsKey = useMemo(() => hytaleOnlyIds.join(","), [hytaleOnlyIds]);
+
+  // Auto-copy Hytale weather assets into the project's Server\Weathers folder on file open.
+  // Any unresolved state is surfaced in the Issue Log instead of a toast.
+  useEffect(() => {
+    if (hytaleOnlyIds.length === 0) return;
+    const serverRoot = inferServerRoot(currentFile, projectPath);
+    if (!serverRoot) return;
+    const weathersDir = joinPath(serverRoot, "Weathers");
+    async function autoImport() {
+      let imported = 0;
+      await createDirectory(weathersDir).catch(() => {});
+      for (const id of hytaleOnlyIds) {
+        const srcPath = weatherPathIndex[id.toLowerCase()];
+        if (!srcPath) continue;
+        const fileName = srcPath.split(/[/\\]/).pop() ?? `${id}.json`;
+        const destPath = joinPath(weathersDir, fileName);
+        try {
+          await copyFile(srcPath, destPath);
+          imported += 1;
+        } catch {
+          // Failed imports remain visible in the Issue Log.
+        }
+      }
+      if (imported > 0) {
+        await refreshProjectTreeAndLookup();
+      }
+    }
+    void autoImport();
+  }, [currentFile, hytaleOnlyIds, hytaleOnlyIdsKey, projectPath, refreshProjectTreeAndLookup, weatherPathIndex]);
 
   const weathersDirPath = (() => {
     const serverRoot = inferServerRoot(currentFile, projectPath);
@@ -1014,6 +1015,7 @@ export function EnvironmentEditorView() {
     missingIds,
     suggestedParentEnvironment,
     tagEntries.length,
+    updateDoc,
   ]);
 
   const displayedForecastHours = useMemo(() => {
