@@ -9,7 +9,6 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const values = usePreviewStore((s) => s.values);
-  const resolution = usePreviewStore((s) => s.resolution);
   const minValue = usePreviewStore((s) => s.minValue);
   const maxValue = usePreviewStore((s) => s.maxValue);
   const p02Value = usePreviewStore((s) => s.p02Value);
@@ -50,7 +49,8 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
     const canvas = canvasRef.current;
     if (!canvas || !values) return;
 
-    const n = resolution;
+    // Use actual grid size from values — may differ from resolution during progressive coarse passes
+    const n = Math.round(Math.sqrt(values.length));
     canvas.width = n;
     canvas.height = n;
 
@@ -131,12 +131,12 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
     }
 
     ctx.putImageData(imageData, 0, 0);
-  }, [values, resolution, minValue, maxValue, p02Value, p98Value, colormap, showHillShade]);
+  }, [values, minValue, maxValue, p02Value, p98Value, colormap, showHillShade]);
 
   // ── Memoize contour data separately from drawing ──
   const contourData = useMemo(
-    () => showContours && values ? generateContours(values, resolution, getContourLevels(minValue, maxValue, contourInterval)) : [],
-    [values, resolution, showContours, contourInterval, minValue, maxValue],
+    () => showContours && values ? generateContours(values, Math.round(Math.sqrt(values.length)), getContourLevels(minValue, maxValue, contourInterval)) : [],
+    [values, showContours, contourInterval, minValue, maxValue],
   );
 
   // ── Shared overlay helpers ──
@@ -178,7 +178,7 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, displaySize, displaySize);
 
-    const n = resolution;
+    const n = Math.round(Math.sqrt(values.length));
     const { scale, offsetX, offsetY } = canvasTransform;
     const gridToScreen = makeGridToScreen(displaySize, n, scale, offsetX, offsetY);
 
@@ -284,7 +284,7 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
     }
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [values, resolution, canvasTransform, contourData, showContours, rangeMin, rangeMax, showCrossSection, crossSectionLine, showPositionOverlay, positionOverlayPoints, positionOverlayColor, positionOverlaySize, getOverlayContext, makeGridToScreen]);
+  }, [values, canvasTransform, contourData, showContours, rangeMin, rangeMax, showCrossSection, crossSectionLine, showPositionOverlay, positionOverlayPoints, positionOverlayColor, positionOverlaySize, getOverlayContext, makeGridToScreen]);
 
   // ── Get display rect for interactions ──
   const getInteractionRect = useCallback((): DOMRect | null => {
@@ -345,7 +345,7 @@ export const Heatmap2D = memo(forwardRef<HTMLCanvasElement>(function Heatmap2D(_
         value: values[idx],
       });
     },
-    [values, resolution, rangeMin, rangeMax, canvasTransform, setCanvasTransform, setCrossSectionLine, getInteractionRect],
+    [values, rangeMin, rangeMax, canvasTransform, setCanvasTransform, setCrossSectionLine, getInteractionRect],
   );
 
   const onMouseDown = useCallback(
