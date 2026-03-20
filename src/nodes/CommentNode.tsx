@@ -2,7 +2,7 @@ import { memo, useState, useCallback, useRef } from "react";
 import type { NodeProps, ResizeDragEvent, ResizeParams } from "@xyflow/react";
 import { NodeResizer } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
-import { useProjectStore } from "@/stores/projectStore";
+import { isAuthorNoteText, stripAuthorNotePrefix } from "@/utils/annotationUtils";
 
 export interface CommentNodeData {
   type: "comment";
@@ -16,13 +16,20 @@ const MIN_HEIGHT = 60;
 const COMMENT_COLOR = "#e8d44d";
 const COMMENT_BG = "rgba(232, 212, 77, 0.12)";
 const COMMENT_BORDER = "rgba(232, 212, 77, 0.5)";
+const AUTHOR_NOTE_COLOR = "#7dcfff";
+const AUTHOR_NOTE_BG = "rgba(125, 207, 255, 0.12)";
+const AUTHOR_NOTE_BORDER = "rgba(125, 207, 255, 0.5)";
 
 export const CommentNode = memo(function CommentNode({ id, selected, data }: NodeProps) {
   const nodeData = data as unknown as CommentNodeData;
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(nodeData.text ?? "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const cancelEditRef = useRef(false);
+  const isAuthorNote = isAuthorNoteText(nodeData.text);
+  const accentColor = isAuthorNote ? AUTHOR_NOTE_COLOR : COMMENT_COLOR;
+  const backgroundColor = isAuthorNote ? AUTHOR_NOTE_BG : COMMENT_BG;
+  const borderColor = isAuthorNote ? AUTHOR_NOTE_BORDER : COMMENT_BORDER;
+  const displayText = isAuthorNote ? stripAuthorNotePrefix(nodeData.text) : (nodeData.text ?? "");
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -38,12 +45,10 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
       return;
     }
     setIsEditing(false);
-    const { nodes, setNodes, commitState } = useEditorStore.getState();
-    setNodes(nodes.map((n) =>
-      n.id !== id ? n : { ...n, data: { ...n.data as object, text: editText } }
-    ));
-    commitState("Edit comment");
-    useProjectStore.getState().setDirty(true);
+    const { nodes, setNodes } = useEditorStore.getState();
+    setNodes(nodes.map((node) => (
+      node.id !== id ? node : { ...node, data: { ...node.data as object, text: editText } }
+    )));
   }, [id, editText]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -52,28 +57,22 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
       setIsEditing(false);
       setEditText(nodeData.text ?? "");
     }
-    // Ctrl+Enter or Shift+Enter to commit (let blur handle commit)
     if (e.key === "Enter" && (e.ctrlKey || e.shiftKey)) {
       (e.target as HTMLTextAreaElement).blur();
     }
   }, [nodeData.text]);
 
-  const handleResizeEnd = useCallback(
-    (_event: ResizeDragEvent, params: ResizeParams) => {
-      const { nodes, setNodes, commitState } = useEditorStore.getState();
-      setNodes(nodes.map((n) =>
-        n.id !== id
-          ? n
-          : { ...n, data: { ...n.data as object, width: params.width, height: params.height } }
-      ));
-      commitState("Resize comment");
-      useProjectStore.getState().setDirty(true);
-    },
-    [id],
-  );
+  const handleResizeEnd = useCallback((_event: ResizeDragEvent, params: ResizeParams) => {
+    const { nodes, setNodes } = useEditorStore.getState();
+    setNodes(nodes.map((node) => (
+      node.id !== id
+        ? node
+        : { ...node, data: { ...node.data as object, width: params.width, height: params.height } }
+    )));
+  }, [id]);
 
-  const width = nodeData.width ?? 200;
-  const height = nodeData.height ?? 80;
+  const width = nodeData.width ?? 240;
+  const height = nodeData.height ?? 110;
 
   return (
     <>
@@ -81,11 +80,11 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
         isVisible={selected}
         minWidth={MIN_WIDTH}
         minHeight={MIN_HEIGHT}
-        lineStyle={{ borderColor: COMMENT_COLOR, borderWidth: 1 }}
+        lineStyle={{ borderColor: accentColor, borderWidth: 1 }}
         handleStyle={{
           width: 10,
           height: 10,
-          background: COMMENT_COLOR,
+          background: accentColor,
           border: "2px solid rgba(0,0,0,0.3)",
           borderRadius: 2,
         }}
@@ -97,11 +96,11 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
           height,
           minWidth: MIN_WIDTH,
           minHeight: MIN_HEIGHT,
-          background: COMMENT_BG,
-          border: `1px solid ${selected ? COMMENT_COLOR : COMMENT_BORDER}`,
+          background: backgroundColor,
+          border: `1px solid ${selected ? accentColor : borderColor}`,
           borderRadius: 6,
           boxShadow: selected
-            ? `0 0 0 2px ${COMMENT_COLOR}55, 0 2px 8px rgba(0,0,0,0.3)`
+            ? `0 0 0 2px ${accentColor}55, 0 2px 8px rgba(0,0,0,0.3)`
             : "0 1px 4px rgba(0,0,0,0.2)",
           display: "flex",
           flexDirection: "column",
@@ -111,22 +110,28 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
         }}
         onDoubleClick={handleDoubleClick}
       >
-        {/* Drag handle / header strip */}
         <div
           style={{
-            background: `${COMMENT_COLOR}22`,
-            borderBottom: `1px solid ${COMMENT_BORDER}`,
+            background: `${accentColor}22`,
+            borderBottom: `1px solid ${borderColor}`,
             padding: "2px 6px",
             display: "flex",
             alignItems: "center",
-            gap: 4,
+            justifyContent: "space-between",
+            gap: 6,
             cursor: "grab",
           }}
         >
-          <span style={{ color: COMMENT_COLOR, fontSize: 10, userSelect: "none" }}>✎ Comment</span>
+          <span style={{ color: accentColor, fontSize: 10, fontWeight: 600, userSelect: "none" }}>
+            {isAuthorNote ? "Author Note" : "Comment"}
+          </span>
+          {selected && (
+            <span style={{ color: accentColor, fontSize: 10, opacity: 0.85, userSelect: "none" }}>
+              {Math.round(width)} x {Math.round(height)}
+            </span>
+          )}
         </div>
 
-        {/* Text content */}
         <div style={{ flex: 1, padding: "6px 8px", overflow: "hidden" }}>
           {isEditing ? (
             <textarea
@@ -142,7 +147,7 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
                 background: "transparent",
                 border: "none",
                 outline: "none",
-                color: COMMENT_COLOR,
+                color: accentColor,
                 fontSize: 11,
                 resize: "none",
                 fontFamily: "inherit",
@@ -151,16 +156,16 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
           ) : (
             <div
               style={{
-                color: COMMENT_COLOR,
+                color: accentColor,
                 fontSize: 11,
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
                 lineHeight: 1.4,
-                opacity: nodeData.text ? 1 : 0.4,
+                opacity: displayText ? 1 : 0.45,
                 userSelect: "none",
               }}
             >
-              {nodeData.text || "Double-click to edit…"}
+              {displayText || (isAuthorNote ? "Double-click to explain this template section..." : "Double-click to edit...")}
             </div>
           )}
         </div>

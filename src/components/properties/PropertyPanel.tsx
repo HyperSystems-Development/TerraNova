@@ -47,6 +47,11 @@ import {
 import {
   resolveEnvironmentLookup,
 } from "@/utils/environmentAssetLookup";
+import {
+  isAuthorNoteText,
+  makeAuthorNoteText,
+  stripAuthorNotePrefix,
+} from "@/utils/annotationUtils";
 
 export { validateEnvironmentDelimiters } from "@/utils/environmentDelimiters";
 export {
@@ -1434,6 +1439,22 @@ export function PropertyPanel() {
     || (typeName === "DensityDelimited" && (data._biomeField as string | undefined) === "EnvironmentProvider");
   const isTintDensityDelimitedNode =
     typeName === "DensityDelimited" && (data._biomeField as string | undefined) === "TintProvider";
+  const annotationData = data as {
+    text?: string;
+    name?: string;
+    width?: number;
+    height?: number;
+  };
+  const updateAnnotationData = useCallback((updates: Record<string, unknown>) => {
+    const { nodes, setNodes } = useEditorStore.getState();
+    setNodes(nodes.map((node) => (
+      node.id !== selectedNode.id ? node : { ...node, data: { ...node.data as object, ...updates } }
+    )));
+  }, [selectedNode.id]);
+  const commitAnnotationChange = useCallback((label: string) => {
+    commitState(label);
+    setDirty(true);
+  }, [commitState, setDirty]);
 
   return (
     <div className="flex flex-col p-3 gap-2 overflow-y-auto flex-1 min-h-0">
@@ -1538,7 +1559,19 @@ export function PropertyPanel() {
         </div>
       )}
 
-      {typeof fields["_comment"] === "string" && (
+      {isAnnotationNode && (
+        <AnnotationInspector
+          nodeType={selectedNode.type ?? typeName}
+          text={annotationData.text}
+          name={annotationData.name}
+          width={annotationData.width}
+          height={annotationData.height}
+          onChange={updateAnnotationData}
+          onCommit={commitAnnotationChange}
+        />
+      )}
+
+      {typeof fields["_comment"] === "string" && fields["_comment"] && (
         <div
           className="flex flex-col gap-1 px-2.5 py-2 rounded border text-[11px] leading-relaxed"
           style={{
@@ -2390,6 +2423,173 @@ function EnvironmentDelimitersField({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+function AnnotationInspector({
+  nodeType,
+  text,
+  name,
+  width,
+  height,
+  onChange,
+  onCommit,
+}: {
+  nodeType: string;
+  text?: string;
+  name?: string;
+  width?: number;
+  height?: number;
+  onChange: (updates: Record<string, unknown>) => void;
+  onCommit: (label: string) => void;
+}) {
+  const isComment = nodeType === "comment";
+  const currentText = text ?? "";
+  const currentName = name ?? "";
+  const currentWidth = Math.round(width ?? (isComment ? 240 : 480));
+  const currentHeight = Math.round(height ?? (isComment ? 110 : 320));
+  const isAuthorNote = isComment && isAuthorNoteText(currentText);
+
+  const applyPreset = (nextWidth: number, nextHeight: number, label: string) => {
+    onChange({ width: nextWidth, height: nextHeight });
+    onCommit(label);
+  };
+
+  return (
+    <div className="rounded border border-tn-border/70 bg-tn-panel/45 p-3 flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col">
+          <span className="text-[11px] font-medium text-tn-text">
+            {isComment ? "Annotation note" : "Frame overlay"}
+          </span>
+          <span className="text-[10px] text-tn-text-muted">
+            {isComment
+              ? "These notes persist with template metadata and are useful for handoff guidance."
+              : "Use frames to group a region of the graph and give it a short title."}
+          </span>
+        </div>
+        {isComment && (
+          <button
+            type="button"
+            onClick={() => {
+              onChange({ text: isAuthorNote ? stripAuthorNotePrefix(currentText) : makeAuthorNoteText(currentText) });
+              onCommit(isAuthorNote ? "Convert author note to comment" : "Convert comment to author note");
+            }}
+            className={`rounded border px-2 py-1 text-[10px] font-medium transition-colors ${
+              isAuthorNote
+                ? "border-sky-400/50 bg-sky-500/10 text-sky-200"
+                : "border-tn-border bg-tn-bg/50 text-tn-text-muted hover:text-tn-text"
+            }`}
+          >
+            {isAuthorNote ? "Author Note On" : "Make Author Note"}
+          </button>
+        )}
+      </div>
+
+      {isComment ? (
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-wide text-tn-text-muted">Text</label>
+          <textarea
+            value={currentText}
+            rows={5}
+            onChange={(e) => onChange({ text: e.target.value })}
+            onBlur={() => onCommit(isAuthorNote ? "Edit author note" : "Edit comment")}
+            className="w-full rounded border border-tn-border bg-tn-bg/60 px-2 py-1.5 text-xs text-tn-text outline-none focus:border-tn-accent/60"
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-wide text-tn-text-muted">Frame Title</label>
+          <input
+            type="text"
+            value={currentName}
+            placeholder="Terrain pass"
+            onChange={(e) => onChange({ name: e.target.value })}
+            onBlur={() => onCommit("Edit frame title")}
+            className="w-full rounded border border-tn-border bg-tn-bg/60 px-2 py-1.5 text-xs text-tn-text outline-none focus:border-tn-accent/60"
+          />
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-wide text-tn-text-muted">Width</label>
+          <input
+            type="number"
+            min={120}
+            value={currentWidth}
+            onChange={(e) => onChange({ width: Number(e.target.value) || 120 })}
+            onBlur={() => onCommit(`Resize ${isComment ? "comment" : "frame"}`)}
+            className="rounded border border-tn-border bg-tn-bg/60 px-2 py-1.5 text-xs text-tn-text outline-none focus:border-tn-accent/60"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] uppercase tracking-wide text-tn-text-muted">Height</label>
+          <input
+            type="number"
+            min={isComment ? 60 : 80}
+            value={currentHeight}
+            onChange={(e) => onChange({ height: Number(e.target.value) || (isComment ? 60 : 80) })}
+            onBlur={() => onCommit(`Resize ${isComment ? "comment" : "frame"}`)}
+            className="rounded border border-tn-border bg-tn-bg/60 px-2 py-1.5 text-xs text-tn-text outline-none focus:border-tn-accent/60"
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {isComment ? (
+          <>
+            <button
+              type="button"
+              onClick={() => applyPreset(240, 110, "Use compact comment size")}
+              className="rounded border border-tn-border bg-tn-bg/50 px-2 py-1 text-[10px] text-tn-text-muted hover:text-tn-text"
+            >
+              Compact
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset(300, 140, "Use standard comment size")}
+              className="rounded border border-tn-border bg-tn-bg/50 px-2 py-1 text-[10px] text-tn-text-muted hover:text-tn-text"
+            >
+              Standard
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset(420, 170, "Use large comment size")}
+              className="rounded border border-tn-border bg-tn-bg/50 px-2 py-1 text-[10px] text-tn-text-muted hover:text-tn-text"
+            >
+              Large
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => applyPreset(480, 320, "Use standard frame size")}
+              className="rounded border border-tn-border bg-tn-bg/50 px-2 py-1 text-[10px] text-tn-text-muted hover:text-tn-text"
+            >
+              Standard
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset(640, 320, "Use wide frame size")}
+              className="rounded border border-tn-border bg-tn-bg/50 px-2 py-1 text-[10px] text-tn-text-muted hover:text-tn-text"
+            >
+              Wide
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset(640, 420, "Use canvas frame size")}
+              className="rounded border border-tn-border bg-tn-bg/50 px-2 py-1 text-[10px] text-tn-text-muted hover:text-tn-text"
+            >
+              Canvas
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

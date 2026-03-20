@@ -22,6 +22,58 @@ describe("isHytaleNativeFormat", () => {
   });
 });
 
+describe("biome annotation metadata", () => {
+  it("exports comment and frame nodes into biome $NodeEditorMetadata", () => {
+    const biome = internalToHytaleBiome(
+      {
+        Name: "AnnotatedBiome",
+        Terrain: {
+          Type: "DAOTerrain",
+          Density: { Type: "Constant", Value: 0 },
+        },
+        MaterialProvider: { Type: "Constant", Material: "stone" },
+        Props: [],
+        EnvironmentProvider: { Type: "Constant", Environment: "default" },
+        TintProvider: { Type: "Constant", Color: "#ffffff" },
+      },
+      {
+        Terrain: [
+          {
+            id: "terrain-root",
+            position: { x: 12, y: 34 },
+            data: { type: "Constant", fields: { Value: 0 } },
+          } as any,
+          {
+            id: "comment-1",
+            type: "comment",
+            position: { x: 56, y: 78 },
+            data: { text: "Shape the ridge here", width: 240, height: 96 },
+          } as any,
+          {
+            id: "frame-1",
+            type: "frame",
+            position: { x: 90, y: 120 },
+            data: { name: "Terrain Notes", width: 420, height: 260 },
+          } as any,
+        ],
+      },
+    );
+
+    const metadata = biome.$NodeEditorMetadata as Record<string, unknown>;
+    const nodeEntries = metadata.$Nodes as Record<string, Record<string, unknown>>;
+    const comments = metadata.$Comments as Array<Record<string, unknown>>;
+    const groups = metadata.$Groups as Array<Record<string, unknown>>;
+
+    expect(nodeEntries["terrain-root"].$Position).toEqual({ $x: 12, $y: 34 });
+    expect(comments).toHaveLength(1);
+    expect(comments[0].$Text).toBe("Shape the ridge here");
+    expect(comments[0].$Width).toBe(240);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].$name).toBe("Terrain Notes");
+    expect(groups[0].$width).toBe(420);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Type name mapping
 // ---------------------------------------------------------------------------
