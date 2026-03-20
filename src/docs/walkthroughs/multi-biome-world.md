@@ -77,6 +77,8 @@ Simple flat ground with gentle undulation:
 }
 ```
 
+If Plains starts feeling too bumpy, lower the effective height variation before touching biome blending. A good beginner target is "you can see the hills, but the biome still reads as flat."
+
 ### Forest terrain
 
 Moderate hills — same structure, higher amplitude and frequency:
@@ -88,6 +90,17 @@ Moderate hills — same structure, higher amplitude and frequency:
 ### Mountains terrain
 
 Steep ridges using a CurveMapper to create cliff faces:
+
+Start with this mountain profile in `CurveMapper` so the biome reads clearly different from Plains and Forest:
+
+```curve
+Mountain biome profile - clear cliff band with a stable top
+[[0,-1],[0.16,-0.98],[0.34,-0.82],[0.48,-0.2],[0.56,0.62],[0.66,0.94],[0.8,1],[1,1]]
+```
+
+- Keep the left half low so foothills stay readable.
+- Make the jump around the middle steeper to exaggerate the mountain wall.
+- Flatten the last quarter if you want a stronger plateau biome.
 
 ```nodegraph
 {
@@ -107,6 +120,8 @@ Steep ridges using a CurveMapper to create cliff faces:
   ]
 }
 ```
+
+If the Mountains biome is blending too softly into Forest, keep the biome transition distance the same at first and sharpen this curve instead. That usually preserves biome identity better than forcing a harsher biome-edge blend.
 
 ---
 

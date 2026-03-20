@@ -37,6 +37,18 @@ Now add surface variation:
 8. Connect `BaseHeight` → `Sum`, connect `SimplexNoise2D` → `Sum`, then connect `Sum` → `Terrain Out`.
 9. Click **Generate** again. The terrain now has rolling hills.
 
+If you want a cleaner beginner-friendly shape, add one more node before you keep tuning:
+
+10. Insert **CurveMapper** between `BaseHeight` and `Sum`.
+11. Set the curve type to **Manual** and start with this profile:
+
+```curve
+First terrain curve - soft slope with a slightly firmer surface
+[[0,-1],[0.22,-0.95],[0.4,-0.62],[0.52,-0.08],[0.62,0.5],[0.76,0.9],[1,1]]
+```
+
+12. Generate once with the curve unchanged, then move only one point if you want steeper or flatter terrain.
+
 ```nodegraph
 {
   "height": 200,

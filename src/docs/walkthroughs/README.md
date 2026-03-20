@@ -4,12 +4,14 @@ Step-by-step practical tutorials for common TerraNova tasks. Each walkthrough ta
 
 ## Beginner
 
+- **[Quickstart: Build Your First Pack](./quickstart.md)** — the shortest path from opening TerraNova to making a safe first terrain edit.
 - **[Setup, Data Flow, and First Steps](./data-flow-first-steps.md)** — how node graphs work, the evaluation loop, editor layout, and building your first terrain graph.
 - **[Understanding Basic Terrain Generation](./basic-terrain-generation.md)** — density, CurveMapper + BaseHeight, adding noise with SimplexNoise2D, carving caves with SimplexNoise3D, and wrapping with YSampled for performance.
 - **[Create a World](./create-a-world.md)** — build your first world from a blank canvas: add terrain nodes, assign materials, and save.
 
 ## Intermediate
 
+- **[Sky Islands Walkthrough](./sky-islands.md)** — build a full floating-island biome with height bands, curve-guided shaping, materials, props, and atmosphere.
 - **[Shaping Terrain and Carving Caves](./terrain-and-caves.md)** — step-by-step from flat plains → rolling hills → mountains → overhangs → caves, with tuning guides for each.
 - **[Setting Up a Multi-Biome World](./multi-biome-world.md)** — create three biomes, assign noise ranges, configure transitions, and tune boundaries.
 

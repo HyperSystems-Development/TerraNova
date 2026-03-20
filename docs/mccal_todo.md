@@ -75,7 +75,7 @@ Hytale uses `Parent` on environment assets for inheritance. Real assets in `Serv
 
 ## Tint System Reference
 
-**Status:** [ ] Content ready in this file, needs to become a proper doc page under `docs/tutorials/` or `docs/reference/`
+**Status:** [ ] Content ready in this file, needs to become a proper doc page under `src/docs/walkthroughs/`, `src/docs/guides/`, or `src/docs/reference/`
 
 ### Key facts
 

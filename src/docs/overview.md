@@ -21,6 +21,16 @@ This documentation covers everything from opening the app for the first time to 
 
 ---
 
+## Which Section Should You Use?
+
+- **Walkthroughs** are for doing. Open one when you want to build something step by step inside TerraNova.
+- **Guides** are for understanding. Open one when you want the reasoning, patterns, and tradeoffs behind a system.
+- **Reference** is for lookup. Open it when you already know what you want and need exact fields, node behavior, or format details.
+
+If a page mostly tells you "click this, then add this node, then generate," it belongs in **Walkthroughs**. If it explains why curves, biomes, or materials work the way they do, it belongs in **Guides**. If it is mainly facts, options, or schema, it belongs in **Reference**.
+
+---
+
 ## Thank You, Nylaro
 
 A special and sincere thank you to **Nylaro**, whose public Hytale WorldGen V2 guide was the foundation this entire documentation effort is built on. Nylaro took the time to write and share deep technical knowledge about the Hytale worldgen system openly with the community.

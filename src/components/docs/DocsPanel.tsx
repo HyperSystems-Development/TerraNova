@@ -12,6 +12,7 @@ import rehypeHighlight from "rehype-highlight";
 import { MermaidDiagram } from "@/components/docs/MermaidDiagram";
 import { DocNodeGraph, parseNodeGraph } from "@/components/docs/DocNodeGraph";
 import {
+  buildSnippetDocNodeGraph,
   buildSnippetGraphData,
   getDefaultDocSlug,
   parseSnippetFence,
@@ -139,6 +140,7 @@ type DocsSettings = {
   showStickyHeader: boolean;
   autoOpenFirstSearchResult: boolean;
   curvePreviewDetail: "minimal" | "standard";
+  snippetDisplayMode: "json" | "nodegraph" | "both";
 };
 
 const DEFAULT_SETTINGS: DocsSettings = {
@@ -152,6 +154,7 @@ const DEFAULT_SETTINGS: DocsSettings = {
   showStickyHeader: false,
   autoOpenFirstSearchResult: false,
   curvePreviewDetail: "minimal",
+  snippetDisplayMode: "json",
 };
 
 function loadSettings(): DocsSettings {
@@ -165,14 +168,7 @@ function loadSettings(): DocsSettings {
 
 // Import all markdown docs under src/docs
 // Note: Vite now prefers `query: '?raw'` rather than `as: 'raw'`.
-const appDocsModules = import.meta.glob("../../docs/**/*.md", { query: "?raw", import: "default" }) as Record<string, () => Promise<string>>;
-const referenceDocsModules = import.meta.glob("../../../docs/reference/**/*.md", { query: "?raw", import: "default" }) as Record<string, () => Promise<string>>;
-const tutorialDocsModules = import.meta.glob("../../../docs/tutorials/**/*.md", { query: "?raw", import: "default" }) as Record<string, () => Promise<string>>;
-const docsModules = {
-  ...appDocsModules,
-  ...referenceDocsModules,
-  ...tutorialDocsModules,
-};
+const docsModules = import.meta.glob("../../docs/**/*.md", { query: "?raw", import: "default" }) as Record<string, () => Promise<string>>;
 
 type DocEntry = {
   slug: string;
@@ -234,27 +230,24 @@ const SLUG_TITLE_OVERRIDES: Record<string, string> = {
   "guides/world/biome-system":                               "Biome System",
   "guides/world/node-combinations":                          "Node Combinations",
   "guides/world/curves-explained":                           "Curves Explained",
+  "guides/world/environments-and-weather":                   "Environments & Weather",
   // Guides/content
   "guides/content/materials-guide":                          "Materials Guide",
   "guides/content/props-and-placement":                      "Props & Placement",
   // Walkthroughs
+  "walkthroughs/quickstart":                                 "Quickstart",
   "walkthroughs/data-flow-first-steps":                      "Data Flow & First Steps",
   "walkthroughs/basic-terrain-generation":                   "Basic Terrain Generation",
   "walkthroughs/create-a-world":                             "Create a World",
+  "walkthroughs/sky-islands":                                "Sky Islands Walkthrough",
   "walkthroughs/terrain-and-caves":                          "Terrain & Caves",
   "walkthroughs/multi-biome-world":                          "Multi-Biome World",
   "walkthroughs/periodic-density-stripes":                   "Density Stripes",
   // Reference
-  "reference/index":                                         "Reference",
   "reference/terrain-types":                                 "Terrain Snippets",
   "reference/reading-the-graph":                             "Reading the Graph",
   "reference/node-effects":                                  "Node Effects",
   "reference/curves":                                        "Curves Reference",
-  // Tutorials
-  "tutorials/index":                                         "Tutorials",
-  "tutorials/quickstart":                                    "Quickstart",
-  "tutorials/sky-islands-walkthrough":                       "Sky Islands Walkthrough",
-  "tutorials/environments-weather-guide":                    "Environments & Weather",
 };
 
 function titleFromSlug(slug: string) {
@@ -278,7 +271,6 @@ const ROOT_SECTION_ORDER = [
   { key: "overview", title: "Overview", slug: "overview" },
   { key: "getting-started", title: "Getting Started", slug: "getting-started" },
   { key: "walkthroughs", title: "Walkthroughs", slug: "walkthroughs" },
-  { key: "tutorials", title: "Tutorials", slug: "tutorials" },
   { key: "guides", title: "Guides", slug: "guides" },
   { key: "templates", title: "Templates", slug: "templates" },
   { key: "glossary", title: "Glossary", slug: "glossary" },
@@ -291,7 +283,6 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   overview:          BookOpen,
   "getting-started": Compass,
   walkthroughs:    MapIcon,
-  tutorials:       GraduationCap,
   guides:          GraduationCap,
   templates:       LayoutTemplate,
   glossary:        Library,
@@ -928,6 +919,7 @@ export function DocsPanel() {
   const showCurveStats = settings.curvePreviewDetail === "standard";
   const docsCurveHeight = showCurveStats ? 112 : 96;
   const docsCurveWidthClass = showCurveStats ? "max-w-[480px]" : "max-w-[440px]";
+  const snippetDisplayMode = settings.snippetDisplayMode;
 
   const allDocSlugs = useMemo(() => entries.map((entry) => entry.slug), [entries]);
   const resolveFolderSlug = useCallback(
@@ -1087,6 +1079,16 @@ export function DocsPanel() {
         "error",
       );
     }
+  }, [addToast, writeTextToClipboard]);
+
+  const handleCopyNodeGraphJson = useCallback(async (graphJson: string, label?: string) => {
+    const copied = await writeTextToClipboard(graphJson);
+    addToast(
+      copied
+        ? `${label ?? "Node graph"} JSON copied`
+        : `Could not copy ${label ?? "node graph"} JSON`,
+      copied ? "success" : "error",
+    );
   }, [addToast, writeTextToClipboard]);
 
   const handleOpenSnippetInEditor = useCallback(async (snippetJson: string, label?: string) => {
@@ -1360,7 +1362,25 @@ export function DocsPanel() {
       if (lang === "mermaid") return <div className="docs-wide-block"><MermaidDiagram code={value} /></div>;
       if (lang === "nodegraph") {
         const graph = parseNodeGraph(value);
-        if (graph) return <div className="docs-wide-block"><DocNodeGraph {...graph} /></div>;
+        if (graph) {
+          return (
+            <div className="docs-wide-block my-4 overflow-hidden rounded-xl border border-tn-border bg-tn-panel/55 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+              <div className="flex items-center justify-between gap-2 border-b border-tn-border bg-tn-panel px-3 py-2">
+                <div className="text-[10px] uppercase tracking-[0.08em] text-tn-text-muted">
+                  Node graph
+                </div>
+                <ActionPillButton
+                  label="Copy Nodegraph"
+                  onClick={() => { void handleCopyNodeGraphJson(value, "Node graph"); }}
+                  title="Copy the docs nodegraph JSON"
+                />
+              </div>
+              <div className="px-3 py-3">
+                <DocNodeGraph {...graph} />
+              </div>
+            </div>
+          );
+        }
       }
       // curve: fence — renders a read-only CurveCanvas with optional label
       // Format: first line (optional) = label, rest = JSON point array [[x,y],...]
@@ -1449,6 +1469,14 @@ export function DocsPanel() {
       // Format: first line (if not JSON) is the label and optional [difficulty], rest is JSON
       if (lang === "snippet") {
         const { label, difficulty, snippetJson } = parseSnippetFence(value);
+        let snippetGraph = null;
+        try {
+          snippetGraph = buildSnippetDocNodeGraph(snippetJson);
+        } catch {
+          snippetGraph = null;
+        }
+        const showSnippetGraph = snippetDisplayMode === "nodegraph" || snippetDisplayMode === "both";
+        const showSnippetJson = snippetDisplayMode === "json" || snippetDisplayMode === "both" || !snippetGraph;
         const difficultyColor: Record<string, string> = {
           Beginner: "bg-green-500/20 text-green-400 border-green-500/30",
           Intermediate: "bg-amber-500/20 text-amber-400 border-amber-500/30",
@@ -1476,27 +1504,41 @@ export function DocsPanel() {
                   </div>
                 </div>
                 <div className="docs-snippet-actions flex flex-wrap items-center gap-1.5 sm:justify-end">
-                <ActionPillButton
-                  label="Copy JSON"
-                  onClick={() => { void handleCopySnippetJson(snippetJson, label); }}
-                  title="Copy the raw terrain snippet JSON"
-                />
-                <ActionPillButton
-                  label="Copy Graph"
-                  onClick={() => { void handleCopySnippetGraph(snippetJson, label); }}
-                  title="Copy a paste-ready TerraNova graph to the clipboard"
-                />
-                <ActionPillButton
-                  label="Open In Editor"
-                  onClick={() => { void handleOpenSnippetInEditor(snippetJson, label); }}
-                  title="Replace the current terrain graph with this snippet"
-                />
+                  <ActionPillButton
+                    label="Copy JSON"
+                    onClick={() => { void handleCopySnippetJson(snippetJson, label); }}
+                    title="Copy the raw terrain snippet JSON"
+                  />
+                  {snippetGraph && (
+                    <ActionPillButton
+                      label="Copy Nodegraph"
+                      onClick={() => { void handleCopyNodeGraphJson(JSON.stringify(snippetGraph, null, 2), label ? `${label} nodegraph` : "Snippet nodegraph"); }}
+                      title="Copy the rendered docs nodegraph JSON"
+                    />
+                  )}
+                  <ActionPillButton
+                    label="Copy Graph"
+                    onClick={() => { void handleCopySnippetGraph(snippetJson, label); }}
+                    title="Copy a paste-ready TerraNova graph to the clipboard"
+                  />
+                  <ActionPillButton
+                    label="Open In Editor"
+                    onClick={() => { void handleOpenSnippetInEditor(snippetJson, label); }}
+                    title="Replace the current terrain graph with this snippet"
+                  />
                 </div>
               </div>
             </div>
-            <pre className="m-0 overflow-x-hidden whitespace-pre-wrap break-words border-t border-white/5 bg-tn-bg/55 p-4 text-xs leading-7 text-tn-text-muted">
-              <code>{snippetJson}</code>
-            </pre>
+            {showSnippetGraph && snippetGraph && (
+              <div className="border-t border-white/5 bg-tn-bg/40 px-3 py-3">
+                <DocNodeGraph {...snippetGraph} />
+              </div>
+            )}
+            {showSnippetJson && (
+              <pre className={`m-0 border-t border-white/5 bg-tn-bg/55 p-4 text-xs leading-7 text-tn-text-muted ${shouldWrapCodeBlocks ? "overflow-x-hidden whitespace-pre-wrap break-words" : "overflow-x-auto whitespace-pre"}`}>
+                <code>{snippetJson}</code>
+              </pre>
+            )}
           </div>
         );
       }
@@ -1564,7 +1606,20 @@ export function DocsPanel() {
         )}
       </h3>
     ),
-  }), [entries, handleCopySnippetGraph, handleCopySnippetJson, handleLinkClick, handleOpenSnippetInEditor]);
+  }), [
+    docsCurveHeight,
+    docsCurveWidthClass,
+    entriesBySlug,
+    handleCopyNodeGraphJson,
+    handleCopySnippetGraph,
+    handleCopySnippetJson,
+    handleLinkClick,
+    handleOpenSnippetInEditor,
+    shouldWrapCodeBlocks,
+    showCurveStats,
+    snippetDisplayMode,
+  ]);
+  const selectedEntry = selectedSlug ? entriesBySlug.get(selectedSlug) ?? null : null;
 
   return (
     <div className="flex h-full">
@@ -1690,6 +1745,17 @@ export function DocsPanel() {
                   { value: "standard", label: "Standard" },
                 ]}
                 onChange={(value) => setSettings((s) => ({ ...s, curvePreviewDetail: value }))}
+              />
+              <SettingsSelect
+                label="Snippet display"
+                description="Show terrain snippets as JSON, nodegraph, or both"
+                value={settings.snippetDisplayMode}
+                options={[
+                  { value: "json", label: "JSON" },
+                  { value: "nodegraph", label: "Nodegraph" },
+                  { value: "both", label: "Both" },
+                ]}
+                onChange={(value) => setSettings((s) => ({ ...s, snippetDisplayMode: value }))}
               />
             </SettingsSection>
             <button

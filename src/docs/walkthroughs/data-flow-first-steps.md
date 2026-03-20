@@ -89,6 +89,17 @@ The minimum valid terrain graph is two nodes:
 
 Connect `BaseHeight → Terrain Out` and click **Generate** to see a flat plane at Y=64.
 
+When you are ready for your first real terrain shape, the next node to learn is `CurveMapper`. This is a good first curve to keep nearby:
+
+```curve
+Starter surface curve - easy to tweak without breaking the graph
+[[0,-1],[0.24,-0.94],[0.42,-0.55],[0.54,-0.04],[0.66,0.58],[0.82,0.94],[1,1]]
+```
+
+- Left side stays air.
+- Middle controls how quickly the ground rises.
+- Right side controls how dense the ground becomes below the surface.
+
 > [!NOTE]
 > BaseHeight is essentially `YValue` with a fixed offset. It crosses zero at the configured reference Y level. You can replicate it manually with `Sum` of `YValue` + `Constant { Value: -64 }` if you need a surface at a precise height.
 

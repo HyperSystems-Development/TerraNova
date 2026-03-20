@@ -30,6 +30,17 @@ The key parameters on noise generators:
 
 `CurveMapper` remaps that value using a hand-drawn curve. This is how you shape cliff faces, plateaus, and gentle slopes — by drawing the profile you want.
 
+Start with this simple profile instead of freehanding from scratch:
+
+```curve
+Starter terrain profile - gentle slope into a firmer surface
+[[0,-1],[0.18,-0.96],[0.34,-0.72],[0.48,-0.18],[0.56,0.3],[0.7,0.78],[0.86,0.96],[1,1]]
+```
+
+- Keep the left side low so air stays air.
+- Let the middle rise smoothly for a walkable slope.
+- Push one middle point upward if you want a sharper cliff.
+
 ```nodegraph
 {
   "height": 160,
@@ -83,6 +94,13 @@ To make varied terrain with a proper surface, combine the `CurveMapper` height s
 1. `BaseHeight → CurveMapper` defines the vertical profile (where the surface is)
 2. `SimplexNoise2D` adds horizontal variation (hills and valleys)
 3. `Sum` merges both into one density per (x, y, z)
+
+If you are new to curves, do this in order:
+
+1. Load the starter curve above into `CurveMapper`.
+2. Generate once before touching noise.
+3. Move only one curve point at a time, then generate again.
+4. After the silhouette feels right, start adjusting the noise scale.
 
 ```nodegraph
 {

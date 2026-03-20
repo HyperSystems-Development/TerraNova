@@ -1,4 +1,4 @@
-# Tutorial: Building a Sky Islands Biome from Scratch
+# Walkthrough: Building a Sky Islands Biome from Scratch
 
 <!-- walkthrough -->
 
@@ -7,7 +7,7 @@
 > **What you'll learn:** Density function composition, material layering, prop scattering, and how all the pieces of a V2 biome fit together.
 > **End result:** A floating archipelago of islands at varying heights with grass-topped terrain, trees, crystals, and a dreamy atmosphere.
 >
-> **Format note:** All JSON in this tutorial uses **Hytale-native format** — the same format exported by Hytale's in-game editor. `$NodeId` UUIDs are omitted for readability (Hytale generates these automatically), but every other field matches what the server expects.
+> **Format note:** All JSON in this walkthrough uses **Hytale-native format** — the same format exported by Hytale's in-game editor. `$NodeId` UUIDs are omitted for readability (Hytale generates these automatically), but every other field matches what the server expects.
 
 If this is your first full biome:
 - use the walkthrough mode in the docs pane
@@ -297,6 +297,17 @@ So islands float between Y=70 and Y=150, with most clustered around Y=110.
 
 This is equivalent to a `LinearRemap` from `[-1, 1]` to `[70, 150]`. Hytale's native format doesn't have `LinearRemap` so we build it manually with `AmplitudeConstant` + `Sum` + `Constant`. In TerraNova's node graph you can use either approach.
 
+If you want to preview the vertical island band in the curve view, use a simple bell-like shape like this:
+
+```curve
+Sky island height band - dense in the middle, thin near the limits
+[[0,-1],[0.16,-0.92],[0.34,-0.4],[0.5,0.86],[0.66,-0.18],[0.82,-0.82],[1,-1]]
+```
+
+- Widen the positive middle if you want chunkier islands.
+- Sharpen the drop after the peak if the islands look too puffy.
+- Keep both ends negative so stray floating fragments do not appear outside the band.
+
 **About `Scale: 333`:** This means the noise varies over ~333 blocks. Nearby islands get similar heights, distant ones differ.
 
 > **In TerraNova:** Add a `SimplexNoise2D` node (Scale: 333, Seed: "height_variation", Octaves: 2). Connect it into an `AmplitudeConstant` node (Value: 40). Then wire that into a `Sum` node alongside a `Constant` node (Value: 110). The heatmap shows the height map — lighter = higher islands.
@@ -500,6 +511,11 @@ In Hytale-native JSON, the full terrain density:
    Vertical density profile — thick solid core, tapers at bottom
    [[0,1],[0.2,1],[0.4,0.9],[0.6,0.6],[0.8,0.2],[1,0]]
    ```
+
+   Start with that curve unchanged, then make only one adjustment at a time:
+   - Raise the point near `0.6` if islands feel too thin in the middle.
+   - Lower the point near `0.8` if the undersides look too round.
+   - Keep the rightmost point at `0` so the island still resolves cleanly into air.
 
    ```bounds
    {"min": -15, "max": 0, "label": "Vertical thickness — 15 blocks below island surface is solid"}

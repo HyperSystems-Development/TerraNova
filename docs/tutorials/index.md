@@ -1,16 +1,9 @@
-# Walkthroughs
+# Tutorials Moved
 
-This section contains step-by-step guides for building real features in TerraNova.
+The in-app docs were reorganized to reduce overlap between tutorials, walkthroughs, and guides.
 
-## Walkthroughs
+Use these sections instead:
 
-- [Quickstart: Build Your First Pack](./quickstart.md)
-- [Sky Islands Walkthrough](./sky-islands-walkthrough.md)
-- [Environments & Weathers Folder Guide](./environments-weather-guide.md)
-
----
-
-## More docs
-
-- [Overview](../overview.md)
-- [Reference](../reference/index.md)
+- [Walkthroughs](../../src/docs/walkthroughs/README.md)
+- [Guides](../../src/docs/guides/README.md)
+- [Reference](../../src/docs/reference/README.md)

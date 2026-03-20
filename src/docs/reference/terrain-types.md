@@ -226,7 +226,7 @@ Sky Islands [Intermediate]
 }
 ```
 
-See the full build walkthrough: [Sky Islands Tutorial](../tutorials/sky-islands-walkthrough.md)
+See the full build walkthrough: [Sky Islands Walkthrough](../walkthroughs/sky-islands.md)
 
 ---
 
@@ -720,4 +720,4 @@ The `Power(4)` exponent is the key: it creates an extremely sharp dropoff from c
 - [Curves Reference](./curves.md): visual guide to every curve type
 - [Node Effects](./node-effects.md): what every node category does
 - [Reading the Node Graph](./reading-the-graph.md): how to interpret and debug any graph
-- [Sky Islands Walkthrough](../tutorials/sky-islands-walkthrough.md): step-by-step full biome build
+- [Sky Islands Walkthrough](../walkthroughs/sky-islands.md): step-by-step full biome build

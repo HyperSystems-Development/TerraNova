@@ -4,12 +4,16 @@ This section contains in-depth guides covering key TerraNova workflows and world
 
 ## Available Guides
 
-- **[Setup, Data Flow & First Steps](../walkthroughs/data-flow-first-steps.md)** *(walkthrough)* — an introduction to the editor and WorldGen V2 data flow.
-- **[Understanding Basic Terrain Generation](../walkthroughs/basic-terrain-generation.md)** *(walkthrough)* — density, noise maps, curve mapping, and how they combine.
+- **[Setup, Data Flow & First Steps](./setup-data-flow-first-steps.md)** — a beginner-friendly mental model for how values move through the editor and graph.
+- **[Understanding Basic Terrain Generation](./understanding-basic-terrain-generation.md)** — the concepts behind density, noise maps, and terrain shaping before you start tuning recipes.
+
+If you want follow-along build steps instead of explanations, start in [Walkthroughs](../walkthroughs/README.md).
+
 **World Building**
 - **[Biome System](./world/biome-system.md)** — how biomes are defined, how the world selects them, and how transitions work.
 - **[Node Combination Patterns](./world/node-combinations.md)** — common ways to wire nodes together, with visual flow diagrams for each pattern.
 - **[Curves Explained](./world/curves-explained.md)** — what curve assets are, every curve type (DistanceExponential, DistanceS, Manual, Clamp, Floor, Ceiling, Inverter, and their smooth variants), when to use each, and a decision guide for picking the right curve for island edges, beaches, and shape falloffs.
+- **[Environments & Weather](./world/environments-and-weather.md)** — folder layout, asset cache setup, parent chains, and how to author environment and weather assets without guessing.
 
 **Content**
 - **[Materials Guide](./content/materials-guide.md)** — how material providers work: SpaceAndDepth layer types, ConstantThickness, NoiseThickness, RangeThickness, cave ceiling/floor detection with DownwardSpace/UpwardSpace, and worked examples for plains, desert, and cave biomes.

@@ -7,10 +7,11 @@ TerraNova is an offline tool for building Hytale World Generation V2 asset packs
 - Support for **Hytale-native JSON formats** (biomes, environments, weather, world structures).
 - Tools to import/export from the official Hytale asset format.
 
-This docs site is organized into sections:
+The in-app documentation is now organized under `src/docs`:
 
 - **Getting Started**: Quickstart guides to create your first pack.
 - **Walkthroughs**: Step-by-step tutorials for real features.
+- **Guides**: Concept explanations and workflow help.
 - **Reference**: Node and format documentation.
 
 ---
@@ -18,5 +19,5 @@ This docs site is organized into sections:
 ## Where to begin
 
 - Start with **[Getting Started](./getting-started.md)**.
-- When you're ready for a full build, follow the **[Walkthroughs](./tutorials/index.md)**.
-- For node-by-node detail, see **[Reference](./reference/index.md)**.
+- When you're ready for a full build, follow the **[Walkthroughs](../src/docs/walkthroughs/README.md)**.
+- For node-by-node detail, see **[Reference](../src/docs/reference/README.md)**.

@@ -2,6 +2,15 @@
 
 This section contains technical reference material for TerraNova / Hytale WorldGen V2.
 
+If you are still learning, start with these focused pages before diving into the full listings below:
+
+- [Node Effects](./node-effects.md) — what each node family is for
+- [Curves Reference](./curves.md) — curve types and shape previews
+- [Reading the Graph](./reading-the-graph.md) — how to read the editor visually
+- [Terrain Snippets](./terrain-types.md) — paste-ready terrain examples
+
+Use the rest of this page when you need exact terms, schemas, or category listings.
+
 ## Density Node Types
 
 The density system is the mathematical backbone of terrain generation. Every terrain shape, biome boundary, and underground cave is defined by composing density nodes.

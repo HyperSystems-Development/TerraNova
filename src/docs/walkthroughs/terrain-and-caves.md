@@ -97,6 +97,17 @@ Mountains need a steep vertical profile — sharp peaks, flat base. `CurveMapper
 6. Wrap the whole thing in **YSampled** (SampleDistance `4`) for performance.
 7. Connect `YSampled` → `Terrain Out`.
 
+Use this starter mountain curve first, then adjust only the middle points:
+
+```curve
+Mountain cliff profile - broad base, steep wall, flatter top
+[[0,-1],[0.18,-0.98],[0.36,-0.78],[0.5,-0.12],[0.58,0.7],[0.68,0.96],[0.82,1],[1,1]]
+```
+
+- Raise the point near `0.58` for harsher cliffs.
+- Pull the point near `0.82` down if the plateau feels too flat.
+- Keep the first third low so the mountain has a readable base.
+
 ```nodegraph
 {
   "height": 240,
@@ -154,6 +165,18 @@ Use `YValue` fed through a `CurveMapper` to bias the noise — positive in a tar
 3. Add **CurveMapper** (Manual). Draw a curve that is positive between Y=40 and Y=120 and negative outside that range — a hill shape. This keeps islands within the band.
 4. Add **Sum** — connect `SimplexNoise3D` and `CurveMapper` into it.
 5. Connect `Sum` → `Terrain Out`.
+
+The height-bias curve is what stops this from becoming random floating blobs:
+
+```curve
+Floating island height band - strongest in the middle, fades above and below
+[[0,-1],[0.16,-0.95],[0.32,-0.55],[0.46,0.28],[0.58,0.92],[0.7,0.32],[0.84,-0.55],[1,-1]]
+```
+
+Read it like this:
+- Negative ends mean "no island mass" outside the band.
+- The high middle keeps the densest part of the island around your target height.
+- A wider peak creates chunkier islands; a narrow peak creates thinner floating shelves.
 
 ```nodegraph
 {
@@ -238,6 +261,17 @@ Caves that punch through the surface look wrong. Use `YValue` + `CurveMapper` to
 2. Add **CurveMapper** (Manual). Draw a curve that outputs `1.0` below Y=55 and ramps down to `0` between Y=55 and Y=70, staying at `0` above. This is the cave mask weight.
 3. Add **Multiplier** — connect `Inverter` output as one input and `CurveMapper` output as the other. This scales the cave mask to zero above the cutoff height.
 4. Feed the `Multiplier` output into `Min` instead of the raw `Inverter`.
+
+Use this fade curve for the height mask before refining it:
+
+```curve
+Cave fade mask - full strength underground, fades near the surface
+[[0,1],[0.46,1],[0.62,0.92],[0.76,0.45],[0.9,0.08],[1,0]]
+```
+
+- Keep the flat top if you want caves to stay strong deep underground.
+- Soften the drop if you want a gradual cave ceiling.
+- Make the drop steeper if surface holes are still appearing.
 
 ```nodegraph
 {

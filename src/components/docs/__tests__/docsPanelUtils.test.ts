@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildSnippetDocNodeGraph,
   buildSnippetGraphData,
   getDefaultDocSlug,
   parseSnippetFence,
@@ -21,11 +22,11 @@ describe("docsPanelUtils", () => {
   it("resolves folder defaults via README, index, then first child", () => {
     const slugs = [
       "guides/terrain/terrain-types",
-      "reference/index",
+      "reference/README",
       "reference/terrain-types",
     ];
 
-    expect(getDefaultDocSlug("reference", slugs)).toBe("reference/index");
+    expect(getDefaultDocSlug("reference", slugs)).toBe("reference/README");
     expect(getDefaultDocSlug("guides", slugs)).toBe("guides/terrain/terrain-types");
     expect(getDefaultDocSlug("missing", slugs)).toBeNull();
   });
@@ -47,5 +48,57 @@ describe("docsPanelUtils", () => {
     expect(
       clipboardData.nodes.some((node) => (node.data as Record<string, unknown>)._outputNode === true),
     ).toBe(true);
+  });
+
+  it("builds a docs nodegraph preview from a Hytale terrain snippet", () => {
+    const graph = buildSnippetDocNodeGraph(`{
+  "Type": "Sum",
+  "Inputs": [
+    { "Type": "Constant", "Value": 80 },
+    { "Type": "Inverter", "Inputs": [{ "Type": "YValue" }] }
+  ]
+}`);
+
+    expect(graph.nodes.length).toBeGreaterThan(0);
+    expect(graph.edges.length).toBeGreaterThan(0);
+    expect(graph.nodes.some((node) => node.label === "Sum")).toBe(true);
+    expect(graph.height).toBeGreaterThanOrEqual(200);
+  });
+
+  it("strips doc comments and extracts walkthrough steps", () => {
+    const markdown = `# Intro
+<!-- walkthrough -->
+## Step One
+First.
+<!-- hidden -->
+## Step Two
+Second.`;
+
+    expect(stripDocComments(markdown)).not.toContain("hidden");
+    expect(extractWalkthroughSteps(markdown)).toEqual([
+      { title: "Step One", content: "First." },
+      { title: "Step Two", content: "Second." },
+    ]);
+  });
+
+  it("filters a doc tree and finds the first matching file slug", () => {
+    const tree = [
+      {
+        type: "folder" as const,
+        slug: "guides",
+        children: [
+          { type: "file" as const, slug: "guides/alpha" },
+          {
+            type: "folder" as const,
+            slug: "guides/deep",
+            children: [{ type: "file" as const, slug: "guides/deep/beta" }],
+          },
+        ],
+      },
+    ];
+
+    const filtered = filterDocTree(tree, new Set(["guides/deep/beta"]));
+    expect(filtered).toHaveLength(1);
+    expect(findFirstFileSlug(filtered)).toBe("guides/deep/beta");
   });
 });

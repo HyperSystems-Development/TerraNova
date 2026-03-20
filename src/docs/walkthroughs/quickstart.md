@@ -54,6 +54,6 @@ If the edit looked worse, undo it, try one smaller value change, and save again 
 
 ## Next steps
 
-- Try the [Sky Islands walkthrough](./sky-islands-walkthrough.md) if you want a full guided biome build with curve previews and step-by-step reasoning.
+- Try the [Sky Islands walkthrough](./sky-islands.md) if you want a full guided biome build with curve previews and step-by-step reasoning.
 - Open [Terrain Types](../reference/terrain-types.md) if you want ready-made graph shapes you can copy into the editor.
-- Read the [Reference](../reference/index.md) section only when you need details about a specific node type.
+- Read the [Reference](../reference/README.md) section only when you need details about a specific node type.
