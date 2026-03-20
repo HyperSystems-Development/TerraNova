@@ -13,10 +13,8 @@ import type { FlowDirection } from "@/constants";
 import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, syncHytaleAssets, type AssetStalenessInfo } from "@/utils/ipc";
 import { useToastStore } from "@/stores/toastStore";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
-import { WhatsNewDialog } from "./WhatsNewDialog";
+import { WhatsNewDialog, WHATS_NEW_SUPPRESS_KEY } from "./WhatsNewDialog";
 import { ChangelogDialog } from "./ChangelogDialog";
-
-const WHATS_NEW_SUPPRESS_KEY = "terranova:whats-new-suppress";
 
 function getWhatsNewSuppressed(): boolean {
   try { return localStorage.getItem(WHATS_NEW_SUPPRESS_KEY) === "true"; } catch { return false; }
