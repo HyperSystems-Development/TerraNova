@@ -37,6 +37,12 @@ All notable changes to [TerraNova](https://github.com/HyperSystems-Development/T
 
 ## [0.1.7-pre.3] — 2026-03-20 — QOL, Docs, and Properties Pass
 
+### Features
+
+- **Zip-aware Common asset cache** â€” TerraNova now accepts the Common overlay as a direct `Common` folder, a parent folder containing `Common`, a folder containing `Assets.zip`, or the `Assets.zip` file itself; duplicate overlay work is skipped automatically when it matches the primary source
+- **Preferred GPU selection** â€” Hardware detection now exposes all detected adapters, configuration can store a preferred GPU, and 3D previews remount when the GPU preference changes so users can choose between multiple GPUs
+- **Docs nodegraph actions** â€” `nodegraph` blocks and terrain snippet cards in the docs pane now support direct nodegraph copying, and snippet cards can be shown as `JSON`, `Nodegraph`, or `Both`
+
 ### Documentation
 
 - **Terrain types guide** — New `docs/reference/terrain-types.md` with 12 terrain recipes as copyable `snippet:` blocks (Plains, Rolling Hills, Mountains, Mesas, Floating Islands, Caves, Depth-Faded Caves, Warped Terrain, Warped Caves, Sand Dunes, Archipelago, Complex Layered); each snippet includes terrain name and difficulty badge
@@ -46,6 +52,8 @@ All notable changes to [TerraNova](https://github.com/HyperSystems-Development/T
 - **Docs panel snippet blocks** — Added `snippet:` markdown fence to the docs panel renderer: renders a labelled, difficulty-badged, copyable JSON block for terrain recipes
 - **Getting started overhaul** — Rewrote `docs/getting-started.md` with step-by-step first-session flow and links to tutorials
 - **Sky Islands walkthrough** — Added `curve:` fence blocks and prose improvements to `docs/tutorials/sky-islands-walkthrough.md`
+- **Walkthrough curve guidance** - Beginner and intermediate walkthroughs now include starter `curve:` blocks and small tuning notes for terrain profiles, mountain silhouettes, floating island bands, and cave fade masks
+- **Docs taxonomy cleanup** - In-app docs are now organized more clearly under walkthroughs, guides, and reference, with `Quickstart` and `Sky Islands` moved into walkthroughs and `Environments & Weather` moved into guides
 - **Em-dash cleanup** — Replaced all em-dashes in rendered docs with colons or parentheses so screen readers and the docs panel render them consistently
 
 ### Quality of Life
@@ -53,6 +61,15 @@ All notable changes to [TerraNova](https://github.com/HyperSystems-Development/T
 - **Terrain curve presets** — Curve canvas now has a second "Terrain:" preset row with 10 terrain-specific presets (Sharp Peak, Plateau, Cliff Edge, Cave Arch, Terrace, Island Falloff, Beach Shore, Ridge Sharpen, Overhang, Gentle Hills)
 - **Docs panel performance** — `selectedSlugRef` pattern prevents unnecessary re-creation of `mdComponents` on every slug change; link click handler no longer takes a stale closure over the current slug
 - **Richer template descriptions** — All 6 bundled templates now have descriptive tags (difficulty, key features, node count) shown in the new project dialog
+- **Docs pane presentation pass** - Narrower reading widths, improved tree hierarchy, better snippet cards, wrapped text/code behavior, and more useful compact settings make the docs pane easier to scan without overwhelming beginners
+- **Improved docs curve previews** - Inline docs curves are taller, less stretched horizontally, and can show a minimal graph treatment with lightweight stats depending on the chosen docs settings
+
+### Bug Fixes
+
+- **Docs export flow** - Fixed preview export so `Alt+S` and the export button reliably export the current preview instead of silently doing nothing
+- **Preview graph copy flow** - Terrain snippets can now be copied as paste-ready editor graphs and opened directly in the graph editor from the docs pane
+- **Mermaid cleanup stability** - Mermaid diagram rendering now captures the active container correctly so async renders and cleanup no longer race on ref changes
+- **Environment editor hook stability** - Weather auto-import, forecast refresh, and issue actions now use stable callbacks and complete dependencies to avoid stale project state
 
 ## [0.1.7-pre.1] — 2026-03-16
 
@@ -389,3 +406,4 @@ Built over 85 commits (Feb 6–13, 2026) in the private TerraNovaDev repository 
 [#44]: https://github.com/HyperSystems-Development/TerraNova/issues/44
 [#46]: https://github.com/HyperSystems-Development/TerraNova/pull/46
 [#47]: https://github.com/HyperSystems-Development/TerraNova/pull/47
+
