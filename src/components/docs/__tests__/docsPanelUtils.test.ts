@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildDocNodeGraphMarkdownBlock,
   buildSnippetDocNodeGraph,
   buildSnippetGraphData,
   getDefaultDocSlug,
@@ -63,6 +64,18 @@ describe("docsPanelUtils", () => {
     expect(graph.edges.length).toBeGreaterThan(0);
     expect(graph.nodes.some((node) => node.label === "Sum")).toBe(true);
     expect(graph.height).toBeGreaterThanOrEqual(200);
+  });
+
+  it("wraps docs nodegraphs in a paste-ready markdown fence", () => {
+    const block = buildDocNodeGraphMarkdownBlock({
+      height: 200,
+      nodes: [{ id: "sum", label: "Sum", category: "math", x: 0, y: 0 }],
+      edges: [],
+    });
+
+    expect(block.startsWith("```nodegraph")).toBe(true);
+    expect(block).toContain(`"label": "Sum"`);
+    expect(block.endsWith("```")).toBe(true);
   });
 
   it("strips doc comments and extracts walkthrough steps", () => {

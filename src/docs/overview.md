@@ -13,7 +13,7 @@ This documentation covers everything from opening the app for the first time to 
 | **[Getting Started](./getting-started.md)** | Launching the app, editor layout, keyboard shortcuts |
 | **[Walkthroughs](./walkthroughs/README.md)** | Step-by-step tutorials -- follow along in the editor |
 | **[Guides](./guides/README.md)** | Concept deep-dives -- terrain generation, biomes, node patterns |
-| **[Templates](./templates/README.md)** | Starter worlds and doc templates for contributors |
+| **[Doc Templates](./templates/README.md)** | Writing templates for guides and walkthrough contributors |
 | **[Glossary](./glossary/README.md)** | Definitions for every node type and term |
 | **[Reference](./reference/README.md)** | Complete technical listings for nodes, JSON schemas, commands |
 | **[Troubleshooting](./troubleshooting.md)** | Common problems and how to fix them |
@@ -55,6 +55,6 @@ Want to help improve this documentation?
 - Add a walkthrough for a workflow you know well
 - Fix an error, update an outdated node name, or improve an explanation
 
-Use the doc templates in the [Templates](./templates/README.md) section as a starting point. See [Contributing](./contributing.md) for the full process.
+Use the doc templates in the [Doc Templates](./templates/README.md) section as a starting point. See [Contributing](./contributing.md) for the full process.
 
 > Please only submit content you own or have permission to share.

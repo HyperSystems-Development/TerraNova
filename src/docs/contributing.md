@@ -31,7 +31,7 @@ src/docs/
     [future] biomes/
 
   templates/
-    README.md               -- index of templates and doc templates
+    README.md               -- contributor doc templates
     guide-template.md       -- copy this to start a new guide
     walkthrough-template.md -- copy this to start a new walkthrough
 
@@ -222,7 +222,7 @@ External links open in a new tab automatically.
 
 ## Submitting
 
-1. Copy the relevant template from [templates/](./templates/README.md).
+1. Copy the relevant writing template from [templates/](./templates/README.md).
 2. Follow the naming and title standards above.
 3. Check every node name against the bundle.
 4. Remove all template comments before submitting.

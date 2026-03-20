@@ -154,3 +154,12 @@ export function buildSnippetDocNodeGraph(
     })),
   };
 }
+
+export function buildDocNodeGraphMarkdownBlock(
+  graph: DocNodeGraphProps | string,
+): string {
+  const body = typeof graph === "string"
+    ? graph.trim()
+    : JSON.stringify(graph, null, 2);
+  return `\`\`\`nodegraph\n${body}\n\`\`\``;
+}

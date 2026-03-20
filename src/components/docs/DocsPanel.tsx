@@ -12,6 +12,7 @@ import rehypeHighlight from "rehype-highlight";
 import { MermaidDiagram } from "@/components/docs/MermaidDiagram";
 import { DocNodeGraph, parseNodeGraph } from "@/components/docs/DocNodeGraph";
 import {
+  buildDocNodeGraphMarkdownBlock,
   buildSnippetDocNodeGraph,
   buildSnippetGraphData,
   getDefaultDocSlug,
@@ -272,7 +273,7 @@ const ROOT_SECTION_ORDER = [
   { key: "getting-started", title: "Getting Started", slug: "getting-started" },
   { key: "walkthroughs", title: "Walkthroughs", slug: "walkthroughs" },
   { key: "guides", title: "Guides", slug: "guides" },
-  { key: "templates", title: "Templates", slug: "templates" },
+  { key: "templates", title: "Doc Templates", slug: "templates" },
   { key: "glossary", title: "Glossary", slug: "glossary" },
   { key: "reference", title: "Reference", slug: "reference" },
   { key: "troubleshooting", title: "Troubleshooting", slug: "troubleshooting" },
@@ -1081,12 +1082,15 @@ export function DocsPanel() {
     }
   }, [addToast, writeTextToClipboard]);
 
-  const handleCopyNodeGraphJson = useCallback(async (graphJson: string, label?: string) => {
-    const copied = await writeTextToClipboard(graphJson);
+  const handleCopyNodeGraphBlock = useCallback(async (
+    graph: string | Parameters<typeof buildDocNodeGraphMarkdownBlock>[0],
+    label?: string,
+  ) => {
+    const copied = await writeTextToClipboard(buildDocNodeGraphMarkdownBlock(graph));
     addToast(
       copied
-        ? `${label ?? "Node graph"} JSON copied`
-        : `Could not copy ${label ?? "node graph"} JSON`,
+        ? `${label ?? "Node graph"} block copied. Paste it into docs to render the preview.`
+        : `Could not copy ${label ?? "node graph"} block`,
       copied ? "success" : "error",
     );
   }, [addToast, writeTextToClipboard]);
@@ -1371,8 +1375,8 @@ export function DocsPanel() {
                 </div>
                 <ActionPillButton
                   label="Copy Nodegraph"
-                  onClick={() => { void handleCopyNodeGraphJson(value, "Node graph"); }}
-                  title="Copy the docs nodegraph JSON"
+                  onClick={() => { void handleCopyNodeGraphBlock(value, "Node graph"); }}
+                  title="Copy a paste-ready nodegraph markdown block"
                 />
               </div>
               <div className="px-3 py-3">
@@ -1512,8 +1516,8 @@ export function DocsPanel() {
                   {snippetGraph && (
                     <ActionPillButton
                       label="Copy Nodegraph"
-                      onClick={() => { void handleCopyNodeGraphJson(JSON.stringify(snippetGraph, null, 2), label ? `${label} nodegraph` : "Snippet nodegraph"); }}
-                      title="Copy the rendered docs nodegraph JSON"
+                      onClick={() => { void handleCopyNodeGraphBlock(snippetGraph, label ? `${label} nodegraph` : "Snippet nodegraph"); }}
+                      title="Copy a paste-ready nodegraph markdown block"
                     />
                   )}
                   <ActionPillButton
@@ -1610,7 +1614,7 @@ export function DocsPanel() {
     docsCurveHeight,
     docsCurveWidthClass,
     entriesBySlug,
-    handleCopyNodeGraphJson,
+    handleCopyNodeGraphBlock,
     handleCopySnippetGraph,
     handleCopySnippetJson,
     handleLinkClick,
