@@ -1,4 +1,5 @@
 import { homeDir, join } from "@tauri-apps/api/path";
+import { pathExists } from "./ipc";
 
 type OS = "windows" | "macos" | "linux";
 
@@ -54,10 +55,28 @@ export async function resolveDefaultReleaseAssetsPath(): Promise<string> {
 }
 
 /**
- * Default Common assets path — a convenience starting point for the Browse dialog.
- * Points to <home>/Desktop/Assets/Common on all platforms.
+ * Default Common assets source.
+ * Prefer the user's installed Assets.zip when available so TerraNova can read
+ * the Common subtree directly from the archive; otherwise fall back to a loose
+ * Common folder path.
  */
 export async function resolveDefaultCommonAssetsPath(): Promise<string> {
+  const preReleaseZip = await resolveDefaultPreReleaseAssetsPath();
+  if (await pathExists(preReleaseZip).catch(() => false)) {
+    return preReleaseZip;
+  }
+
+  const releaseRoot = await resolveDefaultReleaseAssetsPath();
+  const releaseZip = await join(releaseRoot, "Assets.zip");
+  if (await pathExists(releaseZip).catch(() => false)) {
+    return releaseZip;
+  }
+
+  const releaseCommon = await join(releaseRoot, "Common");
+  if (await pathExists(releaseCommon).catch(() => false)) {
+    return releaseCommon;
+  }
+
   const home = await homeDir();
   return join(home, "Desktop", "Assets", "Common");
 }

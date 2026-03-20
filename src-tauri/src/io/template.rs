@@ -46,7 +46,10 @@ pub fn find_templates_root(
 
     // 3. Relative to executable
     if let Ok(exe_path) = std::env::current_exe() {
-        let p = exe_path.parent().unwrap_or(Path::new(".")).join("templates");
+        let p = exe_path
+            .parent()
+            .unwrap_or(Path::new("."))
+            .join("templates");
         if p.is_dir() {
             return Ok(p);
         }
@@ -62,11 +65,7 @@ fn validate_template_name(name: &str) -> Result<(), Box<dyn std::error::Error>> 
         return Err("Template name must not be empty".into());
     }
     if name.contains('/') || name.contains('\\') || name.contains("..") {
-        return Err(format!(
-            "Template name '{}' contains invalid path characters",
-            name
-        )
-        .into());
+        return Err(format!("Template name '{}' contains invalid path characters", name).into());
     }
     Ok(())
 }

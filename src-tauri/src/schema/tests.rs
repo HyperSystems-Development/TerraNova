@@ -13,7 +13,9 @@ mod tests {
 
         // Compare all keys from the original that we expect to preserve
         let orig_obj = original.as_object().expect("original should be object");
-        let reser_obj = reserialized.as_object().expect("reserialized should be object");
+        let reser_obj = reserialized
+            .as_object()
+            .expect("reserialized should be object");
 
         for (key, orig_val) in orig_obj {
             let reser_val = reser_obj
@@ -57,7 +59,8 @@ mod tests {
 
     #[test]
     fn world_structure_round_trip() {
-        let json = include_str!("../../../templates/void/HytaleGenerator/WorldStructures/MainWorld.json");
+        let json =
+            include_str!("../../../templates/void/HytaleGenerator/WorldStructures/MainWorld.json");
         // WorldStructureAsset doesn't use tagged enum, just deserialize and check key fields
         let asset: WorldStructureAsset =
             serde_json::from_str(json).expect("deserialize WorldStructureAsset");
@@ -395,7 +398,8 @@ mod tests {
 
     #[test]
     fn density_cache_round_trip() {
-        let json = r#"{"Type": "Cache", "Capacity": 256, "Input": {"Type": "Constant", "Value": 1.0}}"#;
+        let json =
+            r#"{"Type": "Cache", "Capacity": 256, "Input": {"Type": "Constant", "Value": 1.0}}"#;
         let density: DensityType = serde_json::from_str(json).expect("deserialize Cache");
         match &density {
             DensityType::Cache { capacity, input } => {
@@ -421,7 +425,11 @@ mod tests {
         let json = r#"{"Type": "Exported", "SingleInstance": true, "Density": {"Type": "Constant", "Value": 1.0}}"#;
         let density: DensityType = serde_json::from_str(json).expect("deserialize Exported");
         match &density {
-            DensityType::Exported { single_instance, density, .. } => {
+            DensityType::Exported {
+                single_instance,
+                density,
+                ..
+            } => {
                 assert_eq!(*single_instance, Some(true));
                 assert!(density.is_some());
             }
@@ -434,7 +442,12 @@ mod tests {
         let json = r#"{"Type": "CellNoise2D", "Scale": 128.0, "Seed": "biome", "ReturnType": "Distance", "DistanceFunction": "Euclidean"}"#;
         let density: DensityType = serde_json::from_str(json).expect("deserialize CellNoise2D");
         match &density {
-            DensityType::CellNoise2D { scale, seed, return_type, distance_function } => {
+            DensityType::CellNoise2D {
+                scale,
+                seed,
+                return_type,
+                distance_function,
+            } => {
                 assert_eq!(*scale, Some(128.0));
                 assert_eq!(seed.as_deref(), Some("biome"));
                 assert_eq!(return_type.as_deref(), Some("Distance"));
@@ -449,7 +462,10 @@ mod tests {
         let json = r#"{"Type": "Switch", "SwitchCases": [{"Type": "Constant", "Value": 1.0}]}"#;
         let density: DensityType = serde_json::from_str(json).expect("deserialize Switch");
         match &density {
-            DensityType::Switch { switch_cases, input } => {
+            DensityType::Switch {
+                switch_cases,
+                input,
+            } => {
                 assert_eq!(switch_cases.len(), 1);
                 assert!(input.is_none());
             }
@@ -473,7 +489,8 @@ mod tests {
     #[test]
     fn density_amplitude_constant_round_trip() {
         let json = r#"{"Type": "AmplitudeConstant", "Amplitude": 2.5, "Input": {"Type": "Constant", "Value": 1.0}}"#;
-        let density: DensityType = serde_json::from_str(json).expect("deserialize AmplitudeConstant");
+        let density: DensityType =
+            serde_json::from_str(json).expect("deserialize AmplitudeConstant");
         match &density {
             DensityType::AmplitudeConstant { amplitude, input } => {
                 assert_eq!(*amplitude, Some(2.5));
@@ -488,7 +505,12 @@ mod tests {
         let json = r#"{"Type": "SmoothClamp", "WallA": -1.0, "WallB": 1.0, "Range": 0.1}"#;
         let density: DensityType = serde_json::from_str(json).expect("deserialize SmoothClamp");
         match &density {
-            DensityType::SmoothClamp { wall_a, wall_b, range, input } => {
+            DensityType::SmoothClamp {
+                wall_a,
+                wall_b,
+                range,
+                input,
+            } => {
                 assert_eq!(*wall_a, Some(-1.0));
                 assert_eq!(*wall_b, Some(1.0));
                 assert_eq!(*range, Some(0.1));

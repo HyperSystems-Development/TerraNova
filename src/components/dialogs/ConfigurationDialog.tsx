@@ -308,6 +308,8 @@ function GpuTab({ hw }: { hw: HardwareInfo | null }) {
   const applyGpuBudget = useConfigStore((s) => s.applyGpuBudget);
   const gpuPowerPreference = useConfigStore((s) => s.gpuPowerPreference);
   const setGpuPowerPreference = useConfigStore((s) => s.setGpuPowerPreference);
+  const preferredGpuId = useConfigStore((s) => s.preferredGpuId);
+  const setPreferredGpuId = useConfigStore((s) => s.setPreferredGpuId);
   const rendererPixelRatio = useConfigStore((s) => s.rendererPixelRatio);
   const setRendererPixelRatio = useConfigStore((s) => s.setRendererPixelRatio);
   const enableShadows = useConfigStore((s) => s.enableShadows);
@@ -318,6 +320,28 @@ function GpuTab({ hw }: { hw: HardwareInfo | null }) {
   const setSsaoSamples = useConfigStore((s) => s.setSsaoSamples);
 
   const estimatedVram = hw?.estimatedVramMb ?? 4096;
+  const detectedGpus = hw?.gpus ?? [];
+  const selectedGpu = detectedGpus.find((gpu) => gpu.id === preferredGpuId) ?? null;
+  const gpuOptions = [
+    { value: "", label: detectedGpus.length > 0 ? "Auto (driver default)" : "Auto" },
+    ...detectedGpus.map((gpu) => ({
+      value: gpu.id,
+      label: `${gpu.name}${gpu.vramMb ? ` • ${formatMb(gpu.vramMb)}` : ""}`,
+    })),
+  ];
+
+  function handlePreferredGpuChange(value: string) {
+    setPreferredGpuId(value);
+    const gpu = detectedGpus.find((entry) => entry.id === value);
+    if (!gpu) return;
+    if (gpu.kind === "discrete") {
+      setGpuPowerPreference("high-performance");
+    } else if (gpu.kind === "integrated") {
+      setGpuPowerPreference("low-power");
+    } else {
+      setGpuPowerPreference("default");
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -325,8 +349,36 @@ function GpuTab({ hw }: { hw: HardwareInfo | null }) {
         items={[
           { label: "GPU", value: hw?.gpuRenderer || "Detecting..." },
           { label: hw?.vramDetected ? "VRAM" : "Est. VRAM", value: formatMb(estimatedVram) },
+          { label: "Adapters", value: detectedGpus.length > 0 ? `${detectedGpus.length}` : "..." },
         ]}
       />
+      {detectedGpus.length > 1 && (
+        <>
+          <SelectControl
+            label="Preferred GPU"
+            description="Pick which detected adapter TerraNova should prefer. This is a best-effort hint and is applied by remounting preview canvases with the matching power preference."
+            value={preferredGpuId}
+            options={gpuOptions}
+            onChange={handlePreferredGpuChange}
+          />
+          <div className="rounded border border-tn-border bg-tn-bg px-3 py-2 text-xs text-tn-text-muted">
+            {detectedGpus.map((gpu) => (
+              <div key={gpu.id} className="flex flex-wrap items-center gap-2 py-0.5">
+                <span className={`rounded border px-1.5 py-0.5 text-[10px] ${
+                  gpu.id === preferredGpuId
+                    ? "border-tn-accent bg-tn-accent/10 text-tn-accent"
+                    : "border-tn-border text-tn-text-muted"
+                }`}>
+                  {gpu.id === preferredGpuId ? "Selected" : "Detected"}
+                </span>
+                <span className="text-tn-text">{gpu.name}</span>
+                {gpu.kind && <span>{gpu.kind}</span>}
+                {gpu.vramMb && <span>{formatMb(gpu.vramMb)}</span>}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
       <BudgetSlider
         label="GPU Memory Budget"
         description="Maximum GPU memory TerraNova should use. Adjusting this automatically configures shadow quality, SSAO, rendering resolution, and power mode."
@@ -340,7 +392,9 @@ function GpuTab({ hw }: { hw: HardwareInfo | null }) {
       <AdvancedSection>
         <SelectControl
           label="GPU Power Preference"
-          description="Hint to the browser which GPU to prefer. Requires app restart."
+          description={selectedGpu
+            ? `Best-effort hint derived from the selected adapter (${selectedGpu.name}).`
+            : "Hint to the browser which GPU class to prefer for 3D previews."}
           value={gpuPowerPreference}
           options={GPU_POWER_OPTIONS}
           onChange={setGpuPowerPreference}

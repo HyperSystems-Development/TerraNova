@@ -1,23 +1,23 @@
 #![allow(dead_code)]
 
-pub mod density;
+pub mod assignments;
 pub mod biome;
-pub mod material;
+pub mod block_masks;
 pub mod curves;
+pub mod density;
+pub mod environment;
+pub mod framework;
+pub mod material;
 pub mod patterns;
 pub mod positions;
 pub mod props;
 pub mod scanners;
-pub mod assignments;
-pub mod vectors;
-pub mod environment;
 pub mod settings;
-pub mod world_structure;
-pub mod framework;
-pub mod block_masks;
-pub mod validation;
 #[cfg(test)]
 mod tests;
+pub mod validation;
+pub mod vectors;
+pub mod world_structure;
 
 use serde::{Deserialize, Serialize};
 

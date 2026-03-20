@@ -8,6 +8,15 @@ export interface HardwareInfo {
   gpuVendor: string;
   estimatedVramMb: number;
   vramDetected: boolean;
+  gpus: GpuAdapterInfo[];
+}
+
+export interface GpuAdapterInfo {
+  id: string;
+  name: string;
+  vendor: string | null;
+  kind: string | null;
+  vramMb: number | null;
 }
 
 let _cached: HardwareInfo | null = null;
@@ -38,15 +47,41 @@ export async function detectHardware(): Promise<HardwareInfo> {
   let gpuVendor = "";
   let estimatedVramMb = 4096;
   let vramDetected = false;
+  let gpus: GpuAdapterInfo[] = [];
 
   try {
-    const gpuInfo = await invoke<{ gpu_name: string | null; vram_mb: number | null }>("get_gpu_info");
+    const gpuInfo = await invoke<{
+      gpu_name: string | null;
+      vram_mb: number | null;
+      gpus?: Array<{
+        id: string;
+        name: string;
+        vendor: string | null;
+        kind: string | null;
+        vram_mb: number | null;
+      }>;
+    }>("get_gpu_info");
+    gpus = (gpuInfo.gpus ?? []).map((gpu) => ({
+      id: gpu.id,
+      name: gpu.name,
+      vendor: gpu.vendor,
+      kind: gpu.kind,
+      vramMb: gpu.vram_mb,
+    }));
     if (gpuInfo.gpu_name) {
       gpuRenderer = gpuInfo.gpu_name;
+    } else if (gpus[0]?.name) {
+      gpuRenderer = gpus[0].name;
     }
     if (gpuInfo.vram_mb) {
       estimatedVramMb = gpuInfo.vram_mb;
       vramDetected = true;
+    } else if (typeof gpus[0]?.vramMb === "number") {
+      estimatedVramMb = gpus[0].vramMb;
+      vramDetected = true;
+    }
+    if (gpus[0]?.vendor) {
+      gpuVendor = gpus[0].vendor;
     }
   } catch {
     // Native GPU detection unavailable
@@ -77,7 +112,7 @@ export async function detectHardware(): Promise<HardwareInfo> {
     estimatedVramMb = estimateVram(gpuRenderer);
   }
 
-  _cached = { cpuCores, cpuName, totalRamMb, gpuRenderer, gpuVendor, estimatedVramMb, vramDetected };
+  _cached = { cpuCores, cpuName, totalRamMb, gpuRenderer, gpuVendor, estimatedVramMb, vramDetected, gpus };
   return _cached;
 }
 

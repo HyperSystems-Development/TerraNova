@@ -17,18 +17,14 @@ pub async fn bridge_connect(
 }
 
 #[tauri::command]
-pub async fn bridge_disconnect(
-    state: tauri::State<'_, BridgeState>,
-) -> Result<(), String> {
+pub async fn bridge_disconnect(state: tauri::State<'_, BridgeState>) -> Result<(), String> {
     let mut lock = state.0.lock().await;
     *lock = None;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn bridge_status(
-    state: tauri::State<'_, BridgeState>,
-) -> Result<ServerStatus, String> {
+pub async fn bridge_status(state: tauri::State<'_, BridgeState>) -> Result<ServerStatus, String> {
     let client = state.get_client().await?;
     client.status().await
 }
@@ -90,7 +86,9 @@ pub async fn bridge_fetch_chunk(
     state: tauri::State<'_, BridgeState>,
 ) -> Result<ChunkDataResponse, String> {
     let client = state.get_client().await?;
-    client.fetch_chunk(chunk_x, chunk_z, y_min, y_max, force_load).await
+    client
+        .fetch_chunk(chunk_x, chunk_z, y_min, y_max, force_load)
+        .await
 }
 
 #[tauri::command]
@@ -132,9 +130,7 @@ pub async fn bridge_sync_file(
         ));
     }
 
-    let dest_str = dest_canon
-        .to_str()
-        .ok_or("Invalid destination path")?;
+    let dest_str = dest_canon.to_str().ok_or("Invalid destination path")?;
     BridgeClient::sync_file(&source_path, dest_str)?;
 
     let client = state.get_client().await?;

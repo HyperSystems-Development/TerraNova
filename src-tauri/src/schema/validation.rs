@@ -28,28 +28,78 @@ pub struct ValidationResult {
 
 /// All known V2 density type names.
 const KNOWN_DENSITY_TYPES: &[&str] = &[
-    "SimplexNoise2D", "SimplexNoise3D", "CellNoise2D", "CellNoise3D",
-    "Constant", "Sum", "Multiplier", "Abs", "Inverter", "Sqrt", "Pow",
-    "OffsetConstant", "AmplitudeConstant",
-    "Clamp", "SmoothClamp", "Floor", "SmoothFloor", "Ceiling", "SmoothCeiling",
-    "Min", "SmoothMin", "Max", "SmoothMax",
-    "Normalizer", "CurveMapper", "Offset", "Amplitude",
-    "Mix", "MultiMix",
-    "Scale", "Slider", "Rotator", "Anchor", "XOverride", "YOverride", "ZOverride",
-    "GradientWarp", "FastGradientWarp", "VectorWarp",
-    "Distance", "Cube", "Ellipsoid", "Cuboid", "Cylinder", "Plane", "Axis", "Shell", "Angle",
-    "XValue", "YValue", "ZValue",
-    "Terrain", "BaseHeight", "CellWallDistance", "DistanceToBiomeEdge",
-    "Gradient", "Cache", "Cache2D", "YSampled",
-    "Switch", "SwitchState",
-    "PositionsCellNoise", "Positions3D", "PositionsPinch", "PositionsTwist",
-    "Exported", "Imported", "Pipeline",
+    "SimplexNoise2D",
+    "SimplexNoise3D",
+    "CellNoise2D",
+    "CellNoise3D",
+    "Constant",
+    "Sum",
+    "Multiplier",
+    "Abs",
+    "Inverter",
+    "Sqrt",
+    "Pow",
+    "OffsetConstant",
+    "AmplitudeConstant",
+    "Clamp",
+    "SmoothClamp",
+    "Floor",
+    "SmoothFloor",
+    "Ceiling",
+    "SmoothCeiling",
+    "Min",
+    "SmoothMin",
+    "Max",
+    "SmoothMax",
+    "Normalizer",
+    "CurveMapper",
+    "Offset",
+    "Amplitude",
+    "Mix",
+    "MultiMix",
+    "Scale",
+    "Slider",
+    "Rotator",
+    "Anchor",
+    "XOverride",
+    "YOverride",
+    "ZOverride",
+    "GradientWarp",
+    "FastGradientWarp",
+    "VectorWarp",
+    "Distance",
+    "Cube",
+    "Ellipsoid",
+    "Cuboid",
+    "Cylinder",
+    "Plane",
+    "Axis",
+    "Shell",
+    "Angle",
+    "XValue",
+    "YValue",
+    "ZValue",
+    "Terrain",
+    "BaseHeight",
+    "CellWallDistance",
+    "DistanceToBiomeEdge",
+    "Gradient",
+    "Cache",
+    "Cache2D",
+    "YSampled",
+    "Switch",
+    "SwitchState",
+    "PositionsCellNoise",
+    "Positions3D",
+    "PositionsPinch",
+    "PositionsTwist",
+    "Exported",
+    "Imported",
+    "Pipeline",
 ];
 
 /// Known top-level asset type names (non-density).
-const KNOWN_STRUCTURE_TYPES: &[&str] = &[
-    "NoiseRange", "DAOTerrain",
-];
+const KNOWN_STRUCTURE_TYPES: &[&str] = &["NoiseRange", "DAOTerrain"];
 
 /// Maximum nesting depth for recursive validation to prevent stack overflow
 /// from maliciously crafted deeply-nested JSON.
@@ -109,8 +159,8 @@ fn validate_asset_inner(file_path: &str, value: &Value, depth: usize) -> Vec<Val
     let type_name = type_name.unwrap();
 
     // Check if Type is a known type name
-    let is_known = KNOWN_DENSITY_TYPES.contains(&type_name)
-        || KNOWN_STRUCTURE_TYPES.contains(&type_name);
+    let is_known =
+        KNOWN_DENSITY_TYPES.contains(&type_name) || KNOWN_STRUCTURE_TYPES.contains(&type_name);
 
     if !is_known {
         errors.push(ValidationError {
@@ -236,7 +286,9 @@ fn validate_asset_inner(file_path: &str, value: &Value, depth: usize) -> Vec<Val
 
     // Recursively validate nested assets
     for (key, val) in obj.iter() {
-        if key == "Type" { continue; }
+        if key == "Type" {
+            continue;
+        }
         if let Some(nested_obj) = val.as_object() {
             if nested_obj.contains_key("Type") {
                 let nested_path = format!("{} > {}", file_path, key);
@@ -351,7 +403,12 @@ fn validate_min_array_length(
                     errors.push(ValidationError {
                         file: file_path.to_string(),
                         field: field.to_string(),
-                        message: format!("'{}' should have at least {} items (got {})", field, min_len, arr.len()),
+                        message: format!(
+                            "'{}' should have at least {} items (got {})",
+                            field,
+                            min_len,
+                            arr.len()
+                        ),
                         severity: Severity::Warning,
                     });
                 }
@@ -411,20 +468,17 @@ mod validation_tests {
 
     #[test]
     fn invalid_octaves() {
-        let json: Value = serde_json::from_str(
-            r#"{"Type": "SimplexNoise2D", "Scale": 1.0, "Octaves": 0}"#,
-        )
-        .unwrap();
+        let json: Value =
+            serde_json::from_str(r#"{"Type": "SimplexNoise2D", "Scale": 1.0, "Octaves": 0}"#)
+                .unwrap();
         let errors = validate_asset("test.json", &json);
         assert!(errors.iter().any(|e| e.field == "Octaves"));
     }
 
     #[test]
     fn negative_scale() {
-        let json: Value = serde_json::from_str(
-            r#"{"Type": "SimplexNoise2D", "Scale": -5.0}"#,
-        )
-        .unwrap();
+        let json: Value =
+            serde_json::from_str(r#"{"Type": "SimplexNoise2D", "Scale": -5.0}"#).unwrap();
         let errors = validate_asset("test.json", &json);
         assert!(errors.iter().any(|e| e.field == "Scale"));
     }
@@ -433,15 +487,15 @@ mod validation_tests {
     fn unknown_type_warning() {
         let json: Value = serde_json::from_str(r#"{"Type": "MadeUpType"}"#).unwrap();
         let errors = validate_asset("test.json", &json);
-        assert!(errors.iter().any(|e| e.severity == Severity::Warning && e.field == "Type"));
+        assert!(errors
+            .iter()
+            .any(|e| e.severity == Severity::Warning && e.field == "Type"));
     }
 
     #[test]
     fn nested_validation() {
-        let json: Value = serde_json::from_str(
-            r#"{"Type": "Sum", "Inputs": [{"Type": "Constant"}]}"#,
-        )
-        .unwrap();
+        let json: Value =
+            serde_json::from_str(r#"{"Type": "Sum", "Inputs": [{"Type": "Constant"}]}"#).unwrap();
         let errors = validate_asset("test.json", &json);
         // Nested Constant is missing Value
         assert!(errors.iter().any(|e| e.field == "Value"));
@@ -476,10 +530,9 @@ mod validation_tests {
 
     #[test]
     fn invalid_settings_concurrency() {
-        let json: Value = serde_json::from_str(
-            r#"{"CustomConcurrency": -5, "BufferCapacityFactor": 0.3}"#,
-        )
-        .unwrap();
+        let json: Value =
+            serde_json::from_str(r#"{"CustomConcurrency": -5, "BufferCapacityFactor": 0.3}"#)
+                .unwrap();
         let errors = validate_asset("Settings/Settings.json", &json);
         assert!(errors.iter().any(|e| e.field == "CustomConcurrency"));
     }

@@ -290,6 +290,7 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
   const voxelData = (usePreviewStore.getState() as any)._voxelData as VoxelData | undefined;
   const enableShadows = useConfigStore((s) => s.enableShadows);
   const gpuPowerPreference = useConfigStore((s) => s.gpuPowerPreference);
+  const preferredGpuId = useConfigStore((s) => s.preferredGpuId);
 
   // Draggable legend position (persisted)
   const [legendPos, setLegendPos] = React.useState<{ x: number; y: number }>(() => {
@@ -322,6 +323,7 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
   return (
     <div className="relative w-full h-full">
       <Canvas
+        key={`voxel3d-${gpuPowerPreference}-${preferredGpuId || "auto"}`}
         camera={{ position: [35, 30, 35], fov: 45 }}
         gl={{ preserveDrawingBuffer: true, powerPreference: gpuPowerPreference }}
         shadows={enableShadows}

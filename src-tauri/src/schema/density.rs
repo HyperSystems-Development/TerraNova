@@ -9,7 +9,6 @@ use serde_json::Value;
 #[serde(tag = "Type")]
 pub enum DensityType {
     // ── Noise Generators ──────────────────────────────────────────────
-
     /// 2D simplex noise in the x/z plane, outputs [-1, 1].
     /// Automatically caches per x/z column.
     SimplexNoise2D {
@@ -66,7 +65,6 @@ pub enum DensityType {
     },
 
     // ── Constants & Basic Math ────────────────────────────────────────
-
     /// Outputs a constant value.
     Constant {
         #[serde(rename = "Value", default)]
@@ -128,7 +126,6 @@ pub enum DensityType {
     },
 
     // ── Clamping & Limiting ──────────────────────────────────────────
-
     /// Hard clamp within [WallA, WallB].
     Clamp {
         #[serde(rename = "WallA", default)]
@@ -188,7 +185,6 @@ pub enum DensityType {
     },
 
     // ── Min/Max ──────────────────────────────────────────────────────
-
     /// Smallest value of all inputs.
     Min {
         #[serde(rename = "Inputs", default)]
@@ -218,7 +214,6 @@ pub enum DensityType {
     },
 
     // ── Mapping & Normalization ──────────────────────────────────────
-
     /// Rescales from [FromMin,FromMax] to [ToMin,ToMax].
     Normalizer {
         #[serde(rename = "FromMin", default)]
@@ -258,7 +253,6 @@ pub enum DensityType {
     },
 
     // ── Mixing ───────────────────────────────────────────────────────
-
     /// Mixes two density fields using a gauge (0..1).
     Mix {
         #[serde(rename = "Inputs", default)]
@@ -274,7 +268,6 @@ pub enum DensityType {
     },
 
     // ── Spatial Transforms ───────────────────────────────────────────
-
     /// Stretches/contracts the input field per axis.
     Scale {
         #[serde(rename = "X", default)]
@@ -348,7 +341,6 @@ pub enum DensityType {
     },
 
     // ── Warping ──────────────────────────────────────────────────────
-
     /// Gradient-based warp using a second density field.
     GradientWarp {
         #[serde(rename = "SampleRange", default)]
@@ -400,7 +392,6 @@ pub enum DensityType {
     },
 
     // ── Shapes ───────────────────────────────────────────────────────
-
     /// Density from distance to origin using a Curve.
     Distance {
         #[serde(rename = "Curve", default)]
@@ -516,7 +507,6 @@ pub enum DensityType {
     },
 
     // ── Coordinate Accessors ─────────────────────────────────────────
-
     /// The local X coordinate.
     XValue {},
 
@@ -527,7 +517,6 @@ pub enum DensityType {
     ZValue {},
 
     // ── World Context ────────────────────────────────────────────────
-
     /// The world's interpolated terrain density (for MaterialProvider use).
     Terrain {},
 
@@ -563,7 +552,6 @@ pub enum DensityType {
     },
 
     // ── Caching ──────────────────────────────────────────────────────
-
     /// Caches input for current 3D coordinates.
     Cache {
         #[serde(rename = "Capacity", default)]
@@ -587,7 +575,6 @@ pub enum DensityType {
     },
 
     // ── Switching ────────────────────────────────────────────────────
-
     /// Switches between density branches based on contextual state.
     Switch {
         #[serde(rename = "SwitchCases", default)]
@@ -605,7 +592,6 @@ pub enum DensityType {
     },
 
     // ── Positions-Based ──────────────────────────────────────────────
-
     /// Cell noise driven by a Positions field with configurable return types.
     PositionsCellNoise {
         #[serde(rename = "Positions", default)]
@@ -671,7 +657,6 @@ pub enum DensityType {
     },
 
     // ── Import/Export ────────────────────────────────────────────────
-
     /// Exports a density field for reuse (optionally as a single instance).
     Exported {
         #[serde(rename = "SingleInstance", default)]

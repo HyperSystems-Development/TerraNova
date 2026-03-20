@@ -185,7 +185,13 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   }
 
   async function handleBrowseCommonAssetsSource() {
-    const selected = await openDialog({ directory: true, defaultPath: hytaleCommonAssetsPath });
+    const browseZip = hytaleCommonAssetsPath.trim().toLowerCase().endsWith(".zip")
+      || activeHytaleSourcePath.trim().toLowerCase().endsWith(".zip");
+    const selected = await openDialog(
+      browseZip
+        ? { directory: false, defaultPath: hytaleCommonAssetsPath || activeHytaleSourcePath, filters: [{ name: "Zip", extensions: ["zip"] }] }
+        : { directory: true, defaultPath: hytaleCommonAssetsPath || activeHytaleSourcePath },
+    );
     if (typeof selected === "string") setHytaleCommonAssetsPath(selected);
   }
 
@@ -540,10 +546,11 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                         className="flex-1 rounded border border-tn-border bg-tn-bg px-3 py-1.5 text-sm text-tn-text disabled:cursor-not-allowed disabled:opacity-60"
                       />
                       <button onClick={handleBrowseCommonAssetsSource} disabled={!hytaleCommonAssetsEnabled} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Browse...</button>
+                      <button onClick={() => setHytaleCommonAssetsPath(activeHytaleSourcePath)} disabled={!hytaleCommonAssetsEnabled || !activeHytaleSourcePath.trim()} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Use Source</button>
                       <button onClick={() => { void resolveDefaultCommonAssetsPath().then(setHytaleCommonAssetsPath); }} disabled={!hytaleCommonAssetsEnabled} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Default</button>
                     </div>
                     <p className="text-xs text-tn-text-muted">
-                      Point this at `Common` directly, or a parent folder that contains `Common`. Block/material PNGs will be merged into the cache after sync.
+                      Point this at `Common` directly, a parent folder that contains `Common`, or an `Assets.zip` source. TerraNova will read the internal `Common/` subtree automatically.
                     </p>
                   </div>
 

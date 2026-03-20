@@ -5,7 +5,9 @@ mod noise;
 mod schema;
 
 use bridge::client::BridgeState;
-use commands::{bridge as bridge_commands, hardware, io as io_commands, preview, process, validate};
+use commands::{
+    bridge as bridge_commands, hardware, io as io_commands, preview, process, validate,
+};
 
 // Hint Windows to prefer the discrete GPU when available (NVIDIA / AMD)
 // These exported symbols are read by GPU drivers to prefer high-performance adapter.

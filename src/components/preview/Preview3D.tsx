@@ -157,10 +157,12 @@ export function Preview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasElemen
   const enableShadows = useConfigStore((s) => s.enableShadows);
   const shadowMapSize = useConfigStore((s) => s.shadowMapSize);
   const gpuPowerPreference = useConfigStore((s) => s.gpuPowerPreference);
+  const preferredGpuId = useConfigStore((s) => s.preferredGpuId);
 
   return (
     <div className="relative w-full h-full">
       <Canvas
+        key={`preview3d-${gpuPowerPreference}-${preferredGpuId || "auto"}`}
         camera={{ position: [30, 25, 30], fov: 50 }}
         gl={{ preserveDrawingBuffer: true, powerPreference: gpuPowerPreference }}
         shadows={enableShadows}
