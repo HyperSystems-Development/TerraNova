@@ -1,0 +1,6 @@
+{
+  "Type": "Condition",
+  "Swimming": true,
+  "Next": "Subterrain_Booster_Gem_Thrust",
+  "Failed": "Subterrain_Booster_Gem_Fail"
+}

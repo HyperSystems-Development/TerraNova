@@ -1,0 +1,17 @@
+{
+  "Environments": [
+    "Env_Titancoral_Ravines"
+  ],
+  "NPCs": [
+    {
+      "Weight": 1,
+      "Id": "Whale_Humpback",
+      "Flock": "One_Or_Two",
+      "SpawnFluidTag": "Water"
+    }
+  ],
+  "DayTimeRange": [
+    0,
+    24
+  ]
+}

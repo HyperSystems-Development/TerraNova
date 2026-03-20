@@ -1,0 +1,21 @@
+Ingredient_Crystal_Orange.name = Orange Crystal Shards
+Rock_Crystal_Orange_Small.name = Orange Crystal - Small
+Rock_Crystal_Orange_Medium.name = Orange Crystal - Medium
+Rock_Crystal_Orange_Large.name = Orange Crystal - Large
+Rock_Crystal_Orange.name = Orange Crystal
+
+Plant_Seaweed_Blue_Stack.name = Blue Seaweed - Middle
+
+Subterrain_Booster_Gem.name = Subterrain Booster Gem
+Subterrain_Booster_Gem.description = Boosts yourself forward when used.\n\
+Only usable while swimming. 
+
+Aqua_Amulet.name = Aqua Amulet
+Aqua_Amulet.description = Teleports you to and from The Aqua Subterrain.
+
+Aqua_Subterrain_Spawn_Pad.name = Aqua Subterrain Spawn Pad
+
+PortalKey_The_Aqua_Subterrain.name = Fragment: Orbis - The Aqua Subterrain
+PortalKey_The_Aqua_Subterrain.description = [TMP] <msg key="server.items.PortalKey.description"/>\n\
+\n\
+<i>A vast expanse of magical underwater caverns, filled with life from an alien world.</i>

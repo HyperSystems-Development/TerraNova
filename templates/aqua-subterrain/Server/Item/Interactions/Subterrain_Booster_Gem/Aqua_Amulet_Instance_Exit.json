@@ -1,0 +1,13 @@
+{
+  "Type": "ExitInstance",
+  "Next": {
+    "Type": "ChangeStat",
+    "StatModifiers": {
+      "InAquaSubterrain": 0
+    },
+    "Behaviour": "Set"
+  },
+  "Effects": {
+    "LocalSoundEventId": "SFX_Portal_Neutral_Teleport_Local"
+  }
+}

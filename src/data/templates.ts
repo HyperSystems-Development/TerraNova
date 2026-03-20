@@ -49,4 +49,18 @@ export const BUNDLED_TEMPLATES: TemplateInfo[] = [
     category: "Fantasy",
     tags: ["Advanced", "Spires", "Gradient Warp", "Atmospheric"],
   },
+  {
+    name: "aqua-subterrain",
+    displayName: "Aqua Subterrain",
+    description: "A compact mod-derived underwater world template focused on ravines, coral structures, and vertical cave bands. Useful if you want to study enclosed biomes, ceiling/floor framing, and themed assignment layers.",
+    category: "Fantasy",
+    tags: ["Advanced", "Underwater", "Ravines", "Mod Template"],
+  },
+  {
+    name: "mycelium-growth",
+    displayName: "Mycelium Growth",
+    description: "A lightweight fungal biome template with a single focused biome and a simple world structure. Good for experimenting with themed surface dressing and contained biome iteration without a large content pack.",
+    category: "Experimental",
+    tags: ["Intermediate", "Fungal", "Focused Biome", "Mod Template"],
+  },
 ];

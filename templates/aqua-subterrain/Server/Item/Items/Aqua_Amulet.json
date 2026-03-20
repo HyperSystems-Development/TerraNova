@@ -1,0 +1,75 @@
+{
+  "TranslationProperties": {
+    "Name": "items.Aqua_Amulet.name",
+    "Description": "items.Aqua_Amulet.description"
+  },
+  "Model": "Resources/Ingredients/Essence_Concentrated.blockymodel",
+  "Texture": "Resources/Aqua_Amulet.png",
+  "Icon": "Icons/ItemsGenerated/Aqua_Amulet.png",
+  "Reticle": "DefaultMelee",
+  "Quality": "Rare",
+  "ItemLevel": 15,
+  "Categories": [
+    "Items.Weapons"
+  ],
+  "IconProperties": {
+    "Scale": 0.9,
+    "Rotation": [
+      22.5,
+      45,
+      22.5
+    ],
+    "Translation": [
+      -4,
+      -12
+    ]
+  },
+  "Interactions": {
+    "Secondary": "Root_Aqua_Amulet",
+    "Primary": "Root_Aqua_Amulet"
+  },
+  "Tags": {
+    "Type": [
+      "Weapon"
+    ],
+    "Family": [
+      "Sword"
+    ]
+  },
+  "ItemSoundSetId": "ISS_Items_Gems",
+  "PlayerAnimationsId": "Sword",
+  "Utility": {
+    "Compatible": true
+  },
+  "Recipe": {
+    "BenchRequirement": [
+      {
+        "Id": "Arcanebench",
+        "Categories": [
+          "Arcane_Misc"
+        ]
+      }
+    ],
+    "TimeSeconds": 3,
+    "RequiredMemoriesLevel": 5,
+    "Input": [
+      {
+        "ItemId": "Wood_Azure_Trunk",
+        "Quantity": 32
+      },
+      {
+        "ItemId": "Ingredient_Water_Essence",
+        "Quantity": 4
+      }
+    ]
+  },
+  "Light": {
+    "Color": "#77b"
+  },
+  "Particles": [
+    {
+      "SystemId": "Block_Gem_Sparks"
+    }
+  ],
+  "MaxStack": 1
+}

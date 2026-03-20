@@ -1,0 +1,49 @@
+{
+  "Type": "NoiseRange",
+  "Biomes": [
+    {
+      "Biome": "Titancoral_Ravines",
+      "Min": -1,
+      "Max": 0.1
+    },
+    {
+      "Biome": "Titancoral_Ravines",
+      "Min": 0.1,
+      "Max": 1
+    }
+  ],
+  "DefaultBiome": "Basic",
+  "DefaultTransitionDistance": 32,
+  "MaxBiomeEdgeDistance": 32,
+  "Density": {
+    "Type": "Imported",
+    "Name": "The_Aqua_Subterrain_Biome_Map"
+  },
+  "Framework": [
+    {
+      "Type": "DecimalConstants",
+      "Entries": [
+        {
+          "Name": "Base",
+          "Value": 75
+        },
+        {
+          "Name": "Roof",
+          "Value": 245
+        },
+        {
+          "Name": "FloorBedrock",
+          "Value": 0
+        },
+        {
+          "Name": "CeilingBedrock",
+          "Value": 320
+        },
+        {
+          "Name": "Water",
+          "Value": 125
+        }
+      ]
+    }
+  ]
+}

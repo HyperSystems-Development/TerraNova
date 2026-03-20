@@ -1,0 +1,83 @@
+{
+  "TranslationProperties": {
+    "Name": "items.Plant_Seaweed_Blue_Stack.name"
+  },
+  "Icon": "Icons/ItemsGenerated/Plant_Seaweed_Blue_Stack.png",
+  "Categories": [
+    "Blocks.Plants"
+  ],
+  "Interactions": {
+    "Secondary": {
+      "Interactions": [
+        {
+          "Type": "Condition",
+          "RequiredGameMode": "Adventure",
+          "Crouching": false,
+          "Next": {
+            "Parent": "Consume_Charge",
+            "Effects": {
+              "ItemAnimationId": "Consume",
+              "ClearAnimationOnFinish": true
+            }
+          },
+          "Failed": "Block_Secondary"
+        }
+      ]
+    }
+  },
+  "BlockType": {
+    "DrawType": "Model",
+    "Opacity": "Transparent",
+    "CustomModel": "Blocks/Foliage/Plants/Cross.blockymodel",
+    "CustomModelTexture": [
+      {
+        "Texture": "Blocks/Foliage/Plants/Cross_Textures/Seaweed_Blue_Stackable.png",
+        "Weight": 1
+      }
+    ],
+    "Group": "SeaLife",
+    "Effect": [
+      "Ripple"
+    ],
+    "Flags": {},
+    "RandomRotation": "YawStep1XZ",
+    "Gathering": {
+      "Soft": {}
+    },
+    "BlockParticleSetId": "Grass",
+    "ParticleColor": "#389faf",
+    "Support": {
+      "Down": [
+        {
+          "FaceType": "Full"
+        },
+        {
+          "TagId": "Family=Seaweed"
+        }
+      ]
+    },
+    "BlockSoundSetId": "Fern"
+  },
+  "PlayerAnimationsId": "Item",
+  "IconProperties": {
+    "Scale": 0.655,
+    "Rotation": [
+      22.685,
+      27.185,
+      11.435
+    ],
+    "Translation": [
+      0,
+      -15.5
+    ]
+  },
+  "Tags": {
+    "Type": [
+      "Plant"
+    ],
+    "Family": [
+      "Seaweed"
+    ]
+  },
+  "ItemSoundSetId": "ISS_Items_Foliage"
+}

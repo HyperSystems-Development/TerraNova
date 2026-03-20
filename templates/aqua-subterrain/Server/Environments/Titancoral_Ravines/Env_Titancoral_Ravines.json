@@ -1,0 +1,150 @@
+{
+  "WaterTint": "#1983d9",
+  "SpawnDensity": 0.5,
+  "WeatherForecasts": {
+    "0": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "1": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "2": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "3": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "4": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "5": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "6": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "7": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "8": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "9": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "10": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "11": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "12": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "13": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "14": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "15": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "16": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "17": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "18": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "19": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "20": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "21": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "22": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ],
+    "23": [
+      {
+        "WeatherId": "Titancoral_Ravines_Normal",
+        "Weight": 100
+      }
+    ]
+  }
+}

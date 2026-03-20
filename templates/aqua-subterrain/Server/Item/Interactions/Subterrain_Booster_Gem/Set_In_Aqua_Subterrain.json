@@ -1,0 +1,7 @@
+{
+  "Type": "ChangeStat",
+  "StatModifiers": {
+    "InAquaSubterrain": 1
+  },
+  "Behaviour": "Set"
+}

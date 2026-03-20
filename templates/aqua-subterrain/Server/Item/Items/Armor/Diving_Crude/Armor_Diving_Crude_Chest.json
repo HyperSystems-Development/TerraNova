@@ -1,0 +1,93 @@
+{
+  "TranslationProperties": {
+    "Name": "server.items.Armor_Diving_Crude_Chest.name"
+  },
+  "Parent": "Armor_Iron_Chest",
+  "Recipe": {
+    "Input": [
+      {
+        "ItemId": "Ingredient_Bar_Copper",
+        "Quantity": 15
+      },
+      {
+        "ItemId": "Ingredient_Bar_Iron",
+        "Quantity": 15
+      },
+      {
+        "ItemId": "Ingredient_Water_Essence",
+        "Quantity": 4
+      }
+    ],
+    "BenchRequirement": [
+      {
+        "Id": "Armor_Bench",
+        "RequiredTierLevel": 2,
+        "Categories": [
+          "Armor_Chest"
+        ]
+      }
+    ],
+    "TimeSeconds": 3
+  },
+  "ItemLevel": 25,
+  "Icon": "Icons/ItemsGenerated/Armor_Diving_Crude_Chest.png",
+  "IconProperties": {
+    "Rotation": [
+      22.5,
+      35.44,
+      2.23
+    ],
+    "Scale": 0.5,
+    "Translation": [
+      2.1,
+      -2.1
+    ]
+  },
+  "Model": "Items/Armors/Diving_Crude/Chest.blockymodel",
+  "Texture": "Items/Armors/Diving_Crude/Chest_Texture.png",
+  "Armor": {
+    "ArmorSlot": "Chest",
+    "BaseDamageResistance": 0,
+    "CosmeticsToHide": [
+      "Overtop"
+    ],
+    "DamageResistance": {
+      "Physical": [
+        {
+          "Amount": 0.09,
+          "CalculationType": "Multiplicative"
+        }
+      ],
+      "Projectile": [
+        {
+          "Amount": 0.09,
+          "CalculationType": "Multiplicative"
+        }
+      ]
+    },
+    "StatModifiers": {
+      "Oxygen": [
+        {
+          "Amount": 1000,
+          "CalculationType": "Additive"
+        }
+      ],
+      "Health": [
+        {
+          "Amount": 17,
+          "CalculationType": "Additive"
+        }
+      ]
+    }
+  },
+  "Tags": {
+    "Type": [
+      "Armor"
+    ],
+    "Family": [
+      "Diving"
+    ]
+  },
+  "MaxDurability": 120,
+  "Quality": "Uncommon"
+}

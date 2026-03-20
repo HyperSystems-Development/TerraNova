@@ -1,0 +1,25 @@
+{
+  "Type": "Charging",
+  "DisplayProgress": true,
+  "FailOnDamage": true,
+  "CancelOnItemChange": true,
+  "RunTime": 0,
+  "Next": {
+    "1.1": "Aqua_Amulet_Stat_Check"
+  },
+  "Effects": {
+    "ItemAnimationId": "StabDashCharging",
+    "ClearAnimationOnFinish": true,
+    "Particles": [
+      {
+        "SystemId": "Water_Splash_Soft_Ver2",
+        "Color": "#ffffff"
+      },
+      {
+        "SystemId": "Water_Bubble_Stream"
+      }
+    ],
+    "WorldSoundEventId": "SFX_Flail_Charge"
+  },
+  "HorizontalSpeedMultiplier": 0.4
+}

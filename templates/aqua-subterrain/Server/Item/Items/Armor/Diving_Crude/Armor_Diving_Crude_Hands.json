@@ -1,0 +1,94 @@
+{
+  "TranslationProperties": {
+    "Name": "server.items.Armor_Diving_Crude_Hands.name"
+  },
+  "Parent": "Armor_Iron_Hands",
+  "Recipe": {
+    "Input": [
+      {
+        "ItemId": "Ingredient_Bar_Copper",
+        "Quantity": 9
+      },
+      {
+        "ItemId": "Ingredient_Bar_Iron",
+        "Quantity": 9
+      },
+      {
+        "ResourceTypeId": "",
+        "ItemId": "Ingredient_Water_Essence",
+        "Quantity": 2
+      }
+    ],
+    "BenchRequirement": [
+      {
+        "Id": "Armor_Bench",
+        "Categories": [
+          "Armor_Hands"
+        ],
+        "RequiredTierLevel": 2
+      }
+    ],
+    "TimeSeconds": 3
+  },
+  "ItemLevel": 30,
+  "Icon": "Icons/ItemsGenerated/Armor_Diving_Crude_Hands.png",
+  "IconProperties": {
+    "Rotation": [
+      22.5,
+      45,
+      22.5
+    ],
+    "Scale": 0.92,
+    "Translation": [
+      15,
+      -35.4
+    ]
+  },
+  "Model": "Items/Armors/Diving_Crude/Hands.blockymodel",
+  "Texture": "Items/Armors/Diving_Crude/Hands_Texture.png",
+  "Armor": {
+    "ArmorSlot": "Hands",
+    "BaseDamageResistance": 0,
+    "DamageResistance": {
+      "Physical": [
+        {
+          "Amount": 0.04,
+          "CalculationType": "Multiplicative"
+        }
+      ],
+      "Projectile": [
+        {
+          "Amount": 0.04,
+          "CalculationType": "Multiplicative"
+        }
+      ]
+    },
+    "StatModifiers": {
+      "Oxygen": [
+        {
+          "Amount": 100,
+          "CalculationType": "Additive"
+        }
+      ],
+      "Health": [
+        {
+          "Amount": 7,
+          "CalculationType": "Additive"
+        }
+      ]
+    },
+    "CosmeticsToHide": [
+      "Gloves"
+    ]
+  },
+  "Tags": {
+    "Type": [
+      "Armor"
+    ],
+    "Family": [
+      "Diving"
+    ]
+  },
+  "MaxDurability": 120,
+  "Quality": "Uncommon"
+}

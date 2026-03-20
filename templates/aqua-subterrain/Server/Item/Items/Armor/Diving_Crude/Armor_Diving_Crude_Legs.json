@@ -1,0 +1,97 @@
+{
+  "TranslationProperties": {
+    "Name": "server.items.Armor_Diving_Crude_Legs.name"
+  },
+  "Parent": "Armor_Iron_Legs",
+  "Recipe": {
+    "Input": [
+      {
+        "ItemId": "Ingredient_Bar_Copper",
+        "ResourceTypeId": "",
+        "Quantity": 13
+      },
+      {
+        "ItemId": "Ingredient_Bar_Iron",
+        "ResourceTypeId": "",
+        "Quantity": 13
+      },
+      {
+        "ItemId": "Ingredient_Water_Essence",
+        "Quantity": 3
+      }
+    ],
+    "BenchRequirement": [
+      {
+        "Categories": [
+          "Armor_Legs"
+        ],
+        "Id": "Armor_Bench",
+        "RequiredTierLevel": 2
+      }
+    ],
+    "TimeSeconds": 3
+  },
+  "ItemLevel": 30,
+  "Icon": "Icons/ItemsGenerated/Armor_Diving_Crude_Legs.png",
+  "IconProperties": {
+    "Rotation": [
+      22.5,
+      45,
+      22.5
+    ],
+    "Scale": 0.465,
+    "Translation": [
+      -6.61,
+      -1.81
+    ]
+  },
+  "Model": "Items/Armors/Diving_Crude/Legs.blockymodel",
+  "Texture": "Items/Armors/Diving_Crude/Legs_Texture.png",
+  "Armor": {
+    "ArmorSlot": "Legs",
+    "BaseDamageResistance": 0,
+    "DamageResistance": {
+      "Physical": [
+        {
+          "Amount": 0.07,
+          "CalculationType": "Multiplicative"
+        }
+      ],
+      "Projectile": [
+        {
+          "Amount": 0.07,
+          "CalculationType": "Multiplicative"
+        }
+      ]
+    },
+    "StatModifiers": {
+      "Oxygen": [
+        {
+          "Amount": 100,
+          "CalculationType": "Additive"
+        }
+      ],
+      "Health": [
+        {
+          "Amount": 13,
+          "CalculationType": "Additive"
+        }
+      ]
+    },
+    "CosmeticsToHide": [
+      "Pants",
+      "Shoes",
+      "Overpants"
+    ]
+  },
+  "Tags": {
+    "Type": [
+      "Armor"
+    ],
+    "Family": [
+      "Diving"
+    ]
+  },
+  "MaxDurability": 120,
+  "Quality": "Uncommon"
+}

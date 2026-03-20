@@ -43,7 +43,9 @@
       "../templates/forest-hills/",
       "../templates/shattered-archipelago/",
       "../templates/tropical-pirate-islands/",
-      "../templates/eldritch-spirelands/"
+      "../templates/eldritch-spirelands/",
+      "../templates/aqua-subterrain/",
+      "../templates/mycelium-growth/"
     ],
     "icon": [
       "icons/icon.icns",

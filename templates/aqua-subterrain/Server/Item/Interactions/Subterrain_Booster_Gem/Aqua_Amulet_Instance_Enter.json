@@ -1,0 +1,19 @@
+{
+  "Type": "TeleportInstance",
+  "InstanceName": "The_Aqua_Subterrain",
+  "InstanceKey": "The_Aqua_Subterrain_Main",
+  "PersonalReturnPoint": false,
+  "Effects": {
+    "LocalSoundEventId": "SFX_Portal_Neutral_Teleport_Local"
+  },
+  "PositionOffset": {
+    "X": 0,
+    "Z": 0,
+    "Y": 0
+  },
+  "Rotation": {
+    "Roll": 0,
+    "Yaw": 0,
+    "Pitch": 0
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "TranslationProperties": {
+    "Name": "items.Ingredient_Crystal_Orange.name"
+  },
+  "Categories": [
+    "Items.Ingredients"
+  ],
+  "Model": "Resources/Crystals/Crystal_Fragment.blockymodel",
+  "Texture": "Resources/Crystals/Crystal_Fragment_Textures/Orange.png",
+  "Quality": "Common",
+  "ItemLevel": 10,
+  "PlayerAnimationsId": "Item",
+  "IconProperties": {
+    "Scale": 1,
+    "Rotation": [
+      34.315,
+      29.815,
+      22.5
+    ],
+    "Translation": [
+      -0.3,
+      0.3
+    ]
+  },
+  "Scale": 1.2,
+  "Icon": "Icons/ItemsGenerated/Ingredient_Crystal_Orange.png",
+  "Tags": {
+    "Type": [
+      "Ingredient"
+    ],
+    "Family": [
+      "Crystal"
+    ]
+  },
+  "ItemEntity": {
+    "ParticleSystemId": null
+  },
+  "ItemSoundSetId": "ISS_Items_Gems",
+  "DropOnDeath": true
+}

@@ -1,0 +1,45 @@
+{
+  "version": 8,
+  "blockIdVersion": 11,
+  "anchorX": 0,
+  "anchorY": 0,
+  "anchorZ": 0,
+  "blocks": [
+    {
+      "x": 0,
+      "y": 12,
+      "z": 0,
+      "name": "Rock_Crystal_Blue_Block"
+    },
+    {
+      "x": 0,
+      "y": 13,
+      "z": 0,
+      "name": "Rock_Crystal_Cyan_Block"
+    },
+    {
+      "x": 0,
+      "y": 25,
+      "z": 0,
+      "name": "Rock_Crystal_Blue_Block"
+    },
+    {
+      "x": 0,
+      "y": 26,
+      "z": 0,
+      "name": "Rock_Crystal_Cyan_Block"
+    },
+    {
+      "x": 0,
+      "y": 38,
+      "z": 0,
+      "name": "Rock_Crystal_Blue_Block"
+    },
+    {
+      "x": 0,
+      "y": 39,
+      "z": 0,
+      "name": "Rock_Crystal_Cyan_Block"
+    }
+  ]
+}

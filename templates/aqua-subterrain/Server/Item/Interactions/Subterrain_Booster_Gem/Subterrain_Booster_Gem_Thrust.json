@@ -1,0 +1,34 @@
+{
+  "Type": "ApplyForce",
+  "Direction": {
+    "X": 0,
+    "Y": 0,
+    "Z": -1
+  },
+  "Force": 2,
+  "RaycastMode": "FollowMotion",
+  "ChangeVelocityType": "Add",
+  "AdjustVertical": false,
+  "Duration": 0.25,
+  "Effects": {
+    "WorldSoundEventId": "SFX_Tool_Watering_Can_Water",
+    "Particles": [
+      {
+        "SystemId": "Pipe_Bubbles",
+        "TargetEntityPart": "Self",
+        "PositionOffset": {
+          "Z": 0
+        },
+        "Scale": 1
+      }
+    ],
+    "Trails": [
+      {
+        "TrailId": "Rubble"
+      }
+    ],
+    "ItemAnimationId": "Interact",
+    "ClearAnimationOnFinish": true,
+    "ClearSoundEventOnFinish": true
+  }
+}

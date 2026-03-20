@@ -1,0 +1,10 @@
+{
+  "RequireNewClick": false,
+  "ClickQueuingTimeout": 0.2,
+  "Interactions": [
+    "Subterrain_Booster_Gem_Swim_Check"
+  ],
+  "Cooldown": {
+    "Cooldown": 0.25
+  }
+}

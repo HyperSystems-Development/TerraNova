@@ -1,0 +1,17 @@
+{
+  "Environments": [
+    "Env_Titancoral_Ravines"
+  ],
+  "NPCs": [
+    {
+      "Weight": 15,
+      "Id": "Jellyfish_Blue",
+      "Flock": "Group_Large",
+      "SpawnFluidTag": "Water"
+    }
+  ],
+  "DayTimeRange": [
+    0,
+    24
+  ]
+}

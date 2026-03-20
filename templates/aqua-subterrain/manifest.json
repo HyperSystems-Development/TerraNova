@@ -1,0 +1,21 @@
+{
+  "Group": "The_Aqua_Subterrain",
+  "Name": "The_Aqua_Subterrain",
+  "Version": "1.0.0",
+  "Description": "Adds a new Fragment of Orbis: The Aqua Subterrain",
+  "Authors": [
+    {
+      "Name": "NinjaMrcool (CoolAwesome)",
+      "Email": "",
+      "Url": ""
+    }
+  ],
+  "Website": "",
+  "ServerVersion": "2026.02.19-1a311a592",
+  "Dependencies": {},
+  "OptionalDependencies": {},
+  "LoadBefore": {},
+  "DisabledByDefault": false,
+  "IncludesAssetPack": false,
+  "SubPlugins": []
+}

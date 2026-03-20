@@ -1,0 +1,70 @@
+{
+  "TranslationProperties": {
+    "Name": "items.Subterrain_Booster_Gem.name",
+    "Description": "items.Subterrain_Booster_Gem.description"
+  },
+  "Model": "Resources/Ingredients/Essence.blockymodel",
+  "Texture": "Resources/Subterrain_Booster_Gem.png",
+  "Icon": "Icons/ItemsGenerated/Subterrain_Booster_Gem.png",
+  "Reticle": "DefaultMelee",
+  "Quality": "Rare",
+  "ItemLevel": 15,
+  "Categories": [
+    "Items.Weapons"
+  ],
+  "IconProperties": {
+    "Scale": 0.7,
+    "Rotation": [
+      39,
+      167,
+      15
+    ],
+    "Translation": [
+      -5,
+      -10
+    ]
+  },
+  "Interactions": {
+    "Secondary": "Root_Subterrain_Booster_Gem",
+    "Primary": "Root_Subterrain_Booster_Gem"
+  },
+  "Tags": {
+    "Type": [
+      "Weapon"
+    ],
+    "Family": [
+      "Sword"
+    ]
+  },
+  "ItemSoundSetId": "ISS_Items_Gems",
+  "PlayerAnimationsId": "Sword",
+  "Utility": {
+    "Compatible": true
+  },
+  "Recipe": {
+    "BenchRequirement": [
+      {
+        "Id": "Arcanebench",
+        "Categories": [
+          "Arcane_Misc"
+        ]
+      }
+    ],
+    "TimeSeconds": 1,
+    "RequiredMemoriesLevel": 5,
+    "Input": [
+      {
+        "ItemId": "Ingredient_Crystal_Orange",
+        "Quantity": 32
+      },
+      {
+        "ItemId": "Ingredient_Water_Essence",
+        "Quantity": 4
+      }
+    ]
+  },
+  "Light": {
+    "Color": "#445"
+  },
+  "MaxStack": 1
+}

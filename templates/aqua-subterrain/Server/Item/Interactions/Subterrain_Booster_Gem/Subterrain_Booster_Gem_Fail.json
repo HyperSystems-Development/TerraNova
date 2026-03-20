@@ -1,0 +1,10 @@
+{
+  "Type": "Simple",
+  "Effects": {
+    "WorldSoundEventId": "SFX_Crystal_Hit",
+    "ItemAnimationId": "Interact",
+    "ClearAnimationOnFinish": true,
+    "ClearSoundEventOnFinish": true,
+    "WaitForAnimationToFinish": true
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "Type": "StatsCondition",
+  "Costs": {
+    "InAquaSubterrain": 1
+  },
+  "Failed": "Aqua_Amulet_Instance_Enter",
+  "Next": "Aqua_Amulet_Instance_Exit"
+}
