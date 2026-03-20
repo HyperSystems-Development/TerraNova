@@ -123,14 +123,24 @@ type DocsSettings = {
   showProgressBar: boolean;
   showTocByDefault: boolean;
   showFolderCount: boolean;
+  readingWidth: "narrow" | "standard" | "wide";
+  wrapCodeBlocks: boolean;
+  showStickyHeader: boolean;
+  autoOpenFirstSearchResult: boolean;
+  curvePreviewDetail: "minimal" | "standard";
 };
 
 const DEFAULT_SETTINGS: DocsSettings = {
-  showDifficultyTags: true,
+  showDifficultyTags: false,
   compactTree: false,
-  showProgressBar: true,
-  showTocByDefault: true,
-  showFolderCount: true,
+  showProgressBar: false,
+  showTocByDefault: false,
+  showFolderCount: false,
+  readingWidth: "standard",
+  wrapCodeBlocks: false,
+  showStickyHeader: false,
+  autoOpenFirstSearchResult: false,
+  curvePreviewDetail: "minimal",
 };
 
 function loadSettings(): DocsSettings {
@@ -750,6 +760,40 @@ function SettingsToggle({
   );
 }
 
+function SettingsSelect<T extends string>({
+  label,
+  description,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: T;
+  options: Array<{ value: T; label: string }>;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <div className="min-w-0">
+        <div className="text-[12px] font-medium leading-tight text-tn-text">{label}</div>
+        <div className="mt-0.5 text-[10px] leading-tight text-tn-text-muted">{description}</div>
+      </div>
+      <select
+        className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-xs text-tn-text focus:outline-none focus:border-tn-accent"
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function DocsPanel() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [rawMd, setRawMd] = useState<string>("");
@@ -801,6 +845,17 @@ export function DocsPanel() {
     }
     return list.sort((a, b) => a.slug.localeCompare(b.slug));
   }, []);
+  const entriesBySlug = useMemo(() => new Map(entries.map((entry) => [entry.slug, entry])), [entries]);
+
+  const allDocSlugs = useMemo(() => entries.map((entry) => entry.slug), [entries]);
+  const resolveFolderSlug = useCallback(
+    (folderSlug: string) => getDefaultDocSlug(folderSlug, allDocSlugs),
+    [allDocSlugs],
+  );
+  const shouldWrapCodeBlocks = settings.wrapCodeBlocks;
+  const showCurveStats = settings.curvePreviewDetail === "standard";
+  const docsCurveHeight = showCurveStats ? 112 : 96;
+  const docsCurveWidthClass = showCurveStats ? "max-w-[480px]" : "max-w-[440px]";
 
   const docTree = useMemo(() => buildDocTree(entries), [entries]);
   const tocEntries = useMemo(() => parseToc(rawMd), [rawMd]);
@@ -1083,20 +1138,11 @@ export function DocsPanel() {
 
   // Auto-select first result when searching
   useEffect(() => {
-    if (!filter.trim()) return;
-    const firstFile = (function findFirst(nodes: DocTreeNodeData[]): DocTreeNodeData | null {
-      for (const n of nodes) {
-        if (n.type === "file") return n;
-        if (n.type === "folder") {
-          const found = findFirst(n.children);
-          if (found) return found;
-        }
-      }
-      return null;
-    })(filteredTree);
-    if (firstFile) loadDoc(firstFile.slug);
+    if (!normalizedFilter || !settings.autoOpenFirstSearchResult) return;
+    const firstSlug = findFirstFileSlug(filteredTree);
+    if (firstSlug && firstSlug !== selectedSlug) loadDoc(firstSlug);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredTree]);
+  }, [filteredTree, normalizedFilter, selectedSlug, settings.autoOpenFirstSearchResult]);
 
   const handleLinkClick = useCallback(
     (href: string) => {
@@ -1186,6 +1232,12 @@ export function DocsPanel() {
         }
         try {
           const points = JSON.parse(pointsJson) as [number, number][];
+          const xValues = points.map(([x]) => x);
+          const yValues = points.map(([, y]) => y);
+          const xMin = xValues.length > 0 ? Math.min(...xValues) : 0;
+          const xMax = xValues.length > 0 ? Math.max(...xValues) : 0;
+          const yMin = yValues.length > 0 ? Math.min(...yValues) : 0;
+          const yMax = yValues.length > 0 ? Math.max(...yValues) : 0;
           return (
             <div className="my-3 rounded border border-tn-border overflow-hidden">
               {label && (
@@ -1193,7 +1245,29 @@ export function DocsPanel() {
                   {label}
                 </div>
               )}
-              <CurveCanvas points={points} compact />
+              <div className="bg-[linear-gradient(180deg,rgba(181,147,80,0.06),transparent_70%)] px-3 py-3">
+                <div className={`mx-auto w-full ${docsCurveWidthClass}`}>
+                  <CurveCanvas
+                    points={points}
+                    compact
+                    compactHeight={docsCurveHeight}
+                    compactVariant={showCurveStats ? "docs" : "default"}
+                  />
+                  {showCurveStats && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-tn-text-muted">
+                      <span className="rounded-full border border-tn-border/70 bg-tn-bg/65 px-2 py-0.5">
+                        {points.length} pt{points.length === 1 ? "" : "s"}
+                      </span>
+                      <span className="rounded-full border border-tn-border/70 bg-tn-bg/65 px-2 py-0.5">
+                        X {xMin.toFixed(2)} to {xMax.toFixed(2)}
+                      </span>
+                      <span className="rounded-full border border-tn-border/70 bg-tn-bg/65 px-2 py-0.5">
+                        Y {yMin.toFixed(2)} to {yMax.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           );
         } catch {
@@ -1283,7 +1357,7 @@ export function DocsPanel() {
               </div>
               <CopyButton text={snippetJson} />
             </div>
-            <pre className="p-3 text-xs text-tn-text-muted overflow-x-auto leading-relaxed bg-tn-bg/60 m-0">
+            <pre className={`m-0 border-t border-white/5 bg-tn-bg/55 p-4 text-xs leading-7 text-tn-text-muted ${shouldWrapCodeBlocks ? "overflow-x-hidden whitespace-pre-wrap break-words" : "overflow-x-auto whitespace-pre"}`}>
               <code>{snippetJson}</code>
             </pre>
           </div>
@@ -1353,7 +1427,18 @@ export function DocsPanel() {
         )}
       </h3>
     ),
-  }), [entries, handleLinkClick]);
+  }), [
+    docsCurveHeight,
+    docsCurveWidthClass,
+    entriesBySlug,
+    handleCopySnippetGraph,
+    handleCopySnippetJson,
+    handleLinkClick,
+    handleOpenSnippetInEditor,
+    shouldWrapCodeBlocks,
+    showCurveStats,
+  ]);
+  const selectedEntry = selectedSlug ? entriesBySlug.get(selectedSlug) ?? null : null;
 
   return (
     <div className="flex h-full">
@@ -1425,6 +1510,17 @@ export function DocsPanel() {
               />
             </SettingsSection>
             <SettingsSection label="Reading">
+              <SettingsSelect
+                label="Reading width"
+                description="Control how wide the prose column feels"
+                value={settings.readingWidth}
+                options={[
+                  { value: "narrow", label: "Narrow" },
+                  { value: "standard", label: "Standard" },
+                  { value: "wide", label: "Wide" },
+                ]}
+                onChange={(value) => setSettings((s) => ({ ...s, readingWidth: value }))}
+              />
               <SettingsToggle
                 label="Reading progress bar"
                 description="Thin bar showing scroll progress"
@@ -1436,6 +1532,38 @@ export function DocsPanel() {
                 description="Expand TOC by default when loading a doc"
                 value={settings.showTocByDefault}
                 onChange={(v) => setSettings((s) => ({ ...s, showTocByDefault: v }))}
+              />
+              <SettingsToggle
+                label="Sticky header"
+                description="Keep doc navigation pinned while scrolling"
+                value={settings.showStickyHeader}
+                onChange={(v) => setSettings((s) => ({ ...s, showStickyHeader: v }))}
+              />
+              <SettingsToggle
+                label="Wrap code blocks"
+                description="Wrap long snippets instead of horizontal scrolling"
+                value={settings.wrapCodeBlocks}
+                onChange={(v) => setSettings((s) => ({ ...s, wrapCodeBlocks: v }))}
+              />
+            </SettingsSection>
+            <SettingsSection label="Search">
+              <SettingsToggle
+                label="Auto-open first result"
+                description="Jump into the first matching document while searching"
+                value={settings.autoOpenFirstSearchResult}
+                onChange={(v) => setSettings((s) => ({ ...s, autoOpenFirstSearchResult: v }))}
+              />
+            </SettingsSection>
+            <SettingsSection label="Preview">
+              <SettingsSelect
+                label="Curve preview detail"
+                description="Choose how much info docs curve previews show"
+                value={settings.curvePreviewDetail}
+                options={[
+                  { value: "minimal", label: "Minimal" },
+                  { value: "standard", label: "Standard" },
+                ]}
+                onChange={(value) => setSettings((s) => ({ ...s, curvePreviewDetail: value }))}
               />
             </SettingsSection>
             <button
@@ -1485,6 +1613,8 @@ export function DocsPanel() {
           className="flex-1 overflow-y-auto p-6 pb-16 docs-content"
           id="docs-content"
           ref={contentRef}
+          data-reading-width={settings.readingWidth}
+          data-code-wrap={shouldWrapCodeBlocks ? "wrap" : "scroll"}
           onKeyDown={(e) => {
             if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); navBack(); }
             if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); navForward(); }
@@ -1493,7 +1623,8 @@ export function DocsPanel() {
         >
         {selectedSlug ? (
           <>
-            <div className="flex items-center justify-between mb-4">
+            <div className={`docs-reader-header mb-5 -mx-6 border-b border-tn-border/80 bg-[rgba(28,26,23,0.88)] px-6 py-4 backdrop-blur-md ${settings.showStickyHeader ? "sticky top-0 z-20" : ""}`}>
+            <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 {sidebarCollapsed && (
                   <button

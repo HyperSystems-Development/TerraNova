@@ -82,6 +82,23 @@ describe("CurveCanvas", () => {
     expect(wrapper.style.height).toBe("40px");
   });
 
+  it("compact mode can use a larger preview height", () => {
+    const { container } = render(
+      <CurveCanvas evaluator={(x) => x} compact compactHeight={72} />,
+    );
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.style.height).toBe("72px");
+  });
+
+  it("supports the docs compact variant", () => {
+    const { container } = render(
+      <CurveCanvas points={[[0, 0], [0.5, 0.75], [1, 0.2]]} compact compactHeight={112} compactVariant="docs" />,
+    );
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.style.height).toBe("112px");
+    expect(container.querySelector("canvas")).toBeTruthy();
+  });
+
   describe("static bounds behavior", () => {
     it("computes bounds from initial wide-range points in interactive mode", () => {
       // Points span In: -80 to 5, Out: 0 to 2 — bounds should extend beyond [0,1]

@@ -46,6 +46,8 @@ interface CurveCanvasProps {
   evaluator?: (x: number) => number;
   label?: string;
   compact?: boolean;
+  compactHeight?: number;
+  compactVariant?: "default" | "docs";
 }
 
 /** Compute viewport bounds from points with 10% padding. Defaults to [0,1] when all points fit. */
@@ -107,7 +109,7 @@ function formatAxisLabel(v: number): string {
 const snapToGrid = (v: number, interval: number = SNAP_GRID) =>
   Math.round(v / interval) * interval;
 
-export function CurveCanvas({ points, onChange, onCommit, evaluator, label, compact }: CurveCanvasProps) {
+export function CurveCanvas({ points, onChange, onCommit, evaluator, label, compact, compactHeight, compactVariant = "default" }: CurveCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pointsRef = useRef<NormalizedPoint[]>([]);
@@ -124,8 +126,9 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
   const [localBounds, setLocalBounds] = useState<Partial<Record<keyof Bounds, string>>>({});
 
   const isInteractive = !!onChange && !compact;
-  const canvasHeight = compact ? 40 : CANVAS_HEIGHT;
-  const padding = compact ? 4 : PADDING;
+  const canvasHeight = compact ? resolvedCompactHeight : CANVAS_HEIGHT;
+  const padding = compact ? Math.max(4, Math.round(canvasHeight * 0.1)) : PADDING;
+  const isDocsCompact = compact && compactVariant === "docs";
 
   // Keep pointsRef in sync with props; compute bounds once on first load (interactive) or always (compact)
   useEffect(() => {
@@ -256,6 +259,52 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
           ctx.fillText(formatAxisLabel(v), padding - 3, cy + 3);
         }
       }
+    } else if (isDocsCompact) {
+      const { xMin, xMax, yMin, yMax } = boundsRef.current;
+      const xTicks = [xMin, xMin + (xMax - xMin) / 2, xMax];
+      const yTicks = [yMax, yMin + (yMax - yMin) / 2, yMin];
+
+      ctx.strokeStyle = BORDER_COLOR;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(padding, padding, w - padding * 2, h - padding * 2);
+
+      ctx.strokeStyle = GRID_COLOR;
+      ctx.lineWidth = 0.75;
+      for (let i = 1; i < xTicks.length - 1; i++) {
+        const cx = toCanvasX(xTicks[i]);
+        ctx.beginPath();
+        ctx.moveTo(cx, padding);
+        ctx.lineTo(cx, h - padding);
+        ctx.stroke();
+      }
+      for (let i = 1; i < yTicks.length - 1; i++) {
+        const cy = toCanvasY(yTicks[i]);
+        ctx.beginPath();
+        ctx.moveTo(padding, cy);
+        ctx.lineTo(w - padding, cy);
+        ctx.stroke();
+      }
+
+      if (yMin < 0 && yMax > 0) {
+        const zeroY = toCanvasY(0);
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = "#e8e2d925";
+        ctx.beginPath();
+        ctx.moveTo(padding, zeroY);
+        ctx.lineTo(w - padding, zeroY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      ctx.fillStyle = LABEL_COLOR;
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(formatAxisLabel(yMax), padding + 4, padding + 12);
+      ctx.fillText(formatAxisLabel(yMin), padding + 4, h - padding - 6);
+      ctx.textAlign = "right";
+      ctx.fillText(formatAxisLabel(xMin), padding + 28, h - 6);
+      ctx.fillText(formatAxisLabel(xMax), w - padding, h - 6);
     }
 
     // Build curve points to render
@@ -296,6 +345,24 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
       ctx.strokeStyle = CURVE_COLOR;
       ctx.lineWidth = compact ? 1.5 : 2;
       ctx.stroke();
+
+      if (isDocsCompact) {
+        const markerPoints = evaluator
+          ? [curvePoints[0], curvePoints[Math.floor(curvePoints.length / 2)], curvePoints[curvePoints.length - 1]].filter(Boolean)
+          : [...pointsRef.current].sort((a, b) => a.x - b.x);
+
+        for (const point of markerPoints) {
+          const cx = toCanvasX(point.x);
+          const cy = toCanvasY(point.y);
+          ctx.beginPath();
+          ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = CURVE_COLOR;
+          ctx.fill();
+          ctx.strokeStyle = "#f0e6f5";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
     }
 
     // Control points (interactive mode only)
@@ -381,7 +448,7 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
       ctx.textAlign = "right";
       ctx.fillText(label, w - padding - 4, padding + 14);
     }
-  }, [evaluator, isInteractive, label, compact, canvasHeight, padding, toCanvasX, toCanvasY]);
+  }, [evaluator, isDocsCompact, isInteractive, label, compact, canvasHeight, padding, toCanvasX, toCanvasY]);
 
   // Redraw coalesced via rAF
   const requestDraw = useCallback(() => {
