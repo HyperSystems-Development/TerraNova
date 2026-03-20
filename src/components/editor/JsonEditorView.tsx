@@ -50,7 +50,7 @@ export function JsonEditorView({ content, onChange }: JsonEditorViewProps) {
   });
 
   useEffect(() => {
-    if (!jsonObj) return;
+    if (!jsonText) return;
 
     // Only recreate if the external content actually changed
     if (lastExternalText.current === jsonText && viewRef.current) return;

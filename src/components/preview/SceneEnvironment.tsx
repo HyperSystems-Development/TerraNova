@@ -35,8 +35,8 @@ export function HytaleSky() {
         vertexShader: skyVertShader,
         fragmentShader: skyFragShader,
         uniforms: {
-          uHorizon: { value: new Color(atm.skyHorizon) },
-          uZenith: { value: new Color(atm.skyZenith) },
+          uHorizon: { value: new Color() },
+          uZenith: { value: new Color() },
         },
         side: BackSide,
         depthWrite: false,
