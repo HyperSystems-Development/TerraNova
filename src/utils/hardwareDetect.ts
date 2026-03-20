@@ -12,6 +12,10 @@ export interface HardwareInfo {
 
 let _cached: HardwareInfo | null = null;
 
+export function clearHardwareDetectionCache(): void {
+  _cached = null;
+}
+
 export async function detectHardware(): Promise<HardwareInfo> {
   if (_cached) return _cached;
 

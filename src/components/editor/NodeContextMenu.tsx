@@ -1,13 +1,14 @@
 import React from "react";
-import { getAvailableHytaleAssetFolders } from "@/utils/hytaleAssetFolders";
+import { getAvailableHytaleAssetFolders, hasCachedAvailableHytaleAssetFolders } from "@/utils/hytaleAssetFolders";
 import { ContextMenuOverlay, ContextMenuItem, ContextMenuSeparator, ContextMenuSubmenu } from "./ContextMenuPrimitives";
 import { alignNodes, distributeNodes } from "@/utils/alignDistribute";
-import { getHytaleAssetsInFolder } from "@/utils/getHytaleAssetsInFolder";
+import { getHytaleAssetsInFolder, hasCachedHytaleAssetsInFolder } from "@/utils/getHytaleAssetsInFolder";
 import { useEditorStore } from "@/stores/editorStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useLoadingStore } from "@/stores/loadingStore";
 import { resolveKeybinding } from "@/config/keybindings";
+import { copyNodesToClipboard, pasteNodesFromClipboard } from "@/utils/clipboard";
 import { ask } from "@tauri-apps/plugin-dialog";
 import type { Node, Edge } from "@xyflow/react";
 
@@ -50,6 +51,15 @@ function getUpstreamNodeIds(startIds: Set<string>, edges: Edge[]): Set<string> {
     }
   }
   return visited;
+}
+
+function cleanOutputNodes(nodes: Node[]): Node[] {
+  return nodes.map((node) => {
+    const data = node.data as Record<string, unknown>;
+    if (!data._outputNode) return node;
+    const { _outputNode: _ignored, ...rest } = data;
+    return { ...node, data: rest };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -234,7 +244,11 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
   const [assetsLoading, setAssetsLoading] = React.useState(false);
   const [assetsError, setAssetsError] = React.useState<string | null>(null);
   React.useEffect(() => {
+    const fromCache = hasCachedAvailableHytaleAssetFolders(hytaleBasePath);
     getAvailableHytaleAssetFolders(hytaleBasePath).then(setAvailableFolders);
+    if (!fromCache) {
+      setAssetsError(null);
+    }
   }, [hytaleBasePath]);
   // Determine the correct folder for this node
   const nodeTypeToFolder: Record<string, string> = {
@@ -263,10 +277,12 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
   React.useEffect(() => {
     let active = true;
     if (canAddHytaleAsset && correctFolder) {
-      setAssetsLoading(true);
+      const cached = hasCachedHytaleAssetsInFolder(hytaleBasePath, correctFolder);
+      setAssetsLoading(!cached);
       setAssetsError(null);
-      // show global loader while listing assets
-      useLoadingStore.getState().start("Loading Hytale assets...");
+      if (!cached) {
+        useLoadingStore.getState().start("Loading Hytale assets...");
+      }
       getHytaleAssetsInFolder(hytaleBasePath, correctFolder)
         .then((assets) => {
           if (!active) return;
@@ -278,7 +294,9 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
           useToastStore.getState().addToast("Failed to load Hytale assets", "error");
         })
         .finally(() => {
-          useLoadingStore.getState().stop();
+          if (!cached) {
+            useLoadingStore.getState().stop();
+          }
           if (!active) return;
           setAssetsLoading(false);
         });
@@ -346,7 +364,12 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         shortcut="Ctrl+X"
         onClick={() => {
           const s = useEditorStore.getState();
-          s.copyNodes();
+          const data = copyNodesToClipboard(s.nodes, s.edges, selectedIds);
+          if (!data) {
+            onClose();
+            return;
+          }
+          useEditorStore.setState({ _clipboardData: data });
           s.removeNodes([...selectedIds]);
           onClose();
         }}
@@ -355,7 +378,11 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         label="Copy"
         shortcut="Ctrl+C"
         onClick={() => {
-          useEditorStore.getState().copyNodes();
+          const s = useEditorStore.getState();
+          const data = copyNodesToClipboard(s.nodes, s.edges, selectedIds);
+          if (data) {
+            useEditorStore.setState({ _clipboardData: data });
+          }
           onClose();
         }}
       />
@@ -363,7 +390,21 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         label="Duplicate"
         shortcut="Ctrl+D"
         onClick={() => {
-          useEditorStore.getState().duplicateNodes();
+          const s = useEditorStore.getState();
+          const data = copyNodesToClipboard(s.nodes, s.edges, selectedIds);
+          if (!data) {
+            onClose();
+            return;
+          }
+          useEditorStore.setState({ _clipboardData: data });
+          const pasted = pasteNodesFromClipboard(data, 50, 50);
+          const cleanedNodes = cleanOutputNodes(pasted.nodes);
+          s.setNodes([
+            ...s.nodes.map((node) => (node.selected ? { ...node, selected: false } : node)),
+            ...cleanedNodes,
+          ]);
+          s.setEdges([...s.edges, ...pasted.edges]);
+          s.commitState("Duplicate");
           onClose();
         }}
       />

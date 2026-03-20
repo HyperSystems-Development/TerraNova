@@ -19,9 +19,8 @@ import SyncProgressModal from "@/components/ui/SyncProgressModal";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { NewProjectDialog } from "@/components/dialogs/NewProjectDialog";
-import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
-import { KeyboardShortcutsDialog } from "@/components/dialogs/KeyboardShortcutsDialog";
-import { ConfigurationDialog } from "@/components/dialogs/ConfigurationDialog";
+import { SettingsDialog, type SettingsTab } from "@/components/dialogs/SettingsDialog";
+import type { SystemTab } from "@/components/dialogs/ConfigurationDialog";
 import { ExportSvgDialog } from "@/components/dialogs/ExportSvgDialog";
 import { saveRef } from "@/utils/saveRef";
 import { isMac } from "@/utils/platform";
@@ -56,8 +55,8 @@ export default function App() {
 
   const [showNewProject, setShowNewProject] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showConfig, setShowConfig] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
+  const [settingsSystemTab, setSettingsSystemTab] = useState<SystemTab>("cpu");
   const [showExportSvg, setShowExportSvg] = useState(false);
 
   // Bypass flag: when true the onCloseRequested handler lets the close through.
@@ -257,10 +256,10 @@ export default function App() {
         setShowNewProject={setShowNewProject}
         showSettings={showSettings}
         setShowSettings={setShowSettings}
-        showShortcuts={showShortcuts}
-        setShowShortcuts={setShowShortcuts}
-        showConfig={showConfig}
-        setShowConfig={setShowConfig}
+        settingsTab={settingsTab}
+        setSettingsTab={setSettingsTab}
+        settingsSystemTab={settingsSystemTab}
+        setSettingsSystemTab={setSettingsSystemTab}
         showExportSvg={showExportSvg}
         setShowExportSvg={setShowExportSvg}
         dialog={dialog}
@@ -278,10 +277,10 @@ function ProjectEditor({
   setShowNewProject,
   showSettings,
   setShowSettings,
-  showShortcuts,
-  setShowShortcuts,
-  showConfig,
-  setShowConfig,
+  settingsTab,
+  setSettingsTab,
+  settingsSystemTab,
+  setSettingsSystemTab,
   showExportSvg,
   setShowExportSvg,
   dialog,
@@ -291,19 +290,25 @@ function ProjectEditor({
   setShowNewProject: (show: boolean) => void;
   showSettings: boolean;
   setShowSettings: (show: boolean) => void;
-  showShortcuts: boolean;
-  setShowShortcuts: (show: boolean) => void;
-  showConfig: boolean;
-  setShowConfig: (show: boolean) => void;
+  settingsTab: SettingsTab;
+  setSettingsTab: (tab: SettingsTab) => void;
+  settingsSystemTab: SystemTab;
+  setSettingsSystemTab: (tab: SystemTab) => void;
   showExportSvg: boolean;
   setShowExportSvg: (show: boolean) => void;
   dialog: React.ReactNode;
 }) {
+  const openSettings = useCallback((tab: SettingsTab = "general", systemTab: SystemTab = "cpu") => {
+    setSettingsTab(tab);
+    setSettingsSystemTab(systemTab);
+    setShowSettings(true);
+  }, [setSettingsSystemTab, setSettingsTab, setShowSettings]);
+
   // Wire up global keyboard shortcuts
   useGlobalKeyboardShortcuts({
     onCloseProject: requestCloseProject,
     onNewProject: () => setShowNewProject(true),
-    onSettings: () => setShowSettings(true),
+    onSettings: () => openSettings("general"),
     onExportSvg: () => setShowExportSvg(true),
   });
 
@@ -316,9 +321,8 @@ function ProjectEditor({
         <ProjectTitleBar
           onCloseProject={requestCloseProject}
           onNewProject={() => setShowNewProject(true)}
-          onSettings={() => setShowSettings(true)}
-          onShortcuts={() => setShowShortcuts(true)}
-          onConfig={() => setShowConfig(true)}
+          onSettings={() => openSettings("general")}
+          onShortcuts={() => openSettings("shortcuts")}
           onExportSvg={() => setShowExportSvg(true)}
         />
         <ErrorBoundary>
@@ -330,9 +334,12 @@ function ProjectEditor({
       <Toast />
       {dialog}
       <NewProjectDialog open={showNewProject} onClose={() => setShowNewProject(false)} />
-      <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} />
-      <KeyboardShortcutsDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
-      <ConfigurationDialog open={showConfig} onClose={() => setShowConfig(false)} />
+      <SettingsDialog
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        initialTab={settingsTab}
+        initialSystemTab={settingsSystemTab}
+      />
       <ExportSvgDialogWrapper open={showExportSvg} onClose={() => setShowExportSvg(false)} />
     </>
   );

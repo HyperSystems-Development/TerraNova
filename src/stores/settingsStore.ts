@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { DEFAULT_FLOW_DIRECTION, type FlowDirection } from "@/constants";
 
 const STORAGE_KEY = "tn-settings";
+const DEBUG_WORKERS_KEY = "tn-debug-workers";
 
 export type HytaleAssetSourceChannel = "pre-release" | "release";
 
@@ -130,6 +131,38 @@ function getStoredHytaleCommonAssetsPath(): string {
   return "";
 }
 
+function getStoredDeveloperMode(): boolean {
+  const parsed = getStoredSettingsObject();
+  if (typeof parsed?.developerMode === "boolean") {
+    return parsed.developerMode;
+  }
+  return false;
+}
+
+function getStoredDebugWorkerLogging(): boolean {
+  const parsed = getStoredSettingsObject();
+  if (typeof parsed?.debugWorkerLogging === "boolean") {
+    return parsed.debugWorkerLogging;
+  }
+  try {
+    return localStorage.getItem(DEBUG_WORKERS_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function persistDebugWorkerLogging(enabled: boolean) {
+  try {
+    if (enabled) {
+      localStorage.setItem(DEBUG_WORKERS_KEY, "1");
+    } else {
+      localStorage.removeItem(DEBUG_WORKERS_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 function persistSettings(settings: {
   flowDirection: FlowDirection;
   autoLayoutOnOpen: boolean;
@@ -145,6 +178,8 @@ function persistSettings(settings: {
   hytaleReleaseAssetsPath: string;
   hytaleCommonAssetsEnabled: boolean;
   hytaleCommonAssetsPath: string;
+  developerMode: boolean;
+  debugWorkerLogging: boolean;
 }) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -168,6 +203,8 @@ interface SettingsState {
   hytaleReleaseAssetsPath: string;
   hytaleCommonAssetsEnabled: boolean;
   hytaleCommonAssetsPath: string;
+  developerMode: boolean;
+  debugWorkerLogging: boolean;
   setFlowDirection: (dir: FlowDirection) => void;
   setAutoLayoutOnOpen: (value: boolean) => void;
   setAutoCheckUpdates: (value: boolean) => void;
@@ -185,6 +222,8 @@ interface SettingsState {
   setHytaleReleaseAssetsPath: (value: string) => void;
   setHytaleCommonAssetsEnabled: (value: boolean) => void;
   setHytaleCommonAssetsPath: (value: string) => void;
+  setDeveloperMode: (value: boolean) => void;
+  setDebugWorkerLogging: (value: boolean) => void;
 }
 
 function getAllSettings(state: SettingsState) {
@@ -203,6 +242,8 @@ function getAllSettings(state: SettingsState) {
     hytaleReleaseAssetsPath: state.hytaleReleaseAssetsPath,
     hytaleCommonAssetsEnabled: state.hytaleCommonAssetsEnabled,
     hytaleCommonAssetsPath: state.hytaleCommonAssetsPath,
+    developerMode: state.developerMode,
+    debugWorkerLogging: state.debugWorkerLogging,
   };
 }
 
@@ -221,6 +262,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   hytaleReleaseAssetsPath: getStoredHytaleReleaseAssetsPath(),
   hytaleCommonAssetsEnabled: getStoredHytaleCommonAssetsEnabled(),
   hytaleCommonAssetsPath: getStoredHytaleCommonAssetsPath(),
+  developerMode: getStoredDeveloperMode(),
+  debugWorkerLogging: getStoredDebugWorkerLogging(),
 
   setFlowDirection: (dir) => {
     set({ flowDirection: dir });
@@ -310,5 +353,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setHytaleCommonAssetsPath: (value) => {
     set({ hytaleCommonAssetsPath: value });
     persistSettings(getAllSettings({ ...get(), hytaleCommonAssetsPath: value }));
+  },
+
+  setDeveloperMode: (value) => {
+    set({ developerMode: value });
+    persistSettings(getAllSettings({ ...get(), developerMode: value }));
+  },
+
+  setDebugWorkerLogging: (value) => {
+    set({ debugWorkerLogging: value });
+    persistDebugWorkerLogging(value);
+    persistSettings(getAllSettings({ ...get(), debugWorkerLogging: value }));
   },
 }));

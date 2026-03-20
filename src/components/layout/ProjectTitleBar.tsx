@@ -113,7 +113,6 @@ interface ProjectTitleBarProps {
   onNewProject: () => void;
   onSettings: () => void;
   onShortcuts: () => void;
-  onConfig: () => void;
   onExportSvg: () => void;
 }
 
@@ -122,7 +121,6 @@ export function ProjectTitleBar({
   onNewProject,
   onSettings,
   onShortcuts,
-  onConfig,
   onExportSvg,
 }: ProjectTitleBarProps) {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -340,7 +338,6 @@ export function ProjectTitleBar({
         <MenuDropdown label="Settings">
           <MenuItem label="Preferences..." onClick={onSettings} shortcut={resolveKeybinding("settings")} />
           <MenuItem label="Keyboard Shortcuts..." onClick={onShortcuts} />
-          <MenuItem label="Configuration..." onClick={onConfig} />
           <MenuSeparator />
           <MenuItem
             label={flowDirection === "LR" ? "Flow Direction: LTR" : "Flow Direction: RTL"}

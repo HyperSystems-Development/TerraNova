@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useConfigStore, type GpuPowerPreference } from "@/stores/configStore";
 import { detectHardware, type HardwareInfo } from "@/utils/hardwareDetect";
 
-type Tab = "cpu" | "gpu" | "ram" | "defaults";
+export type SystemTab = "cpu" | "gpu" | "ram" | "defaults";
 
-const TABS: { id: Tab; label: string }[] = [
+const TABS: { id: SystemTab; label: string }[] = [
   { id: "cpu", label: "CPU" },
   { id: "gpu", label: "GPU" },
   { id: "ram", label: "RAM" },
@@ -465,17 +465,63 @@ function DefaultsTab() {
 
 // ── Main dialog ──
 
-export function ConfigurationDialog({ open, onClose }: ConfigurationDialogProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("cpu");
+export function SystemSettingsPanel({ initialTab = "cpu" }: { initialTab?: SystemTab }) {
+  const [activeTab, setActiveTab] = useState<SystemTab>(initialTab);
   const resetAll = useConfigStore((s) => s.resetAll);
   const [hw, setHw] = useState<HardwareInfo | null>(null);
 
   useEffect(() => {
-    if (open && !hw) {
+    if (!hw) {
       detectHardware().then(setHw);
     }
-  }, [open, hw]);
+  }, [hw]);
 
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  return (
+    <div className="flex min-h-0 flex-col gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-tn-text">System & Performance</h3>
+          <p className="mt-1 text-xs text-tn-text-muted">Tune CPU, GPU, memory, and preview defaults from one place.</p>
+        </div>
+        <button
+          onClick={resetAll}
+          className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted"
+        >
+          Reset to Defaults
+        </button>
+      </div>
+
+      <div className="flex shrink-0 border-b border-tn-border overflow-x-auto">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 text-sm -mb-px whitespace-nowrap ${
+              activeTab === tab.id
+                ? "border-b-2 border-tn-accent text-tn-text font-medium"
+                : "text-tn-text-muted hover:text-tn-text"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="min-h-0 overflow-y-auto pr-1">
+        {activeTab === "cpu" && <CpuTab hw={hw} />}
+        {activeTab === "gpu" && <GpuTab hw={hw} />}
+        {activeTab === "ram" && <RamTab hw={hw} />}
+        {activeTab === "defaults" && <DefaultsTab />}
+      </div>
+    </div>
+  );
+}
+
+export function ConfigurationDialog({ open, onClose }: ConfigurationDialogProps) {
   if (!open) return null;
 
   return (
@@ -486,37 +532,14 @@ export function ConfigurationDialog({ open, onClose }: ConfigurationDialogProps)
       >
         <div className="px-5 pt-5 pb-0 shrink-0">
           <h2 className="text-base font-semibold mb-3">Configuration</h2>
-          <div className="flex border-b border-tn-border">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 text-sm -mb-px ${
-                  activeTab === tab.id
-                    ? "border-b-2 border-tn-accent text-tn-text font-medium"
-                    : "text-tn-text-muted hover:text-tn-text"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div className="px-5 py-5 min-h-[200px] overflow-y-auto">
-          {activeTab === "cpu" && <CpuTab hw={hw} />}
-          {activeTab === "gpu" && <GpuTab hw={hw} />}
-          {activeTab === "ram" && <RamTab hw={hw} />}
-          {activeTab === "defaults" && <DefaultsTab />}
+          <SystemSettingsPanel />
         </div>
 
         <div className="flex justify-between items-center px-5 py-3 border-t border-tn-border shrink-0">
-          <button
-            onClick={resetAll}
-            className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted"
-          >
-            Reset to Defaults
-          </button>
+          <div />
           <button
             onClick={onClose}
             className="px-4 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface"
