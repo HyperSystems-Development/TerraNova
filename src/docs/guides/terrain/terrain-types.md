@@ -6,6 +6,8 @@ This guide is organized by **what terrain you want to make**, not by which nodes
 
 For node wiring diagrams organized by pattern instead of outcome, see [Node Combination Patterns](../world/node-combinations.md).
 
+Need a paste-ready starting point instead of a visual recipe? Open [Terrain Snippets](../../reference/terrain-types.md) in the docs pane for copyable JSON, `Copy Graph`, and `Open In Editor` actions.
+
 ---
 
 ## How to Read This Guide

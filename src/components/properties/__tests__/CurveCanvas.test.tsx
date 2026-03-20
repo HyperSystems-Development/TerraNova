@@ -57,7 +57,8 @@ describe("CurveCanvas", () => {
     const { container } = render(
       <CurveCanvas points={[]} onChange={() => {}} onCommit={() => {}} />,
     );
-    expect(container.textContent).toContain("Presets:");
+    expect(container.textContent).toContain("Shape:");
+    expect(container.textContent).toContain("Terrain:");
     expect(container.textContent).toContain("Linear");
     expect(container.textContent).toContain("Ease In");
     expect(container.textContent).toContain("S-Curve");
@@ -88,15 +89,6 @@ describe("CurveCanvas", () => {
     );
     const wrapper = container.firstElementChild as HTMLElement;
     expect(wrapper.style.height).toBe("72px");
-  });
-
-  it("supports the docs compact variant", () => {
-    const { container } = render(
-      <CurveCanvas points={[[0, 0], [0.5, 0.75], [1, 0.2]]} compact compactHeight={112} compactVariant="docs" />,
-    );
-    const wrapper = container.firstElementChild as HTMLElement;
-    expect(wrapper.style.height).toBe("112px");
-    expect(container.querySelector("canvas")).toBeTruthy();
   });
 
   describe("static bounds behavior", () => {

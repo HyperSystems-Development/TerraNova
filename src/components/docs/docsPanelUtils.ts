@@ -8,17 +8,6 @@ export interface ParsedDocSnippet {
   snippetJson: string;
 }
 
-export interface WalkthroughStep {
-  title: string;
-  content: string;
-}
-
-export interface DocTreeFilterNode {
-  type: "file" | "folder";
-  slug: string;
-  children?: DocTreeFilterNode[];
-}
-
 export function parseSnippetFence(value: string): ParsedDocSnippet {
   const lines = value.trim().split("\n");
   let label: string | undefined;
@@ -36,26 +25,6 @@ export function parseSnippetFence(value: string): ParsedDocSnippet {
   return { label, difficulty, snippetJson };
 }
 
-export function stripDocComments(markdown: string): string {
-  return markdown.replace(/<!--[\s\S]*?-->/g, "");
-}
-
-export function extractWalkthroughSteps(markdown: string): WalkthroughStep[] {
-  if (!markdown.includes("<!-- walkthrough -->")) return [];
-  const cleaned = stripDocComments(markdown);
-  return cleaned
-    .split(/^##\s+/m)
-    .slice(1)
-    .map((part) => {
-      const [titleLine, ...rest] = part.split("\n");
-      return {
-        title: titleLine.trim(),
-        content: rest.join("\n").trim(),
-      };
-    })
-    .filter((step) => step.title.length > 0);
-}
-
 export function getDefaultDocSlug(folderSlug: string, slugs: string[]): string | null {
   const preferred = slugs.find((slug) => slug.toLowerCase() === `${folderSlug}/readme`.toLowerCase());
   if (preferred) return preferred;
@@ -64,36 +33,6 @@ export function getDefaultDocSlug(folderSlug: string, slugs: string[]): string |
   if (index) return index;
 
   return slugs.find((slug) => slug.startsWith(`${folderSlug}/`)) ?? null;
-}
-
-export function filterDocTree(
-  nodes: DocTreeFilterNode[],
-  allowedSlugs: ReadonlySet<string>,
-): DocTreeFilterNode[] {
-  const filtered: DocTreeFilterNode[] = [];
-
-  for (const node of nodes) {
-    if (node.type === "file") {
-      if (allowedSlugs.has(node.slug)) filtered.push(node);
-      continue;
-    }
-
-    const childNodes = filterDocTree(node.children ?? [], allowedSlugs);
-    if (childNodes.length > 0) {
-      filtered.push({ ...node, children: childNodes });
-    }
-  }
-
-  return filtered;
-}
-
-export function findFirstFileSlug(nodes: DocTreeFilterNode[]): string | null {
-  for (const node of nodes) {
-    if (node.type === "file") return node.slug;
-    const childMatch = findFirstFileSlug(node.children ?? []);
-    if (childMatch) return childMatch;
-  }
-  return null;
 }
 
 export interface DocSnippetGraphData {

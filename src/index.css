@@ -118,17 +118,10 @@ body,
   font-size: 13px;
   line-height: 1.6;
   overflow-wrap: anywhere;
-  background:
-    radial-gradient(circle at top, rgba(181, 147, 80, 0.05), transparent 26%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 14rem);
 }
 
 .docs-reading-shell {
   width: 100%;
-}
-
-.docs-reader-header {
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .docs-reading-shell > :not(.docs-wide-block) {
@@ -169,9 +162,40 @@ body,
   padding-bottom: 0.45rem;
 }
 
+.docs-sidebar .docs-folder[data-depth="0"] {
+  margin-top: 0.7rem;
+  padding-top: 0;
+}
+
+.docs-sidebar .docs-folder-button[data-depth="0"] {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: rgba(232, 226, 217, 0.78);
+}
+
 .docs-sidebar .docs-file {
   font-weight: 500;
   font-size: 0.9rem;
+}
+
+.docs-sidebar .docs-file-button,
+.docs-sidebar .docs-folder-button {
+  position: relative;
+}
+
+.docs-sidebar .docs-tree-children {
+  position: relative;
+}
+
+.docs-sidebar .docs-tree-children::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(181, 147, 80, 0.22), rgba(181, 147, 80, 0.04));
 }
 
 .docs-sidebar .docs-folder .text-tn-text-muted {
@@ -200,6 +224,15 @@ body,
   margin-bottom: 0.75em;
 }
 
+.docs-content p,
+.docs-content li,
+.docs-content blockquote,
+.docs-content td,
+.docs-content th {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .docs-content a {
   color: var(--tn-accent);
 }
@@ -209,7 +242,9 @@ body,
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 1rem;
-  overflow: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
   margin: 1em 0;
 }
 
@@ -225,6 +260,8 @@ body,
   background: rgba(255, 255, 255, 0.08);
   padding: 0.2em 0.35em;
   border-radius: 4px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .docs-content blockquote {
@@ -334,6 +371,32 @@ body,
 .docs-content pre code {
   background: transparent;
   padding: 0;
+  white-space: inherit;
+}
+
+.docs-snippet-card {
+  backdrop-filter: blur(4px);
+}
+
+.docs-snippet-actions {
+  align-self: flex-start;
+}
+
+@media (max-width: 760px) {
+  .docs-reading-shell > :not(.docs-wide-block),
+  .docs-reading-shell > .docs-wide-block {
+    width: 100%;
+  }
+
+  .docs-snippet-actions {
+    width: 100%;
+  }
+
+  .docs-snippet-actions > * {
+    flex: 1 1 0;
+    justify-content: center;
+    text-align: center;
+  }
 }
 
 @keyframes interjection-march {

@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { HANDLE_REGISTRY, findHandleDef } from "../handleRegistry";
+import {
+  HANDLE_REGISTRY,
+  NON_CONNECTABLE_NODE_TYPES,
+  findHandleDef,
+  getHandles,
+} from "../handleRegistry";
 import { nodeTypes } from "../index";
 import { AssetCategory } from "@/schema/types";
 
@@ -10,7 +15,7 @@ describe("HANDLE_REGISTRY", () => {
   it("has entries for all non-fallback node types in nodeTypes registry", () => {
     const missing: string[] = [];
     for (const key of Object.keys(nodeTypes)) {
-      if (key === "default" || key === "group") continue;
+      if (key === "default" || NON_CONNECTABLE_NODE_TYPES.has(key)) continue;
       if (!HANDLE_REGISTRY[key]) {
         missing.push(key);
       }
@@ -64,6 +69,13 @@ describe("HANDLE_REGISTRY", () => {
         `${nodeType} should have at least 1 handle`,
       ).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  it("does not expose fallback handles for non-connectable annotation nodes", () => {
+    expect(getHandles("comment")).toEqual([]);
+    expect(getHandles("frame")).toEqual([]);
+    expect(findHandleDef("comment", "output")).toBeUndefined();
+    expect(findHandleDef("frame", "output")).toBeUndefined();
   });
 });
 

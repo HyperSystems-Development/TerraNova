@@ -23,6 +23,12 @@ import connectionsData from "@/data/connections.json";
 const connectionMatrix = connectionsData.connectionMatrix as Record<string, Record<string, number>>;
 
 /**
+ * Visual-only nodes that participate in layout/annotation but can never
+ * create graph connections. They must not fall back to generic density handles.
+ */
+export const NON_CONNECTABLE_NODE_TYPES = new Set(["group", "comment", "frame"]);
+
+/**
  * Static mapping from node type key (as registered in nodeTypes) to HandleDef[].
  * Used by isValidConnection to enforce type-safe wiring.
  */
@@ -448,6 +454,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
  * falls back to schema bundle, then default density output.
  */
 export function getHandles(nodeType: string): HandleDef[] {
+  if (NON_CONNECTABLE_NODE_TYPES.has(nodeType)) return [];
   return HANDLE_REGISTRY[nodeType] ?? getSchemaHandles(nodeType) ?? [densityOutput()];
 }
 
@@ -460,6 +467,7 @@ export function findHandleDef(
   nodeType: string,
   handleId: string,
 ): HandleDef | undefined {
+  if (NON_CONNECTABLE_NODE_TYPES.has(nodeType)) return undefined;
   const defs = HANDLE_REGISTRY[nodeType] ?? getSchemaHandles(nodeType);
   if (!defs) return undefined;
 
@@ -492,6 +500,7 @@ export function findCompatibleInterjectHandles(
   targetInputCategory: AssetCategory,
   connectedHandleIds: Set<string>,
 ): { inputHandleId: string; outputHandleId: string } | null {
+  if (NON_CONNECTABLE_NODE_TYPES.has(nodeType)) return null;
   const handles = getHandles(nodeType);
 
   // Find a compatible, unconnected target (input) handle

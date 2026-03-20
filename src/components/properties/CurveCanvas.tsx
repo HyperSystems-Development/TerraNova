@@ -47,7 +47,6 @@ interface CurveCanvasProps {
   label?: string;
   compact?: boolean;
   compactHeight?: number;
-  compactVariant?: "default" | "docs";
 }
 
 /** Compute viewport bounds from points with 10% padding. Defaults to [0,1] when all points fit. */
@@ -109,14 +108,15 @@ function formatAxisLabel(v: number): string {
 const snapToGrid = (v: number, interval: number = SNAP_GRID) =>
   Math.round(v / interval) * interval;
 
-export function CurveCanvas({ points, onChange, onCommit, evaluator, label, compact, compactHeight, compactVariant = "default" }: CurveCanvasProps) {
+export function CurveCanvas({ points, onChange, onCommit, evaluator, label, compact, compactHeight }: CurveCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pointsRef = useRef<NormalizedPoint[]>([]);
   const dragRef = useRef<DragState | null>(null);
   const hoverIndexRef = useRef<number>(-1);
   const rafRef = useRef<number>(0);
-  const sizeRef = useRef({ w: 0, h: compact ? 40 : CANVAS_HEIGHT });
+  const resolvedCompactHeight = compact ? Math.max(40, compactHeight ?? 40) : CANVAS_HEIGHT;
+  const sizeRef = useRef({ w: 0, h: resolvedCompactHeight });
   const cursorPosRef = useRef<{ x: number; y: number } | null>(null);
   const shiftHeldRef = useRef(false);
   const boundsRef = useRef<Bounds>({ xMin: 0, xMax: 1, yMin: 0, yMax: 1 });
@@ -128,7 +128,6 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
   const isInteractive = !!onChange && !compact;
   const canvasHeight = compact ? resolvedCompactHeight : CANVAS_HEIGHT;
   const padding = compact ? Math.max(4, Math.round(canvasHeight * 0.1)) : PADDING;
-  const isDocsCompact = compact && compactVariant === "docs";
 
   // Keep pointsRef in sync with props; compute bounds once on first load (interactive) or always (compact)
   useEffect(() => {
@@ -669,7 +668,7 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
 
   if (compact) {
     return (
-      <div ref={containerRef} style={{ width: "100%", height: 40 }}>
+      <div ref={containerRef} style={{ width: "100%", height: canvasHeight }}>
         <canvas ref={canvasRef} style={{ display: "block" }} />
       </div>
     );

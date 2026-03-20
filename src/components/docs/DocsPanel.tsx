@@ -13,14 +13,16 @@ import { MermaidDiagram } from "@/components/docs/MermaidDiagram";
 import { DocNodeGraph, parseNodeGraph } from "@/components/docs/DocNodeGraph";
 import {
   buildSnippetGraphData,
-  extractWalkthroughSteps,
-  filterDocTree,
-  findFirstFileSlug,
   getDefaultDocSlug,
   parseSnippetFence,
-  stripDocComments,
 } from "@/components/docs/docsPanelUtils";
 import { CurveCanvas } from "@/components/properties/CurveCanvas";
+import { autoLayout } from "@/utils/autoLayout";
+import { useEditorStore } from "@/stores/editorStore";
+import { getMutateAndCommit } from "@/stores/slices/historySlice";
+import { useToastStore } from "@/stores/toastStore";
+import { usePreviewStore } from "@/stores/previewStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 
 // ── Inline node pill ─────────────────────────────────────────────────────────
 // Category colours match DocNodeGraph's CATEGORY_COLORS palette.
@@ -163,7 +165,14 @@ function loadSettings(): DocsSettings {
 
 // Import all markdown docs under src/docs
 // Note: Vite now prefers `query: '?raw'` rather than `as: 'raw'`.
-const docsModules = import.meta.glob("../../docs/**/*.md", { query: "?raw", import: "default" }) as Record<string, () => Promise<string>>;
+const appDocsModules = import.meta.glob("../../docs/**/*.md", { query: "?raw", import: "default" }) as Record<string, () => Promise<string>>;
+const referenceDocsModules = import.meta.glob("../../../docs/reference/**/*.md", { query: "?raw", import: "default" }) as Record<string, () => Promise<string>>;
+const tutorialDocsModules = import.meta.glob("../../../docs/tutorials/**/*.md", { query: "?raw", import: "default" }) as Record<string, () => Promise<string>>;
+const docsModules = {
+  ...appDocsModules,
+  ...referenceDocsModules,
+  ...tutorialDocsModules,
+};
 
 type DocEntry = {
   slug: string;
@@ -235,6 +244,17 @@ const SLUG_TITLE_OVERRIDES: Record<string, string> = {
   "walkthroughs/terrain-and-caves":                          "Terrain & Caves",
   "walkthroughs/multi-biome-world":                          "Multi-Biome World",
   "walkthroughs/periodic-density-stripes":                   "Density Stripes",
+  // Reference
+  "reference/index":                                         "Reference",
+  "reference/terrain-types":                                 "Terrain Snippets",
+  "reference/reading-the-graph":                             "Reading the Graph",
+  "reference/node-effects":                                  "Node Effects",
+  "reference/curves":                                        "Curves Reference",
+  // Tutorials
+  "tutorials/index":                                         "Tutorials",
+  "tutorials/quickstart":                                    "Quickstart",
+  "tutorials/sky-islands-walkthrough":                       "Sky Islands Walkthrough",
+  "tutorials/environments-weather-guide":                    "Environments & Weather",
 };
 
 function titleFromSlug(slug: string) {
@@ -258,6 +278,7 @@ const ROOT_SECTION_ORDER = [
   { key: "overview", title: "Overview", slug: "overview" },
   { key: "getting-started", title: "Getting Started", slug: "getting-started" },
   { key: "walkthroughs", title: "Walkthroughs", slug: "walkthroughs" },
+  { key: "tutorials", title: "Tutorials", slug: "tutorials" },
   { key: "guides", title: "Guides", slug: "guides" },
   { key: "templates", title: "Templates", slug: "templates" },
   { key: "glossary", title: "Glossary", slug: "glossary" },
@@ -270,6 +291,7 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   overview:          BookOpen,
   "getting-started": Compass,
   walkthroughs:    MapIcon,
+  tutorials:       GraduationCap,
   guides:          GraduationCap,
   templates:       LayoutTemplate,
   glossary:        Library,
@@ -434,6 +456,7 @@ function DocTreeNodeItem({
   node,
   selectedSlug,
   onSelect,
+  onResolveFolderSlug,
   collapsed,
   onToggleCollapse,
   activeItemRef,
@@ -443,6 +466,7 @@ function DocTreeNodeItem({
   node: DocTreeNodeData;
   selectedSlug: string | null;
   onSelect: (slug: string) => void;
+  onResolveFolderSlug: (folderSlug: string) => string | null;
   collapsed: Record<string, boolean>;
   onToggleCollapse: (slug: string) => void;
   activeItemRef: React.RefObject<HTMLButtonElement | null>;
@@ -464,12 +488,13 @@ function DocTreeNodeItem({
       <button
         ref={isSelected ? (el) => { (activeItemRef as React.MutableRefObject<HTMLButtonElement | null>).current = el; } : undefined}
         type="button"
-        className={`docs-file flex w-full items-center gap-2 text-left border-l-2 transition-colors ${
+        data-depth={depth}
+        className={`docs-file docs-file-button flex w-full items-center gap-2 rounded-r-xl text-left border-l-2 transition-colors ${
           isTopLevel ? `${compact ? "py-1" : "py-2"} text-sm font-semibold` : `${compact ? "py-0.5" : "py-1.5"} text-[13px]`
         } ${
           isSelected
-            ? "border-tn-accent bg-tn-accent/20 text-tn-text"
-            : "border-transparent text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"
+            ? "border-tn-accent bg-tn-accent/18 text-tn-text shadow-[inset_0_0_0_1px_rgba(181,147,80,0.12)]"
+            : "border-transparent text-tn-text-muted hover:bg-tn-accent/8 hover:text-tn-text"
         }`}
         style={{ paddingLeft: `${indent + basePadding}px`, paddingRight: "12px" }}
         onClick={() => onSelect(node.slug)}
@@ -493,31 +518,32 @@ function DocTreeNodeItem({
   }
 
   const FolderIcon = SECTION_ICONS[node.slug] ?? Folder;
-  const readmeSlug = node.slug + "/README";
-  const isFolderSelected = selectedSlug === readmeSlug;
+  const defaultFolderSlug = onResolveFolderSlug(node.slug);
+  const isFolderSelected = defaultFolderSlug !== null && selectedSlug === defaultFolderSlug;
   const childCount = node.children.length;
   const compact = settings.compactTree;
   return (
-    <div className="docs-folder mt-0.5">
+    <div className="docs-folder mt-0.5" data-depth={depth}>
       <button
         ref={isFolderSelected ? (el) => { (activeItemRef as React.MutableRefObject<HTMLButtonElement | null>).current = el; } : undefined}
         type="button"
-        className={`flex w-full items-center gap-2 ${compact ? "py-1" : "py-2"} pr-3 text-sm font-semibold border-l-2 ${
+        data-depth={depth}
+        className={`docs-folder-button flex w-full items-center gap-2 rounded-r-xl ${compact ? "py-1" : "py-2"} pr-3 text-sm font-semibold border-l-2 ${
           isFolderSelected
-            ? "border-tn-accent bg-tn-accent/20 text-tn-text"
+            ? "border-tn-accent bg-tn-accent/18 text-tn-text shadow-[inset_0_0_0_1px_rgba(181,147,80,0.12)]"
             : `border-transparent ${isCollapsed ? "text-tn-text-muted" : "text-tn-text"}`
-        } hover:bg-tn-accent/10 focus:outline-none focus:ring-2 focus:ring-tn-accent/40`}
+        } hover:bg-tn-accent/8 focus:outline-none focus:ring-2 focus:ring-tn-accent/40`}
         style={{ paddingLeft: `${indent + basePadding}px` }}
         onClick={() => {
           onToggleCollapse(node.slug);
-          onSelect(readmeSlug);
+          if (defaultFolderSlug) onSelect(defaultFolderSlug);
         }}
         aria-expanded={!isCollapsed}
       >
         <FolderIcon className="h-4 w-4 shrink-0" />
         <span className="flex-1 truncate">{node.title}</span>
         {isCollapsed && settings.showFolderCount && (
-          <span className="text-[10px] text-tn-text-muted tabular-nums shrink-0 mr-0.5">{childCount}</span>
+          <span className="mr-0.5 shrink-0 rounded-full border border-tn-border/70 bg-tn-bg/70 px-1.5 py-px text-[10px] tabular-nums text-tn-text-muted">{childCount}</span>
         )}
         {isCollapsed
           ? <ChevronRight className="h-3 w-3 text-tn-text-muted shrink-0" />
@@ -525,13 +551,14 @@ function DocTreeNodeItem({
         }
       </button>
       {!isCollapsed && (
-        <div className="pb-1">
+        <div className="docs-tree-children ml-3 border-l border-tn-border/55 pb-1 pl-1.5">
           {node.children.map((child) => (
             <DocTreeNodeItem
               key={`${child.type}-${child.slug}`}
               node={child}
               selectedSlug={selectedSlug}
               onSelect={onSelect}
+              onResolveFolderSlug={onResolveFolderSlug}
               collapsed={collapsed}
               onToggleCollapse={onToggleCollapse}
               activeItemRef={activeItemRef}
@@ -565,6 +592,30 @@ function CopyButton({ text }: { text: string }) {
       }}
     >
       {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
+  );
+}
+
+function ActionPillButton({
+  label,
+  onClick,
+  title,
+  disabled = false,
+}: {
+  label: string;
+  onClick: () => void;
+  title?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className="inline-flex items-center justify-center rounded-md border border-tn-border/80 bg-tn-bg/85 px-2.5 py-1 text-[10px] font-medium text-tn-text-muted transition-colors hover:border-tn-accent/70 hover:bg-tn-accent/10 hover:text-tn-text disabled:cursor-not-allowed disabled:opacity-40"
+      onClick={onClick}
+      title={title}
+      disabled={disabled}
+    >
+      {label}
     </button>
   );
 }
@@ -845,6 +896,17 @@ export function DocsPanel() {
   const activeItemRef = useRef<HTMLButtonElement | null>(null);
   // Keep a ref in sync with selectedSlug so mdComponents/handleLinkClick don't recreate on every nav
   const selectedSlugRef = useRef<string | null>(null);
+  const addToast = useToastStore((s) => s.addToast);
+  const switchBiomeSection = useEditorStore((s) => s.switchBiomeSection);
+
+  const writeTextToClipboard = useCallback(async (text: string): Promise<boolean> => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
 
   const entries = useMemo<DocEntry[]>(() => {
     const list: DocEntry[] = [];
@@ -866,6 +928,12 @@ export function DocsPanel() {
   const showCurveStats = settings.curvePreviewDetail === "standard";
   const docsCurveHeight = showCurveStats ? 112 : 96;
   const docsCurveWidthClass = showCurveStats ? "max-w-[480px]" : "max-w-[440px]";
+
+  const allDocSlugs = useMemo(() => entries.map((entry) => entry.slug), [entries]);
+  const resolveFolderSlug = useCallback(
+    (folderSlug: string) => getDefaultDocSlug(folderSlug, allDocSlugs),
+    [allDocSlugs],
+  );
 
   const docTree = useMemo(() => buildDocTree(entries), [entries]);
   const tocEntries = useMemo(() => parseToc(rawMd), [rawMd]);
@@ -991,6 +1059,90 @@ export function DocsPanel() {
     },
     [entriesBySlug],
   );
+
+  const handleCopySnippetJson = useCallback(async (snippetJson: string, label?: string) => {
+    const copied = await writeTextToClipboard(snippetJson);
+    addToast(
+      copied
+        ? `${label ?? "Snippet"} JSON copied`
+        : `Could not copy ${label ?? "snippet"} JSON`,
+      copied ? "success" : "error",
+    );
+  }, [addToast, writeTextToClipboard]);
+
+  const handleCopySnippetGraph = useCallback(async (snippetJson: string, label?: string) => {
+    try {
+      const graphData = buildSnippetGraphData(snippetJson);
+      useEditorStore.setState({ _clipboardData: graphData.clipboardData });
+      const copied = await writeTextToClipboard(JSON.stringify(graphData.clipboardData));
+      addToast(
+        copied
+          ? `${label ?? "Terrain graph"} copied. Paste it into the canvas with Ctrl+V.`
+          : `${label ?? "Terrain graph"} saved to TerraNova clipboard. Paste it into the canvas with Ctrl+V.`,
+        "success",
+      );
+    } catch (error) {
+      addToast(
+        `Could not build a graph from this snippet: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
+      );
+    }
+  }, [addToast, writeTextToClipboard]);
+
+  const handleOpenSnippetInEditor = useCallback(async (snippetJson: string, label?: string) => {
+    try {
+      const editor = useEditorStore.getState();
+      const context = editor.editingContext;
+
+      if (context === "Biome") {
+        if (!editor.biomeSections?.Terrain) {
+          addToast("This biome does not have a Terrain graph section to replace.", "warning");
+          return;
+        }
+        switchBiomeSection("Terrain");
+      } else if (context !== null && context !== "Density") {
+        addToast("Open a biome Terrain tab or a density graph before loading a terrain snippet.", "warning");
+        return;
+      }
+
+      const graphData = buildSnippetGraphData(snippetJson);
+      const flowDirection = useSettingsStore.getState().flowDirection;
+      const layoutedNodes = await autoLayout(graphData.clipboardData.nodes, graphData.clipboardData.edges, flowDirection)
+        .catch(() => graphData.clipboardData.nodes);
+
+      const mutateAndCommit = getMutateAndCommit();
+      mutateAndCommit((state) => ({
+        nodes: layoutedNodes,
+        edges: graphData.clipboardData.edges,
+        outputNodeId: graphData.outputNodeId,
+        selectedNodeId: graphData.outputNodeId,
+        ...(state.editingContext === null
+          ? {
+              editingContext: "Density",
+              originalWrapper: null,
+              rawJsonContent: null,
+              biomeSections: null,
+              activeBiomeSection: null,
+              biomeConfig: null,
+              biomeRanges: [],
+              noiseRangeConfig: null,
+              settingsConfig: null,
+              materialConfig: null,
+              instanceConfig: null,
+            }
+          : {}),
+      }), `Load ${label ?? "terrain snippet"}`);
+
+      usePreviewStore.getState().setViewMode("graph");
+      usePreviewStore.getState().setSelectedPreviewNodeId(graphData.outputNodeId);
+      addToast(`${label ?? "Terrain snippet"} loaded into the editor`, "success");
+    } catch (error) {
+      addToast(
+        `Could not load this snippet into the editor: ${error instanceof Error ? error.message : String(error)}`,
+        "error",
+      );
+    }
+  }, [addToast, switchBiomeSection]);
 
   const navBack = useCallback(() => {
     const i = navIndexRef.current;
@@ -1205,10 +1357,10 @@ export function DocsPanel() {
       const cls = String(codeProps?.className || "");
       const lang = /language-(\w+)/.exec(cls)?.[1];
       const value = String(codeProps?.children ?? "").replace(/\n$/, "");
-      if (lang === "mermaid") return <MermaidDiagram code={value} />;
+      if (lang === "mermaid") return <div className="docs-wide-block"><MermaidDiagram code={value} /></div>;
       if (lang === "nodegraph") {
         const graph = parseNodeGraph(value);
-        if (graph) return <DocNodeGraph {...graph} />;
+        if (graph) return <div className="docs-wide-block"><DocNodeGraph {...graph} /></div>;
       }
       // curve: fence — renders a read-only CurveCanvas with optional label
       // Format: first line (optional) = label, rest = JSON point array [[x,y],...]
@@ -1229,33 +1381,15 @@ export function DocsPanel() {
           const yMin = yValues.length > 0 ? Math.min(...yValues) : 0;
           const yMax = yValues.length > 0 ? Math.max(...yValues) : 0;
           return (
-            <div className="my-3 rounded border border-tn-border overflow-hidden">
+            <div className="docs-wide-block my-4 overflow-hidden rounded-xl border border-tn-border bg-tn-panel/45 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
               {label && (
-                <div className="px-3 py-1.5 text-[11px] text-tn-text-muted bg-tn-panel border-b border-tn-border font-medium">
+                <div className="border-b border-tn-border bg-tn-panel px-3 py-2 text-[11px] font-medium tracking-[0.03em] text-tn-text-muted">
                   {label}
                 </div>
               )}
-              <div className="bg-[linear-gradient(180deg,rgba(181,147,80,0.06),transparent_70%)] px-3 py-3">
-                <div className={`mx-auto w-full ${docsCurveWidthClass}`}>
-                  <CurveCanvas
-                    points={points}
-                    compact
-                    compactHeight={docsCurveHeight}
-                    compactVariant={showCurveStats ? "docs" : "default"}
-                  />
-                  {showCurveStats && (
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-tn-text-muted">
-                      <span className="rounded-full border border-tn-border/70 bg-tn-bg/65 px-2 py-0.5">
-                        {points.length} pt{points.length === 1 ? "" : "s"}
-                      </span>
-                      <span className="rounded-full border border-tn-border/70 bg-tn-bg/65 px-2 py-0.5">
-                        X {xMin.toFixed(2)} to {xMax.toFixed(2)}
-                      </span>
-                      <span className="rounded-full border border-tn-border/70 bg-tn-bg/65 px-2 py-0.5">
-                        Y {yMin.toFixed(2)} to {yMax.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
+              <div className="bg-[linear-gradient(180deg,rgba(181,147,80,0.05),transparent_70%)] px-3 py-3">
+                <div className="mx-auto w-full max-w-[520px]">
+                  <CurveCanvas points={points} compact compactHeight={96} />
                 </div>
               </div>
             </div>
@@ -1274,9 +1408,9 @@ export function DocsPanel() {
           const zeroFrac = range === 0 ? 0 : Math.max(0, Math.min(1, (0 - min) / range));
           const hasZeroCross = min < 0 && max > 0;
           return (
-            <div className="my-3 rounded border border-tn-border bg-tn-panel overflow-hidden">
+            <div className="docs-wide-block my-4 overflow-hidden rounded-xl border border-tn-border bg-tn-panel shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
               {label && (
-                <div className="px-3 py-1.5 text-[11px] text-tn-text-muted border-b border-tn-border font-medium">
+                <div className="border-b border-tn-border px-3 py-2 text-[11px] font-medium tracking-[0.03em] text-tn-text-muted">
                   {label}
                 </div>
               )}
@@ -1314,17 +1448,7 @@ export function DocsPanel() {
       // snippet: fence renders a labelled copyable JSON block styled as a terrain snippet
       // Format: first line (if not JSON) is the label and optional [difficulty], rest is JSON
       if (lang === "snippet") {
-        const lines = value.trim().split("\n");
-        let label: string | undefined;
-        let difficulty: string | undefined;
-        let snippetJson = value.trim();
-        if (!lines[0].trim().startsWith("{") && !lines[0].trim().startsWith("[")) {
-          const header = lines[0].trim();
-          const diffMatch = /\[([^\]]+)\]/.exec(header);
-          difficulty = diffMatch?.[1];
-          label = header.replace(/\[[^\]]+\]/, "").trim();
-          snippetJson = lines.slice(1).join("\n").trim();
-        }
+        const { label, difficulty, snippetJson } = parseSnippetFence(value);
         const difficultyColor: Record<string, string> = {
           Beginner: "bg-green-500/20 text-green-400 border-green-500/30",
           Intermediate: "bg-amber-500/20 text-amber-400 border-amber-500/30",
@@ -1333,21 +1457,44 @@ export function DocsPanel() {
         };
         const diffClass = difficulty ? (difficultyColor[difficulty] ?? "bg-tn-surface text-tn-text-muted border-tn-border") : "";
         return (
-          <div className="my-4 rounded border border-tn-border overflow-hidden">
-            <div className="flex items-center justify-between gap-2 px-3 py-2 bg-tn-panel border-b border-tn-border">
-              <div className="flex items-center gap-2 min-w-0">
-                {label && (
-                  <span className="text-[11px] font-semibold text-tn-text truncate">{label}</span>
-                )}
-                {difficulty && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium shrink-0 ${diffClass}`}>
-                    {difficulty}
-                  </span>
-                )}
+          <div className="docs-wide-block docs-snippet-card my-5 overflow-hidden rounded-xl border border-tn-border bg-tn-panel/70 shadow-[0_12px_28px_rgba(0,0,0,0.16)]">
+            <div className="border-b border-tn-border bg-[linear-gradient(180deg,rgba(181,147,80,0.12),rgba(181,147,80,0.03))] px-3 py-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    {label && (
+                      <span className="truncate text-[12px] font-semibold tracking-[0.02em] text-tn-text">{label}</span>
+                    )}
+                    {difficulty && (
+                      <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium ${diffClass}`}>
+                        {difficulty}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 text-[10px] uppercase tracking-[0.08em] text-tn-text-muted/75">
+                    Terrain snippet
+                  </div>
+                </div>
+                <div className="docs-snippet-actions flex flex-wrap items-center gap-1.5 sm:justify-end">
+                <ActionPillButton
+                  label="Copy JSON"
+                  onClick={() => { void handleCopySnippetJson(snippetJson, label); }}
+                  title="Copy the raw terrain snippet JSON"
+                />
+                <ActionPillButton
+                  label="Copy Graph"
+                  onClick={() => { void handleCopySnippetGraph(snippetJson, label); }}
+                  title="Copy a paste-ready TerraNova graph to the clipboard"
+                />
+                <ActionPillButton
+                  label="Open In Editor"
+                  onClick={() => { void handleOpenSnippetInEditor(snippetJson, label); }}
+                  title="Replace the current terrain graph with this snippet"
+                />
+                </div>
               </div>
-              <CopyButton text={snippetJson} />
             </div>
-            <pre className={`m-0 border-t border-white/5 bg-tn-bg/55 p-4 text-xs leading-7 text-tn-text-muted ${shouldWrapCodeBlocks ? "overflow-x-hidden whitespace-pre-wrap break-words" : "overflow-x-auto whitespace-pre"}`}>
+            <pre className="m-0 overflow-x-hidden whitespace-pre-wrap break-words border-t border-white/5 bg-tn-bg/55 p-4 text-xs leading-7 text-tn-text-muted">
               <code>{snippetJson}</code>
             </pre>
           </div>
@@ -1417,8 +1564,7 @@ export function DocsPanel() {
         )}
       </h3>
     ),
-  }), [entriesBySlug, handleCopySnippetGraph, handleCopySnippetJson, handleLinkClick, handleOpenSnippetInEditor]);
-  const selectedEntry = selectedSlug ? entriesBySlug.get(selectedSlug) ?? null : null;
+  }), [entries, handleCopySnippetGraph, handleCopySnippetJson, handleLinkClick, handleOpenSnippetInEditor]);
 
   return (
     <div className="flex h-full">
@@ -1556,13 +1702,12 @@ export function DocsPanel() {
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto" ref={sidebarScrollRef}>
-            {normalizedFilter && (
-              <div className="flex items-center justify-between gap-2 border-b border-tn-border px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-tn-text-muted">
+            {filter.trim() && (
+              <div className="border-b border-tn-border px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-tn-text-muted">
                 {filtered.length} result{filtered.length === 1 ? "" : "s"}
-                {isSearchPending && <span className="text-[9px] tracking-[0.08em] text-tn-text-muted/70">Updating</span>}
               </div>
             )}
-            {filteredTree.length === 0 && normalizedFilter ? (
+            {filteredTree.length === 0 && filter.trim() ? (
               <div className="px-4 py-6 text-center text-xs text-tn-text-muted">No results for "{filter}"</div>
             ) : (
               filteredTree.map((node) => (
@@ -1571,6 +1716,7 @@ export function DocsPanel() {
                   node={node}
                   selectedSlug={selectedSlug}
                   onSelect={loadDoc}
+                  onResolveFolderSlug={resolveFolderSlug}
                   collapsed={collapsedFolders}
                   onToggleCollapse={(slug) =>
                     setCollapsedFolders((prev) => ({ ...prev, [slug]: !prev[slug] }))
@@ -1688,7 +1834,7 @@ export function DocsPanel() {
 
             {walkthroughActive ? (
               <div
-                className="flex flex-col gap-4"
+                className="docs-reading-shell flex flex-col gap-4"
                 onKeyDown={(e) => {
                   if (e.key === "ArrowLeft") setWalkthroughStep((s) => Math.max(0, s - 1));
                   if (e.key === "ArrowRight") setWalkthroughStep((s) => Math.min(walkthroughSteps.length - 1, s + 1));
@@ -1728,7 +1874,7 @@ export function DocsPanel() {
                 </div>
               </div>
             ) : (
-              <>
+              <div className="docs-reading-shell">
                 {isExperimental && (
                   <div className="mb-5 flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-500/08 px-4 py-3 text-sm" style={{ background: "rgba(245,158,11,0.07)" }}>
                     <span className="mt-0.5 shrink-0 text-base leading-none">⚗️</span>
@@ -1754,7 +1900,7 @@ export function DocsPanel() {
                   entries={entries}
                   loadDoc={loadDoc}
                 />
-              </>
+              </div>
             )}
           </>
         ) : (

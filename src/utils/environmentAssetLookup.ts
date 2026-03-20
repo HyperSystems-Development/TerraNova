@@ -51,6 +51,12 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function restoreSeparators(sourcePath: string, normalizedPath: string): string {
+  return sourcePath.includes("\\")
+    ? normalizedPath.replace(/\//g, "\\")
+    : normalizedPath;
+}
+
 // Windows-only: Hytale is currently a Windows title, so user profile paths
 // are always under C:\Users\<name>.  If Hytale ships on other platforms this
 // regex should be extended to match /home/<name> or /Users/<name>.
@@ -64,7 +70,7 @@ function inferUserProfileRoot(path: string | null): string | null {
 function deriveWorkspacePathFromServerRoot(serverRoot: string): string | null {
   const gameRoot = getDirname(serverRoot);
   if (!gameRoot) return null;
-  return joinPath(gameRoot, WORKSPACE_SUFFIX);
+  return restoreSeparators(serverRoot, joinPath(gameRoot, WORKSPACE_SUFFIX));
 }
 
 function buildWorkspaceCandidates(
@@ -102,14 +108,14 @@ export function deriveServerRootFromWorkspacePath(workspacePath: string): string
   const marker = `/${WORKSPACE_SUFFIX.toLowerCase()}`;
   const markerIndex = lower.lastIndexOf(marker);
   if (markerIndex >= 0) {
-    return `${normalized.slice(0, markerIndex)}/Server`;
+    return restoreSeparators(workspacePath, `${normalized.slice(0, markerIndex)}/Server`);
   }
 
   const workspacesDir = getDirname(normalized);
   const nodeEditorDir = workspacesDir ? getDirname(workspacesDir) : null;
   const clientDir = nodeEditorDir ? getDirname(nodeEditorDir) : null;
   const gameRoot = clientDir ? getDirname(clientDir) : null;
-  return gameRoot ? joinPath(gameRoot, "Server") : null;
+  return gameRoot ? restoreSeparators(workspacePath, joinPath(gameRoot, "Server")) : null;
 }
 
 export function extractWorkspaceEnvironmentTypeHints(workspaceDoc: unknown): string[] {
