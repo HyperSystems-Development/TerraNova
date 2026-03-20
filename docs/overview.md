@@ -1,5 +1,7 @@
 # TerraNova Overview
 
+> Legacy compatibility page. The current in-app documentation source lives under [`src/docs/overview.md`](../src/docs/overview.md).
+
 TerraNova is an offline tool for building Hytale World Generation V2 asset packs. It provides:
 
 - A **node-based editor** for creating density graphs, materials, and environment assets.

@@ -1,5 +1,7 @@
 # Getting Started
 
+> Legacy compatibility page. The current in-app documentation source lives under [`src/docs/overview.md`](../src/docs/overview.md).
+
 Welcome to TerraNova, a visual node editor for Hytale World Generation V2.
 
 ## What is TerraNova?

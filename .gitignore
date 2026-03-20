@@ -6,6 +6,7 @@ node_modules/
 dist/
 build/
 src-tauri/target/
+*.tsbuildinfo
 
 # IDE
 .vscode/
@@ -24,6 +25,7 @@ src-tauri/gen/
 # Environment
 .env
 .env.*
+package-lock.json
 
 # TerraNova drafts
 .terranova/

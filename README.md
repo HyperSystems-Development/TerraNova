@@ -186,6 +186,19 @@ pnpm tauri build
 # Output: src-tauri/target/release/bundle/
 ```
 
+### Validation helpers
+
+```bash
+# Run the full local validation pass
+pnpm check
+
+# Individual helpers
+pnpm typecheck
+pnpm test:run
+pnpm cargo:check
+pnpm cargo:fmt
+```
+
 </details>
 
 <details>
