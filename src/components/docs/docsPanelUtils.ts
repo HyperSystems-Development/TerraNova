@@ -152,6 +152,68 @@ export function buildSnippetDocNodeGraph(
   };
 }
 
+export interface DocTreeFileNode {
+  type: "file";
+  slug: string;
+}
+
+export interface DocTreeFolderNode {
+  type: "folder";
+  slug: string;
+  children: DocTreeNode[];
+}
+
+export type DocTreeNode = DocTreeFileNode | DocTreeFolderNode;
+
+export interface WalkthroughStep {
+  title: string;
+  content: string;
+}
+
+export function stripDocComments(markdown: string): string {
+  return markdown.replace(/<!--[\s\S]*?-->/g, "");
+}
+
+export function extractWalkthroughSteps(markdown: string): WalkthroughStep[] {
+  const walkthroughMatch = /<!--\s*walkthrough\s*-->/.exec(markdown);
+  if (!walkthroughMatch) return [];
+
+  const afterWalkthrough = markdown.slice(walkthroughMatch.index + walkthroughMatch[0].length);
+  const cleaned = stripDocComments(afterWalkthrough);
+  const sections = cleaned.split(/^##\s+/m).slice(1);
+
+  return sections.map((section) => {
+    const newlineIndex = section.indexOf("\n");
+    const title = newlineIndex >= 0 ? section.slice(0, newlineIndex).trim() : section.trim();
+    const content = newlineIndex >= 0 ? section.slice(newlineIndex + 1).trim() : "";
+    return { title, content };
+  });
+}
+
+export function filterDocTree(nodes: DocTreeNode[], allowed: Set<string>): DocTreeNode[] {
+  const result: DocTreeNode[] = [];
+  for (const node of nodes) {
+    if (node.type === "file") {
+      if (allowed.has(node.slug)) result.push(node);
+    } else {
+      const filteredChildren = filterDocTree(node.children, allowed);
+      if (filteredChildren.length > 0) {
+        result.push({ ...node, children: filteredChildren });
+      }
+    }
+  }
+  return result;
+}
+
+export function findFirstFileSlug(nodes: DocTreeNode[]): string | null {
+  for (const node of nodes) {
+    if (node.type === "file") return node.slug;
+    const found = findFirstFileSlug(node.children);
+    if (found) return found;
+  }
+  return null;
+}
+
 export function buildDocNodeGraphMarkdownBlock(
   graph: DocNodeGraphProps | string,
 ): string {

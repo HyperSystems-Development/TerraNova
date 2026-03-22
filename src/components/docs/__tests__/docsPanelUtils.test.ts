@@ -3,8 +3,12 @@ import {
   buildDocNodeGraphMarkdownBlock,
   buildSnippetDocNodeGraph,
   buildSnippetGraphData,
+  extractWalkthroughSteps,
+  filterDocTree,
+  findFirstFileSlug,
   getDefaultDocSlug,
   parseSnippetFence,
+  stripDocComments,
 } from "../docsPanelUtils";
 
 describe("docsPanelUtils", () => {

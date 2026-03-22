@@ -15,8 +15,12 @@ import {
   buildDocNodeGraphMarkdownBlock,
   buildSnippetDocNodeGraph,
   buildSnippetGraphData,
+  extractWalkthroughSteps,
+  filterDocTree,
+  findFirstFileSlug,
   getDefaultDocSlug,
   parseSnippetFence,
+  stripDocComments,
 } from "@/components/docs/docsPanelUtils";
 import { CurveCanvas } from "@/components/properties/CurveCanvas";
 import { autoLayout } from "@/utils/autoLayout";
@@ -923,16 +927,9 @@ export function DocsPanel() {
   const docsCurveWidthClass = showCurveStats ? "max-w-[480px]" : "max-w-[440px]";
   const snippetDisplayMode = settings.snippetDisplayMode;
 
-  const allDocSlugs = useMemo(() => entries.map((entry) => entry.slug), [entries]);
-  const resolveFolderSlug = useCallback(
-    (folderSlug: string) => getDefaultDocSlug(folderSlug, allDocSlugs),
-    [allDocSlugs],
-  );
-
   const docTree = useMemo(() => buildDocTree(entries), [entries]);
   const tocEntries = useMemo(() => parseToc(rawMd), [rawMd]);
   const normalizedFilter = deferredFilter.trim();
-  const isSearchPending = filter !== deferredFilter;
 
   const getAllFolderSlugs = useCallback((nodes: DocTreeNodeData[]): string[] => {
     const slugs: string[] = [];
@@ -1418,12 +1415,6 @@ export function DocsPanel() {
         }
         try {
           const points = JSON.parse(pointsJson) as [number, number][];
-          const xValues = points.map(([x]) => x);
-          const yValues = points.map(([, y]) => y);
-          const xMin = xValues.length > 0 ? Math.min(...xValues) : 0;
-          const xMax = xValues.length > 0 ? Math.max(...xValues) : 0;
-          const yMin = yValues.length > 0 ? Math.min(...yValues) : 0;
-          const yMax = yValues.length > 0 ? Math.max(...yValues) : 0;
           return (
             <div className="docs-wide-block my-4 overflow-hidden rounded-xl border border-tn-border bg-tn-panel/45 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
               {label && (

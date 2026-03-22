@@ -47,6 +47,7 @@ interface CurveCanvasProps {
   label?: string;
   compact?: boolean;
   compactHeight?: number;
+  docsCompact?: boolean;
 }
 
 /** Compute viewport bounds from points with 10% padding. Defaults to [0,1] when all points fit. */
@@ -108,7 +109,8 @@ function formatAxisLabel(v: number): string {
 const snapToGrid = (v: number, interval: number = SNAP_GRID) =>
   Math.round(v / interval) * interval;
 
-export function CurveCanvas({ points, onChange, onCommit, evaluator, label, compact, compactHeight }: CurveCanvasProps) {
+export function CurveCanvas({ points, onChange, onCommit, evaluator, label, compact, compactHeight, docsCompact }: CurveCanvasProps) {
+  const isDocsCompact = docsCompact ?? false;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pointsRef = useRef<NormalizedPoint[]>([]);
