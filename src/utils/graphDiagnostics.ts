@@ -1,6 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { BaseNodeData } from "@/nodes/shared/BaseNode";
-import { HANDLE_REGISTRY, findHandleDef } from "@/nodes/handleRegistry";
+import { getHandles, findHandleDef } from "@/nodes/handleRegistry";
 import { getConstraints, OUTPUT_RANGES } from "@/schema/constraints";
 import { validateFields } from "@/schema/validation";
 import { isLegacyTypeKey } from "@/nodes/shared/legacyTypes";
@@ -222,8 +222,8 @@ export function analyzeGraph(
   // 1. Disconnected required inputs
   for (const node of nodes) {
     const type = getNodeType(node);
-    const handles = HANDLE_REGISTRY[type];
-    if (!handles) continue;
+    const handles = getHandles(type);
+    if (!handles.length) continue;
 
     const connectedHandles = incomingByTarget.get(node.id) ?? new Set();
     const inputHandles = handles.filter((h) => h.type === "target");

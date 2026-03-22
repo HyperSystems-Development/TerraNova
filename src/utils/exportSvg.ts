@@ -1,7 +1,8 @@
 import type { ReactFlowInstance, Edge } from "@xyflow/react";
 import { AssetCategory, CATEGORY_COLORS } from "@/schema/types";
 import { getDensityAccentColor } from "@/schema/densitySubcategories";
-import { getHandles, HANDLE_REGISTRY } from "@/nodes/handleRegistry";
+import { getHandles } from "@/nodes/handleRegistry";
+import { getSchemaHandles } from "@/schema/schemaLoader";
 import { COMPOUND_PORTS } from "@/nodes/shared/compoundPorts";
 import { HEADER_H, ROW_H, handleTop } from "@/nodes/shared/nodeLayout";
 import { INPUT_HANDLE_COLOR, getHandleColor, categoryInput } from "@/nodes/shared/handles";
@@ -226,7 +227,7 @@ export function generateSvg(
     let variant: NodeVariant;
     if (rfType === "Root") variant = "root";
     else if (rfType === "group") variant = "group";
-    else if (!(rfType in HANDLE_REGISTRY)) variant = "generic";
+    else if (!getSchemaHandles(rfType)) variant = "generic";
     else variant = "base";
 
     // Internal node from React Flow for measured dimensions + handle bounds

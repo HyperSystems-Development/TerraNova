@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { HANDLE_REGISTRY, findHandleDef } from "../handleRegistry";
+import { getHandles, findHandleDef } from "../handleRegistry";
 import { nodeTypes } from "../index";
 import { DENSITY_DEFAULTS } from "@/schema/defaults";
 import { FIELD_CONSTRAINTS } from "@/schema/constraints";
@@ -52,13 +52,14 @@ describe("Extended node types — schema defaults", () => {
  * ══════════════════════════════════════════════════════════════════════════ */
 
 describe("Extended node types — handle registry", () => {
-  it.each(ALL_DENSITY)("density '%s' has a HANDLE_REGISTRY entry", (type) => {
-    expect(HANDLE_REGISTRY[type]).toBeDefined();
-    expect(HANDLE_REGISTRY[type].length).toBeGreaterThanOrEqual(1);
+  it.each(ALL_DENSITY)("density '%s' has handle definitions", (type) => {
+    const handles = getHandles(type);
+    expect(handles).toBeDefined();
+    expect(handles.length).toBeGreaterThanOrEqual(1);
   });
 
   it.each(ALL_DENSITY)("density '%s' has a density output handle", (type) => {
-    const defs = HANDLE_REGISTRY[type];
+    const defs = getHandles(type);
     const outputs = defs.filter((d) => d.id === "output" && d.type === "source");
     expect(outputs.length).toBe(1);
     expect(outputs[0].category).toBe(AssetCategory.Density);
@@ -78,14 +79,14 @@ describe("Extended node types — cross-category handles", () => {
   });
 
   it("Amplitude has two density input handles", () => {
-    const defs = HANDLE_REGISTRY["Amplitude"];
+    const defs = getHandles("Amplitude");
     const inputs = defs.filter((d) => d.type === "target");
     expect(inputs.length).toBe(2);
     expect(inputs.every((d) => d.category === AssetCategory.Density)).toBe(true);
   });
 
   it("GradientWarp has two density input handles", () => {
-    const defs = HANDLE_REGISTRY["GradientWarp"];
+    const defs = getHandles("GradientWarp");
     const inputs = defs.filter((d) => d.type === "target");
     expect(inputs.length).toBe(2);
     expect(inputs.every((d) => d.category === AssetCategory.Density)).toBe(true);

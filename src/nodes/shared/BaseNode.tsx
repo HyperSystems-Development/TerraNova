@@ -17,7 +17,7 @@ import type { DiagnosticSeverity } from "@/utils/graphDiagnostics";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useEditorStore } from "@/stores/editorStore";
 import { getDensityAccentColor } from "@/schema/densitySubcategories";
-import { HANDLE_REGISTRY } from "@/nodes/handleRegistry";
+import { getHandles } from "@/nodes/handleRegistry";
 import { isLegacyTypeKey } from "@/nodes/shared/legacyTypes";
 import { getBridgeInfo } from "@/data/bridgeRegistry";
 import { getSchemaPortDescription } from "@/schema/schemaLoader";
@@ -177,8 +177,7 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
       const tn = s.nodes.find((n) => n.id === edge.target);
       if (!tn) continue;
       const tt = ((tn.data as Record<string, unknown>).type as string) ?? "";
-      const defs = HANDLE_REGISTRY[tt];
-      if (!defs) continue;
+      const defs = getHandles(tt);
       const targetInputs = defs.filter((h) => h.type === "target");
       const idx = targetInputs.findIndex((h) => h.id === th);
       if (idx >= 0) return idx;
