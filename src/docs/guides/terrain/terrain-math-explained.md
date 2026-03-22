@@ -202,11 +202,7 @@ This creates a perfectly flat ground plane at Y=64 -- positive below (solid) and
 
 ### YSampled
 
-Evaluates another density function at a **fixed Y offset** from the current position:
-```
-sampled_density = evaluate(node, x, y + SampleOffset, z) - evaluate(node, x, y - SampleOffset, z)
-```
-Wait -- it is actually simpler than that. `YSampled` re-evaluates its input at Y plus `SampleDistance` to get the density above the current point. It is used to create **overhangs**.
+Re-evaluates its input density at a **single Y coordinate** offset from the current position -- either provided by a `YProvider` input or snapped to the nearest multiple of `SampleDistance`. It is used to create **overhangs**.
 
 **Why this creates overhangs:**
 - At a point just below the surface, the density is positive (solid).

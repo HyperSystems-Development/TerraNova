@@ -99,8 +99,10 @@ export function evalDistanceS(
   };
 
   const transitionDist = clampedTransition * range;
+  if (!Number.isFinite(transitionDist)) return () => 0;
   const posA = range / 2 - transitionDist / 2;
   const posB = posA + transitionDist;
+  if (!Number.isFinite(posA) || !Number.isFinite(posB)) return () => 0;
 
   return (x: number): number => {
     const d = Math.abs(x);
