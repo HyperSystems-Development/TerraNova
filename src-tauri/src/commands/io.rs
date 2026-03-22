@@ -38,7 +38,10 @@ pub fn unregister_project_root(path: String) {
 /// This helper allows the frontend to open it automatically.
 #[tauri::command]
 pub fn get_launch_file() -> Option<String> {
-    std::env::args().skip(1).find(|arg| std::path::Path::new(arg).is_file())
+    std::env::args_os()
+        .skip(1)
+        .find(|arg| std::path::Path::new(arg).is_file())
+        .map(|arg| std::path::PathBuf::from(arg).to_string_lossy().to_string())
 }
 
 /// Open an asset pack directory and parse all JSON files.
