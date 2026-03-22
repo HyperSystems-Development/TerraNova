@@ -1,7 +1,8 @@
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useRef } from "react";
 import type { NodeProps, ResizeDragEvent, ResizeParams } from "@xyflow/react";
 import { NodeResizer } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
+import { useProjectStore } from "@/stores/projectStore";
 
 export interface FrameNodeData {
   type: "frame";
@@ -20,6 +21,7 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
   const nodeData = data as unknown as FrameNodeData;
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(nodeData.name ?? "");
+  const cancelEditRef = useRef(false);
 
   const handleLabelDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -28,21 +30,30 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
   }, [nodeData.name]);
 
   const handleCommit = useCallback(() => {
+    if (cancelEditRef.current) {
+      cancelEditRef.current = false;
+      setIsEditing(false);
+      return;
+    }
     setIsEditing(false);
-    const { nodes, setNodes } = useEditorStore.getState();
+    const { nodes, setNodes, commitState } = useEditorStore.getState();
     setNodes(nodes.map((n) =>
       n.id !== id ? n : { ...n, data: { ...n.data as object, name: editName } }
     ));
+    commitState("Rename frame");
+    useProjectStore.getState().setDirty(true);
   }, [id, editName]);
 
   const handleResizeEnd = useCallback(
     (_event: ResizeDragEvent, params: ResizeParams) => {
-      const { nodes, setNodes } = useEditorStore.getState();
+      const { nodes, setNodes, commitState } = useEditorStore.getState();
       setNodes(nodes.map((n) =>
         n.id !== id
           ? n
           : { ...n, data: { ...n.data as object, width: params.width, height: params.height } }
       ));
+      commitState("Resize frame");
+      useProjectStore.getState().setDirty(true);
     },
     [id],
   );
@@ -108,7 +119,11 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
               onBlur={handleCommit}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleCommit();
-                if (e.key === "Escape") { setIsEditing(false); setEditName(nodeData.name ?? ""); }
+                if (e.key === "Escape") {
+                  cancelEditRef.current = true;
+                  setIsEditing(false);
+                  setEditName(nodeData.name ?? "");
+                }
               }}
               className="nodrag"
               style={{

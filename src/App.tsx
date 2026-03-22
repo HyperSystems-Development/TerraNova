@@ -138,16 +138,22 @@ export default function App() {
   // ---- Support opening files from the OS (drag/drop + Open With) ----
   useEffect(() => {
     let unlisten: UnlistenFn | null = null;
+    let disposed = false;
 
     // Drag/drop into window
     void (async () => {
       try {
-        unlisten = await listen<{ paths: string[] }>("tauri://file-drop", (event) => {
+        const stop = await listen<{ paths: string[] }>("tauri://file-drop", (event) => {
           const paths = event.payload?.paths;
           if (paths && paths.length > 0) {
             openFile(paths[0]);
           }
         });
+        if (disposed) {
+          stop();
+          return;
+        }
+        unlisten = stop;
       } catch {
         // Not running in a Tauri environment.
       }
@@ -166,6 +172,7 @@ export default function App() {
     })();
 
     return () => {
+      disposed = true;
       if (unlisten) unlisten();
     };
   }, [openFile]);

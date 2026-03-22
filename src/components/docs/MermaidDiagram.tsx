@@ -20,10 +20,12 @@ export function MermaidDiagram({ code }: { code: string }) {
         containerRef.current.innerHTML = result.svg;
       })
       .catch((err) => {
-        if (!containerRef.current) return;
-        containerRef.current.innerHTML = `<pre style="color: #f00; font-size: 11px;">Mermaid render error: ${String(
-          err,
-        )}</pre>`;
+        if (cancelled || !containerRef.current) return;
+        const pre = document.createElement("pre");
+        pre.style.color = "#f00";
+        pre.style.fontSize = "11px";
+        pre.textContent = `Mermaid render error: ${String(err)}`;
+        containerRef.current.replaceChildren(pre);
       });
 
     return () => {
