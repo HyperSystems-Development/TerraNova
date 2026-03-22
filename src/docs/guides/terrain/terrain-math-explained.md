@@ -2,7 +2,7 @@
 
 **Difficulty:** Intermediate
 
-This guide explains the actual math behind the nodes — no prior knowledge required. By the end you will understand *why* certain combinations produce hills, caves, overhangs, and floating islands, and *how* to tune each parameter to get the result you want.
+This guide explains the actual math behind the nodes -- no prior knowledge required. By the end you will understand *why* certain combinations produce hills, caves, overhangs, and floating islands, and *how* to tune each parameter to get the result you want.
 
 ---
 
@@ -20,24 +20,26 @@ This is the core idea everything else builds on. The fancier nodes are just diff
 
 ---
 
-## Part 1 — Noise nodes
+## Part 1 -- Noise nodes
 
 ### SimplexNoise2D
 
-At each world position `(x, z)` this node outputs a smooth random-ish number. The pattern tiles across XZ but is **identical at every Y** — the same column of terrain repeats upward forever.
+At each world position `(x, z)` this node outputs a smooth random-ish number. The pattern tiles across XZ but is **identical at every Y** -- the same column of terrain repeats upward forever.
 
 **The math:**
-```
-output = simplex(x / Scale, z / Scale)
+```text
+output = simplex(x * Scale, z * Scale)
 ```
 
-The output is in the range **[-1, +1]** (approximately — Simplex can technically exceed this slightly, but treat it as [-1, 1]).
+Scale acts as a frequency multiplier -- smaller values produce larger, slower-varying features; larger values produce finer detail.
+
+The output is in the range **[-1, +1]** (approximately -- Simplex can technically exceed this slightly, but treat it as [-1, 1]).
 
 **What Scale does:**
 
 | Scale | Effect |
 |-------|--------|
-| 0.001 | Very large features, 1000-block hills |
+| 0.001 | Very large features, ~1000-block hills |
 | 0.01  | Medium hills, ~100 blocks across |
 | 0.05  | Small rolling bumps, ~20 blocks |
 | 0.2   | Noisy texture, almost no large features |
@@ -53,8 +55,8 @@ output = noise(f) * 1
        + ...
 ```
 
-- **Lacunarity** — how much smaller each octave's features are. 2.0 means each octave is twice as detailed.
-- **Persistence** — how much quieter each octave is. 0.5 means each octave contributes half as much.
+- **Lacunarity** -- how much smaller each octave's features are. 2.0 means each octave is twice as detailed.
+- **Persistence** -- how much quieter each octave is. 0.5 means each octave contributes half as much.
 
 Higher Persistence = rougher, more fractal terrain. Lower Persistence = smoother, dominated by the large base scale.
 
@@ -65,11 +67,11 @@ Higher Persistence = rougher, more fractal terrain. Lower Persistence = smoother
 
 ### SimplexNoise3D
 
-Like 2D noise but evaluated at `(x, y, z)`, so the pattern varies as you go up and down too. This is what makes **caves** possible — at some Y the density dips below zero even where the surface is solid.
+Like 2D noise but evaluated at `(x, y, z)`, so the pattern varies as you go up and down too. This is what makes **caves** possible -- at some Y the density dips below zero even where the surface is solid.
 
 **The math:**
-```
-output = simplex(x / ScaleXZ, y / ScaleY, z / ScaleXZ)
+```text
+output = simplex(x * ScaleXZ, y * ScaleY, z * ScaleXZ)
 ```
 
 `ScaleXZ` and `ScaleY` are independent, which lets you stretch or compress caves vertically without affecting their horizontal size.
@@ -90,7 +92,7 @@ This creates a cracked-rock or crater pattern. The cells have hard edges compare
 
 ---
 
-## Part 2 — Combining densities
+## Part 2 -- Combining densities
 
 ### Sum
 
@@ -101,14 +103,14 @@ output = A + B + C + ...
 
 When used to combine a noise field with a `BaseHeight` signal, it vertically shifts the entire terrain. Adding a positive constant raises the surface; adding a negative constant lowers it.
 
-**Practical example — basic rolling hills:**
+**Practical example -- basic rolling hills:**
 ```
 output = SimplexNoise2D + BaseHeight
 ```
 `BaseHeight` outputs a strong positive value well below the surface and a strong negative value well above it. Adding noise to that pushes the surface up and down by the noise amplitude.
 
 > [!NOTE]
-> `BaseHeight` is not a height value — it is a density field that smoothly transitions from solid (positive) below a reference height to air (negative) above it. The rate of that transition is called the gradient, and it determines how steep the implicit surface is.
+> `BaseHeight` is not a height value -- it is a density field that smoothly transitions from solid (positive) below a reference height to air (negative) above it. The rate of that transition is called the gradient, and it determines how steep the implicit surface is.
 
 ---
 
@@ -119,7 +121,7 @@ Multiplies all inputs together:
 output = A × B × C × ...
 ```
 
-The most common use is **scaling amplitude** — multiply noise by a `Constant` node to reduce or increase how tall your hills are:
+The most common use is **scaling amplitude** -- multiply noise by a `Constant` node to reduce or increase how tall your hills are:
 ```
 hills = SimplexNoise2D × Constant(0.3)
 ```
@@ -133,13 +135,13 @@ A `Constant` of 0.3 makes hills 30% as tall as they would be at full amplitude.
 
 `Min` takes the lowest density at each point. `Max` takes the highest.
 
-**Min creates an intersection** — only regions where *both* shapes are solid stay solid:
+**Min creates an intersection** -- only regions where *both* shapes are solid stay solid:
 ```
 output = Min(sphere_density, ground_density)
 ```
-This carves the sphere shape out of the ground — you only get solid where the ground says solid AND the sphere says solid. Useful for cutting flat-bottomed craters or limiting terrain to a certain shape.
+This carves the sphere shape out of the ground -- you only get solid where the ground says solid AND the sphere says solid. Useful for cutting flat-bottomed craters or limiting terrain to a certain shape.
 
-**Max creates a union** — solid wherever *either* input is solid:
+**Max creates a union** -- solid wherever *either* input is solid:
 ```
 output = Max(pillar_density, ground_density)
 ```
@@ -159,7 +161,7 @@ output = A × (1 - weight) + B × weight
 
 When `weight = 0` you get A entirely. When `weight = 1` you get B entirely. When `weight = 0.5` you get an equal mix.
 
-**The weight almost always comes from normalized noise** — noise remapped to [0, 1] with a `Normalizer`. This means different areas of the world get different blends, creating biome-like transitions:
+**The weight almost always comes from normalized noise** -- noise remapped to [0, 1] with a `Normalizer`. This means different areas of the world get different blends, creating biome-like transitions:
 - weight near 0 → terrain type A
 - weight near 1 → terrain type B
 - weight in between → gradual crossfade
@@ -168,17 +170,20 @@ The key insight: the transition width in world space is determined by how fast t
 
 ---
 
-## Part 3 — Height-dependent effects
+## Part 3 -- Height-dependent effects
 
 ### YValue
 
 Simply outputs the current world Y coordinate as a number. At Y=64, output=64. At Y=128, output=128.
 
 On its own this is not useful as a density. But combined with a `Constant` and a `Sum`:
+```text
+density = Constant(64) - YValue
 ```
-density = YValue - Constant(64)
-```
-This creates a perfectly flat ground plane at Y=64 — positive above (air) and negative below (solid). It is the simplest possible terrain.
+This creates a perfectly flat ground plane at Y=64 -- positive below (solid) and negative above (air). It is the simplest possible terrain.
+
+> [!NOTE]
+> The sign convention matters: positive density = solid, negative density = air. If you write `YValue - Constant(64)` instead, the sign is flipped and you get air below and solid above. When using SDF shapes like `Ellipsoid`, their raw output is negative inside the shape -- you may need to negate or remap the result to match the solid-positive convention.
 
 ---
 
@@ -187,8 +192,8 @@ This creates a perfectly flat ground plane at Y=64 — positive above (air) and 
 `BaseHeight` reads a named height reference from the biome configuration and produces a density field that transitions from solid to air around that height. Unlike `YValue - constant`, the transition rate is controlled by the biome configuration, not hard-coded.
 
 **Fields:**
-- `BaseHeightName` — which named height to reference (e.g. `"surface"`, `"ocean_floor"`)
-- `Distance` — if true, outputs the raw signed distance rather than a smoothed density gradient
+- `BaseHeightName` -- which named height to reference (e.g. `"surface"`, `"ocean_floor"`)
+- `Distance` -- if true, outputs the raw signed distance rather than a smoothed density gradient
 
 > [!IMPORTANT]
 > `BaseHeight` has no numeric height value you can set in the node itself. The actual height number lives in the biome config JSON. The node just reads it. Use `Sum` with a `Constant` to offset from that reference.
@@ -201,7 +206,7 @@ Evaluates another density function at a **fixed Y offset** from the current posi
 ```
 sampled_density = evaluate(node, x, y + SampleOffset, z) - evaluate(node, x, y - SampleOffset, z)
 ```
-Wait — it is actually simpler than that. `YSampled` re-evaluates its input at Y plus `SampleDistance` to get the density above the current point. It is used to create **overhangs**.
+Wait -- it is actually simpler than that. `YSampled` re-evaluates its input at Y plus `SampleDistance` to get the density above the current point. It is used to create **overhangs**.
 
 **Why this creates overhangs:**
 - At a point just below the surface, the density is positive (solid).
@@ -217,7 +222,7 @@ Wait — it is actually simpler than that. `YSampled` re-evaluates its input at 
 
 ---
 
-## Part 4 — Coordinate warping
+## Part 4 -- Coordinate warping
 
 ### Scale (coordinate node)
 
@@ -230,7 +235,7 @@ z' = z × ScaleZ
 
 This is **not** the same as the `Scale` field on a noise node. The coordinate `Scale` node physically transforms space before any noise is evaluated. Everything downstream sees squeezed or stretched coordinates.
 
-**Example — squashing terrain vertically:**
+**Example -- squashing terrain vertically:**
 Setting `ScaleY = 0.5` makes the world look twice as tall from the noise's perspective. Caves become twice as tall in world space. Hills stretch upward.
 
 ---
@@ -253,13 +258,13 @@ Instead of smooth, aligned features, warped noise has twisted, organic-looking s
 | 100+         | Extreme folding, hard to predict |
 
 > [!TIP]
-> Double warp — warping already-warped coordinates — produces very organic cave structures and craggy cliffs. First warp with a large scale, then warp the result with a small scale.
+> Double warp -- warping already-warped coordinates -- produces very organic cave structures and craggy cliffs. First warp with a large scale, then warp the result with a small scale.
 
 ---
 
-## Part 5 — Shape SDFs
+## Part 5 -- Shape SDFs
 
-SDF stands for **Signed Distance Function**. These nodes output the signed distance to the surface of a mathematical shape — negative inside, positive outside (or vice versa depending on convention).
+SDF stands for **Signed Distance Function**. These nodes output the signed distance to the surface of a mathematical shape -- negative inside, positive outside (or vice versa depending on convention).
 
 ### Ellipsoid
 
@@ -269,10 +274,12 @@ output = sqrt((x/rx)² + (y/ry)² + (z/rz)²) - 1
 ```
 Where `rx, ry, rz` come from the `Scale` vector3d field `[x, y, z]`. The surface is exactly where `output = 0`.
 
-- **Inside the ellipsoid** → output < 0 → solid (if used as terrain density directly)
-- **Outside the ellipsoid** → output > 0 → air
+- **Inside the ellipsoid** -- output < 0 (negative)
+- **Outside the ellipsoid** -- output > 0 (positive)
 
-Crucially, `Ellipsoid` requires a **Curve** input that remaps the raw distance to a density value. The `Curve` lets you control how quickly the density falls off from solid to air — a hard step for a crisp surface, a soft S-curve for a fuzzy blended edge.
+Because the terrain convention is positive = solid, you typically need to **negate** the raw SDF output (or use a Curve that flips the sign) so that the inside becomes positive density. Without this step the ellipsoid would carve a hole instead of creating solid terrain.
+
+Crucially, `Ellipsoid` requires a **Curve** input that remaps the raw distance to a density value. The `Curve` lets you control how quickly the density falls off from solid to air -- a hard step for a crisp surface, a soft S-curve for a fuzzy blended edge.
 
 **Floating islands** use `Ellipsoid` as the primary density shape, then add a noise field to roughen the surface, then use `Mix` or `Max` to combine with regular ground terrain.
 
@@ -284,16 +291,16 @@ Outputs the signed distance to an infinite plane:
 ```
 output = dot(position, PlaneNormal) + offset
 ```
-- `PlaneNormal` — the direction the plane faces (e.g. `[0,1,0]` for horizontal)
-- `IsAnchored` — if true, the plane passes through the world origin; if false it floats
+- `PlaneNormal` -- the direction the plane faces (e.g. `[0,1,0]` for horizontal)
+- `IsAnchored` -- if true, the plane passes through the world origin; if false it floats
 
 Like `Ellipsoid`, a `Curve` input is required to turn the raw distance into a useful density.
 
-**Use case:** A horizontal plane with `PlaneNormal [0,1,0]` is a perfectly flat cut through the world. `Min(ground, plane)` keeps terrain only below a certain altitude — useful for flat-topped mesas.
+**Use case:** A horizontal plane with `PlaneNormal [0,1,0]` is a perfectly flat cut through the world. `Min(ground, plane)` keeps terrain only below a certain altitude -- useful for flat-topped mesas.
 
 ---
 
-## Part 6 — Putting it all together
+## Part 6 -- Putting it all together
 
 ### Recipe: Rolling hills with caves
 
@@ -307,7 +314,7 @@ density = Sum(
 
 **How the math works:**
 1. `BaseHeight` is strongly positive at depth, strongly negative high in the air. The zero crossing is the ground plane.
-2. `SimplexNoise2D × 0.4` pushes the zero crossing up and down across XZ, making hills. A noise value of +0.5 at X=100 means the surface at X=100 is 0.5 density units higher — which translates to visually higher terrain.
+2. `SimplexNoise2D × 0.4` pushes the zero crossing up and down across XZ, making hills. A noise value of +0.5 at X=100 means the surface at X=100 is 0.5 density units higher -- which translates to visually higher terrain.
 3. `SimplexNoise3D × -1` subtracts 3D noise from the total. Where the 3D noise is large and positive, subtracting it creates pockets of air underground → caves.
 
 The cave noise amplitude controls cave size. If the 3D noise multiplier is 0.1, caves are small. If it is 0.8, caves dominate the landscape.
@@ -316,7 +323,7 @@ The cave noise amplitude controls cave size. If the 3D noise multiplier is 0.1, 
 
 ### Recipe: Why overhangs need YSampled
 
-Plain `SimplexNoise2D` added to `BaseHeight` creates hills but never overhangs — the density always decreases as you go up, so there is no way for a layer of air to sit below a layer of solid.
+Plain `SimplexNoise2D` added to `BaseHeight` creates hills but never overhangs -- the density always decreases as you go up, so there is no way for a layer of air to sit below a layer of solid.
 
 `YSampled` breaks that monotonicity. It re-evaluates terrain at a higher Y and folds that value back into the current point's density. Points that sit below a "future solid" region get extra positive density; points that sit below a "future air" region get reduced density, which can flip them below zero → air → overhang.
 
@@ -341,7 +348,7 @@ These are two separate parameters people often confuse:
 
 ### Recipe: Skylands altitude band
 
-This is the real-world technique used in Hytale skylands mods. It creates terrain that exists only within a vertical Y range — open air above and below, floating islands in the middle.
+This is the real-world technique used in Hytale skylands mods. It creates terrain that exists only within a vertical Y range -- open air above and below, floating islands in the middle.
 
 ```
 density = Sum(
@@ -362,9 +369,9 @@ density = Sum(
 
 **The key step: `BaseHeight` with `Distance: true`**
 
-Normally, `BaseHeight` outputs a clamped density — strongly positive below the surface, strongly negative above. This is fine for ground-based terrain but useless for altitude bands, because the density gradient already forces everything above the surface to be air.
+Normally, `BaseHeight` outputs a clamped density -- strongly positive below the surface, strongly negative above. This is fine for ground-based terrain but useless for altitude bands, because the density gradient already forces everything above the surface to be air.
 
-With `Distance: true`, `BaseHeight` outputs the **raw Y coordinate minus the named height** — a distance value, not a density. At `BaseHeightName: "Base"` (typically `Y: 0`), this simply outputs the world Y position.
+With `Distance: true`, `BaseHeight` outputs the **raw Y coordinate minus the named height** -- a distance value, not a density. At `BaseHeightName: "Base"` (typically `Y: 0`), this simply outputs the world Y position.
 
 The `CurveMapper` then maps that Y value to density via a hand-drawn band curve:
 
@@ -378,7 +385,7 @@ Anything outside the range is forced to air. The curve peak defines the altitude
 
 **Why add `SimplexNoise3D`:**
 
-The band curve alone produces a flat solid slab — a perfect horizontal layer of infinite terrain. `SimplexNoise3D` breaks that into individual island chunks. Where the 3D noise is negative, it pulls the sum below zero within the altitude band → air → gap between islands. Where the noise is positive, it reinforces the band curve → solid → island mass.
+The band curve alone produces a flat solid slab -- a perfect horizontal layer of infinite terrain. `SimplexNoise3D` breaks that into individual island chunks. Where the 3D noise is negative, it pulls the sum below zero within the altitude band → air → gap between islands. Where the noise is positive, it reinforces the band curve → solid → island mass.
 
 **Why `Normalizer` wraps the inner `Sum`:**
 
@@ -386,13 +393,13 @@ The band curve alone produces a flat solid slab — a perfect horizontal layer o
 
 **Adding more island layers:**
 
-Each additional layer is a `BaseHeight(Distance) → CurveMapper(different Y band) → Multiplier(× Constant)` path, summed at the end. The `Constant` acts as a layer weight — setting it to 1 adds the layer at full strength, lower values make it a subtle secondary feature.
+Each additional layer is a `BaseHeight(Distance) → CurveMapper(different Y band) → Multiplier(× Constant)` path, summed at the end. The `Constant` acts as a layer weight -- setting it to 1 adds the layer at full strength, lower values make it a subtle secondary feature.
 
 ---
 
 ### Recipe: Biome blending
 
-The challenge is that you want two completely different terrain functions — desert plateaus vs forest hills — to coexist without a hard seam.
+The challenge is that you want two completely different terrain functions -- desert plateaus vs forest hills -- to coexist without a hard seam.
 
 The solution is `Mix`:
 ```
@@ -400,13 +407,13 @@ weight = Normalizer(BiomeNoise, 0, 1)
 density = Mix(desert_density, forest_density, weight)
 ```
 
-Where `weight` crosses 0.5, the two terrains are equally mixed — a gradual transition. The width of that transition in world space is controlled by the Scale of `BiomeNoise`.
+Where `weight` crosses 0.5, the two terrains are equally mixed -- a gradual transition. The width of that transition in world space is controlled by the Scale of `BiomeNoise`.
 
 **Common mistake:** using the same noise for terrain variation and biome blending. This creates a strong correlation between terrain shape and biome boundaries, which looks unnatural. Use two independent noise nodes with different seeds and scales.
 
 ---
 
-## Quick reference — parameter effects
+## Quick reference -- parameter effects
 
 | Parameter | Range | Small value | Large value |
 |-----------|-------|-------------|-------------|
@@ -423,7 +430,7 @@ Where `weight` crosses 0.5, the two terrains are equally mixed — a gradual tra
 
 ---
 
-## Part 7 — Utility and transform nodes
+## Part 7 -- Utility and transform nodes
 
 These nodes appear less often but fill specific gaps. Each does one focused mathematical operation.
 
@@ -434,18 +441,18 @@ Raises the input density to an exponent:
 output = input ^ Exponent
 ```
 
-**Use:** Sharpening peaks. `Abs → Pow(2.0)` turns gentle ridges into sharp spires — squaring values near zero pushes them closer to zero, while values near 1 stay near 1, so the curve bends sharply upward only at the peak.
+**Use:** Sharpening peaks. `Abs → Pow(2.0)` turns gentle ridges into sharp spires -- squaring values near zero pushes them closer to zero, while values near 1 stay near 1, so the curve bends sharply upward only at the peak.
 
 | Exponent | Shape |
 |----------|-------|
-| 0.5 (Sqrt) | Flattens — small values grow, large ones don't |
+| 0.5 (Sqrt) | Flattens -- small values grow, large ones don't |
 | 1.0 | No change |
-| 2.0 | Sharpens — peaks stand out, base flattens |
+| 2.0 | Sharpens -- peaks stand out, base flattens |
 | 3.0+ | Very sharp needle peaks |
 
 ### Sqrt
 
-Square root of input density — the inverse of `Pow(2.0)`. Expands small values toward the midpoint. Useful for softening a hard edge produced by `Abs` or an SDF.
+Square root of input density -- the inverse of `Pow(2.0)`. Expands small values toward the midpoint. Useful for softening a hard edge produced by `Abs` or an SDF.
 
 ### Slider
 
@@ -456,7 +463,7 @@ y' = y + SlideY
 z' = z + SlideZ
 ```
 
-Unlike `Offset` (which moves the whole pattern), `Slider` shifts *where the child is sampled from* — effectively repositioning a feature in world space. Use it to place a shape SDF (like `Ellipsoid`) at a specific world position rather than always centred on the origin.
+Unlike `Offset` (which moves the whole pattern), `Slider` shifts *where the child is sampled from* -- effectively repositioning a feature in world space. Use it to place a shape SDF (like `Ellipsoid`) at a specific world position rather than always centred on the origin.
 
 ### Rotator
 
@@ -466,10 +473,10 @@ newUp = NewYAxis  (vector3d, e.g. [1,0,0] tilts terrain sideways)
 spin  = SpinAngle (degrees, rotation around newUp)
 ```
 
-**Use:** Tilting SDF shapes. An `Ellipsoid` always aligns with the world Y by default. Wrapping it in a `Rotator` with `NewYAxis [0,0,1]` makes it lie on its side — a horizontal tunnel rather than a vertical dome.
+**Use:** Tilting SDF shapes. An `Ellipsoid` always aligns with the world Y by default. Wrapping it in a `Rotator` with `NewYAxis [0,0,1]` makes it lie on its side -- a horizontal tunnel rather than a vertical dome.
 
 > [!NOTE]
-> `Rotator` has a preview gap — rotation is not accurately reflected in the TerraNova preview canvas. The correct orientation is only visible in-game.
+> `Rotator` has a preview gap -- rotation is not accurately reflected in the TerraNova preview canvas. The correct orientation is only visible in-game.
 
 ### Anchor
 
@@ -478,25 +485,25 @@ Anchors coordinate evaluation relative to a reference position. `Reversed: true`
 ### Shell
 
 Produces a hollow shell around a shape. It requires two curve inputs:
-- `AngleCurve` — maps the angle around the axis to a radius
-- `DistanceCurve` — maps distance from the surface to density
+- `AngleCurve` -- maps the angle around the axis to a radius
+- `DistanceCurve` -- maps distance from the surface to density
 
-This allows asymmetric hollow shapes — wider on one side, narrow on the other. Primarily used for arch formations, hollow cylinders, and ribbed cave structures.
+This allows asymmetric hollow shapes -- wider on one side, narrow on the other. Primarily used for arch formations, hollow cylinders, and ribbed cave structures.
 
 > [!WARNING]
-> `Shell` inner-radius hollowing does not render correctly in the TerraNova preview — it appears filled solid. The hollow only appears in-game.
+> `Shell` inner-radius hollowing does not render correctly in the TerraNova preview -- it appears filled solid. The hollow only appears in-game.
 
 ---
 
-## Part 8 — Coordinate override nodes
+## Part 8 -- Coordinate override nodes
 
-These force a specific coordinate value regardless of world position — useful for creating flat cuts, vertical walls, and layer-locked patterns.
+These force a specific coordinate value regardless of world position -- useful for creating flat cuts, vertical walls, and layer-locked patterns.
 
 | Node | Effect |
 |------|--------|
-| `XOverride` | Forces X to a constant — all density evaluated at `X = value` regardless of actual X |
-| `YOverride` | Forces Y to a constant — creates a perfectly horizontal density slice |
+| `XOverride` | Forces X to a constant -- all density evaluated at `X = value` regardless of actual X |
+| `YOverride` | Forces Y to a constant -- creates a perfectly horizontal density slice |
 | `ZOverride` | Forces Z to a constant |
 
-**Practical use:** `YOverride(64)` on a noise field samples all density at Y=64 regardless of actual height. Feed this into a `Mix` weight to create a material or density pattern that is the same at every altitude — only varying by X and Z.
+**Practical use:** `YOverride(64)` on a noise field samples all density at Y=64 regardless of actual height. Feed this into a `Mix` weight to create a material or density pattern that is the same at every altitude -- only varying by X and Z.
 
