@@ -30,7 +30,7 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
     [fields],
   );
 
-  // Discover target handles dynamically — subscribe only to edges targeting this node
+  // Filter s.edges for handles targeting this node; custom equality prevents re-renders when handles are unchanged
   const uniqueTargetHandles = useStore(
     (s) => {
       const handles: string[] = [];

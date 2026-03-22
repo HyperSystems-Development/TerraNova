@@ -337,10 +337,10 @@ These are two separate parameters people often confuse:
 
 | What you want to change | Node to touch | Field |
 |-------------------------|---------------|-------|
-| How wide hills are | SimplexNoise2D | `Scale` (larger = wider) |
+| How wide hills are | SimplexNoise2D | `Scale` (smaller = wider) |
 | How tall hills are | Multiplier + Constant | `Value` on the Constant |
 | How rough the surface is | SimplexNoise2D | `Octaves` + `Persistence` |
-| How deep caves go | SimplexNoise3D | `ScaleY` (larger = shallower caves) |
+| How deep caves go | SimplexNoise3D | `ScaleY` (smaller = deeper caves) |
 | How wide caves are | SimplexNoise3D | `ScaleXZ` |
 | How big overhangs are | YSampled | `SampleDistance` |
 

@@ -109,11 +109,11 @@ export function parseNodeEditorMetadata(raw: Record<string, unknown>): {
       const comment = c as Record<string, unknown>;
       const pos = comment["$Position"] as Record<string, unknown> | undefined;
       hytaleComments.push({
-        text: (comment["$Text"] as string) ?? "",
+        text: (comment["$text"] as string) ?? "",
         x: (pos?.["$x"] as number) ?? 0,
         y: (pos?.["$y"] as number) ?? 0,
-        width: (comment["$Width"] as number) ?? 200,
-        height: (comment["$Height"] as number) ?? 80,
+        width: (comment["$width"] as number) ?? 200,
+        height: (comment["$height"] as number) ?? 80,
       });
     }
   }

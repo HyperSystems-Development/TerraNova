@@ -84,7 +84,11 @@ export function evalDistanceS(
   range: number,
   transitionSmooth: number,
 ): (x: number) => number {
-  if (range <= 0) return () => 0;
+  if (![exponentA, exponentB, transition, range, transitionSmooth].every(Number.isFinite) || range <= 0) {
+    return () => 0;
+  }
+  const smooth = Math.max(0, Math.min(1, transitionSmooth));
+  const clampedTransition = Math.max(0, transition);
   const fnA = (d: number): number => {
     if (d >= range) return 0;
     return Math.pow(1 - d / range, exponentA);
@@ -94,7 +98,7 @@ export function evalDistanceS(
     return Math.pow(1 - d / range, exponentB);
   };
 
-  const transitionDist = transition * range;
+  const transitionDist = clampedTransition * range;
   const posA = range / 2 - transitionDist / 2;
   const posB = posA + transitionDist;
 
@@ -106,7 +110,7 @@ export function evalDistanceS(
 
     const ratio = (d - posA) / (posB - posA);
     const cosEase = (1 - Math.cos(ratio * Math.PI)) / 2;
-    const blend = cosEase * transitionSmooth + ratio * (1 - transitionSmooth);
+    const blend = cosEase * smooth + ratio * (1 - smooth);
     return (1 - blend) * fnA(d) + blend * fnB(d);
   };
 }
