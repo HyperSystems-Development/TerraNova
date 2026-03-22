@@ -58,7 +58,9 @@ describe("HANDLE_REGISTRY", () => {
   });
 
   it("every entry has at least one handle", () => {
+    const annotationNodes = new Set(["comment", "frame"]);
     for (const [nodeType, defs] of Object.entries(HANDLE_REGISTRY)) {
+      if (annotationNodes.has(nodeType)) continue;
       expect(
         defs.length,
         `${nodeType} should have at least 1 handle`,

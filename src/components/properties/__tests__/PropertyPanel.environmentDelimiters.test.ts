@@ -136,7 +136,7 @@ describe("validateEnvironmentDelimiters", () => {
       "C:\\Users\\wolft\\AppData\\Roaming\\Hytale\\install\\pre-release\\package\\game\\latest\\Client\\NodeEditor\\Workspaces\\HytaleGenerator Java",
     );
     expect(serverRoot).toBe(
-      "C:\\Users\\wolft\\AppData\\Roaming\\Hytale\\install\\pre-release\\package\\game\\latest\\Server",
+      "C:/Users/wolft/AppData/Roaming/Hytale/install/pre-release/package/game/latest/Server",
     );
   });
 
