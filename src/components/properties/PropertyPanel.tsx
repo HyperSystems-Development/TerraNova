@@ -24,7 +24,7 @@ import { CollapsibleEditorSection } from "@/components/editor/CollapsibleEditorS
 import { POSITION_TYPE_NAMES } from "@/utils/positionEvaluator";
 import { getCurveEvaluator } from "@/utils/curveEvaluators";
 import { validateField, type ValidationIssue } from "@/schema/validation";
-import { FIELD_CONSTRAINTS } from "@/schema/constraints";
+import { getConstraints } from "@/schema/constraints";
 import { NODE_TIPS } from "@/schema/nodeTips";
 import { FIELD_DESCRIPTIONS, getShortDescription, getExtendedDescription } from "@/schema/fieldDescriptions";
 import { useLanguage } from "@/languages/useLanguage";
@@ -1423,7 +1423,7 @@ export function PropertyPanel() {
   })();
   const rfDisplayName = getTypeDisplayName(rfType);
   const displayTypeName = (rfDisplayName !== rfType) ? rfDisplayName : getTypeDisplayName(typeName);
-  const typeConstraints = FIELD_CONSTRAINTS[displayTypeName] ?? FIELD_CONSTRAINTS[typeName] ?? {};
+  const typeConstraints = getConstraints(displayTypeName) ?? getConstraints(typeName) ?? {};
   const tips = NODE_TIPS[rfType] ?? NODE_TIPS[typeName] ?? [];
   const typeDescriptions = FIELD_DESCRIPTIONS[rfType] ?? FIELD_DESCRIPTIONS[typeName] ?? {};
   const isCurveNode = selectedNode.type?.startsWith("Curve:") ?? false;

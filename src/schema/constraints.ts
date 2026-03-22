@@ -2,10 +2,17 @@ import type { FieldConstraint } from "./validation";
 import { getSchemaConstraints } from "./schemaLoader";
 
 /**
- * Per-type field constraints for inline validation.
- * Keys are V2 Type names, values are field → constraint mappings.
+ * Local constraint overrides — min/max bounds and validation messages
+ * that are not (yet) captured in the schema bundle.
+ *
+ * The bundle provides structural data (required flags, field existence)
+ * while these overrides provide numeric range validation. When the bundle
+ * gains min/max support, entries here can be removed.
+ *
+ * NOTE: "Settings" is not in the bundle at all; its constraints are
+ * entirely local.
  */
-export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> = {
+const LOCAL_OVERRIDES: Record<string, Record<string, FieldConstraint>> = {
   // Noise generators
   SimplexNoise2D: {
     Scale: { min: 0, max: 10000, message: "Scale must be >= 0" },
@@ -26,11 +33,6 @@ export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> 
     Scale: { min: 0, max: 10000, message: "Scale must be >= 0" },
   },
 
-  // Constants
-  Constant: {
-    Value: { required: true, message: "Constant must have a Value" },
-  },
-
   // Clamping
   Clamp: {
     Min: { required: true, message: "Clamp requires Min" },
@@ -46,14 +48,8 @@ export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> 
   Pow: {
     Exponent: { required: true, message: "Pow requires an Exponent" },
   },
-  OffsetConstant: {
-    Value: { required: true },
-  },
-  AmplitudeConstant: {
-    Value: { required: true },
-  },
 
-  // Smooth operations (Smoothness constraints)
+  // Smooth operations
   SmoothFloor: {
     Smoothness: { min: 0, message: "Smoothness must be >= 0" },
   },
@@ -63,18 +59,8 @@ export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> 
   SmoothMax: {
     Smoothness: { min: 0, message: "Smoothness must be >= 0" },
   },
-
-  // Additional smooth operations
   SmoothCeiling: {
     Smoothness: { min: 0, message: "Smoothness must be >= 0" },
-  },
-
-  // Position overrides
-  XOverride: {
-    OverrideX: { required: true },
-  },
-  ZOverride: {
-    OverrideZ: { required: true },
   },
 
   // 3D position noise
@@ -114,7 +100,7 @@ export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> 
     Frequency: { min: 0, message: "Frequency must be > 0" },
   },
 
-  // Gradient (directional derivative)
+  // Gradient
   Gradient: {
     SampleRange: { min: 0, message: "SampleRange must be >= 0" },
   },
@@ -124,22 +110,10 @@ export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> 
     Capacity: { min: 1, message: "Capacity must be >= 1" },
   },
 
-  // Imported
-  Imported: {
-    Name: { required: true, message: "Imported requires a Name" },
-  },
-
   // FastGradientWarp
   FastGradientWarp: {
     WarpScale: { min: 0 },
     WarpOctaves: { min: 1 },
-  },
-
-  // Scale
-  Scale: {
-    X: { required: true },
-    Y: { required: true },
-    Z: { required: true },
   },
 
   // Static directionality
@@ -147,7 +121,7 @@ export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> 
     Rotation: { min: 0, max: 360, message: "Rotation must be between 0 and 360 degrees" },
   },
 
-  // Settings
+  // Settings (not in bundle)
   Settings: {
     CustomConcurrency: { min: -1, max: 32, message: "Must be -1 (auto) or 1-32" },
     BufferCapacityFactor: { min: 0.1, max: 2.0, message: "Must be between 0.1 and 2.0" },
@@ -157,16 +131,93 @@ export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> 
 };
 
 /**
+ * Merge schema-driven constraints with local overrides.
+ * Schema provides `required` flags from the bundle; local overrides
+ * provide min/max bounds and validation messages.
+ */
+function mergeConstraints(
+  schema: Record<string, FieldConstraint> | null,
+  local: Record<string, FieldConstraint> | undefined,
+): Record<string, FieldConstraint> | undefined {
+  if (!schema && !local) return undefined;
+  if (!schema) return local;
+  if (!local) return Object.keys(schema).length > 0 ? schema : undefined;
+
+  // Merge: local fields take precedence, but schema required flags fill gaps
+  const merged: Record<string, FieldConstraint> = {};
+
+  // Start with schema entries
+  for (const [field, constraint] of Object.entries(schema)) {
+    merged[field] = { ...constraint };
+  }
+
+  // Overlay local overrides
+  for (const [field, override] of Object.entries(local)) {
+    if (merged[field]) {
+      // Merge: local overrides win, but preserve schema required if local doesn't set it
+      merged[field] = { ...merged[field], ...override };
+    } else {
+      merged[field] = { ...override };
+    }
+  }
+
+  return Object.keys(merged).length > 0 ? merged : undefined;
+}
+
+/**
  * Get field constraints for a node type.
- * Local overrides take precedence, schema fills gaps.
+ * Merges schema-driven constraints (required flags from the bundle)
+ * with local overrides (min/max bounds, validation messages).
+ *
+ * This is the primary API for constraint lookup.
  */
 export function getConstraints(nodeType: string): Record<string, FieldConstraint> | undefined {
-  return FIELD_CONSTRAINTS[nodeType] ?? getSchemaConstraints(nodeType) ?? undefined;
+  const schema = getSchemaConstraints(nodeType);
+  const local = LOCAL_OVERRIDES[nodeType];
+  return mergeConstraints(schema, local);
 }
+
+/**
+ * Backwards-compatible constraint map.
+ * Uses a Proxy so that indexing by type name delegates to getConstraints().
+ *
+ * Consumers should migrate to getConstraints() for clearer semantics.
+ */
+export const FIELD_CONSTRAINTS: Record<string, Record<string, FieldConstraint>> = new Proxy(
+  {} as Record<string, Record<string, FieldConstraint>>,
+  {
+    get(_target, prop: string) {
+      if (typeof prop !== "string") return undefined;
+      return getConstraints(prop) ?? undefined;
+    },
+    has(_target, prop: string) {
+      if (typeof prop !== "string") return false;
+      return getConstraints(prop) !== undefined;
+    },
+    ownKeys() {
+      // Return known keys: union of local override keys and all bundle node keys
+      const keys = new Set(Object.keys(LOCAL_OVERRIDES));
+      // Also include any schema-driven types via getNodeConstraints
+      // This is intentionally limited to local keys for iteration;
+      // direct property access works for any type via the proxy get trap.
+      return [...keys];
+    },
+    getOwnPropertyDescriptor(_target, prop: string) {
+      const value = getConstraints(prop);
+      if (value !== undefined) {
+        return { configurable: true, enumerable: true, value };
+      }
+      return undefined;
+    },
+  },
+);
 
 /**
  * Known output ranges for density node types.
  * Used for range-mismatch hints (informational, not hard errors).
+ *
+ * NOTE: The schema bundle does not include output range data.
+ * These remain hardcoded until the bundle gains range metadata.
  */
 export const OUTPUT_RANGES: Record<string, [number, number]> = {
   SimplexNoise2D: [-1, 1],

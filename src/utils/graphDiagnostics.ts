@@ -1,7 +1,7 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { BaseNodeData } from "@/nodes/shared/BaseNode";
 import { HANDLE_REGISTRY, findHandleDef } from "@/nodes/handleRegistry";
-import { FIELD_CONSTRAINTS, OUTPUT_RANGES } from "@/schema/constraints";
+import { getConstraints, OUTPUT_RANGES } from "@/schema/constraints";
 import { validateFields } from "@/schema/validation";
 import { isLegacyTypeKey } from "@/nodes/shared/legacyTypes";
 import { getEvalStatus } from "@/utils/densityEvaluator";
@@ -406,7 +406,7 @@ export function analyzeGraph(
   // 8. Field constraint violations (bridge per-field validation into graph diagnostics)
   for (const node of nodes) {
     const type = getNodeType(node);
-    const constraints = FIELD_CONSTRAINTS[type];
+    const constraints = getConstraints(type);
     if (!constraints) continue;
 
     const fields = getNodeFields(node);
