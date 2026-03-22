@@ -84,6 +84,7 @@ export function evalDistanceS(
   range: number,
   transitionSmooth: number,
 ): (x: number) => number {
+  if (range <= 0) return () => 0;
   const fnA = (d: number): number => {
     if (d >= range) return 0;
     return Math.pow(1 - d / range, exponentA);
@@ -130,7 +131,9 @@ export function evalManual(points: NormalizedPoint[]): ((x: number) => number) |
     if (x >= sorted[sorted.length - 1].x) return sorted[sorted.length - 1].y;
     for (let i = 0; i < sorted.length - 1; i++) {
       if (x >= sorted[i].x && x <= sorted[i + 1].x) {
-        const t = (x - sorted[i].x) / (sorted[i + 1].x - sorted[i].x);
+        const dx = sorted[i + 1].x - sorted[i].x;
+        if (dx === 0) return sorted[i].y;
+        const t = (x - sorted[i].x) / dx;
         return sorted[i].y + t * (sorted[i + 1].y - sorted[i].y);
       }
     }
