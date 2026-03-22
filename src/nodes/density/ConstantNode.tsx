@@ -9,6 +9,8 @@ const CONSTANT_HANDLES = [densityOutput()];
 export const ConstantNode = memo(function ConstantNode(props: TypedNodeProps) {
   const data = props.data;
 
+  // V2 schema has "Tint" (object) field; legacy data has "Value" (number).
+  // Display Value from data if present — this is what users expect.
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={CONSTANT_HANDLES}>
       <div className="flex justify-between">

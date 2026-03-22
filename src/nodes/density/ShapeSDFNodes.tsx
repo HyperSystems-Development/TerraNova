@@ -2,6 +2,7 @@ import { memo } from "react";
 import { AssetCategory } from "@/schema/types";
 import { BaseNode, type TypedNodeProps } from "../shared/BaseNode";
 import { curveInput, densityOutput } from "../shared/handles";
+import { SchemaFields } from "../shared/SchemaFields";
 
 const SINGLE_CURVE_SDF_HANDLES = [curveInput("Curve", "Curve"), densityOutput()];
 const CYLINDER_HANDLES = [curveInput("RadialCurve", "Radial Curve"), curveInput("AxialCurve", "Axial Curve"), densityOutput()];
@@ -10,6 +11,15 @@ const CURVE_INPUT_HANDLES = [curveInput("Curve", "Curve"), densityOutput()];
 
 export const EllipsoidNode = memo(function EllipsoidNode(props: TypedNodeProps) {
   const data = props.data;
+  // V2 schema: Scale (vec3), NewYAxis (vec3), Spin (number). Legacy: Radius (vec3).
+  const hasV2Fields = data.fields.Scale != null;
+  if (hasV2Fields) {
+    return (
+      <BaseNode {...props} category={AssetCategory.Density} handles={SINGLE_CURVE_SDF_HANDLES}>
+        <SchemaFields typeKey="Ellipsoid" fields={data.fields} />
+      </BaseNode>
+    );
+  }
   const r = data.fields.Radius as { x?: number; y?: number; z?: number } | undefined;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={SINGLE_CURVE_SDF_HANDLES}>
@@ -23,6 +33,15 @@ export const EllipsoidNode = memo(function EllipsoidNode(props: TypedNodeProps) 
 
 export const CuboidNode = memo(function CuboidNode(props: TypedNodeProps) {
   const data = props.data;
+  // V2 schema: Min (vec3i), Max (vec3i). Legacy: Size (vec3).
+  const hasV2Fields = data.fields.Min != null || data.fields.Max != null;
+  if (hasV2Fields) {
+    return (
+      <BaseNode {...props} category={AssetCategory.Density} handles={SINGLE_CURVE_SDF_HANDLES}>
+        <SchemaFields typeKey="Cuboid" fields={data.fields} />
+      </BaseNode>
+    );
+  }
   const s = data.fields.Size as { x?: number; y?: number; z?: number } | undefined;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={SINGLE_CURVE_SDF_HANDLES}>
@@ -36,6 +55,15 @@ export const CuboidNode = memo(function CuboidNode(props: TypedNodeProps) {
 
 export const CylinderNode = memo(function CylinderNode(props: TypedNodeProps) {
   const data = props.data;
+  // V2 schema: NewYAxis (vec3), Spin (number). Legacy: Radius, Height.
+  const hasV2Fields = data.fields.NewYAxis != null || data.fields.Spin != null;
+  if (hasV2Fields) {
+    return (
+      <BaseNode {...props} category={AssetCategory.Density} handles={CYLINDER_HANDLES}>
+        <SchemaFields typeKey="Cylinder" fields={data.fields} />
+      </BaseNode>
+    );
+  }
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={CYLINDER_HANDLES}>
       <div className="space-y-0.5">
@@ -54,6 +82,15 @@ export const CylinderNode = memo(function CylinderNode(props: TypedNodeProps) {
 
 export const PlaneNode = memo(function PlaneNode(props: TypedNodeProps) {
   const data = props.data;
+  // V2 schema: PlaneNormal (vec3), IsAnchored (boolean). Legacy: Normal (vec3), IsAnchored.
+  const hasV2Fields = data.fields.PlaneNormal != null;
+  if (hasV2Fields) {
+    return (
+      <BaseNode {...props} category={AssetCategory.Density} handles={SINGLE_CURVE_SDF_HANDLES}>
+        <SchemaFields typeKey="Plane" fields={data.fields} />
+      </BaseNode>
+    );
+  }
   const n = data.fields.Normal as { x?: number; y?: number; z?: number } | undefined;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={SINGLE_CURVE_SDF_HANDLES}>
@@ -73,6 +110,15 @@ export const PlaneNode = memo(function PlaneNode(props: TypedNodeProps) {
 
 export const ShellNode = memo(function ShellNode(props: TypedNodeProps) {
   const data = props.data;
+  // V2 schema: Axis (vec3), Mirror (boolean). Legacy: InnerRadius, OuterRadius.
+  const hasV2Fields = data.fields.Mirror != null || (data.fields.Axis != null && data.fields.InnerRadius == null);
+  if (hasV2Fields) {
+    return (
+      <BaseNode {...props} category={AssetCategory.Density} handles={SHELL_HANDLES}>
+        <SchemaFields typeKey="Shell" fields={data.fields} />
+      </BaseNode>
+    );
+  }
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={SHELL_HANDLES}>
       <div className="space-y-0.5">
@@ -99,19 +145,9 @@ export const CubeSDFNode = memo(function CubeSDFNode(props: TypedNodeProps) {
 
 export const AxisNode = memo(function AxisNode(props: TypedNodeProps) {
   const data = props.data;
-  const axis = data.fields.Axis as { x?: number; y?: number; z?: number } | undefined;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={CURVE_INPUT_HANDLES}>
-      <div className="space-y-0.5">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Axis</span>
-          <span>{Number(axis?.x ?? 0).toFixed(1)}, {Number(axis?.y ?? 1).toFixed(1)}, {Number(axis?.z ?? 0).toFixed(1)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Anchored</span>
-          <span>{data.fields.IsAnchored ? "Yes" : "No"}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey="Axis" fields={data.fields} />
     </BaseNode>
   );
 });

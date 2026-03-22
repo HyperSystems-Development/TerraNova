@@ -3,6 +3,7 @@ import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
 import { densityInput, densityOutput } from "@/nodes/shared/handles";
 import { safeDisplay } from "@/nodes/shared/displayUtils";
+import { SchemaFields } from "@/nodes/shared/SchemaFields";
 import { useCompoundHandles } from "@/hooks/useCompoundHandles";
 
 const INPUT_OUTPUT_HANDLES = [densityInput("Input", "Input"), densityOutput()];
@@ -128,10 +129,7 @@ export const OffsetConstantNode = memo(function OffsetConstantNode(props: TypedN
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Value</span>
-        <span>{safeDisplay(data.fields.Value, 0)}</span>
-      </div>
+      <SchemaFields typeKey="OffsetConstant" fields={data.fields} />
     </BaseNode>
   );
 });
@@ -168,10 +166,7 @@ export const ImportedValueNode = memo(function ImportedValueNode(props: TypedNod
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey="ImportedValue" fields={data.fields} />
     </BaseNode>
   );
 });
@@ -180,10 +175,7 @@ export const AmplitudeConstantNode = memo(function AmplitudeConstantNode(props: 
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Value</span>
-        <span>{safeDisplay(data.fields.Value, 1)}</span>
-      </div>
+      <SchemaFields typeKey="AmplitudeConstant" fields={data.fields} />
     </BaseNode>
   );
 });
@@ -192,10 +184,7 @@ export const PowNode = memo(function PowNode(props: TypedNodeProps) {
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Exp</span>
-        <span>{safeDisplay(data.fields.Exponent, 2)}</span>
-      </div>
+      <SchemaFields typeKey="Pow" fields={data.fields} />
     </BaseNode>
   );
 });

@@ -3,6 +3,7 @@ import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
 import { densityInput, densityOutput, curveInput, vectorInput, positionInput } from "@/nodes/shared/handles";
 import { safeDisplay } from "@/nodes/shared/displayUtils";
+import { SchemaFields } from "@/nodes/shared/SchemaFields";
 import { useCompoundHandles } from "@/hooks/useCompoundHandles";
 
 const INPUT_OUTPUT_HANDLES = [densityInput("Input", "Input"), densityOutput()];
@@ -177,11 +178,13 @@ export const AnchorNode = memo(function AnchorNode(props: TypedNodeProps) {
 
 export const YOverrideNode = memo(function YOverrideNode(props: TypedNodeProps) {
   const data = props.data;
+  // V2 schema field: "Value". Legacy: "OverrideY" or "Y".
+  const value = data.fields.Value ?? data.fields.OverrideY ?? data.fields.Y;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
       <div className="flex justify-between">
         <span className="text-tn-text-muted">Y</span>
-        <span>{safeDisplay(data.fields.OverrideY ?? data.fields.Y, 0)}</span>
+        <span>{safeDisplay(value, 0)}</span>
       </div>
     </BaseNode>
   );
@@ -189,11 +192,12 @@ export const YOverrideNode = memo(function YOverrideNode(props: TypedNodeProps) 
 
 export const XOverrideNode = memo(function XOverrideNode(props: TypedNodeProps) {
   const data = props.data;
+  const value = data.fields.Value ?? data.fields.OverrideX;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
       <div className="flex justify-between">
         <span className="text-tn-text-muted">X</span>
-        <span>{safeDisplay(data.fields.OverrideX, 0)}</span>
+        <span>{safeDisplay(value, 0)}</span>
       </div>
     </BaseNode>
   );
@@ -201,11 +205,12 @@ export const XOverrideNode = memo(function XOverrideNode(props: TypedNodeProps) 
 
 export const ZOverrideNode = memo(function ZOverrideNode(props: TypedNodeProps) {
   const data = props.data;
+  const value = data.fields.Value ?? data.fields.OverrideZ;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
       <div className="flex justify-between">
         <span className="text-tn-text-muted">Z</span>
-        <span>{safeDisplay(data.fields.OverrideZ, 0)}</span>
+        <span>{safeDisplay(value, 0)}</span>
       </div>
     </BaseNode>
   );
@@ -213,18 +218,24 @@ export const ZOverrideNode = memo(function ZOverrideNode(props: TypedNodeProps) 
 
 export const BaseHeightNode = memo(function BaseHeightNode(props: TypedNodeProps) {
   const data = props.data;
+  // V2 schema: MinYRead/MaxYRead/BedName. Legacy: BaseHeightName/Distance.
+  const hasV2Fields = data.fields.BedName != null || data.fields.MinYRead != null;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Name</span>
-          <span>{safeDisplay(data.fields.BaseHeightName, "Base")}</span>
+      {hasV2Fields ? (
+        <SchemaFields typeKey="BaseHeight" fields={data.fields} />
+      ) : (
+        <div className="space-y-1">
+          <div className="flex justify-between">
+            <span className="text-tn-text-muted">Name</span>
+            <span>{safeDisplay(data.fields.BaseHeightName, "Base")}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-tn-text-muted">Distance</span>
+            <span>{data.fields.Distance ? "Yes" : "No"}</span>
+          </div>
         </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Distance</span>
-          <span>{data.fields.Distance ? "Yes" : "No"}</span>
-        </div>
-      </div>
+      )}
     </BaseNode>
   );
 });
@@ -239,27 +250,18 @@ export const DistanceNode = memo(function DistanceNode(props: TypedNodeProps) {
 
 export const GradientNode = memo(function GradientNode(props: TypedNodeProps) {
   const data = props.data;
-  const axis = data.fields.Axis as { x: number; y: number; z: number } | undefined;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Axis</span>
-          <span>{axis ? `(${axis.x}, ${axis.y}, ${axis.z})` : "(0, 1, 0)"}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Range</span>
-          <span>{safeDisplay(data.fields.SampleRange, 1.0)}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey="Gradient" fields={data.fields} />
     </BaseNode>
   );
 });
 
 export const YSampledNode = memo(function YSampledNode(props: TypedNodeProps) {
+  const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={YSAMPLED_HANDLES}>
-      <div className="text-tn-text-muted text-center py-1">f(x, Y(x,y,z), z)</div>
+      <SchemaFields typeKey="YSampled" fields={data.fields} />
     </BaseNode>
   );
 });
@@ -268,10 +270,7 @@ export const SwitchStateNode = memo(function SwitchStateNode(props: TypedNodePro
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">State</span>
-        <span>{safeDisplay(data.fields.State, 0)}</span>
-      </div>
+      <SchemaFields typeKey="SwitchState" fields={data.fields} />
     </BaseNode>
   );
 });
@@ -280,10 +279,7 @@ export const GradientWarpNode = memo(function GradientWarpNode(props: TypedNodeP
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={GRADIENT_WARP_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Scale</span>
-        <span>{safeDisplay(data.fields.WarpScale, 1)}</span>
-      </div>
+      <SchemaFields typeKey="GradientWarp" fields={data.fields} />
     </BaseNode>
   );
 });
@@ -292,28 +288,7 @@ export const FastGradientWarpNode = memo(function FastGradientWarpNode(props: Ty
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Factor</span>
-          <span>{safeDisplay(data.fields.WarpFactor, 1)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Scale</span>
-          <span>{safeDisplay(data.fields.WarpScale, 0.01)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Oct</span>
-          <span>{safeDisplay(data.fields.WarpOctaves, 3)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Lac</span>
-          <span>{safeDisplay(data.fields.WarpLacunarity, 2)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Persist</span>
-          <span>{safeDisplay(data.fields.WarpPersistence, 0.5)}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey="FastGradientWarp" fields={data.fields} />
     </BaseNode>
   );
 });
@@ -430,7 +405,7 @@ export const PositionsTwistNode = memo(function PositionsTwistNode(props: TypedN
     <BaseNode {...props} category={AssetCategory.Density} handles={POSITIONS_TWIST_HANDLES}>
       <div className="flex justify-between">
         <span className="text-tn-text-muted">Angle</span>
-        <span>{safeDisplay(data.fields.Angle, 0)}°</span>
+        <span>{safeDisplay(data.fields.Angle, 0)}&deg;</span>
       </div>
     </BaseNode>
   );
