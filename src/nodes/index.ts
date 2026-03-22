@@ -3,25 +3,21 @@ import type { ComponentType } from "react";
 // ── Density nodes ──────────────────────────────────────────────────────
 import {
   SimplexNoise2DNode, ConstantNode, SumNode, ClampNode,
-  SimplexNoise3DNode, SimplexRidgeNoise2DNode, SimplexRidgeNoise3DNode,
+  SimplexNoise3DNode,
   VoronoiNoise2DNode, VoronoiNoise3DNode,
-  SumSelfNode, WeightedSumNode, ProductNode, NegateNode, AbsNode,
-  SquareRootNode, CubeRootNode, SquareNode, CubeMathNode, InverseNode,
-  ModuloNode, ImportedValueNode, OffsetConstantNode,
-  ClampToIndexNode, NormalizerNode, DoubleNormalizerNode, RangeChoiceNode,
-  LinearTransformNode, InterpolateNode,
+  ProductNode, NegateNode, AbsNode,
+  SquareRootNode, ImportedValueNode, OffsetConstantNode,
+  NormalizerNode,
+  LinearTransformNode,
   CoordinateXNode, CoordinateYNode, CoordinateZNode,
-  DistanceFromOriginNode, DistanceFromAxisNode, DistanceFromPointNode,
-  AngleFromOriginNode, AngleFromPointNode, HeightAboveSurfaceNode, AngleNode,
-  CurveFunctionNode, SplineFunctionNode, FlatCacheNode,
-  ConditionalNode, SwitchNode, BlendNode, BlendCurveNode,
-  MinFunctionNode, MaxFunctionNode, AverageFunctionNode, MultiMixNode,
-  CacheOnceNode, WrapNode, TranslatedPositionNode, ScaledPositionNode,
-  RotatedPositionNode, MirroredPositionNode, QuantizedPositionNode,
-  SurfaceDensityNode, TerrainBooleanNode, TerrainMaskNode, GradientDensityNode,
-  BeardDensityNode, ColumnDensityNode, CaveDensityNode,
-  FractalNoise2DNode, FractalNoise3DNode, DomainWarp2DNode, DomainWarp3DNode,
-  DebugNode, YGradientNode, PassthroughNode, ZeroNode, OneNode, ExportedDensityNode,
+  AngleNode,
+  CurveFunctionNode,
+  SwitchNode, BlendNode, BlendCurveNode,
+  MinFunctionNode, MaxFunctionNode, MultiMixNode,
+  CacheOnceNode, TranslatedPositionNode, ScaledPositionNode,
+  RotatedPositionNode,
+  DomainWarp2DNode, DomainWarp3DNode,
+  ExportedDensityNode,
   AmplitudeConstantNode, PowNode, SmoothClampNode, FloorDensityNode,
   CeilingDensityNode, SmoothFloorNode, SmoothMinNode, SmoothMaxNode,
   AnchorNode, YOverrideNode, BaseHeightNode, OffsetDensityNode,
@@ -154,78 +150,54 @@ import { GenericNode } from "./GenericNode";
  * (e.g., "Curve:Constant" vs density "Constant").
  */
 export const nodeTypes: Record<string, ComponentType<any>> = {
-  // ── Density ──────────────────────────────────────────────────────────
+  // ── Density (V2 active types) ────────────────────────────────────────
   SimplexNoise2D: SimplexNoise2DNode,
   SimplexNoise3D: SimplexNoise3DNode,
-  SimplexRidgeNoise2D: SimplexRidgeNoise2DNode,
-  SimplexRidgeNoise3D: SimplexRidgeNoise3DNode,
-  VoronoiNoise2D: VoronoiNoise2DNode,
-  VoronoiNoise3D: VoronoiNoise3DNode,
+  CellNoise2D: VoronoiNoise2DNode,        // V2 name for VoronoiNoise2D
+  CellNoise3D: VoronoiNoise3DNode,        // V2 name for VoronoiNoise3D
   Sum: SumNode,
-  SumSelf: SumSelfNode,
-  WeightedSum: WeightedSumNode,
   Product: ProductNode,
+  Multiplier: ProductNode,                 // V2 name for Product
   Negate: NegateNode,
+  Inverter: NegateNode,                    // V2 name for Negate
   Abs: AbsNode,
   SquareRoot: SquareRootNode,
-  CubeRoot: CubeRootNode,
-  Square: SquareNode,
-  CubeMath: CubeMathNode,
-  Inverse: InverseNode,
-  Modulo: ModuloNode,
+  Sqrt: SquareRootNode,                    // V2 name for SquareRoot
   Constant: ConstantNode,
   ImportedValue: ImportedValueNode,
+  Imported: ImportedValueNode,             // V2 name for ImportedValue
   Clamp: ClampNode,
-  ClampToIndex: ClampToIndexNode,
   Normalizer: NormalizerNode,
-  DoubleNormalizer: DoubleNormalizerNode,
-  RangeChoice: RangeChoiceNode,
   LinearTransform: LinearTransformNode,
-  Interpolate: InterpolateNode,
+  AmplitudeConstant: AmplitudeConstantNode, // V2 name for LinearTransform
   CoordinateX: CoordinateXNode,
   CoordinateY: CoordinateYNode,
   CoordinateZ: CoordinateZNode,
-  DistanceFromOrigin: DistanceFromOriginNode,
-  DistanceFromAxis: DistanceFromAxisNode,
-  DistanceFromPoint: DistanceFromPointNode,
-  AngleFromOrigin: AngleFromOriginNode,
-  AngleFromPoint: AngleFromPointNode,
-  HeightAboveSurface: HeightAboveSurfaceNode,
+  XValue: CoordinateXNode,                 // V2 name for CoordinateX
+  YValue: CoordinateYNode,                 // V2 name for CoordinateY
+  ZValue: CoordinateZNode,                 // V2 name for CoordinateZ
   CurveFunction: CurveFunctionNode,
-  SplineFunction: SplineFunctionNode,
-  FlatCache: FlatCacheNode,
-  Conditional: ConditionalNode,
+  CurveMapper: CurveFunctionNode,          // V2 name for CurveFunction
   Switch: SwitchNode,
   Blend: BlendNode,
+  Mix: BlendNode,                          // V2 name for Blend
   BlendCurve: BlendCurveNode,
+  MultiMix: MultiMixNode,                  // V2 name for BlendCurve
   MinFunction: MinFunctionNode,
+  Min: MinFunctionNode,                    // V2 name for MinFunction
   MaxFunction: MaxFunctionNode,
-  AverageFunction: AverageFunctionNode,
-  MultiMix: MultiMixNode,
+  Max: MaxFunctionNode,                    // V2 name for MaxFunction
   CacheOnce: CacheOnceNode,
-  Wrap: WrapNode,
+  Cache: CacheOnceNode,                    // V2 name for CacheOnce
   TranslatedPosition: TranslatedPositionNode,
+  Slider: TranslatedPositionNode,          // V2 name for TranslatedPosition
   ScaledPosition: ScaledPositionNode,
+  Scale: ScaledPositionNode,               // V2 name for ScaledPosition
   RotatedPosition: RotatedPositionNode,
-  MirroredPosition: MirroredPositionNode,
-  QuantizedPosition: QuantizedPositionNode,
-  SurfaceDensity: SurfaceDensityNode,
-  TerrainBoolean: TerrainBooleanNode,
-  TerrainMask: TerrainMaskNode,
-  GradientDensity: GradientDensityNode,
-  BeardDensity: BeardDensityNode,
-  ColumnDensity: ColumnDensityNode,
-  CaveDensity: CaveDensityNode,
-  FractalNoise2D: FractalNoise2DNode,
-  FractalNoise3D: FractalNoise3DNode,
+  Rotator: RotatedPositionNode,            // V2 name for RotatedPosition
   DomainWarp2D: DomainWarp2DNode,
   DomainWarp3D: DomainWarp3DNode,
-  Debug: DebugNode,
-  YGradient: YGradientNode,
-  Passthrough: PassthroughNode,
-  Zero: ZeroNode,
-  One: OneNode,
-  AmplitudeConstant: AmplitudeConstantNode,
+  FastGradientWarp: FastGradientWarpNode,  // V2 name for DomainWarp2D/3D
   Pow: PowNode,
   SmoothClamp: SmoothClampNode,
   Floor: FloorDensityNode,
@@ -250,7 +222,6 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   PositionsPinch: PositionsPinchNode,
   PositionsTwist: PositionsTwistNode,
   GradientWarp: GradientWarpNode,
-  FastGradientWarp: FastGradientWarpNode,
   VectorWarp: VectorWarpNode,
   Terrain: TerrainNode,
   CellWallDistance: CellWallDistanceNode,

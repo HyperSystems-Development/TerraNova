@@ -239,3 +239,72 @@ describe("Extended node types — node tips", () => {
     }
   });
 });
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 9. V2 name aliases — renamed types have both old and new registry keys
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+describe("V2 density name aliases", () => {
+  const V2_ALIASES: [string, string][] = [
+    // [V2 name, old name] — both should resolve to the same component
+    ["Multiplier",    "Product"],
+    ["Inverter",      "Negate"],
+    ["CurveMapper",   "CurveFunction"],
+    ["Cache",         "CacheOnce"],
+    ["Imported",      "ImportedValue"],
+    ["Mix",           "Blend"],
+    ["Min",           "MinFunction"],
+    ["Max",           "MaxFunction"],
+    ["XValue",        "CoordinateX"],
+    ["YValue",        "CoordinateY"],
+    ["ZValue",        "CoordinateZ"],
+    ["Sqrt",          "SquareRoot"],
+    ["Scale",         "ScaledPosition"],
+    ["Slider",        "TranslatedPosition"],
+    ["Rotator",       "RotatedPosition"],
+    ["CellNoise2D",   "CellNoise2D"],   // standalone V2 name (old VoronoiNoise2D removed)
+    ["CellNoise3D",   "CellNoise3D"],   // standalone V2 name (old VoronoiNoise3D removed)
+  ];
+
+  it.each(V2_ALIASES)(
+    "V2 name '%s' is registered and shares the component with '%s'",
+    (v2Name, oldName) => {
+      expect(nodeTypes[v2Name]).toBeDefined();
+      expect(nodeTypes[oldName]).toBeDefined();
+      expect(nodeTypes[v2Name]).toBe(nodeTypes[oldName]);
+    },
+  );
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 10. Removed invented types — should no longer be registered
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+describe("Removed invented density types", () => {
+  const REMOVED_TYPES = [
+    "Square", "CubeRoot", "CubeMath", "Inverse", "Modulo",
+    "SumSelf", "WeightedSum",
+    "SimplexRidgeNoise2D", "SimplexRidgeNoise3D",
+    "FractalNoise2D", "FractalNoise3D",
+    "VoronoiNoise2D", "VoronoiNoise3D",
+    "Zero", "One",
+    "Debug", "Passthrough",
+    "YGradient", "DoubleNormalizer",
+    "RangeChoice", "Interpolate",
+    "FlatCache", "ClampToIndex", "Wrap", "SplineFunction",
+    "DistanceFromOrigin", "DistanceFromAxis", "DistanceFromPoint",
+    "AngleFromOrigin", "AngleFromPoint",
+    "HeightAboveSurface",
+    "SurfaceDensity", "TerrainBoolean", "TerrainMask",
+    "GradientDensity", "BeardDensity", "ColumnDensity", "CaveDensity",
+    "MirroredPosition", "QuantizedPosition",
+    "AverageFunction", "Conditional",
+  ];
+
+  it.each(REMOVED_TYPES)(
+    "invented type '%s' is no longer in the registry",
+    (type) => {
+      expect(nodeTypes[type]).toBeUndefined();
+    },
+  );
+});

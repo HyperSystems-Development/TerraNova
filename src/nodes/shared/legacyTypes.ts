@@ -5,12 +5,13 @@
  * hidden from the Quick Add palette and display an amber LEGACY badge.
  */
 export const LEGACY_TYPE_KEYS: ReadonlySet<string> = new Set([
-  // Density (39 legacy)
+  // Density (43 legacy — all removed from the registry)
   "SimplexRidgeNoise2D", "SimplexRidgeNoise3D",
   "FractalNoise2D", "FractalNoise3D",
-  "SumSelf", "WeightedSum", "CubeRoot", "CubeMath",
+  "VoronoiNoise2D", "VoronoiNoise3D",
+  "SumSelf", "WeightedSum", "Square", "CubeRoot", "CubeMath",
   "Inverse", "Modulo", "ClampToIndex", "DoubleNormalizer",
-  "Interpolate", "DistanceFromOrigin", "DistanceFromAxis",
+  "RangeChoice", "Interpolate", "DistanceFromOrigin", "DistanceFromAxis",
   "DistanceFromPoint", "AngleFromOrigin", "AngleFromPoint",
   "HeightAboveSurface", "MirroredPosition", "QuantizedPosition",
   "Conditional", "AverageFunction",
@@ -83,6 +84,8 @@ export const LEGACY_TYPE_REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   ["Zero",                "Constant"],
   ["One",                 "Constant"],
   ["Amplitude",           "AmplitudeConstant"],
+  ["VoronoiNoise2D",     "CellNoise2D"],
+  ["VoronoiNoise3D",     "CellNoise3D"],
   // Curves — direct functional equivalents
   ["Curve:Blend",         "Curve:Sum"],
   ["Curve:Cache",         "Curve:Manual"],
