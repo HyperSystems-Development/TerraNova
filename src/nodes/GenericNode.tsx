@@ -31,13 +31,16 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
   );
 
   // Discover target handles dynamically — subscribe only to edges targeting this node
-  const uniqueTargetHandles = useStore((s) => {
-    const handles: string[] = [];
-    for (const edge of s.edges) {
-      if (edge.target === id && edge.targetHandle) handles.push(edge.targetHandle);
-    }
-    return [...new Set(handles)];
-  });
+  const uniqueTargetHandles = useStore(
+    (s) => {
+      const handles: string[] = [];
+      for (const edge of s.edges) {
+        if (edge.target === id && edge.targetHandle) handles.push(edge.targetHandle);
+      }
+      return [...new Set(handles)];
+    },
+    (a, b) => a.length === b.length && a.every((v, i) => v === b[i]),
+  );
 
   const maxRows = Math.max(uniqueTargetHandles.length, 1); // at least 1 for output
 

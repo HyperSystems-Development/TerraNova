@@ -18,6 +18,7 @@ export default defineConfig({
         manualChunks: {
           three: ["three", "@react-three/fiber", "@react-three/drei", "@react-three/postprocessing", "postprocessing"],
           xyflow: ["@xyflow/react"],
+          mermaid: ["mermaid"],
         },
       },
     },

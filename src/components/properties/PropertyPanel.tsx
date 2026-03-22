@@ -1436,7 +1436,7 @@ export function PropertyPanel() {
     typeName === "DensityDelimited" && (data._biomeField as string | undefined) === "TintProvider";
 
   return (
-    <div className="flex flex-col p-3 gap-2">
+    <div className="flex flex-col p-3 gap-2 overflow-y-auto flex-1 min-h-0">
       <div className="border-b border-tn-border pb-2.5">
         <div className="flex items-center justify-between gap-2">
           <h3
