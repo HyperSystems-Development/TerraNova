@@ -1622,8 +1622,6 @@ export function DocsPanel() {
       </h3>
     ),
   }), [
-    docsCurveHeight,
-    docsCurveWidthClass,
     entriesBySlug,
     handleCopyNodeGraphBlock,
     handleCopySnippetGraph,
@@ -1631,7 +1629,6 @@ export function DocsPanel() {
     handleLinkClick,
     handleOpenSnippetInEditor,
     shouldWrapCodeBlocks,
-    showCurveStats,
     snippetDisplayMode,
   ]);
   const selectedEntry = selectedSlug ? entriesBySlug.get(selectedSlug) ?? null : null;
