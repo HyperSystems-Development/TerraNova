@@ -41,6 +41,25 @@ interface BundleNode {
   fields: Record<string, BundleField>;
   inputs: BundlePort[];
   outputs: BundlePort[];
+  isSubType?: boolean;
+}
+
+/* ── Exported types for new accessors ────────────────────────────── */
+
+export interface HandleInfo {
+  id: string;
+  handleType: string;
+  label: string;
+}
+
+export interface FieldDef {
+  name: string;
+  type: string;
+  default: unknown;
+  required?: boolean;
+  min?: number;
+  max?: number;
+  enum?: string[];
 }
 
 const nodes = (bundleJson as { nodes: Record<string, BundleNode> }).nodes;
@@ -235,4 +254,113 @@ export function getSchemaBridgeInfo(nodeType: string): { from: AssetCategory; to
     }
   }
   return null;
+}
+
+/* ── Primary-source accessors ────────────────────────────────────── */
+
+/**
+ * Get default field values for a node type.
+ * Returns `{}` if the type is not found in the bundle.
+ */
+export function getNodeDefaults(typeKey: string): Record<string, unknown> {
+  const node = nodes[typeKey];
+  if (!node) return {};
+
+  const defaults: Record<string, unknown> = {};
+  for (const [fieldName, field] of Object.entries(node.fields)) {
+    if (field.default !== undefined && field.default !== null) {
+      defaults[fieldName] = field.default;
+    }
+  }
+  return defaults;
+}
+
+/**
+ * Get min/max/required constraints for each field of a node type.
+ * Returns `{}` if the type is not found or has no constrained fields.
+ */
+export function getNodeConstraints(typeKey: string): Record<string, FieldConstraint> {
+  const node = nodes[typeKey];
+  if (!node) return {};
+
+  const constraints: Record<string, FieldConstraint> = {};
+  for (const [fieldName, field] of Object.entries(node.fields)) {
+    const constraint: FieldConstraint = {};
+    if (field.required) {
+      constraint.required = true;
+    }
+    if (field.min !== undefined) {
+      constraint.min = field.min;
+    }
+    if (field.max !== undefined) {
+      constraint.max = field.max;
+    }
+    if (Object.keys(constraint).length > 0) {
+      constraints[fieldName] = constraint;
+    }
+  }
+  return constraints;
+}
+
+/**
+ * Get the input and output handle definitions for a node type.
+ * Returns `{ inputs: [], outputs: [] }` if the type is not found.
+ */
+export function getNodeHandles(typeKey: string): { inputs: HandleInfo[]; outputs: HandleInfo[] } {
+  const node = nodes[typeKey];
+  if (!node) return { inputs: [], outputs: [] };
+
+  const inputs: HandleInfo[] = node.inputs.map((inp) => ({
+    id: inp.id,
+    handleType: inp.handleType,
+    label: inp.label,
+  }));
+
+  const outputs: HandleInfo[] = node.outputs.map((out) => ({
+    id: out.id,
+    handleType: out.handleType,
+    label: out.label,
+  }));
+
+  return { inputs, outputs };
+}
+
+/**
+ * Get ordered field definitions for a node type.
+ * Returns `[]` if the type is not found or has no fields.
+ */
+export function getNodeFields(typeKey: string): FieldDef[] {
+  const node = nodes[typeKey];
+  if (!node) return [];
+
+  return Object.entries(node.fields).map(([name, field]) => {
+    const def: FieldDef = {
+      name,
+      type: field.type,
+      default: field.default ?? undefined,
+    };
+    if (field.required !== undefined) def.required = field.required;
+    if (field.min !== undefined) def.min = field.min;
+    if (field.max !== undefined) def.max = field.max;
+    if (field.enum !== undefined) def.enum = field.enum;
+    return def;
+  });
+}
+
+/**
+ * Check whether a type key corresponds to a registered (non-sub-type) node.
+ */
+export function isRegisteredNodeType(typeKey: string): boolean {
+  const node = nodes[typeKey];
+  if (!node) return false;
+  return node.isSubType !== true;
+}
+
+/**
+ * Get all registered (non-sub-type) node type keys from the bundle.
+ */
+export function getAllNodeTypes(): string[] {
+  return Object.entries(nodes)
+    .filter(([, node]) => node.isSubType !== true)
+    .map(([key]) => key);
 }
