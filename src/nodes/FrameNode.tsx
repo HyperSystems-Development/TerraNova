@@ -2,7 +2,6 @@ import { memo, useState, useCallback, useRef } from "react";
 import type { NodeProps, ResizeDragEvent, ResizeParams } from "@xyflow/react";
 import { NodeResizer } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
-import { useProjectStore } from "@/stores/projectStore";
 
 export interface FrameNodeData {
   type: "frame";

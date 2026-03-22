@@ -25,6 +25,7 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(nodeData.text ?? "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const cancelEditRef = useRef(false);
   const isAuthorNote = isAuthorNoteText(nodeData.text);
   const accentColor = isAuthorNote ? AUTHOR_NOTE_COLOR : COMMENT_COLOR;
   const backgroundColor = isAuthorNote ? AUTHOR_NOTE_BG : COMMENT_BG;

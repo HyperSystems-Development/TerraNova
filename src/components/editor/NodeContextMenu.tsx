@@ -364,7 +364,7 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         shortcut="Ctrl+X"
         onClick={() => {
           const s = useEditorStore.getState();
-          const data = copyNodesToClipboard(s.nodes, s.edges, selectedIds);
+          const data = copyNodesToClipboard(s.nodes, s.edges);
           if (!data) {
             onClose();
             return;
@@ -379,7 +379,7 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         shortcut="Ctrl+C"
         onClick={() => {
           const s = useEditorStore.getState();
-          const data = copyNodesToClipboard(s.nodes, s.edges, selectedIds);
+          const data = copyNodesToClipboard(s.nodes, s.edges);
           if (data) {
             useEditorStore.setState({ _clipboardData: data });
           }
@@ -391,7 +391,7 @@ export function NodeContextMenu({ x, y, nodeId, onClose }: NodeContextMenuProps)
         shortcut="Ctrl+D"
         onClick={() => {
           const s = useEditorStore.getState();
-          const data = copyNodesToClipboard(s.nodes, s.edges, selectedIds);
+          const data = copyNodesToClipboard(s.nodes, s.edges);
           if (!data) {
             onClose();
             return;
