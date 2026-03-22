@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DENSITY_DEFAULTS, CURVE_DEFAULTS } from "../defaults";
+import { DENSITY_DEFAULTS, CURVE_DEFAULTS, getDefaults } from "../defaults";
 
 describe("V2 CODEC default alignment", () => {
   it("SimplexNoise2D defaults match V2", () => {
@@ -50,5 +50,36 @@ describe("V2 CODEC default alignment", () => {
   it("SmoothMin/SmoothMax defaults match V2", () => {
     expect(DENSITY_DEFAULTS.SmoothMin.Smoothness).toBe(1.0);
     expect(DENSITY_DEFAULTS.SmoothMax.Smoothness).toBe(1.0);
+  });
+});
+
+describe("getDefaults() — schema-driven API", () => {
+  it("returns defaults for a density type by bare name", () => {
+    const d = getDefaults("SimplexNoise2D");
+    expect(d.Scale).toBe(1.0);
+    expect(d.Octaves).toBe(1);
+  });
+
+  it("returns defaults for a prefixed bundle type", () => {
+    const d = getDefaults("Curve:Manual");
+    expect(d).toBeDefined();
+  });
+
+  it("falls back to legacy for types not in the bundle", () => {
+    const d = getDefaults("FractalNoise2D");
+    expect(d.Scale).toBe(1.0);
+    expect(d.Octaves).toBe(1);
+  });
+
+  it("returns {} for completely unknown types", () => {
+    const d = getDefaults("NonExistentType_XYZ");
+    expect(d).toEqual({});
+  });
+
+  it("returns defaults for a material type by prefixed key", () => {
+    const d = getDefaults("MaterialProvider:SpaceAndDepth");
+    expect(d).toBeDefined();
+    // Legacy fallback should have LayerContext
+    expect(d.LayerContext ?? d.MaxExpectedDepth).toBeDefined();
   });
 });
