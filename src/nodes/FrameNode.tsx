@@ -118,7 +118,9 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
               onChange={(e) => setEditName(e.target.value)}
               onBlur={handleCommit}
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleCommit();
+                if (e.key === "Enter") {
+                  (e.target as HTMLInputElement).blur();
+                }
                 if (e.key === "Escape") {
                   cancelEditRef.current = true;
                   setIsEditing(false);

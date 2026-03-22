@@ -2,6 +2,7 @@ import { memo, useState, useCallback, useRef } from "react";
 import type { NodeProps, ResizeDragEvent, ResizeParams } from "@xyflow/react";
 import { NodeResizer } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
+import { useProjectStore } from "@/stores/projectStore";
 
 export interface CommentNodeData {
   type: "comment";
@@ -21,6 +22,7 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(nodeData.text ?? "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const cancelEditRef = useRef(false);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -30,32 +32,42 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
   }, [nodeData.text]);
 
   const handleCommit = useCallback(() => {
+    if (cancelEditRef.current) {
+      cancelEditRef.current = false;
+      setIsEditing(false);
+      return;
+    }
     setIsEditing(false);
-    const { nodes, setNodes } = useEditorStore.getState();
+    const { nodes, setNodes, commitState } = useEditorStore.getState();
     setNodes(nodes.map((n) =>
       n.id !== id ? n : { ...n, data: { ...n.data as object, text: editText } }
     ));
+    commitState("Edit comment");
+    useProjectStore.getState().setDirty(true);
   }, [id, editText]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
+      cancelEditRef.current = true;
       setIsEditing(false);
       setEditText(nodeData.text ?? "");
     }
-    // Ctrl+Enter or Shift+Enter to commit
+    // Ctrl+Enter or Shift+Enter to commit (let blur handle commit)
     if (e.key === "Enter" && (e.ctrlKey || e.shiftKey)) {
-      handleCommit();
+      (e.target as HTMLTextAreaElement).blur();
     }
-  }, [nodeData.text, handleCommit]);
+  }, [nodeData.text]);
 
   const handleResizeEnd = useCallback(
     (_event: ResizeDragEvent, params: ResizeParams) => {
-      const { nodes, setNodes } = useEditorStore.getState();
+      const { nodes, setNodes, commitState } = useEditorStore.getState();
       setNodes(nodes.map((n) =>
         n.id !== id
           ? n
           : { ...n, data: { ...n.data as object, width: params.width, height: params.height } }
       ));
+      commitState("Resize comment");
+      useProjectStore.getState().setDirty(true);
     },
     [id],
   );
@@ -101,7 +113,6 @@ export const CommentNode = memo(function CommentNode({ id, selected, data }: Nod
       >
         {/* Drag handle / header strip */}
         <div
-          className="nodrag"
           style={{
             background: `${COMMENT_COLOR}22`,
             borderBottom: `1px solid ${COMMENT_BORDER}`,

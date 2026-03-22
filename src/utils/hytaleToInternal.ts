@@ -86,6 +86,22 @@ export function parseNodeEditorMetadata(raw: Record<string, unknown>): {
     }
   }
 
+  // Legacy fallback: older TerraNova versions stored positions under "Positions"
+  // with direct {x, y} values instead of the $Position/$x/$y nesting.
+  if (Object.keys(nodePositions).length === 0) {
+    const legacy = raw["Positions"] as Record<string, unknown> | undefined;
+    if (legacy && typeof legacy === "object") {
+      for (const [nodeId, posData] of Object.entries(legacy)) {
+        if (!posData || typeof posData !== "object") continue;
+        const pos = posData as Record<string, unknown>;
+        nodePositions[nodeId] = {
+          x: (pos["x"] as number) ?? (pos["$x"] as number) ?? 0,
+          y: (pos["y"] as number) ?? (pos["$y"] as number) ?? 0,
+        };
+      }
+    }
+  }
+
   const $Comments = raw["$Comments"] as unknown[] | undefined;
   if (Array.isArray($Comments)) {
     for (const c of $Comments) {
