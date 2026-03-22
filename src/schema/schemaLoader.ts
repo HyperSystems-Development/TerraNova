@@ -61,6 +61,7 @@ const HANDLE_TYPE_TO_CATEGORY: Record<string, AssetCategory> = {
   TintProvider: AssetCategory.TintProvider,
   BlockMask: AssetCategory.BlockMask,
   Directionality: AssetCategory.Directionality,
+  PropDistribution: AssetCategory.PropDistribution,
 };
 
 function mapCategory(handleType: string): AssetCategory {
