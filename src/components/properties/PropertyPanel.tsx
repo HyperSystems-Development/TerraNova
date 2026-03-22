@@ -1538,7 +1538,7 @@ export function PropertyPanel() {
         </div>
       )}
 
-      {typeof fields["_comment"] === "string" && fields["_comment"] && (
+      {typeof fields["_comment"] === "string" && (
         <div
           className="flex flex-col gap-1 px-2.5 py-2 rounded border text-[11px] leading-relaxed"
           style={{
@@ -1550,6 +1550,7 @@ export function PropertyPanel() {
           <span style={{ fontSize: 10, fontWeight: 600, opacity: 0.6, letterSpacing: "0.05em", textTransform: "uppercase" }}>Note</span>
           <textarea
             value={fields["_comment"] as string}
+            placeholder="Add a note…"
             onChange={(e) => handleContinuousChange("_comment", e.target.value)}
             onBlur={handleBlur}
             rows={3}
