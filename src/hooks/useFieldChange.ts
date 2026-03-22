@@ -1,8 +1,12 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useEffect } from "react";
 
 /**
  * Reusable debounced change handler for config-level fields.
  * Batches rapid edits into a single undo/redo snapshot.
+ *
+ * commitState and setDirty are stored in refs so the debounce timer always
+ * calls the latest version, avoiding stale-closure bugs when the parent
+ * re-renders between a change and the debounce firing.
  */
 export function useFieldChange(
   commitState: (label: string) => void,
@@ -13,10 +17,16 @@ export function useFieldChange(
   const hasPendingRef = useRef(false);
   const lastLabelRef = useRef("");
 
+  // Keep refs current so the debounce timer always uses the latest callbacks
+  const commitStateRef = useRef(commitState);
+  const setDirtyRef = useRef(setDirty);
+  useEffect(() => { commitStateRef.current = commitState; }, [commitState]);
+  useEffect(() => { setDirtyRef.current = setDirty; }, [setDirty]);
+
   const debouncedChange = useCallback(
     (label: string, applyFn: () => void) => {
       applyFn();
-      setDirty(true);
+      setDirtyRef.current(true);
       hasPendingRef.current = true;
       lastLabelRef.current = label;
 
@@ -24,12 +34,12 @@ export function useFieldChange(
         clearTimeout(debounceTimerRef.current);
       }
       debounceTimerRef.current = setTimeout(() => {
-        commitState(lastLabelRef.current);
+        commitStateRef.current(lastLabelRef.current);
         hasPendingRef.current = false;
         debounceTimerRef.current = null;
       }, debounceMs);
     },
-    [commitState, setDirty, debounceMs],
+    [debounceMs],
   );
 
   const flush = useCallback(() => {
@@ -38,10 +48,10 @@ export function useFieldChange(
       debounceTimerRef.current = null;
     }
     if (hasPendingRef.current) {
-      commitState(lastLabelRef.current);
+      commitStateRef.current(lastLabelRef.current);
       hasPendingRef.current = false;
     }
-  }, [commitState]);
+  }, []);
 
   return { debouncedChange, flush };
 }

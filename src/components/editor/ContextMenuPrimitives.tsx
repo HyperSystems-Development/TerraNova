@@ -1,30 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 interface ContextMenuSubmenuProps {
   label: string;
+  disabled?: boolean;
   children: React.ReactNode;
 }
 
-export function ContextMenuSubmenu({ label, children }: ContextMenuSubmenuProps) {
+export function ContextMenuSubmenu({ label, disabled, children }: ContextMenuSubmenuProps) {
   const [open, setOpen] = useState(false);
   return (
     <div
-      className="relative group"
-      onMouseEnter={() => setOpen(true)}
+      className="relative"
+      onMouseEnter={() => { if (!disabled) setOpen(true); }}
       onMouseLeave={() => setOpen(false)}
     >
-      <button className="w-full text-left px-3 py-1.5 flex justify-between gap-4 text-tn-text hover:bg-tn-accent/20">
+      <button
+        className={`w-full text-left px-3 py-1.5 flex justify-between items-center gap-4 transition-colors ${
+          disabled ? "text-tn-text-muted/30 cursor-default" : "text-tn-text hover:bg-tn-accent/15"
+        }`}
+        disabled={disabled}
+      >
         <span>{label}</span>
-        <span className="text-tn-text-muted text-[10px]">▶</span>
+        <span className="text-tn-text-muted/60 text-[11px]">▶</span>
       </button>
-      {open && (
-        <div className="absolute left-full top-0 bg-tn-surface border border-tn-border rounded-lg shadow-xl py-1 min-w-[180px] z-[101]">
+      {open && !disabled && (
+        <div className="absolute left-full top-0 bg-tn-surface border border-tn-border rounded-lg shadow-2xl py-1 min-w-[180px] z-[101]">
           {children}
         </div>
       )}
     </div>
   );
 }
-import { useEffect, useRef, type ReactNode } from "react";
 
 interface ContextMenuOverlayProps {
   x: number;
@@ -35,6 +40,8 @@ interface ContextMenuOverlayProps {
 
 export function ContextMenuOverlay({ x, y, onClose, children }: ContextMenuOverlayProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   // Clamp position to viewport
   useEffect(() => {
@@ -49,29 +56,28 @@ export function ContextMenuOverlay({ x, y, onClose, children }: ContextMenuOverl
     }
   }, [x, y]);
 
+  const stableClose = useCallback(() => onCloseRef.current(), []);
+
   // Close on Escape, scroll, or resize
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    function handleClose() {
-      onClose();
+      if (e.key === "Escape") stableClose();
     }
     document.addEventListener("keydown", handleKey);
-    window.addEventListener("resize", handleClose);
-    window.addEventListener("scroll", handleClose, true);
+    window.addEventListener("resize", stableClose);
+    window.addEventListener("scroll", stableClose, true);
     return () => {
       document.removeEventListener("keydown", handleKey);
-      window.removeEventListener("resize", handleClose);
-      window.removeEventListener("scroll", handleClose, true);
+      window.removeEventListener("resize", stableClose);
+      window.removeEventListener("scroll", stableClose, true);
     };
-  }, [onClose]);
+  }, [stableClose]);
 
   return (
-    <div className="fixed inset-0 z-[100]" onMouseDown={onClose} onContextMenu={(e) => e.preventDefault()}>
+    <div className="fixed inset-0 z-[100]" onMouseDown={stableClose} onContextMenu={(e) => e.preventDefault()}>
       <div
         ref={menuRef}
-        className="absolute bg-tn-surface border border-tn-border rounded-lg shadow-xl py-1 min-w-[180px] text-[12px]"
+        className="absolute bg-tn-surface border border-tn-border rounded-lg shadow-2xl py-1 min-w-[190px] text-[12px]"
         style={{ left: x, top: y }}
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -91,10 +97,10 @@ interface ContextMenuItemProps {
 export function ContextMenuItem({ label, shortcut, disabled, onClick }: ContextMenuItemProps) {
   return (
     <button
-      className={`w-full text-left px-3 py-1.5 flex justify-between gap-4 ${
+      className={`w-full text-left px-3 py-1.5 flex justify-between items-center gap-4 transition-colors ${
         disabled
-          ? "text-tn-text-muted/40 cursor-default"
-          : "text-tn-text hover:bg-tn-accent/20"
+          ? "text-tn-text-muted/30 cursor-default"
+          : "text-tn-text hover:bg-tn-accent/15"
       }`}
       disabled={disabled}
       onClick={() => {
@@ -102,11 +108,11 @@ export function ContextMenuItem({ label, shortcut, disabled, onClick }: ContextM
       }}
     >
       <span>{label}</span>
-      {shortcut && <span className="text-tn-text-muted text-[10px]">{shortcut}</span>}
+      {shortcut && <span className="text-tn-text-muted/50 text-[11px] font-mono shrink-0">{shortcut}</span>}
     </button>
   );
 }
 
 export function ContextMenuSeparator() {
-  return <div className="border-t border-tn-border my-1" />;
+  return <div className="border-t border-tn-border/60 my-1 mx-2" />;
 }

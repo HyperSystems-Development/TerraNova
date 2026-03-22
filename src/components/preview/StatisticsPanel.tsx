@@ -24,7 +24,7 @@ export function StatisticsPanel() {
 
   const copyStats = useCallback(() => {
     if (!stats) return;
-    navigator.clipboard.writeText(JSON.stringify(stats, null, 2));
+    void navigator.clipboard.writeText(JSON.stringify(stats, null, 2)).catch(() => {});
   }, [stats]);
 
   if (!values) return null;

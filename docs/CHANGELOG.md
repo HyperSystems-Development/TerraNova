@@ -2,6 +2,71 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystems-Development/TerraNova) are documented in this file.
 
+## [0.1.7-pre.2] — 2026-03-18
+
+### Features
+
+- **Resizable frames and comments** — Frame and comment nodes can now be resized by dragging their edges; size is saved with the node
+- **Custom node labels** — You can now give any node a custom name from the properties panel; the original type shows as a subtitle underneath
+- **Node lock** — Lock a node in place from the properties panel or right-click menu so it can't be accidentally moved; shows a `●` in the node header when locked
+
+### Quality of Life
+
+- **Align / Distribute menu** — Right-click menu now has a proper Align / Distribute submenu with an icon grid for all 6 align and 2 distribute actions
+- **Select Same Type** — New right-click option to select all nodes of the same type at once
+- **Cleaner context menu for frames and comments** — Graph-only options like Group, Select Upstream, and Set as Root are hidden for annotation nodes since they don't apply
+- **Note field** — Nodes with a `_comment` field now show it as a readable and editable amber note block in the properties panel
+- **Properties panel improvements**
+  - Node type name now has a colour strip on the left matching its category
+  - Custom label input is now visibly styled as an editable field
+  - Node ID row has a subtle pill background
+  - Fields are spaced tighter for a cleaner look
+- **Field improvements**
+  - Vector X/Y/Z axis labels are now colour coded red, green, blue
+  - Colour picker no longer shows a redundant swatch next to itself
+  - Toggle switch fixed to the correct size and animation
+
+### Bug Fixes
+
+- Fixed a stale closure bug in field change handling where the debounce timer could call an old version of the commit function
+- Fixed wheel event listener not cleaning up correctly on the editor canvas
+- Fixed material field trying to update state after the component unmounts
+- Fixed context menu event listeners re-attaching on every render instead of once
+- Fixed snippet placement not showing an error if something went wrong
+- Fixed several unhandled promise rejections in clipboard writes and node deletion
+
+## [0.1.7-pre.3] — 2026-03-20 — QOL, Docs, and Properties Pass
+
+### Documentation
+
+- **Terrain types guide** — New `docs/reference/terrain-types.md` with 12 terrain recipes as copyable `snippet:` blocks (Plains, Rolling Hills, Mountains, Mesas, Floating Islands, Caves, Depth-Faded Caves, Warped Terrain, Warped Caves, Sand Dunes, Archipelago, Complex Layered); each snippet includes terrain name and difficulty badge
+- **Curves reference** — New `docs/reference/curves.md` explaining all curve types (Manual, SmoothStep, Sigmoid, InverseLerp, SquareBump, and the full computed preset list) with `curve:` inline previews for each
+- **Graph reading guide** — New `docs/reference/reading-the-graph.md` explaining the visual language of the node graph: handle colors, edge routing, root node designation, and category color coding
+- **Reference index** — Updated `docs/reference/index.md` to link all three new reference pages
+- **Docs panel snippet blocks** — Added `snippet:` markdown fence to the docs panel renderer: renders a labelled, difficulty-badged, copyable JSON block for terrain recipes
+- **Getting started overhaul** — Rewrote `docs/getting-started.md` with step-by-step first-session flow and links to tutorials
+- **Sky Islands walkthrough** — Added `curve:` fence blocks and prose improvements to `docs/tutorials/sky-islands-walkthrough.md`
+- **Em-dash cleanup** — Replaced all em-dashes in rendered docs with colons or parentheses so screen readers and the docs panel render them consistently
+
+### Quality of Life
+
+- **Terrain curve presets** — Curve canvas now has a second "Terrain:" preset row with 10 terrain-specific presets (Sharp Peak, Plateau, Cliff Edge, Cave Arch, Terrace, Island Falloff, Beach Shore, Ridge Sharpen, Overhang, Gentle Hills)
+- **Docs panel performance** — `selectedSlugRef` pattern prevents unnecessary re-creation of `mdComponents` on every slug change; link click handler no longer takes a stale closure over the current slug
+- **Richer template descriptions** — All 6 bundled templates now have descriptive tags (difficulty, key features, node count) shown in the new project dialog
+
+## [0.1.7-pre.1] — 2026-03-16
+
+### Documentation
+
+- **New terrain guide series** — Three new guides covering terrain by outcome rather than by node type: basic types (12 recipes), advanced techniques (8 recipes), and expert topics including optimization, graph cost modelling, and a preview vs. runtime gap reference
+- **Preview gap warnings** — Added callouts throughout the guides for nodes that return `0.0` in the preview evaluator (`GradientWarp`, `VectorWarp`, `BaseHeight`, `CellWallDistance`, `Terrain`, `Imported`) so users know to test them in-game
+- **Troubleshooting section** — New preview vs. runtime table in `troubleshooting.md` with per-node workarounds for all six zero-returning nodes
+- **Reference corrections** — Fixed missing material provider types, added full `MaterialProvider.Context` field table, block rotation reference, and reorganized Prop Types into Core / Compositional / Legacy
+- **Biome system corrections** — Fixed wrong JSON field names (`Frequency` → `Scale`), added missing `FloatingFunctionNodes` and Export/Import sections, fixed provider type names, and added prop runtime stage ordering
+- **Cross-references** — Wired all new guides into the existing `README`, `node-combinations`, `terrain-and-caves`, and `troubleshooting` pages
+
+---
+
 ## [1.5.9 McCal's QoL] - 2026-03-14
 
 ### Features

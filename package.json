@@ -1,6 +1,6 @@
 {
   "name": "terranova",
-  "version": "0.1.7",
+  "version": "0.1.7-pre.2",
   "description": "Offline design studio for Hytale World Generation V2",
   "private": true,
   "packageManager": "pnpm@10.28.2",
@@ -32,6 +32,7 @@
     "@xyflow/react": "^12.10.0",
     "codemirror": "^6.0.2",
     "lucide-react": "^0.563.0",
+    "mermaid": "^10.6.0",
     "postprocessing": "^6.38.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

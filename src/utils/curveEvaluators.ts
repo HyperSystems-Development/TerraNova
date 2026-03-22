@@ -84,6 +84,11 @@ export function evalDistanceS(
   range: number,
   transitionSmooth: number,
 ): (x: number) => number {
+  if (![exponentA, exponentB, transition, range, transitionSmooth].every(Number.isFinite) || range <= 0) {
+    return () => 0;
+  }
+  const smooth = Math.max(0, Math.min(1, transitionSmooth));
+  const clampedTransition = Math.max(0, transition);
   const fnA = (d: number): number => {
     if (d >= range) return 0;
     return Math.pow(1 - d / range, exponentA);
@@ -93,9 +98,11 @@ export function evalDistanceS(
     return Math.pow(1 - d / range, exponentB);
   };
 
-  const transitionDist = transition * range;
+  const transitionDist = clampedTransition * range;
+  if (!Number.isFinite(transitionDist)) return () => 0;
   const posA = range / 2 - transitionDist / 2;
   const posB = posA + transitionDist;
+  if (!Number.isFinite(posA) || !Number.isFinite(posB)) return () => 0;
 
   return (x: number): number => {
     const d = Math.abs(x);
@@ -105,7 +112,7 @@ export function evalDistanceS(
 
     const ratio = (d - posA) / (posB - posA);
     const cosEase = (1 - Math.cos(ratio * Math.PI)) / 2;
-    const blend = cosEase * transitionSmooth + ratio * (1 - transitionSmooth);
+    const blend = cosEase * smooth + ratio * (1 - smooth);
     return (1 - blend) * fnA(d) + blend * fnB(d);
   };
 }
@@ -130,7 +137,9 @@ export function evalManual(points: NormalizedPoint[]): ((x: number) => number) |
     if (x >= sorted[sorted.length - 1].x) return sorted[sorted.length - 1].y;
     for (let i = 0; i < sorted.length - 1; i++) {
       if (x >= sorted[i].x && x <= sorted[i + 1].x) {
-        const t = (x - sorted[i].x) / (sorted[i + 1].x - sorted[i].x);
+        const dx = sorted[i + 1].x - sorted[i].x;
+        if (dx === 0) return sorted[i].y;
+        const t = (x - sorted[i].x) / dx;
         return sorted[i].y + t * (sorted[i + 1].y - sorted[i].y);
       }
     }
@@ -224,6 +233,54 @@ export const CURVE_PRESETS: Record<string, [number, number][]> = {
   "Ease Out": [[0, 0], [0.25, 0.4375], [0.5, 0.75], [0.75, 0.9375], [1, 1]],
   "S-Curve": [[0, 0], [0.25, 0.1], [0.5, 0.5], [0.75, 0.9], [1, 1]],
   Step: [[0, 0], [0.49, 0], [0.5, 1], [1, 1]],
+};
+
+/**
+ * Terrain-specific curve presets — named for their effect on terrain shapes.
+ * These appear in the Curve node preset picker when a relevant terrain context is detected.
+ */
+export const TERRAIN_CURVE_PRESETS: Record<string, { points: [number, number][]; description: string }> = {
+  // Height / density shaping
+  "Sharp Peak": {
+    points: [[0, 0], [0.3, 0.2], [0.5, 1], [0.7, 0.2], [1, 0]],
+    description: "Spike in the middle — sharp mountain peaks or narrow ridges",
+  },
+  "Plateau": {
+    points: [[0, 0], [0.2, 0.8], [0.4, 1], [0.6, 1], [0.8, 0.8], [1, 0]],
+    description: "Flat top with steep sides — mesa or plateau terrain",
+  },
+  "Cliff Edge": {
+    points: [[0, 1], [0.45, 0.9], [0.5, 0.1], [0.55, 0], [1, 0]],
+    description: "Rapid hard dropoff — vertical cliff faces and canyon walls",
+  },
+  "Cave Arch": {
+    points: [[0, 0], [0.1, 0], [0.3, 0.9], [0.5, 1], [0.7, 0.9], [0.9, 0], [1, 0]],
+    description: "Strong peak with zero at both ends — carves cave tunnels from density",
+  },
+  "Terrace": {
+    points: [[0, 0], [0.2, 0], [0.21, 0.33], [0.45, 0.33], [0.46, 0.66], [0.7, 0.66], [0.71, 1], [1, 1]],
+    description: "Three stepped bands — terraced cliffs and rice-paddy layering",
+  },
+  "Island Falloff": {
+    points: [[0, 1], [0.3, 0.95], [0.6, 0.6], [0.8, 0.15], [1, 0]],
+    description: "Solid center, tapered edges — island density from center to shore",
+  },
+  "Beach Shore": {
+    points: [[0, 0], [0.35, 0], [0.5, 0.5], [0.65, 1], [1, 1]],
+    description: "Smooth S blend at midpoint — shoreline material transition",
+  },
+  "Ridge Sharpen": {
+    points: [[0, 1], [0.2, 0.5], [0.4, 0.1], [0.6, 0.1], [0.8, 0.5], [1, 1]],
+    description: "Valley dip with high edges — sharpens inverted noise into ridgelines",
+  },
+  "Overhang": {
+    points: [[0, 0], [0.4, 0.2], [0.5, 1], [0.6, 0.8], [0.75, 0.9], [1, 0.3]],
+    description: "Asymmetric bulge — overhanging rock faces and mushroom caps",
+  },
+  "Gentle Hills": {
+    points: [[0, 0], [0.25, 0.35], [0.5, 0.5], [0.75, 0.65], [1, 1]],
+    description: "Compressed S-curve — soft rolling hills with no sharp edges",
+  },
 };
 
 // ---------------------------------------------------------------------------

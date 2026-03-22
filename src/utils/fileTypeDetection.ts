@@ -1,4 +1,4 @@
-import { isHytaleNativeFormat, hytaleToInternal, hytaleToInternalBiome } from "@/utils/hytaleToInternal";
+import { isHytaleNativeFormat, hytaleToInternal, hytaleToInternalBiome, type ImportMetadata } from "@/utils/hytaleToInternal";
 import { internalToHytale, internalToHytaleBiome } from "@/utils/internalToHytale";
 import type { Node } from "@xyflow/react";
 
@@ -126,16 +126,32 @@ function hasHytaleFieldNames(content: Record<string, unknown>): boolean {
  */
 export function normalizeImport(content: Record<string, unknown>): Record<string, unknown> {
   if (isHytaleNativeFormat(content) || hasHytaleFieldNames(content)) {
-    // Typed asset with $NodeId or Hytale field names -> Hytale native format
     if ("Type" in content) {
       const { asset } = hytaleToInternal(content);
       return asset;
     }
-    // Biome wrapper with $NodeId or Hytale field names -> Hytale native biome
     const { wrapper } = hytaleToInternalBiome(content);
     return wrapper;
   }
   return content;
+}
+
+/**
+ * Like normalizeImport but also returns the import metadata (node positions, comments).
+ */
+export function normalizeImportWithMeta(content: Record<string, unknown>): {
+  content: Record<string, unknown>;
+  metadata: ImportMetadata | null;
+} {
+  if (isHytaleNativeFormat(content) || hasHytaleFieldNames(content)) {
+    if ("Type" in content) {
+      const { asset, metadata } = hytaleToInternal(content);
+      return { content: asset, metadata };
+    }
+    const { wrapper, metadata } = hytaleToInternalBiome(content);
+    return { content: wrapper, metadata };
+  }
+  return { content, metadata: null };
 }
 
 /**

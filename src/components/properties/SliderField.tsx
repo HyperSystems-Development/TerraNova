@@ -16,7 +16,7 @@ interface SliderFieldProps {
 export function SliderField({ label, value, min = -100, max = 100, step = 0.01, description, allowInputOverflow, onChange, onBlur }: SliderFieldProps) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-xs text-tn-text-muted flex items-center">
+      <label className="text-[11px] text-tn-text-muted flex items-center gap-1">
         {label}
         {description && <FieldTooltip description={description} />}
       </label>
@@ -29,7 +29,7 @@ export function SliderField({ label, value, min = -100, max = 100, step = 0.01, 
           value={Math.min(value, max)}
           onChange={(e) => onChange(parseFloat(e.target.value))}
           onBlur={onBlur}
-          className="flex-1 accent-tn-accent"
+          className="flex-1 accent-tn-accent h-1.5 cursor-pointer"
         />
         <input
           type="number"
@@ -43,7 +43,7 @@ export function SliderField({ label, value, min = -100, max = 100, step = 0.01, 
             onChange(allowInputOverflow ? Math.max(min, raw) : Math.max(min, Math.min(max, raw)));
           }}
           onBlur={onBlur}
-          className="w-16 shrink-0 px-1.5 py-0.5 text-xs bg-tn-bg border border-tn-border rounded text-right"
+          className="w-16 shrink-0 px-1.5 py-1 text-xs bg-tn-bg border border-tn-border rounded text-right focus:outline-none focus:border-tn-accent/60 transition-colors"
         />
       </div>
     </div>

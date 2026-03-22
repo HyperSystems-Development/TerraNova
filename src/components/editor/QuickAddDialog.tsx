@@ -7,6 +7,7 @@ import { HANDLE_REGISTRY } from "@/nodes/handleRegistry";
 import { BlockIcon } from "@/components/properties/BlockIcon";
 import { findCompatibleInterjectHandles } from "@/nodes/handleRegistry";
 import { useEditorStore } from "@/stores/editorStore";
+import { useToastStore } from "@/stores/toastStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useLanguage } from "@/languages/useLanguage";
 import { isLegacyTypeKey } from "@/nodes/shared/legacyTypes";
@@ -273,13 +274,18 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
 
   const placeSnippetEntry = useCallback(
     (snippet: SnippetDefinition) => {
-      const flowPos = reactFlow.screenToFlowPosition({
-        x: position.x,
-        y: position.y,
-      });
-      const { nodes, edges } = placeSnippet(snippet, flowPos);
-      useEditorStore.getState().addSnippet(nodes, edges);
-      onClose();
+      try {
+        const flowPos = reactFlow.screenToFlowPosition({
+          x: position.x,
+          y: position.y,
+        });
+        const { nodes, edges } = placeSnippet(snippet, flowPos);
+        useEditorStore.getState().addSnippet(nodes, edges);
+        onClose();
+      } catch (err) {
+        if (import.meta.env.DEV) console.error("Failed to place snippet:", err);
+        useToastStore.getState().addToast("Failed to place snippet", "error");
+      }
     },
     [reactFlow, position, onClose],
   );

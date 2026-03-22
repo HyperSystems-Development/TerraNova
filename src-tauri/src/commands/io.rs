@@ -32,6 +32,18 @@ pub fn unregister_project_root(path: String) {
 
 // ── Asset pack commands ─────────────────────────────────────────────────────
 
+/// Return the first file path passed as a launch argument (e.g. from "Open with" / double-click).
+///
+/// On Windows/macOS, launching the app with a file will pass the file path as an arg.
+/// This helper allows the frontend to open it automatically.
+#[tauri::command]
+pub fn get_launch_file() -> Option<String> {
+    std::env::args_os()
+        .skip(1)
+        .find(|arg| std::path::Path::new(arg).is_file())
+        .map(|arg| std::path::PathBuf::from(arg).to_string_lossy().to_string())
+}
+
 /// Open an asset pack directory and parse all JSON files.
 #[tauri::command]
 pub fn open_asset_pack(path: String) -> Result<AssetPack, String> {

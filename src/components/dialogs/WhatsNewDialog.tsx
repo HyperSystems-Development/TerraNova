@@ -119,9 +119,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
                 <h2 className="text-sm font-semibold">
                   {view === "changelog" ? "Full Changelog" : "What's new in TerraNova"}
                 </h2>
-                <p className="text-[11px] text-tn-text-muted mt-0.5">
-                  v{appVersion}
-                </p>
+                <p className="text-[11px] text-tn-text-muted mt-0.5">v{appVersion}</p>
               </div>
             </div>
             <button
@@ -151,9 +149,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
               <>
                 {highlights.map((section) => (
                   <div key={section.title}>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted mb-2">
-                      {section.title}
-                    </h3>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted mb-2">{section.title}</h3>
                     <ul className="space-y-3">
                       {section.items.map((item, i) => (
                         <li key={i} className="flex gap-3">
@@ -178,9 +174,7 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
               <div className="space-y-5">
                 {latest.sections.map((section) => (
                   <div key={section.title}>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted mb-2">
-                      {section.title}
-                    </h3>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-tn-text-muted mb-2">{section.title}</h3>
                     <ul className="space-y-2">
                       {section.items.map((item, i) => (
                         <li key={i} className="flex gap-3">
@@ -205,35 +199,15 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
           <div className="flex items-center justify-between px-5 py-3 border-t border-tn-border shrink-0">
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={suppress}
-                  onChange={(event) => setSuppress(event.target.checked)}
-                  className="w-3.5 h-3.5 accent-tn-accent"
-                />
+                <input type="checkbox" checked={suppress} onChange={(event) => setSuppress(event.target.checked)} className="w-3.5 h-3.5 accent-tn-accent" />
                 <span className="text-[11px] text-tn-text-muted">Don't show on startup</span>
               </label>
               {view === "highlights" && (
-                <button
-                  onClick={() => setView("changelog")}
-                  className="text-[11px] text-tn-accent hover:opacity-80 transition-opacity"
-                >
-                  Full changelog -&gt;
-                </button>
+                <button onClick={() => setView("changelog")} className="text-[11px] text-tn-accent hover:opacity-80 transition-opacity">Full changelog -&gt;</button>
               )}
-              <button
-                onClick={() => setShowAllVersions(true)}
-                className="text-[11px] text-tn-text-muted hover:text-tn-text transition-colors"
-              >
-                Past versions
-              </button>
+              <button onClick={() => setShowAllVersions(true)} className="text-[11px] text-tn-text-muted hover:text-tn-text transition-colors">Past versions</button>
             </div>
-            <button
-              onClick={() => onClose(suppress)}
-              className="px-4 py-1.5 text-xs rounded bg-tn-accent text-tn-bg font-medium hover:opacity-90"
-            >
-              Got it
-            </button>
+            <button onClick={() => onClose(suppress)} className="px-4 py-1.5 text-xs rounded bg-tn-accent text-tn-bg font-medium hover:opacity-90">Got it</button>
           </div>
         </div>
       </div>

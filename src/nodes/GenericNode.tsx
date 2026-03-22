@@ -1,5 +1,5 @@
-import { Fragment } from "react";
-import { Handle, useEdges } from "@xyflow/react";
+import { Fragment, memo, useMemo } from "react";
+import { Handle, useStore } from "@xyflow/react";
 import type { TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { ROW_H, handleTop, inputPosition, outputPosition, inputSide } from "@/nodes/shared/nodeLayout";
 import { INPUT_HANDLE_COLOR } from "@/nodes/shared/handles";
@@ -10,7 +10,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
  * a dedicated custom node component yet.
  * Shows the type header, all scalar fields, and generic handles.
  */
-export function GenericNode({ selected, id, ...props }: TypedNodeProps) {
+export const GenericNode = memo(function GenericNode({ selected, id, ...props }: TypedNodeProps) {
   const data = props.data;
   const typeName = data.type ?? "Unknown";
   const fields = data.fields ?? {};
@@ -23,17 +23,24 @@ export function GenericNode({ selected, id, ...props }: TypedNodeProps) {
   const headerColor = getTypeColor(typeName);
 
   // Only show scalar fields in the body (not nested objects/arrays)
-  const scalarFields = Object.entries(fields).filter(
-    ([, v]) => typeof v === "string" || typeof v === "number" || typeof v === "boolean",
+  const scalarFields = useMemo(
+    () => Object.entries(fields).filter(
+      ([, v]) => typeof v === "string" || typeof v === "number" || typeof v === "boolean",
+    ),
+    [fields],
   );
 
-  // Discover target handles dynamically from incoming edges
-  const allEdges = useEdges();
-  const incomingHandles = allEdges
-    .filter((e) => e.target === id && e.targetHandle)
-    .map((e) => e.targetHandle!);
-  // Deduplicate
-  const uniqueTargetHandles = [...new Set(incomingHandles)];
+  // Filter s.edges for handles targeting this node; custom equality prevents re-renders when handles are unchanged
+  const uniqueTargetHandles = useStore(
+    (s) => {
+      const handles: string[] = [];
+      for (const edge of s.edges) {
+        if (edge.target === id && edge.targetHandle) handles.push(edge.targetHandle);
+      }
+      return [...new Set(handles)];
+    },
+    (a, b) => a.length === b.length && a.every((v, i) => v === b[i]),
+  );
 
   const maxRows = Math.max(uniqueTargetHandles.length, 1); // at least 1 for output
 
@@ -141,7 +148,7 @@ export function GenericNode({ selected, id, ...props }: TypedNodeProps) {
       )}
     </div>
   );
-}
+});
 
 /** Deterministic color from type name, so each type always gets the same color */
 function getTypeColor(typeName: string): string {

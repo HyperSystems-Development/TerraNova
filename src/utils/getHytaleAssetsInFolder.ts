@@ -6,7 +6,7 @@ export async function getHytaleAssetsInFolder(basePath: string, folder: string):
     const entries = await listDirectory(joinPath(basePath, folder));
     return entries
       .filter((entry) => entry.name && !entry.name.startsWith("."))
-      .map((entry) => entry.name);
+      .map((entry) => entry.name!);
   } catch {
     return [];
   }

@@ -70,8 +70,11 @@ function buildAsset(
  * Expand group nodes back to their internal constituents so they serialize
  * as normal asset trees instead of leaking the UI-only "group" type.
  */
+const ANNOTATION_TYPES = new Set(["comment", "frame"]);
+
 function expandGroups(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
-  let currentNodes = [...nodes];
+  // Strip annotation-only node types that are never valid V2 assets
+  let currentNodes = nodes.filter((n) => !ANNOTATION_TYPES.has(n.type ?? ""));
   let currentEdges = [...edges];
   let changed = true;
 

@@ -15,6 +15,7 @@ import { useDragStore } from "@/stores/dragStore";
 import { isAcceptableTarget } from "@/hooks/useConnectionSuggestions";
 import type { DiagnosticSeverity } from "@/utils/graphDiagnostics";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useEditorStore } from "@/stores/editorStore";
 import { getDensityAccentColor } from "@/schema/densitySubcategories";
 import { HANDLE_REGISTRY } from "@/nodes/handleRegistry";
 import { isLegacyTypeKey } from "@/nodes/shared/legacyTypes";
@@ -105,7 +106,9 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
   const { getTypeDisplayName } = useLanguage();
   const rfType = type ?? nodeData.type;
   const rfDisplayName = getTypeDisplayName(rfType);
-  const displayName = (rfDisplayName !== rfType) ? rfDisplayName : getTypeDisplayName(nodeData.type);
+  const customLabel = (data as Record<string, unknown>).label as string | undefined;
+  const displayName = customLabel || ((rfDisplayName !== rfType) ? rfDisplayName : getTypeDisplayName(nodeData.type));
+  const isLocked = useEditorStore((s) => s.nodes.find((n) => n.id === id)?.draggable === false);
   const flowDirection = useSettingsStore((s) => s.flowDirection);
   const inPos = inputPosition(flowDirection);
   const outPos = outputPosition(flowDirection);
@@ -159,8 +162,10 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
   const showOutputIndex = outputs.length >= 2;
   const maxRows = Math.max(inputs.length, outputs.length);
 
-  // Derive array slot index from this node's downstream connection
+  // Derive array slot index from this node's downstream connection.
+  // Only scan edges when we'll actually show the index badge (showIndex).
   const nodeIndex = useStore((s) => {
+    if (!showIndex && !showOutputIndex) return null;
     for (const edge of s.edges) {
       if (edge.source !== id) continue;
       const th = edge.targetHandle;
@@ -210,10 +215,20 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
         <div className="flex-1 min-w-0">
           {nodeIndex !== null && <span className="opacity-60">[{nodeIndex}] </span>}
           {displayName}
-          {displayName !== nodeData.type && (
+          {customLabel ? (
+            <span className="block text-[9px] font-normal opacity-50">{getTypeDisplayName(nodeData.type)}</span>
+          ) : displayName !== nodeData.type && (
             <span className="block text-[9px] font-normal opacity-50">{nodeData.type}</span>
           )}
         </div>
+        {isLocked && (
+          <span
+            className="shrink-0 opacity-70 text-[10px] leading-none"
+            title="Node position is locked"
+          >
+            ●
+          </span>
+        )}
         {isOutputNode && (
           <span
             className="shrink-0 px-1 py-px rounded text-[8px] font-bold leading-none"

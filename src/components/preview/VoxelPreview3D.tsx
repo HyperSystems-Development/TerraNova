@@ -305,7 +305,18 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
     return { x: 16, y: 16 };
   });
   React.useEffect(() => {
-    localStorage.setItem("tn-voxelMaterialLegendPos", JSON.stringify(legendPos));
+    try {
+      localStorage.setItem("tn-voxelMaterialLegendPos", JSON.stringify(legendPos));
+    } catch (err) {
+      // Guard against quota errors or other localStorage failures.
+      // Don't crash the app if the browser storage is full.
+      console.warn("Failed to persist voxel legend position", err);
+      try {
+        localStorage.removeItem("tn-voxelMaterialLegendPos");
+      } catch {
+        // ignore
+      }
+    }
   }, [legendPos]);
 
   return (
@@ -345,6 +356,7 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
       {showMaterialLegend && voxelData && voxelData.materials && voxelData.materials.length > 0 && (
         <div
           style={{ position: "absolute", left: legendPos.x, top: legendPos.y, zIndex: 20, cursor: "grab", userSelect: "none" }}
+          className="relative"
           onMouseDown={e => {
             if (e.button !== 0) return;
             e.preventDefault();
@@ -365,6 +377,17 @@ export function VoxelPreview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasE
             window.addEventListener("mouseup", handleUp);
           }}
         >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLegendPos({ x: 16, y: 16 });
+            }}
+            className="absolute top-1 right-1 z-20 w-5 h-5 rounded bg-tn-panel/80 border border-tn-border text-tn-text text-[10px] flex items-center justify-center hover:bg-tn-panel"
+            title="Reset legend position"
+          >
+            ↺
+          </button>
           <MaterialLegend materials={voxelData.materials} />
         </div>
       )}

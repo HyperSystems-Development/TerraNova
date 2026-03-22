@@ -138,6 +138,8 @@ export function ProjectTitleBar({
   const showMinimap = useUIStore((s) => s.showMinimap);
   const leftPanelVisible = useUIStore((s) => s.leftPanelVisible);
   const rightPanelVisible = useUIStore((s) => s.rightPanelVisible);
+  const setRightPanelVisible = useUIStore((s) => s.setRightPanelVisible);
+  const setRightPanelMode = useUIStore((s) => s.setRightPanelMode);
   const helpMode = useUIStore((s) => s.helpMode);
   const useAccordionSidebar = useUIStore((s) => s.useAccordionSidebar);
   const flowDirection = useSettingsStore((s) => s.flowDirection);
@@ -359,6 +361,22 @@ export function ProjectTitleBar({
           <MenuItem
             label="File a Bug Report"
             onClick={() => openUrl("https://github.com/HyperSystems-Development/TerraNova/issues/new?template=BUG_REPORT.yml")}
+          />
+        </MenuDropdown>
+
+        <MenuDropdown label="Help">
+          <MenuItem
+            label="Open Docs"
+            onClick={() => {
+              setRightPanelMode("docs");
+              setRightPanelVisible(true);
+            }}
+            shortcut="F1"
+          />
+          <MenuItem
+            label={helpMode ? "Disable Help Mode" : "Enable Help Mode"}
+            onClick={() => useUIStore.getState().toggleHelpMode()}
+            shortcut={resolveKeybinding("toggleHelpMode")}
           />
         </MenuDropdown>
       </div>

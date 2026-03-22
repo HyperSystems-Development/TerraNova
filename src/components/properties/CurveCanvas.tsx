@@ -5,6 +5,7 @@ import {
   catmullRomInterpolate,
   clamp01,
   CURVE_PRESETS,
+  TERRAIN_CURVE_PRESETS,
   type NormalizedPoint,
 } from "@/utils/curveEvaluators";
 
@@ -17,9 +18,9 @@ const LABEL_COLOR = "#9a9082";
 const CURVE_COLOR = "#A67EB8";
 const CURVE_FILL = "#A67EB820";
 const HOVER_COLOR = "#BF96CC";
-const POINT_RADIUS = 5;
-const HOVER_RADIUS = 6;
-const DRAG_RADIUS = 7;
+const POINT_RADIUS = 4;
+const HOVER_RADIUS = 7;
+const DRAG_RADIUS = 9;
 const HIT_RADIUS = 12;
 const CROSSHAIR_COLOR = "#e8e2d930";
 const SNAP_GRID = 0.25;
@@ -119,6 +120,8 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
   const boundsRef = useRef<Bounds>({ xMin: 0, xMax: 1, yMin: 0, yMax: 1 });
   const boundsInitializedRef = useRef(false);
   const [bounds, setBounds] = useState<Bounds>({ xMin: 0, xMax: 1, yMin: 0, yMax: 1 });
+  // Local string state for bounds inputs — committed on blur/Enter only.
+  const [localBounds, setLocalBounds] = useState<Partial<Record<keyof Bounds, string>>>({});
 
   const isInteractive = !!onChange && !compact;
   const canvasHeight = compact ? 40 : CANVAS_HEIGHT;
@@ -567,13 +570,13 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
   );
 
   const applyPreset = useCallback(
-    (name: string) => {
+    (points: [number, number][]) => {
       if (!onChange) return;
       const presetBounds: Bounds = { xMin: 0, xMax: 1, yMin: 0, yMax: 1 };
       boundsRef.current = presetBounds;
       setBounds(presetBounds);
       boundsInitializedRef.current = true;
-      onChange(CURVE_PRESETS[name]);
+      onChange(points);
       onCommit?.();
     },
     [onChange, onCommit],
@@ -583,6 +586,7 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
     const newBounds = computeBounds(pointsRef.current);
     boundsRef.current = newBounds;
     setBounds(newBounds);
+    setLocalBounds({});
     requestDraw();
   }, [requestDraw]);
 
@@ -610,18 +614,34 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
         <span className="text-xs text-tn-text-muted">{label}</span>
       )}
       {isInteractive && (
-        <div className="flex items-center gap-1 flex-wrap">
-          <span className="text-[10px] text-tn-text-muted mr-1">Presets:</span>
-          {Object.keys(CURVE_PRESETS).map((name) => (
-            <button
-              key={name}
-              type="button"
-              onClick={() => applyPreset(name)}
-              className="text-[10px] px-1.5 py-0.5 rounded bg-tn-bg-secondary hover:bg-tn-bg-tertiary text-tn-text-secondary transition-colors"
-            >
-              {name}
-            </button>
-          ))}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="text-[10px] text-tn-text-muted/60 mr-1 shrink-0">Shape:</span>
+            {Object.entries(CURVE_PRESETS).map(([name, pts]) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => applyPreset(pts)}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-tn-bg border border-tn-border/50 hover:border-tn-accent/50 hover:bg-tn-accent/10 text-tn-text-muted hover:text-tn-text transition-colors"
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="text-[10px] text-tn-text-muted/60 mr-1 shrink-0">Terrain:</span>
+            {Object.entries(TERRAIN_CURVE_PRESETS).map(([name, preset]) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => applyPreset(preset.points)}
+                title={preset.description}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-tn-bg border border-tn-border/50 hover:border-tn-accent/50 hover:bg-tn-accent/10 text-tn-text-muted hover:text-tn-text transition-colors"
+              >
+                {name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
       <div ref={containerRef} style={{ width: "100%", height: CANVAS_HEIGHT }}>
@@ -637,43 +657,48 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
         />
       </div>
       {isInteractive && (
-        <p className="text-[10px] text-tn-text-muted">
-          Drag to move | Double-click to add | Right-click to remove | Shift = snap
+        <p className="text-[10px] text-tn-text-muted/60">
+          Drag to move · Double-click to add · Right-click to remove · Shift = snap
         </p>
       )}
       {isInteractive && (
-        <div className="flex items-center gap-1.5 text-[10px] text-tn-text-muted flex-wrap">
-          <span>Bounds:</span>
-          <span className="flex items-center gap-0.5">
-            X
-            <input type="number" step="0.1"
-              value={bounds.xMin}
-              onChange={e => updateBound('xMin', e.target.valueAsNumber)}
-              className="w-14 px-1 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text text-[10px]"
-            />
-            <span>to</span>
-            <input type="number" step="0.1"
-              value={bounds.xMax}
-              onChange={e => updateBound('xMax', e.target.valueAsNumber)}
-              className="w-14 px-1 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text text-[10px]"
-            />
+        <div className="flex items-center gap-2 text-xs text-tn-text-muted flex-wrap">
+          <span
+            className="text-[10px] uppercase tracking-wide text-tn-text-muted/50 shrink-0 cursor-help border-b border-dashed border-tn-text-muted/30"
+            title="Bounds control the visible viewport of the curve editor. They don't affect the curve data — only what region is shown. Use 'Fit' to auto-zoom to your points."
+          >Bounds</span>
+          <span className="flex items-center gap-1">
+            <span className="text-[10px] text-tn-text-muted/60">X</span>
+            {(["xMin", "xMax"] as const).map((key, i) => (
+              <span key={key} className="contents">
+                {i === 1 && <span className="text-[10px] text-tn-text-muted/50">to</span>}
+                <input type="number" step="0.1"
+                  value={localBounds[key] ?? bounds[key]}
+                  onChange={e => setLocalBounds(prev => ({ ...prev, [key]: e.target.value }))}
+                  onBlur={e => { updateBound(key, parseFloat(e.target.value)); setLocalBounds(prev => { const n = { ...prev }; delete n[key]; return n; }); }}
+                  onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                  className="w-20 px-1.5 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text text-xs hover:border-tn-text-muted/50 focus:outline-none focus:border-tn-accent/60 transition-colors"
+                />
+              </span>
+            ))}
           </span>
-          <span className="flex items-center gap-0.5">
-            Y
-            <input type="number" step="0.1"
-              value={bounds.yMin}
-              onChange={e => updateBound('yMin', e.target.valueAsNumber)}
-              className="w-14 px-1 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text text-[10px]"
-            />
-            <span>to</span>
-            <input type="number" step="0.1"
-              value={bounds.yMax}
-              onChange={e => updateBound('yMax', e.target.valueAsNumber)}
-              className="w-14 px-1 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text text-[10px]"
-            />
+          <span className="flex items-center gap-1">
+            <span className="text-[10px] text-tn-text-muted/60">Y</span>
+            {(["yMin", "yMax"] as const).map((key, i) => (
+              <span key={key} className="contents">
+                {i === 1 && <span className="text-[10px] text-tn-text-muted/50">to</span>}
+                <input type="number" step="0.1"
+                  value={localBounds[key] ?? bounds[key]}
+                  onChange={e => setLocalBounds(prev => ({ ...prev, [key]: e.target.value }))}
+                  onBlur={e => { updateBound(key, parseFloat(e.target.value)); setLocalBounds(prev => { const n = { ...prev }; delete n[key]; return n; }); }}
+                  onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                  className="w-20 px-1.5 py-0.5 bg-tn-bg border border-tn-border rounded text-tn-text text-xs hover:border-tn-text-muted/50 focus:outline-none focus:border-tn-accent/60 transition-colors"
+                />
+              </span>
+            ))}
           </span>
           <button type="button" onClick={fitBounds}
-            className="text-[10px] px-1.5 py-0.5 rounded bg-tn-bg-secondary hover:bg-tn-bg-tertiary text-tn-text-secondary transition-colors"
+            className="text-xs px-2 py-0.5 rounded border border-tn-border hover:border-tn-text-muted/50 text-tn-text-muted hover:text-tn-text transition-colors"
           >
             Fit
           </button>

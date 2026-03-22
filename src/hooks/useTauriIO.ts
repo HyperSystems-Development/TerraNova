@@ -21,11 +21,13 @@ import {
   isInstanceFile,
   isSettingsFile,
   isWeatherFile,
-  normalizeImport,
+  normalizeImportWithMeta,
   normalizeExport,
   internalToHytaleBiome,
 } from "@/utils/fileTypeDetection";
+import type { ImportMetadata } from "@/utils/hytaleToInternal";
 import mapDirEntry from "@/utils/mapDirEntry";
+import { getDirname, findServerRoot, isPathInProject } from "@/utils/pathUtils";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
 import { useToastStore } from "@/stores/toastStore";
 import { loadPersistedHistory } from "@/stores/editorStore";
@@ -35,6 +37,59 @@ import { useUIStore } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { resolveBiomeAtmosphere } from "@/utils/resolveBiomeAtmosphere";
+
+/**
+ * Apply node positions from $NodeEditorMetadata.$Nodes to a set of React Flow nodes.
+ * Nodes whose id matches a key in nodePositions get their position overridden.
+ * Also appends any comment nodes from hytaleComments.
+ * Only applies positions when autoLayoutOnOpen is disabled (positions are meaningless after auto-layout).
+ */
+function applyImportMetadata(
+  nodes: import("@xyflow/react").Node[],
+  metadata: ImportMetadata | null,
+): import("@xyflow/react").Node[] {
+  if (!metadata) return nodes;
+
+  const applyPositions = !useSettingsStore.getState().autoLayoutOnOpen;
+
+  let result = nodes;
+  if (applyPositions && Object.keys(metadata.nodePositions).length > 0) {
+    result = nodes.map((n) => {
+      const pos = metadata.nodePositions[n.id];
+      if (!pos) return n;
+      return { ...n, position: { x: pos.x, y: pos.y } };
+    });
+  }
+
+  // Inject comment nodes
+  if (metadata.hytaleComments.length > 0) {
+    const commentNodes: import("@xyflow/react").Node[] = metadata.hytaleComments.map((c, i) => ({
+      id: `comment-import-${i}-${crypto.randomUUID()}`,
+      type: "comment",
+      position: { x: c.x, y: c.y },
+      data: { type: "comment", text: c.text, width: c.width, height: c.height },
+      draggable: true,
+      selectable: true,
+    }));
+    result = [...result, ...commentNodes];
+  }
+
+  // Inject frame nodes from $Groups (rendered behind everything else)
+  if (metadata.hytaleGroups.length > 0) {
+    const frameNodes: import("@xyflow/react").Node[] = metadata.hytaleGroups.map((g, i) => ({
+      id: `frame-import-${i}-${crypto.randomUUID()}`,
+      type: "frame",
+      position: { x: g.x, y: g.y },
+      data: { type: "frame", name: g.name, width: g.width, height: g.height },
+      draggable: true,
+      selectable: true,
+      zIndex: -1,
+    }));
+    result = [...frameNodes, ...result];
+  }
+
+  return result;
+}
 
 /**
  * Conditionally run autoLayout based on the autoLayoutOnOpen setting.
@@ -318,6 +373,24 @@ export function useTauriIO() {
   const handleOpenFile = useCallback(
     async (filePath: string) => {
       setLastError(null);
+
+      // If there is no open project (or the file is outside the current project),
+      // treat the file's parent folder (or inferred Hytale Server root) as the project root.
+      const currentProjectPath = useProjectStore.getState().projectPath;
+      const insideCurrentProject = isPathInProject(filePath, currentProjectPath);
+      if (!insideCurrentProject) {
+        const inferredRoot = findServerRoot(filePath) ?? getDirname(filePath);
+        if (inferredRoot && inferredRoot !== currentProjectPath) {
+          setProjectPath(inferredRoot);
+          try {
+            const entries = await listDirectory(inferredRoot);
+            setDirectoryTree(entries.map(mapDirEntry));
+          } catch {
+            // Ignore failures (e.g. invalid directory) and proceed with opening the file.
+          }
+        }
+      }
+
       try {
         // Cache the current file's graph before switching
         const previousFile = useProjectStore.getState().currentFile;
@@ -384,9 +457,13 @@ export function useTauriIO() {
         const rawContent = await readAssetFile(filePath);
 
         // Auto-detect Hytale native format and normalize to internal
-        const content = (rawContent && typeof rawContent === "object")
-          ? normalizeImport(rawContent as Record<string, unknown>)
-          : rawContent;
+        let importMeta: ImportMetadata | null = null;
+        let content: unknown = rawContent;
+        if (rawContent && typeof rawContent === "object") {
+          const { content: normalized, metadata } = normalizeImportWithMeta(rawContent as Record<string, unknown>);
+          content = normalized;
+          importMeta = metadata;
+        }
 
         if (content && typeof content === "object" && isEnvironmentFile(content as Record<string, unknown>, filePath)) {
           useEditorStore.setState({
@@ -456,7 +533,7 @@ export function useTauriIO() {
             if (density && typeof density === "object" && "Type" in (density as Record<string, unknown>)) {
               const { nodes: newNodes, edges: newEdges } = jsonToGraph(density as Record<string, unknown>);
               const layoutedNodes = await maybeAutoLayout(newNodes, newEdges);
-              setNodes(layoutedNodes);
+              setNodes(applyImportMetadata(layoutedNodes, importMeta));
               setEdges(newEdges);
             } else {
               setNodes([]);
@@ -476,7 +553,7 @@ export function useTauriIO() {
 
             // Auto-layout for clean positioning instead of naive x-300 offsets
             const layoutedNodes = await maybeAutoLayout(newNodes, newEdges);
-            setNodes(layoutedNodes);
+            setNodes(applyImportMetadata(layoutedNodes, importMeta));
             setEdges(newEdges);
 
             // Clear biome-specific state that may be left over from a previous biome file
@@ -621,7 +698,47 @@ export function useTauriIO() {
 
           // Load first section into canvas
           const firstKey = sectionKeys[0] ?? null;
-          const firstSection = firstKey ? sections[firstKey] : null;
+          let firstSection = firstKey ? sections[firstKey] : null;
+
+          // Inject comment + frame nodes from $NodeEditorMetadata into the first section
+          if (importMeta && firstSection) {
+            const extraNodes: import("@xyflow/react").Node[] = [];
+
+            if (importMeta.hytaleGroups.length > 0) {
+              importMeta.hytaleGroups.forEach((g, i) => {
+                extraNodes.push({
+                  id: `frame-import-${i}-${crypto.randomUUID()}`,
+                  type: "frame",
+                  position: { x: g.x, y: g.y },
+                  data: { type: "frame", name: g.name, width: g.width, height: g.height },
+                  draggable: true,
+                  selectable: true,
+                  zIndex: -1,
+                });
+              });
+            }
+
+            if (importMeta.hytaleComments.length > 0) {
+              importMeta.hytaleComments.forEach((c, i) => {
+                extraNodes.push({
+                  id: `comment-import-${i}-${crypto.randomUUID()}`,
+                  type: "comment",
+                  position: { x: c.x, y: c.y },
+                  data: { type: "comment", text: c.text, width: c.width, height: c.height },
+                  draggable: true,
+                  selectable: true,
+                });
+              });
+            }
+
+            if (extraNodes.length > 0) {
+              firstSection = {
+                ...firstSection,
+                nodes: [...extraNodes, ...firstSection.nodes],
+              };
+              sections[firstKey!] = firstSection;
+            }
+          }
 
           // Atomic state update — sets ALL biome state at once to avoid race conditions.
           // Sections already have their initial history entry from extractBiomeSections(),
@@ -720,7 +837,7 @@ export function useTauriIO() {
         setLastError(`Failed to open file: ${err}`);
       }
     },
-    [setCurrentFile, setNodes, setEdges, commitState, setLastError, setDirty, cacheCurrentFile, restoreFromCache],
+    [setCurrentFile, setNodes, setEdges, commitState, setLastError, setDirty, cacheCurrentFile, restoreFromCache, setProjectPath, setDirectoryTree],
   );
 
   const handleSaveFile = useCallback(async () => {
@@ -1005,15 +1122,15 @@ export function useTauriIO() {
         }
 
         if (templateName) {
-          await createFromTemplate(templateName, path);
+          await createFromTemplate(templateName, path!);
         } else {
-          await createBlankProject(path);
+          await createBlankProject(path!);
         }
-        setProjectPath(path);
+        setProjectPath(path!);
 
-        const entries = await listDirectory(path);
+        const entries = await listDirectory(path!);
         setDirectoryTree(entries.map(mapDirEntry));
-        useRecentProjectsStore.getState().addProject(path, templateName);
+        useRecentProjectsStore.getState().addProject(path!, templateName);
       } catch (err) {
         setLastError(`Failed to create project: ${err}`);
         throw err;

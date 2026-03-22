@@ -29,6 +29,8 @@ import { NODE_TIPS } from "@/schema/nodeTips";
 import { FIELD_DESCRIPTIONS, getShortDescription, getExtendedDescription } from "@/schema/fieldDescriptions";
 import { useLanguage } from "@/languages/useLanguage";
 import { useToastStore } from "@/stores/toastStore";
+import { CATEGORY_COLORS } from "@/schema/types";
+import { ALL_DEFAULTS } from "@/schema/defaults";
 import { copyFile, createDirectory, exportAssetFile, listDirectory, resolveBundledHytaleAssetPath, showInFolder } from "@/utils/ipc";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { joinPath, normalizePath, getDirname } from "@/utils/pathUtils";
@@ -343,6 +345,8 @@ export function PropertyPanel() {
   const compactAssetInspector = useUIStore((s) => s.compactAssetInspector);
   const toggleAssetInspectorCompact = useUIStore((s) => s.toggleAssetInspectorCompact);
   const [expandedField, setExpandedField] = useState<string | null>(null);
+  const [idCopied, setIdCopied] = useState(false);
+  const idCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [environmentLookup, setEnvironmentLookup] = useState<EnvironmentNameLookup>({
     status: "idle",
     names: [],
@@ -741,6 +745,13 @@ export function PropertyPanel() {
       flushPendingSnapshot();
     };
   }, [selectedNodeId, flushPendingSnapshot]);
+
+  // Clean up the copy-ID flash timer on unmount so we don't call setState after unmount
+  useEffect(() => {
+    return () => {
+      if (idCopiedTimerRef.current) clearTimeout(idCopiedTimerRef.current);
+    };
+  }, []);
 
   const { debouncedChange: debouncedConfigChange, flush: flushConfig } = useFieldChange(commitState, setDirty, 300);
 
@@ -1402,7 +1413,14 @@ export function PropertyPanel() {
   const data = selectedNode.data as Record<string, unknown>;
   const fields = (data.fields as Record<string, unknown>) ?? {};
   const typeName = (data.type as string) ?? "Unknown";
+  const isAnnotationNode = selectedNode.type === "comment" || selectedNode.type === "frame";
+  const customLabel = (data.label as string) ?? "";
+  const isLocked = selectedNode.draggable === false;
   const rfType = selectedNode.type ?? typeName;
+  const categoryColor = (() => {
+    const entry = ALL_DEFAULTS.find((e) => e.type === typeName || e.type === rfType);
+    return entry ? CATEGORY_COLORS[entry.category] : undefined;
+  })();
   const rfDisplayName = getTypeDisplayName(rfType);
   const displayTypeName = (rfDisplayName !== rfType) ? rfDisplayName : getTypeDisplayName(typeName);
   const typeConstraints = FIELD_CONSTRAINTS[displayTypeName] ?? FIELD_CONSTRAINTS[typeName] ?? {};
@@ -1418,29 +1436,85 @@ export function PropertyPanel() {
     typeName === "DensityDelimited" && (data._biomeField as string | undefined) === "TintProvider";
 
   return (
-    <div className="flex flex-col p-3 gap-3">
-      <div className="border-b border-tn-border pb-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">{displayTypeName}</h3>
-          <button
-            onClick={toggleHelpMode}
-            title={helpMode ? "Exit help mode (?)" : "Toggle help mode (?)"}
-            className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold border transition-colors ${
-              helpMode
-                ? "bg-sky-500/20 border-sky-500/50 text-sky-300"
-                : "border-tn-border text-tn-text-muted hover:border-tn-text-muted"
-            }`}
-          >
-            ?
-          </button>
+    <div className="flex flex-col p-3 gap-2 overflow-y-auto flex-1 min-h-0">
+      <div className="border-b border-tn-border pb-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <h3
+            className="text-[13px] font-semibold text-tn-text leading-tight"
+            style={categoryColor ? { borderLeft: `3px solid ${categoryColor}`, paddingLeft: 6 } : undefined}
+          >{displayTypeName}</h3>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                const { nodes, setNodes } = useEditorStore.getState();
+                setNodes(nodes.map((n) =>
+                  n.id !== selectedNode.id ? n : { ...n, draggable: isLocked ? undefined : false }
+                ));
+                commitState(`${isLocked ? "Unlock" : "Lock"} node`);
+                setDirty(true);
+              }}
+              title={isLocked ? "Unlock node" : "Lock node position"}
+              className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[10px] border transition-colors ${
+                isLocked
+                  ? "bg-amber-500/20 border-amber-500/60 text-amber-400"
+                  : "border-tn-border text-tn-text-muted hover:border-tn-border/80 hover:text-tn-text"
+              }`}
+            >
+              {isLocked ? "●" : "○"}
+            </button>
+            <button
+              onClick={toggleHelpMode}
+              title={helpMode ? "Exit help mode (?)" : "Toggle help mode (?)"}
+              className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[10px] font-bold border transition-colors ${
+                helpMode
+                  ? "bg-tn-accent/20 border-tn-accent/60 text-tn-accent"
+                  : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-accent"
+              }`}
+            >
+              ?
+            </button>
+          </div>
         </div>
-        <p className="text-xs text-tn-text-muted">ID: {selectedNode.id}</p>
+        {!isAnnotationNode && (
+          <input
+            type="text"
+            value={customLabel}
+            placeholder="Custom label…"
+            onChange={(e) => {
+              const { nodes, setNodes } = useEditorStore.getState();
+              setNodes(nodes.map((n) =>
+                n.id !== selectedNode.id ? n : { ...n, data: { ...n.data as object, label: e.target.value || undefined } }
+              ));
+            }}
+            onBlur={() => {
+              commitState(`Edit label on ${(selectedNode.data as Record<string, unknown>)?.type as string ?? "node"}`);
+              setDirty(true);
+            }}
+            className="mt-1.5 w-full px-2 py-0.5 text-xs bg-tn-bg/50 border border-tn-border/40 rounded hover:border-tn-border focus:border-tn-accent/60 focus:outline-none transition-colors placeholder:text-tn-text-muted/30 text-tn-text"
+          />
+        )}
+        <button
+          className="mt-1.5 flex items-center gap-1.5 group w-full text-left px-2 py-1 rounded bg-tn-bg/50 border border-tn-border/30 hover:border-tn-border/60 transition-colors"
+          title="Click to copy node ID"
+          onClick={() => {
+            void navigator.clipboard.writeText(selectedNode.id).then(() => {
+              setIdCopied(true);
+              if (idCopiedTimerRef.current) clearTimeout(idCopiedTimerRef.current);
+              idCopiedTimerRef.current = setTimeout(() => setIdCopied(false), 1500);
+            }).catch(() => {});
+          }}
+        >
+          <span className="text-[10px] text-tn-text-muted/50 font-mono truncate flex-1 group-hover:text-tn-text-muted transition-colors">{selectedNode.id}</span>
+          <span className={`text-[10px] shrink-0 transition-colors ${idCopied ? "text-tn-accent" : "text-tn-text-muted/30 group-hover:text-tn-text-muted/60"}`}>
+            {idCopied ? "✓" : "⎘"}
+          </span>
+        </button>
       </div>
 
       {helpMode && (
-        <div className="text-[10px] px-2 py-1.5 rounded border bg-sky-500/10 border-sky-500/30 text-sky-300 flex items-center gap-1.5">
+        <div className="text-[10px] px-2 py-1.5 rounded border bg-tn-accent/10 border-tn-accent/30 text-tn-accent flex items-center gap-1.5">
           <span className="font-bold">?</span>
-          <span>Help mode active — click any field for extended docs. Press <kbd className="px-1 py-0.5 bg-sky-500/20 rounded text-[9px]">?</kbd> to exit.</span>
+          <span>Help mode active — click any field for extended docs. Press <kbd className="px-1 py-0.5 bg-tn-accent/20 rounded text-[9px]">?</kbd> to exit.</span>
         </div>
       )}
 
@@ -1464,7 +1538,43 @@ export function PropertyPanel() {
         </div>
       )}
 
-      {Object.entries(fields).filter(([key]) => !key.startsWith("__")).map(([key, value]) => {
+      {typeof fields["_comment"] === "string" && (
+        <div
+          className="flex flex-col gap-1 px-2.5 py-2 rounded border text-[11px] leading-relaxed"
+          style={{
+            background: "rgba(251, 191, 36, 0.07)",
+            borderColor: "rgba(251, 191, 36, 0.25)",
+            color: "rgb(253, 224, 71)",
+          }}
+        >
+          <span style={{ fontSize: 10, fontWeight: 600, opacity: 0.6, letterSpacing: "0.05em", textTransform: "uppercase" }}>Note</span>
+          <textarea
+            value={fields["_comment"] as string}
+            placeholder="Add a note…"
+            onChange={(e) => handleContinuousChange("_comment", e.target.value)}
+            onBlur={handleBlur}
+            rows={3}
+            style={{
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              resize: "vertical",
+              color: "inherit",
+              fontSize: "inherit",
+              fontFamily: "inherit",
+              lineHeight: "inherit",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              overflowWrap: "anywhere",
+              width: "100%",
+              minWidth: 0,
+              padding: 0,
+            }}
+          />
+        </div>
+      )}
+
+      {Object.entries(fields).filter(([key]) => !key.startsWith("__") && key !== "_comment").map(([key, value]) => {
         const fieldLabel = getFieldDisplayName(typeName, key);
         const transform = typeof value === "number" ? getFieldTransform(typeName, key) : null;
         const constraint = typeConstraints[key] ?? typeConstraints[fieldLabel];

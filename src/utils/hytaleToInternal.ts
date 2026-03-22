@@ -28,11 +28,113 @@ interface ImportContext {
   metadata?: Record<string, unknown>;
 }
 
+/** Shape of a comment entry from Hytale's $NodeEditorMetadata.$Comments */
+export interface HytaleComment {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Shape of a group (frame) entry from Hytale's $NodeEditorMetadata.$Groups */
+export interface HytaleGroup {
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 /** Side-channel storage for import metadata */
 export interface ImportMetadata {
   nodeEditorMetadata?: Record<string, unknown>;
+  /** Node positions keyed by $NodeId, from $NodeEditorMetadata.$Nodes */
+  nodePositions: Record<string, { x: number; y: number }>;
+  /** Parsed comments from $NodeEditorMetadata.$Comments */
+  hytaleComments: HytaleComment[];
+  /** Parsed groups (frames) from $NodeEditorMetadata.$Groups */
+  hytaleGroups: HytaleGroup[];
   comments: Record<string, string>;
   nodeIds: Record<string, string>;
+}
+
+/**
+ * Parse $NodeEditorMetadata into structured position, comment, and group data.
+ */
+export function parseNodeEditorMetadata(raw: Record<string, unknown>): {
+  nodePositions: Record<string, { x: number; y: number }>;
+  hytaleComments: HytaleComment[];
+  hytaleGroups: HytaleGroup[];
+} {
+  const nodePositions: Record<string, { x: number; y: number }> = {};
+  const hytaleComments: HytaleComment[] = [];
+  const hytaleGroups: HytaleGroup[] = [];
+
+  const $Nodes = raw["$Nodes"] as Record<string, unknown> | undefined;
+  if ($Nodes && typeof $Nodes === "object") {
+    for (const [nodeId, nodeData] of Object.entries($Nodes)) {
+      if (!nodeData || typeof nodeData !== "object") continue;
+      const nd = nodeData as Record<string, unknown>;
+      const pos = nd["$Position"] as Record<string, unknown> | undefined;
+      if (pos) {
+        nodePositions[nodeId] = {
+          x: (pos["$x"] as number) ?? 0,
+          y: (pos["$y"] as number) ?? 0,
+        };
+      }
+    }
+  }
+
+  // Legacy fallback: older TerraNova versions stored positions under "Positions"
+  // with direct {x, y} values instead of the $Position/$x/$y nesting.
+  if (Object.keys(nodePositions).length === 0) {
+    const legacy = raw["Positions"] as Record<string, unknown> | undefined;
+    if (legacy && typeof legacy === "object") {
+      for (const [nodeId, posData] of Object.entries(legacy)) {
+        if (!posData || typeof posData !== "object") continue;
+        const pos = posData as Record<string, unknown>;
+        nodePositions[nodeId] = {
+          x: (pos["x"] as number) ?? (pos["$x"] as number) ?? 0,
+          y: (pos["y"] as number) ?? (pos["$y"] as number) ?? 0,
+        };
+      }
+    }
+  }
+
+  const $Comments = raw["$Comments"] as unknown[] | undefined;
+  if (Array.isArray($Comments)) {
+    for (const c of $Comments) {
+      if (!c || typeof c !== "object") continue;
+      const comment = c as Record<string, unknown>;
+      const pos = comment["$Position"] as Record<string, unknown> | undefined;
+      hytaleComments.push({
+        text: (comment["$text"] as string) ?? "",
+        x: (pos?.["$x"] as number) ?? 0,
+        y: (pos?.["$y"] as number) ?? 0,
+        width: (comment["$width"] as number) ?? 200,
+        height: (comment["$height"] as number) ?? 80,
+      });
+    }
+  }
+
+  const $Groups = raw["$Groups"] as unknown[] | undefined;
+  if (Array.isArray($Groups)) {
+    for (const g of $Groups) {
+      if (!g || typeof g !== "object") continue;
+      const group = g as Record<string, unknown>;
+      const pos = group["$Position"] as Record<string, unknown> | undefined;
+      hytaleGroups.push({
+        name: (group["$name"] as string) ?? "",
+        x: (pos?.["$x"] as number) ?? 0,
+        y: (pos?.["$y"] as number) ?? 0,
+        width: (group["$width"] as number) ?? 400,
+        height: (group["$height"] as number) ?? 300,
+      });
+    }
+  }
+
+  return { nodePositions, hytaleComments, hytaleGroups };
 }
 
 // ---------------------------------------------------------------------------
@@ -1260,11 +1362,19 @@ export function hytaleToInternal(
   const metadata: ImportMetadata = {
     comments: {},
     nodeIds: {},
+    nodePositions: {},
+    hytaleComments: [],
+    hytaleGroups: [],
   };
 
   // Collect $NodeEditorMetadata from root
   if ("$NodeEditorMetadata" in json) {
-    metadata.nodeEditorMetadata = json.$NodeEditorMetadata as Record<string, unknown>;
+    const raw = json.$NodeEditorMetadata as Record<string, unknown>;
+    metadata.nodeEditorMetadata = raw;
+    const parsed = parseNodeEditorMetadata(raw);
+    metadata.nodePositions = parsed.nodePositions;
+    metadata.hytaleComments = parsed.hytaleComments;
+    metadata.hytaleGroups = parsed.hytaleGroups;
   }
 
   const result = transformNodeToInternal(json, {}, metadata);
@@ -1331,10 +1441,18 @@ export function hytaleToInternalBiome(
   const metadata: ImportMetadata = {
     comments: {},
     nodeIds: {},
+    nodePositions: {},
+    hytaleComments: [],
+    hytaleGroups: [],
   };
 
   if ("$NodeEditorMetadata" in json) {
-    metadata.nodeEditorMetadata = json.$NodeEditorMetadata as Record<string, unknown>;
+    const raw = json.$NodeEditorMetadata as Record<string, unknown>;
+    metadata.nodeEditorMetadata = raw;
+    const parsed = parseNodeEditorMetadata(raw);
+    metadata.nodePositions = parsed.nodePositions;
+    metadata.hytaleComments = parsed.hytaleComments;
+    metadata.hytaleGroups = parsed.hytaleGroups;
   }
 
   const output: Record<string, unknown> = {};
