@@ -64,6 +64,47 @@ export interface FieldDef {
 
 const nodes = (bundleJson as { nodes: Record<string, BundleNode> }).nodes;
 
+/* ── Node key resolution ─────────────────────────────────────────── */
+
+/**
+ * Maps the short category prefixes used in the app's nodeTypes registry
+ * to the full category names used in the bundle.
+ * E.g. "Material:" -> "MaterialProvider:", "Position:" -> "PositionProvider:"
+ */
+const SHORT_TO_FULL_PREFIX: Record<string, string> = {
+  "Material:": "MaterialProvider:",
+  "Position:": "PositionProvider:",
+  "Vector:": "VectorProvider:",
+  "Environment:": "EnvironmentProvider:",
+  "Tint:": "TintProvider:",
+};
+
+/**
+ * Resolve a node type key to a bundle key.
+ * Tries the key as-is first, then attempts alternative prefix mappings.
+ */
+function resolveNodeKey(typeKey: string): BundleNode | undefined {
+  // Direct match
+  if (nodes[typeKey]) return nodes[typeKey];
+
+  // Try expanding short prefix to full category prefix
+  for (const [short, full] of Object.entries(SHORT_TO_FULL_PREFIX)) {
+    if (typeKey.startsWith(short)) {
+      const fullKey = full + typeKey.slice(short.length);
+      if (nodes[fullKey]) return nodes[fullKey];
+    }
+  }
+
+  // Try bare name (strip prefix) — some bundle entries use flat keys
+  const colonIdx = typeKey.indexOf(":");
+  if (colonIdx >= 0) {
+    const bare = typeKey.slice(colonIdx + 1);
+    if (nodes[bare]) return nodes[bare];
+  }
+
+  return undefined;
+}
+
 /* ── Category mapping ─────────────────────────────────────────────── */
 
 const HANDLE_TYPE_TO_CATEGORY: Record<string, AssetCategory> = {
@@ -330,7 +371,7 @@ export function getNodeHandles(typeKey: string): { inputs: HandleInfo[]; outputs
  * Returns `[]` if the type is not found or has no fields.
  */
 export function getNodeFields(typeKey: string): FieldDef[] {
-  const node = nodes[typeKey];
+  const node = resolveNodeKey(typeKey);
   if (!node) return [];
 
   return Object.entries(node.fields).map(([name, field]) => {
