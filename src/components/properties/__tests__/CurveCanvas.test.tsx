@@ -57,7 +57,7 @@ describe("CurveCanvas", () => {
     const { container } = render(
       <CurveCanvas points={[]} onChange={() => {}} onCommit={() => {}} />,
     );
-    expect(container.textContent).toContain("Presets:");
+    expect(container.textContent).toContain("Shape:");
     expect(container.textContent).toContain("Linear");
     expect(container.textContent).toContain("Ease In");
     expect(container.textContent).toContain("S-Curve");

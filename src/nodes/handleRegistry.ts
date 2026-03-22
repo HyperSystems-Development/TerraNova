@@ -441,6 +441,10 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
 
   // ── Root ────────────────────────────────────────────────────────────
   Root: [densityInput("input", "Input")],
+
+  // ── Annotation nodes (no connectable handles) ────────────────────────
+  comment: [],
+  frame: [],
 };
 
 /**
