@@ -143,7 +143,7 @@ export default function App() {
     // Drag/drop into window
     void (async () => {
       try {
-        const stop = await listen<{ paths: string[] }>("tauri://file-drop", (event) => {
+        const stop = await listen<{ paths: string[] }>("tauri://drag-drop", (event) => {
           const paths = event.payload?.paths;
           if (paths && paths.length > 0) {
             openFile(paths[0]);
