@@ -370,6 +370,9 @@ const HANDLE_OVERRIDES: Record<string, HandleDef[]> = {
   "Prop:PondFiller": [propOutput()],
   "Prop:Queue": [propInput("Props[0]", "Prop 0"), propInput("Props[1]", "Prop 1"), propOutput()],
   "Prop:Offset": [propInput("Input", "Input"), propOutput()],
+  "Prop:Curve": [curveInput("Curve", "Curve"), propInput("Prop", "Prop"), propOutput()],
+  "Prop:Pattern": [patternInput("Pattern", "Pattern"), propInput("Prop", "Prop"), propOutput()],
+  "Prop:Static": [propInput("Prop", "Prop"), propOutput()],
 
   // ── Scanner ─────────────────────────────────────────────────────────
 

@@ -6,6 +6,7 @@ import { FIELD_CONSTRAINTS } from "@/schema/constraints";
 import { NODE_TIPS } from "@/schema/nodeTips";
 import { FIELD_DESCRIPTIONS } from "@/schema/fieldDescriptions";
 import { AssetCategory } from "@/schema/types";
+import { LEGACY_TYPE_KEYS } from "../shared/legacyTypes";
 
 /* Extended density types — math & smooth operations */
 
@@ -305,6 +306,103 @@ describe("Removed invented density types", () => {
     "invented type '%s' is no longer in the registry",
     (type) => {
       expect(nodeTypes[type]).toBeUndefined();
+    },
+  );
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 11. Removed legacy non-density types — no longer registered
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+describe("Removed legacy non-density types", () => {
+  const REMOVED_CURVE_TYPES = [
+    "Curve:Noise", "Curve:StepFunction", "Curve:Threshold",
+    "Curve:SmoothStep", "Curve:Power", "Curve:LinearRemap",
+    "Curve:Cache", "Curve:Exported", "Curve:Blend",
+  ];
+
+  const REMOVED_MATERIAL_TYPES = [
+    "Material:Solid", "Material:Empty", "Material:Exported",
+    "Material:Conditional", "Material:Blend", "Material:HeightGradient",
+    "Material:NoiseSelector", "Material:Surface", "Material:Cave", "Material:Cluster",
+  ];
+
+  const REMOVED_PATTERN_TYPES = [
+    "Pattern:Exported", "Pattern:Conditional", "Pattern:Blend",
+    "Pattern:Union", "Pattern:Intersection",
+  ];
+
+  const REMOVED_POSITION_TYPES = [
+    "Position:SurfaceProjection", "Position:Exported",
+    "Position:Conditional", "Position:DensityBased",
+  ];
+
+  const REMOVED_PROP_TYPES = [
+    "Prop:Surface", "Prop:Cave", "Prop:Conditional", "Prop:Exported",
+  ];
+
+  const REMOVED_OTHER_TYPES = [
+    "Environment:Exported", "Tint:Exported",
+    "Directionality:Uniform", "Directionality:Directional", "Directionality:Normal",
+  ];
+
+  const ALL_REMOVED = [
+    ...REMOVED_CURVE_TYPES, ...REMOVED_MATERIAL_TYPES,
+    ...REMOVED_PATTERN_TYPES, ...REMOVED_POSITION_TYPES,
+    ...REMOVED_PROP_TYPES, ...REMOVED_OTHER_TYPES,
+  ];
+
+  it.each(ALL_REMOVED)(
+    "legacy type '%s' is no longer in the registry",
+    (type) => {
+      expect(nodeTypes[type]).toBeUndefined();
+    },
+  );
+
+  it.each(ALL_REMOVED)(
+    "legacy type '%s' is in LEGACY_TYPE_KEYS",
+    (type) => {
+      expect(LEGACY_TYPE_KEYS.has(type)).toBe(true);
+    },
+  );
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 12. New V2 types — registered with GenericNode fallback
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+describe("New V2 types", () => {
+  const NEW_V2_TYPES = [
+    "Pattern:Rotator",
+    "Prop:Curve", "Prop:Pattern", "Prop:Static",
+    "PropDistribution:Assigned", "PropDistribution:Constant",
+    "PropDistribution:Imported", "PropDistribution:Positions",
+    "PropDistribution:Union",
+  ];
+
+  it.each(NEW_V2_TYPES)(
+    "V2 type '%s' is registered in nodeTypes",
+    (type) => {
+      expect(nodeTypes[type]).toBeDefined();
+    },
+  );
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 13. Kept V2 types — Mesh2D, Mesh3D, Box, Column, Cluster still active
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+describe("Kept V2 types not in legacy set", () => {
+  const KEPT_TYPES = [
+    "Position:Mesh2D", "Position:Mesh3D",
+    "Prop:Box", "Prop:Column", "Prop:Cluster",
+  ];
+
+  it.each(KEPT_TYPES)(
+    "type '%s' is registered and NOT in LEGACY_TYPE_KEYS",
+    (type) => {
+      expect(nodeTypes[type]).toBeDefined();
+      expect(LEGACY_TYPE_KEYS.has(type)).toBe(false);
     },
   );
 });
