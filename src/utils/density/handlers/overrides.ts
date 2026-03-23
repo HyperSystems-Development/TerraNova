@@ -53,17 +53,27 @@ const handleAmplitude: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
 };
 
 const handleYSampled: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  let targetY: number;
   if (inputs.has("YProvider")) {
-    targetY = ctx.getInput(inputs, "YProvider", x, y, z);
-  } else {
-    const sampleDist = Number(fields.SampleDistance ?? 4.0);
-    const sampleOffset = Number(fields.SampleOffset ?? 0.0);
-    targetY = sampleDist > 0
-      ? Math.round((y - sampleOffset) / sampleDist) * sampleDist + sampleOffset
-      : y;
+    const targetY = ctx.getInput(inputs, "YProvider", x, y, z);
+    return ctx.getInput(inputs, "Input", x, targetY, z);
   }
-  return ctx.getInput(inputs, "Input", x, targetY, z);
+  const sampleDist = Number(fields.SampleDistance ?? 4.0);
+  const sampleOffset = Number(fields.SampleOffset ?? 0.0);
+  if (sampleDist <= 0) {
+    return ctx.getInput(inputs, "Input", x, y, z);
+  }
+  const gridY = Math.floor((y - sampleOffset) / sampleDist);
+  const y0 = gridY * sampleDist + sampleOffset;
+  const y1 = y0 + sampleDist;
+  const v0 = ctx.getInput(inputs, "Input", x, y0, z);
+  const v1 = ctx.getInput(inputs, "Input", x, y1, z);
+  const ratio = (y - y0) / sampleDist;
+  const isInterpolated = fields.IsInterpolated !== false; // default true
+  if (isInterpolated) {
+    return v0 + (v1 - v0) * ratio;
+  } else {
+    return ratio < 0.5 ? v0 : v1;
+  }
 };
 
 const handleSwitchState: NodeHandler = (ctx, fields, inputs, x, y, z) => {

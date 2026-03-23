@@ -82,6 +82,9 @@ const handleGradientDensity: NodeHandler = (_ctx, fields, _inputs, _x, y) => {
   return range === 0 ? 0 : (y - fromY) / range;
 };
 
+// Known approximation: SampleRange is not adjusted for cumulative Scale
+// transforms. Under ScaledPosition ancestors, gradient magnitude may be
+// over- or under-estimated proportionally to the scale factor.
 const handleGradient: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   // Directional derivative via finite differences along Axis
   const axis = fields.Axis as { x: number; y: number; z: number } | undefined;
@@ -103,6 +106,18 @@ const handleBaseHeight: NodeHandler = (ctx, fields, _inputs, _x, y) => {
   return distance ? (y - baseY) : baseY;
 };
 
+// Terrain proxy: positive below surface, negative above
+const handleTerrain: NodeHandler = (ctx, _fields, _inputs, _x, y, _z) => {
+  const baseY = Number(ctx.contentFields["BaseHeight"] ?? ctx.contentFields["Base"] ?? 100);
+  return baseY - y;
+};
+
+// HeightAboveSurface proxy: inverse of terrain
+const handleHeightAboveSurface: NodeHandler = (ctx, _fields, _inputs, _x, y, _z) => {
+  const baseY = Number(ctx.contentFields["BaseHeight"] ?? ctx.contentFields["Base"] ?? 100);
+  return y - baseY;
+};
+
 export function buildPositionHandlers(): Map<string, NodeHandler> {
   return new Map<string, NodeHandler>([
     ["CoordinateX", handleCoordinateX],
@@ -118,5 +133,7 @@ export function buildPositionHandlers(): Map<string, NodeHandler> {
     ["GradientDensity", handleGradientDensity],
     ["Gradient", handleGradient],
     ["BaseHeight", handleBaseHeight],
+    ["Terrain", handleTerrain],
+    ["HeightAboveSurface", handleHeightAboveSurface],
   ]);
 }

@@ -71,17 +71,23 @@ const handleMultiMix: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const keys = (fields.Keys as number[]) ?? [];
   if (keys.length === 0) return 0;
   const selector = ctx.getInput(inputs, "Selector", x, y, z);
+
+  // Sort keys while preserving original index mapping for Densities lookup
+  const entries = keys.map((k, i) => ({ key: k, idx: i }));
+  entries.sort((a, b) => a.key - b.key);
+  const sortedKeys = entries.map(e => e.key);
+
   let lo = 0;
-  for (let i = 1; i < keys.length; i++) {
-    if (keys[i] <= selector) lo = i;
+  for (let i = 1; i < sortedKeys.length; i++) {
+    if (sortedKeys[i] <= selector) lo = i;
   }
-  const hi = Math.min(lo + 1, keys.length - 1);
+  const hi = Math.min(lo + 1, sortedKeys.length - 1);
   if (lo === hi) {
-    return ctx.getInput(inputs, `Densities[${lo}]`, x, y, z);
+    return ctx.getInput(inputs, `Densities[${entries[lo].idx}]`, x, y, z);
   }
-  const t = Math.max(0, Math.min(1, (selector - keys[lo]) / (keys[hi] - keys[lo])));
-  const a = ctx.getInput(inputs, `Densities[${lo}]`, x, y, z);
-  const b = ctx.getInput(inputs, `Densities[${hi}]`, x, y, z);
+  const t = Math.max(0, Math.min(1, (selector - sortedKeys[lo]) / (sortedKeys[hi] - sortedKeys[lo])));
+  const a = ctx.getInput(inputs, `Densities[${entries[lo].idx}]`, x, y, z);
+  const b = ctx.getInput(inputs, `Densities[${entries[hi].idx}]`, x, y, z);
   return a + (b - a) * t;
 };
 
