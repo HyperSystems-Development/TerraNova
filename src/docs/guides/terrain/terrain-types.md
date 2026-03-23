@@ -4,9 +4,9 @@
 
 This guide is organized by **what terrain you want to make**, not by which nodes exist. Each section describes the visual result, explains why the node combination produces it, and gives you working parameters to start from.
 
-> **Biome source assets:** `Basic.json`, `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Desert1/Desert1_Oasis.json`, `Plains1/Plains1_Mountains.json`, `Plains1/Plains1_River.json`
+> **Biome source assets:** `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Examples/Example_Mixer_Gradient.json`, `Experimental/Arches.json`, `Experimental/Dunes.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`, `Generative/Generative_Pillars_Marble_Large.json`, `Generative/Generative_Veins.json`
 >
-> Source-backed sections below are grounded in those assets. The floating-island and skylands sections are teaching recipes for editor work, not 1:1 transcriptions of one audited biome file.
+> Source-backed sections below are grounded in those terrain assets from Hytale's `Examples/`, `Experimental/`, and `Generative/` biome folders. The floating-island and skylands sections are teaching recipes for editor work, not 1:1 transcriptions of one audited biome file.
 
 If you are new, do not try to read the whole page in one pass. Start with:
 1. **Flat Plains**
@@ -312,6 +312,16 @@ Floating island underside - rounded body with a trimmed bottom
     { "from": "nc",  "to": "mul" },
     { "from": "mul", "to": "sum", "label": "surface detail" },
     { "from": "sum", "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "ec",  "text": "The Ellipsoid curve input shapes how the signed distance maps to density. A convex exponential curve gives a smooth, rounded body — full density at the center, falling off gently toward the edge. The Curve is **required** — without it, Ellipsoid produces no output." },
+    { "nodeId": "el",  "text": "Ellipsoid outputs a signed distance field: **negative inside** the ellipsoid bubble, positive outside. The Scale vector [200, 60, 200] sets the radii — 200 blocks wide, 60 blocks tall. Increasing Y makes a taller island; decreasing it makes a flatter disc." },
+    { "nodeId": "pc",  "text": "The Plane curve input controls the density falloff at the cut plane. A linear ramp works well — 0 at the plane surface, increasing above. This is also **required** for Plane to produce output." },
+    { "nodeId": "pl",  "text": "Plane outputs a signed distance from a horizontal surface. With PlaneNormal [0,1,0]: negative above the plane, positive below. We use this to cut the bottom off the island — anything below the plane will be forced to air by Max." },
+    { "nodeId": "mx",  "text": "Max keeps the **larger** value at each point. Ellipsoid is negative inside (solid candidate); Plane is positive below the cut (air candidate). Max = air whenever **either** says air — you only get solid where you are inside the ellipsoid bubble AND above the plane cut. This intersection creates the flat-bottomed island shape." },
+    { "nodeId": "mul", "text": "Multiplier scales the surface noise down by 0.15. This is the amplitude control — keep it small so the noise roughens the surface without punching through the SDF-defined island boundary." },
+    { "nodeId": "sum", "text": "Sum adds the island SDF shape and the scaled surface noise. The SDF provides the overall volume; the noise roughens the top surface into a natural rocky terrain rather than a smooth dome." },
+    { "nodeId": "out", "text": "A floating island: defined by mathematical SDF geometry for the body, with organic noise added to the surface. Scale the Ellipsoid, adjust the Plane position, and tweak noise amplitude independently." }
   ]
 }
 ```
@@ -378,6 +388,17 @@ This section is a teaching recipe for altitude-band sky terrain rather than a ve
     { "from": "con", "to": "mul" },
     { "from": "mul", "to": "sum", "label": "upper layer" },
     { "from": "sum", "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "bh1", "text": "BaseHeight with **Distance: true** outputs the raw world Y coordinate minus the named height. At BaseHeightName=\"Base\" (Y=0), it simply outputs the world Y position. This is raw altitude — a plain number the band curve can work with directly." },
+    { "nodeId": "cm1", "text": "The first CurveMapper defines the **main island altitude band**. Draw a Manual curve: -1 at Y=-30 (air below), +1 at Y≈110 (solid at peak), -1 at Y=210 (air above). Anything outside this window is forced to air by the negative output." },
+    { "nodeId": "sn3", "text": "SimplexNoise3D varies in all three dimensions, breaking the flat slab the band curve alone would create. Where noise goes negative within the band, it cancels the positive band curve and creates holes — island edges, caves, and irregular undersides emerge naturally." },
+    { "nodeId": "si",  "text": "Sum adds the band curve and the 3D noise. Within the altitude window the band curve is positive; the noise carves variation. The sum can reach ±2 — that is why Normalizer follows." },
+    { "nodeId": "nr",  "text": "Normalizer clamps the inner Sum back to [-1, 1]. This is critical before adding the second island layer — without it the outer Sum could receive ±2, making the combined density unpredictable." },
+    { "nodeId": "bh2", "text": "The second BaseHeight (also Distance: true) provides the same raw Y signal for the upper island layer. It feeds a different CurveMapper with a different peak altitude." },
+    { "nodeId": "mul", "text": "Multiplier applies the second band curve scaled by Constant 1. This adds the upper island layer at full strength. Use a value less than 1 to make the upper layer a subtle secondary feature rather than a full second world layer." },
+    { "nodeId": "sum", "text": "The outer Sum combines the normalized main layer and the upper island path. Each additional island layer is another BaseHeight(Distance) → CurveMapper → Multiplier path fed into this Sum." },
+    { "nodeId": "out", "text": "Sky islands at multiple altitude bands. The main layer peaks around Y=110; the second layer around Y=240. Terrain exists only within those two altitude windows — everything else is open air." }
   ]
 }
 ```
@@ -440,6 +461,15 @@ The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the ra
     { "from": "sc",      "to": "inv" },
     { "from": "inv",     "to": "mn",  "label": "cave mask" },
     { "from": "mn",      "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "terrain", "text": "The terrain Sum is all the surface nodes — BaseHeight, CurveMapper, noise, whatever you have built above. This entire subgraph feeds into YSampled before meeting the cave carver." },
+    { "nodeId": "ys",      "text": "YSampled wraps the terrain and evaluates it every 4 Y blocks, interpolating between samples. Apply it here — before the cave Min — so the expensive terrain nodes only run at coarse Y intervals." },
+    { "nodeId": "sn3",     "text": "SimplexNoise3D generates the raw cave shape. Using ScaleXZ 0.02 and ScaleY 0.03 means caves are slightly shorter than they are wide — a more natural tunnel proportion than a perfect sphere." },
+    { "nodeId": "sc",      "text": "SmoothClamp constrains the 3D noise to a band around ±0.3. Values inside the band stay nearly flat; values outside are pulled toward the walls. This creates a defined tunnel cross-section: the clamped flat zone will become the cave void after inversion." },
+    { "nodeId": "inv",     "text": "Inverter flips the sign. The flat zone that SmoothClamp created (near 0) becomes a strong negative value — the void. The original solid regions (outside the clamped zone) become positive — which Min will ignore in favor of the solid terrain." },
+    { "nodeId": "mn",      "text": "Min keeps whichever value is **smaller** at each point. Where terrain is solid (+) but the cave mask is negative, the cave wins — a hole is carved. Where terrain is already air, it stays air. The cave shape comes entirely from the noise; the boundary just decides where it carves." },
+    { "nodeId": "out",     "text": "Caves carved through solid terrain. The cave size is controlled by SmoothClamp wall values. The cave density and frequency are controlled by SimplexNoise3D scale and octaves." }
   ]
 }
 ```
@@ -481,6 +511,14 @@ The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the ra
     { "from": "cm",   "to": "mul",  "label": "depth weight" },
     { "from": "mul",  "to": "mn",   "label": "gated caves" },
     { "from": "mn",   "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "cave", "text": "The cave mask is the output of the previous Inverter — a negative density field shaped like tunnels. On its own it would carve caves at every Y level including the surface. We need to suppress it near the surface." },
+    { "nodeId": "yv",   "text": "YValue reads the raw world Y coordinate at each point. At bedrock (Y=0) it outputs 0; at sea level (Y=64) it outputs 64. This is the input the depth gate CurveMapper will work with." },
+    { "nodeId": "cm",   "text": "CurveMapper turns Y into a depth weight from 0 to 1. Shape the curve: 0 everywhere above Y=50 (no caves near surface), ramping from 0→1 between Y=50 and Y=20, then flat at 1 below Y=20 (full caves at depth). The exact ramp shape controls how gradual the cave fade-in is." },
+    { "nodeId": "mul",  "text": "Multiplier gates the cave mask by the depth weight. Near the surface where depth weight=0, the cave mask is zeroed out — no carving. At depth where weight=1, the full cave mask passes through unchanged. The cave mask is negative, so multiplying by a 0–1 weight scales its magnitude without flipping sign." },
+    { "nodeId": "mn",   "text": "Min carves the depth-gated cave mask into the terrain. Now caves only appear where the depth weight is non-zero — deep underground. The surface stays intact." },
+    { "nodeId": "out",  "text": "Terrain with depth-faded caves. Near the surface: no caves, full terrain. Underground: progressively more caves as Y decreases. The fade-in depth and sharpness are controlled entirely by the CurveMapper curve shape." }
   ]
 }
 ```
@@ -520,6 +558,14 @@ The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the ra
     { "from": "bh",  "to": "sum", "label": "height" },
     { "from": "sum", "to": "ys" },
     { "from": "ys",  "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "wn",  "text": "The warp source noise drives the displacement direction. Its value at each point [-1, +1] is multiplied by WarpFactor to produce an XZ offset in world units. Low Scale (0.003) gives sweeping, broad bends — high Scale gives tight curls and spirals." },
+    { "nodeId": "gw",  "text": "GradientWarp reads the warp source and **moves the sampling point** before evaluating its child. WarpFactor=8 means a noise value of +0.5 shifts the sample 4 blocks in one direction. The terrain downstream never sees the real world position — only the displaced one. **Important:** GradientWarp returns 0.0 in the editor preview — the warp effect only appears in-game." },
+    { "nodeId": "bh",  "text": "BaseHeight provides the vertical anchor as usual, but is not warped — only the horizontal noise variation is displaced. This keeps the overall ground level stable while the surface texture twists." },
+    { "nodeId": "sum", "text": "Sum combines the warped surface noise with the unwarped height anchor. The resulting density field has organic, flowing features because the noise contribution is evaluated at twisted coordinates." },
+    { "nodeId": "ys",  "text": "YSampled wraps the entire Sum including the GradientWarp path for performance. Tune the unwarped terrain to your desired shape in the preview, then add GradientWarp and test in-game only." },
+    { "nodeId": "out", "text": "Warped organic terrain. Ridges curve and fold; valley floors meander. The underlying density math is unchanged — only the sampling coordinates were twisted." }
   ]
 }
 ```
@@ -566,6 +612,16 @@ The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the ra
     { "from": "inv", "to": "smn", "label": "cave mask" },
     { "from": "ter", "to": "smn", "label": "terrain" },
     { "from": "smn", "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "wn",  "text": "The warp source is a 2D noise that drives the cave twist. Keep its Scale low (0.008) so the warp produces broad meanders rather than tight spirals. The warp only displaces the 3D cave noise — not the terrain." },
+    { "nodeId": "sn3", "text": "SimplexNoise3D generates the raw cave shape in 3D. On its own it would produce straight-ish tunnels. GradientWarp will bend the coordinates it samples from, giving the tunnels organic curves." },
+    { "nodeId": "gw",  "text": "GradientWarp receives both the warp source (displacement direction) and the cave noise (what to evaluate). With 2D=false, it warps all three axes — so caves twist vertically as well as horizontally, producing organic overhangs and dead-end pockets. **Preview gap:** the warp is invisible in the editor." },
+    { "nodeId": "sc",  "text": "SmoothClamp shapes the warped cave noise into a defined tunnel cross-section. The flat zone at ±0.3 becomes the void volume after inversion. Narrow walls make thin passages; wide walls make broad chambers." },
+    { "nodeId": "inv", "text": "Inverter flips the clamped noise: the flat void zone becomes strongly negative (empty). This is the final cave mask — a negative density field in the exact shape of the tunnels we want to carve." },
+    { "nodeId": "ter", "text": "The existing terrain (YSampled surface) passes into SmoothMin unchanged. It provides the solid terrain density that the cave mask will carve into." },
+    { "nodeId": "smn", "text": "SmoothMin keeps the smaller (emptier) value — carving caves — but blends the join with radius 0.15. Hard Min would leave a geometric seam where the cave wall meets the terrain. SmoothMin rounds that seam into a gradual transition, like the terrain was worn down to the cave." },
+    { "nodeId": "out", "text": "Organic warped cave tunnels with smooth wall joins. The warp factor controls how dramatically tunnels bend; SmoothClamp walls control tunnel diameter; SmoothMin radius controls how gradual the cave mouth transitions are." }
   ]
 }
 ```
@@ -607,6 +663,15 @@ The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the ra
     { "from": "dc",  "to": "mul" },
     { "from": "mul", "to": "sum" },
     { "from": "sum", "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "bh",  "text": "BaseHeight sets the overall terrain elevation. Dunes in deserts tend to be low, so use a modest base Y (around 60–64)." },
+    { "nodeId": "sn1", "text": "The first noise is **anisotropic** — ScaleX 0.004, ScaleZ 0.012. The 3:1 ratio makes noise features elongated east-west. In terrain this means ridges run north-south, with gentle crossings east-west — the directional grain of a dune field blowing from one direction." },
+    { "nodeId": "sn2", "text": "The second noise reverses the ratio — ScaleX 0.012, ScaleZ 0.004. Its ridges run east-west. Mixing these two perpendicular grain directions creates the crossed, organic dune pattern seen in real desert terrain from above." },
+    { "nodeId": "mix", "text": "Mix blends the two grain directions at factor 0.5 — equal parts. Bias toward one direction (e.g. factor 0.3) to give dunes a stronger prevailing orientation. The factor can also come from a slow noise field to vary the dune direction across the world." },
+    { "nodeId": "mul", "text": "Multiplier scales the blended dune noise by Constant 0.35. This controls dune height — the amplitude of the ripple pattern. Too high and they look like mountains; too low and the terrain is nearly flat." },
+    { "nodeId": "sum", "text": "Sum adds the BaseHeight anchor and the scaled dune noise. The result is a terrain that sits at the base elevation with anisotropic, directional variation." },
+    { "nodeId": "out", "text": "Desert dunes: directional, smooth, with a characteristic elongated feel. Adjust the ScaleX/ScaleZ ratios to change the dune orientation; adjust the Multiplier Constant for dune height." }
   ]
 }
 ```
@@ -655,6 +720,15 @@ The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the ra
     { "from": "sc",  "to": "mul", "label": "terrain noise" },
     { "from": "mul", "to": "sum", "label": "masked terrain" },
     { "from": "sum", "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "cn",  "text": "CellNoise2D (Voronoi) divides the XZ plane into irregular cells. Each cell has a distinct center, and the output is the distance to the nearest center — so each cell \"rises\" from 0 at its center to higher values at its edges. Low Scale (0.002) makes large, island-sized cells." },
+    { "nodeId": "nr",  "text": "Normalizer maps the CellNoise output to [0, 1]. Cell centers produce low values (0); cell edges and far regions produce high values (near 1). After normalization, cell centers are clean 0s — the perfect anchor for an island presence mask." },
+    { "nodeId": "cm",  "text": "CurveMapper creates the island mask. Draw a step curve: output 0 for most of [0, 1], then rising sharply near 1.0. This means: most cells (the large flat areas) are ocean (mask=0); only the cells near a Voronoi edge peak (where the CellNoise value is high) produce islands (mask=1)." },
+    { "nodeId": "sc",  "text": "Multiplier scales the surface noise by Constant 0.2 to keep islands at a modest height. This is the terrain texture that will appear only on island cells." },
+    { "nodeId": "mul", "text": "Multiplier multiplies the island mask by the surface noise. Where mask=0 (ocean), the result is 0 — flat ocean floor. Where mask=1 (island), the full noise value passes through, creating terrain height." },
+    { "nodeId": "sum", "text": "Sum adds the BaseHeight anchor (sets sea level) and the masked terrain noise (islands only). Ocean areas = BaseHeight only (flat ocean floor). Island areas = BaseHeight + noise (elevated island terrain)." },
+    { "nodeId": "out", "text": "An archipelago: many distinct islands of varying shape, surrounded by ocean. Island spacing is controlled by CellNoise Scale; island coverage by the CurveMapper step threshold; island height by the noise Constant." }
   ]
 }
 ```
@@ -703,6 +777,18 @@ The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the ra
     { "from": "sc",    "to": "inv" },
     { "from": "inv",   "to": "smn",  "label": "caves" },
     { "from": "smn",   "to": "out" }
+  ],
+  "steps": [
+    { "nodeId": "sel",    "text": "The selector noise uses a very low Scale (0.0008) — broad enough that each terrain-style region spans hundreds of blocks. This is the world's biome-scale variation driver." },
+    { "nodeId": "nr",     "text": "Normalizer maps the selector noise from [-1,1] to [0,1], turning it into a valid Mix factor. 0 = full plains; 1 = full mountains; 0.5 = equal blend in the transition band." },
+    { "nodeId": "plains", "text": "The plains terrain subgraph — a gentle BaseHeight + low-amplitude noise stack. This entire subgraph is the \"A\" input to Mix. It evaluates at every position but only contributes where the selector says \"plains\"." },
+    { "nodeId": "mts",    "text": "The mountains terrain subgraph — higher BaseHeight, steep CurveMapper, Abs ridge noise. This is the \"B\" input. Both A and B evaluate everywhere; Mix blends them by the spatial selector factor." },
+    { "nodeId": "mix",    "text": "Mix blends plains and mountains using the normalized selector. In the transition zone (factor 0.3–0.7) both contribute — the terrain morphs smoothly from plains to mountains without a seam. The transition width is controlled by the selector noise Scale." },
+    { "nodeId": "ys",     "text": "YSampled wraps the surface Mix — the expensive part (both terrain subgraphs evaluate inside it). Caves don't need YSampled since they use fewer octaves and no CurveMapper." },
+    { "nodeId": "sn3",    "text": "SimplexNoise3D generates cave shapes. This runs outside the YSampled wrapper so caves carve through the optimized surface — the cave density is evaluated fresh at every block, not interpolated." },
+    { "nodeId": "inv",    "text": "Inverter flips cave noise to negative, carving into the solid terrain. SmoothClamp before this step ensures caves have defined walls rather than fuzzy gradients." },
+    { "nodeId": "smn",    "text": "SmoothMin is the final combining node — it takes the YSampled surface and carves caves through it using the smooth blend. The result passes unchanged where there are no caves, and transitions into cave voids with rounded joins." },
+    { "nodeId": "out",    "text": "The complete layered terrain: plains and mountains driven by a selector, smoothly blended, caves carved through both with smooth walls. Each piece is independently tunable." }
   ]
 }
 ```
