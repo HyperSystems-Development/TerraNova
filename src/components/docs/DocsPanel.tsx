@@ -593,6 +593,50 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+function HeadingAnchor({
+  id,
+  size,
+  contentRef,
+}: {
+  id: string;
+  size: "h2" | "h3";
+  contentRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    // Scroll to heading
+    const el = contentRef.current?.querySelector(`#${CSS.escape(id)}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Copy fragment to clipboard
+    const fragment = `#${id}`;
+    navigator.clipboard.writeText(fragment).then(() => {
+      setCopied(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {});
+  }, [id, contentRef]);
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      title="Copy link to heading"
+      className={`opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-tn-text-muted hover:text-tn-accent ${size === "h2" ? "ml-1" : "ml-0.5"}`}
+      style={{ background: "none", border: "none", padding: 0, cursor: "pointer", lineHeight: 1 }}
+    >
+      {copied
+        ? <Check className={size === "h2" ? "h-4 w-4 text-green-400" : "h-3.5 w-3.5 text-green-400"} />
+        : <Hash className={size === "h2" ? "h-4 w-4" : "h-3.5 w-3.5"} />
+      }
+    </button>
+  );
+}
+
 function ActionPillButton({
   label,
   onClick,
@@ -860,6 +904,7 @@ export function DocsPanel() {
   const [navIndex, setNavIndex] = useState(-1);
   const navIndexRef = useRef(-1);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [docIndex, setDocIndex] = useState<Record<string, string>>({});
   const [backlinks, setBacklinks] = useState<Record<string, string[]>>({});
   const [outboundLinks, setOutboundLinks] = useState<Record<string, string[]>>({});
@@ -891,6 +936,7 @@ export function DocsPanel() {
   const contentRef = useRef<HTMLDivElement | null>(null);
   const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
   const activeItemRef = useRef<HTMLButtonElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   // Keep a ref in sync with selectedSlug so mdComponents/handleLinkClick don't recreate on every nav
   const selectedSlugRef = useRef<string | null>(null);
   const addToast = useToastStore((s) => s.addToast);
@@ -1269,14 +1315,29 @@ export function DocsPanel() {
     try { localStorage.setItem("tn-docs-settings", JSON.stringify(settings)); } catch { /* ignore */ }
   }, [settings]);
 
+  // Press / to focus search (when sidebar is visible and not already typing)
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "/" || sidebarCollapsed || showSettings) return;
+      const active = document.activeElement;
+      if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || (active as HTMLElement).isContentEditable)) return;
+      e.preventDefault();
+      searchInputRef.current?.focus();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [sidebarCollapsed, showSettings]);
+
   // Reading progress bar
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
     setScrollProgress(0);
+    setShowScrollTop(false);
     function onScroll() {
       const scrollable = el!.scrollHeight - el!.clientHeight;
       setScrollProgress(scrollable > 0 ? el!.scrollTop / scrollable : 0);
+      setShowScrollTop(el!.scrollTop > 300);
     }
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
@@ -1605,9 +1666,7 @@ export function DocsPanel() {
       <h2 {...props} id={id} className="group flex items-center gap-2">
         {children}
         {id && (
-          <a href={`#${id}`} className="inline-flex items-center opacity-0 group-hover:opacity-100 transition-opacity text-tn-text-muted hover:text-tn-accent shrink-0" aria-label="Link to section" onClick={(e) => { e.preventDefault(); const el = contentRef.current?.querySelector(`#${CSS.escape(id)}`); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
-            <Hash className="h-4 w-4" />
-          </a>
+          <HeadingAnchor id={id} size="h2" contentRef={contentRef} />
         )}
       </h2>
     ),
@@ -1615,9 +1674,7 @@ export function DocsPanel() {
       <h3 {...props} id={id} className="group flex items-center gap-2">
         {children}
         {id && (
-          <a href={`#${id}`} className="inline-flex items-center opacity-0 group-hover:opacity-100 transition-opacity text-tn-text-muted hover:text-tn-accent shrink-0" aria-label="Link to section" onClick={(e) => { e.preventDefault(); const el = contentRef.current?.querySelector(`#${CSS.escape(id)}`); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
-            <Hash className="h-3.5 w-3.5" />
-          </a>
+          <HeadingAnchor id={id} size="h3" contentRef={contentRef} />
         )}
       </h3>
     ),
@@ -1644,6 +1701,7 @@ export function DocsPanel() {
           {!showSettings && (
             <div className="relative flex-1">
               <input
+                ref={searchInputRef}
                 className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 pr-6 text-sm text-tn-text focus:outline-none focus:border-tn-accent"
                 placeholder="Search docs…"
                 value={filter}
@@ -1833,7 +1891,7 @@ export function DocsPanel() {
         >
         {selectedSlug ? (
           <>
-            <div className="docs-reader-header sticky top-0 z-20 mb-5 -mx-6 border-b border-tn-border/80 bg-[rgba(28,26,23,0.88)] px-6 py-4 backdrop-blur-md">
+            <div className={`docs-reader-header z-20 mb-5 -mx-6 border-b border-tn-border/80 bg-[rgba(28,26,23,0.88)] px-6 py-4 backdrop-blur-md ${settings.showStickyHeader ? "sticky top-0" : ""}`}>
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 {sidebarCollapsed && (
@@ -1983,6 +2041,16 @@ export function DocsPanel() {
           </>
         ) : (
           <div className="text-tn-text-muted">Select a document to view.</div>
+        )}
+        {showScrollTop && (
+          <button
+            type="button"
+            onClick={() => { contentRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }}
+            title="Scroll to top"
+            className="sticky bottom-4 float-right mr-2 flex h-8 w-8 items-center justify-center rounded-full border border-tn-border bg-tn-panel/90 text-tn-text-muted shadow-md backdrop-blur-sm hover:bg-tn-accent/20 hover:text-tn-text transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4 rotate-90" />
+          </button>
         )}
         </div>
       </div>
