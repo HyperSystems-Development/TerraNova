@@ -96,10 +96,10 @@ const handleFastGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 };
 
 const handleDomainWarp2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const amp = Number(fields.Amplitude ?? 1.0);
+  // V2: WarpFactor. Legacy fallback: Amplitude.
+  const amp = Number(fields.WarpFactor ?? fields.Amplitude ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   // Scale (V2 codec) is a divisor; legacy Frequency is a multiplier.
-  // Convert Scale to frequency: freq = 1/Scale.
   const scale = Number(fields.Scale ?? 1.0);
   const freq = fields.Scale != null
     ? (scale !== 0 ? 1.0 / scale : 1.0)
@@ -112,7 +112,7 @@ const handleDomainWarp2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 };
 
 const handleDomainWarp3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const amp = Number(fields.Amplitude ?? 1.0);
+  const amp = Number(fields.WarpFactor ?? fields.Amplitude ?? 1.0);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const scale = Number(fields.Scale ?? 1.0);
   const freq = fields.Scale != null

@@ -2,9 +2,9 @@ import type { NodeHandler } from "../evalContext";
 
 const handleClamp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const v = ctx.getInput(inputs, "Input", x, y, z);
-  const wallA = Number(fields.Min ?? fields.WallA ?? -Infinity);
-  const wallB = Number(fields.Max ?? fields.WallB ?? Infinity);
-  // V2: auto-sort walls so either order works; if equal, return constant
+  // V2: WallA = upper, WallB = lower. Legacy fallback: Min/Max.
+  const wallA = Number(fields.WallA ?? fields.Max ?? Infinity);
+  const wallB = Number(fields.WallB ?? fields.Min ?? -Infinity);
   if (wallA === wallB) return wallA;
   const lo = Math.min(wallA, wallB);
   const hi = Math.max(wallA, wallB);
@@ -13,9 +13,9 @@ const handleClamp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 
 const handleClampToIndex: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const v = ctx.getInput(inputs, "Input", x, y, z);
-  const min = Number(fields.Min ?? 0);
-  const max = Number(fields.Max ?? 255);
-  return Math.max(min, Math.min(max, Math.floor(v)));
+  const upper = Number(fields.WallA ?? fields.Max ?? 255);
+  const lower = Number(fields.WallB ?? fields.Min ?? 0);
+  return Math.max(lower, Math.min(upper, Math.floor(v)));
 };
 
 const handleNormalizer: NodeHandler = (ctx, fields, inputs, x, y, z) => {

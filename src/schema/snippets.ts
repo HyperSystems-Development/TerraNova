@@ -1,5 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
-import { DENSITY_DEFAULTS } from "./defaults";
+import { getDefaults } from "./defaults";
 
 // ---------------------------------------------------------------------------
 // Snippet data structures
@@ -45,7 +45,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     category: "Density",
     nodes: [
       { localId: "noise", type: "SimplexNoise2D", displayType: "SimplexNoise2D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D }, offsetX: 0, offsetY: 0 },
+        fields: { ...getDefaults("SimplexNoise2D") }, offsetX: 0, offsetY: 0 },
       { localId: "abs", type: "Abs", displayType: "Abs",
         fields: {}, offsetX: 300, offsetY: 0 },
     ],
@@ -61,7 +61,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     category: "Density",
     nodes: [
       { localId: "noise", type: "SimplexNoise3D", displayType: "SimplexNoise3D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise3D }, offsetX: 0, offsetY: 0 },
+        fields: { ...getDefaults("SimplexNoise3D") }, offsetX: 0, offsetY: 0 },
       { localId: "abs", type: "Abs", displayType: "Abs",
         fields: {}, offsetX: 300, offsetY: 0 },
     ],
@@ -79,7 +79,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
       { localId: "coordY", type: "CoordinateY", displayType: "CoordinateY",
         fields: {}, offsetX: 0, offsetY: 0 },
       { localId: "normalizer", type: "Normalizer", displayType: "Normalizer",
-        fields: { ...DENSITY_DEFAULTS.Normalizer }, offsetX: 300, offsetY: 0 },
+        fields: { ...getDefaults("Normalizer") }, offsetX: 300, offsetY: 0 },
     ],
     edges: [
       { sourceLocal: "coordY", targetLocal: "normalizer", targetHandle: "Input" },
@@ -93,7 +93,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     category: "Density",
     nodes: [
       { localId: "amp", type: "AmplitudeConstant", displayType: "AmplitudeConstant",
-        fields: { ...DENSITY_DEFAULTS.AmplitudeConstant }, offsetX: 0, offsetY: 0 },
+        fields: { ...getDefaults("AmplitudeConstant") }, offsetX: 0, offsetY: 0 },
       { localId: "offset", type: "Constant", displayType: "Constant",
         fields: { Value: 0.0 }, offsetX: 0, offsetY: 150 },
       { localId: "sum", type: "Sum", displayType: "Sum",
@@ -112,7 +112,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     category: "Density",
     nodes: [
       { localId: "noise", type: "SimplexNoise2D", displayType: "SimplexNoise2D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D, Octaves: 4 }, offsetX: 0, offsetY: 0 },
+        fields: { ...getDefaults("SimplexNoise2D"), Octaves: 4 }, offsetX: 0, offsetY: 0 },
     ],
     edges: [],
   },
@@ -124,7 +124,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     category: "Density",
     nodes: [
       { localId: "noise", type: "SimplexNoise3D", displayType: "SimplexNoise3D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise3D, Octaves: 4 }, offsetX: 0, offsetY: 0 },
+        fields: { ...getDefaults("SimplexNoise3D"), Octaves: 4 }, offsetX: 0, offsetY: 0 },
     ],
     edges: [],
   },
@@ -136,9 +136,9 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     category: "Density",
     nodes: [
       { localId: "noise", type: "SimplexNoise2D", displayType: "SimplexNoise2D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D }, offsetX: 0, offsetY: 0 },
+        fields: { ...getDefaults("SimplexNoise2D") }, offsetX: 0, offsetY: 0 },
       { localId: "warp", type: "FastGradientWarp", displayType: "FastGradientWarp",
-        fields: { ...DENSITY_DEFAULTS.FastGradientWarp }, offsetX: 300, offsetY: 0 },
+        fields: { ...getDefaults("FastGradientWarp") }, offsetX: 300, offsetY: 0 },
     ],
     edges: [
       { sourceLocal: "noise", targetLocal: "warp", targetHandle: "Input" },
@@ -152,11 +152,11 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     category: "Density",
     nodes: [
       { localId: "noiseA", type: "SimplexNoise2D", displayType: "SimplexNoise2D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D, Seed: "A" }, offsetX: 0, offsetY: 0 },
+        fields: { ...getDefaults("SimplexNoise2D"), Seed: "A" }, offsetX: 0, offsetY: 0 },
       { localId: "noiseB", type: "SimplexNoise2D", displayType: "SimplexNoise2D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D, Seed: "B", Scale: 25 }, offsetX: 0, offsetY: 150 },
+        fields: { ...getDefaults("SimplexNoise2D"), Seed: "B", Scale: 25 }, offsetX: 0, offsetY: 150 },
       { localId: "factor", type: "SimplexNoise2D", displayType: "SimplexNoise2D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D, Seed: "C", Scale: 100 }, offsetX: 0, offsetY: 300 },
+        fields: { ...getDefaults("SimplexNoise2D"), Seed: "C", Scale: 100 }, offsetX: 0, offsetY: 300 },
       { localId: "blend", type: "Blend", displayType: "Blend",
         fields: {}, offsetX: 350, offsetY: 100 },
     ],
@@ -182,7 +182,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
       { localId: "product", type: "Product", displayType: "Product",
         fields: {}, offsetX: 300, offsetY: 50 },
       { localId: "normalizer", type: "Normalizer", displayType: "Normalizer",
-        fields: { ...DENSITY_DEFAULTS.Normalizer }, offsetX: 600, offsetY: 50 },
+        fields: { ...getDefaults("Normalizer") }, offsetX: 600, offsetY: 50 },
     ],
     edges: [
       { sourceLocal: "coordY",    targetLocal: "product",    targetHandle: "Inputs[0]" },
@@ -204,11 +204,11 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
       { localId: "product", type: "Product", displayType: "Product",
         fields: {}, offsetX: 300, offsetY: 50 },
       { localId: "noise", type: "SimplexNoise2D", displayType: "SimplexNoise2D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D, Scale: 25 }, offsetX: 300, offsetY: 220 },
+        fields: { ...getDefaults("SimplexNoise2D"), Scale: 25 }, offsetX: 300, offsetY: 220 },
       { localId: "sum", type: "Sum", displayType: "Sum",
         fields: {}, offsetX: 600, offsetY: 100 },
       { localId: "normalizer", type: "Normalizer", displayType: "Normalizer",
-        fields: { ...DENSITY_DEFAULTS.Normalizer }, offsetX: 900, offsetY: 100 },
+        fields: { ...getDefaults("Normalizer") }, offsetX: 900, offsetY: 100 },
     ],
     edges: [
       { sourceLocal: "coordY",    targetLocal: "product",    targetHandle: "Inputs[0]" },
@@ -236,9 +236,9 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
       { localId: "scoop",   type: "Product", displayType: "Product",
         fields: {}, offsetX: 600, offsetY: 180 },
       { localId: "smoothmin", type: "SmoothMin", displayType: "SmoothMin",
-        fields: { ...DENSITY_DEFAULTS.SmoothMin }, offsetX: 900, offsetY: 100 },
+        fields: { ...getDefaults("SmoothMin") }, offsetX: 900, offsetY: 100 },
       { localId: "normalizer", type: "Normalizer", displayType: "Normalizer",
-        fields: { ...DENSITY_DEFAULTS.Normalizer }, offsetX: 1200, offsetY: 100 },
+        fields: { ...getDefaults("Normalizer") }, offsetX: 1200, offsetY: 100 },
     ],
     edges: [
       { sourceLocal: "coordY",    targetLocal: "wedge",      targetHandle: "Inputs[0]" },
@@ -260,11 +260,11 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
       { localId: "coordY",  type: "CoordinateY", displayType: "CoordinateY",
         fields: {}, offsetX: 0, offsetY: 0 },
       { localId: "noise",   type: "SimplexNoise2D", displayType: "SimplexNoise2D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D, Scale: 50 }, offsetX: 0, offsetY: 150 },
+        fields: { ...getDefaults("SimplexNoise2D"), Scale: 50 }, offsetX: 0, offsetY: 150 },
       { localId: "sum",     type: "Sum", displayType: "Sum",
         fields: {}, offsetX: 300, offsetY: 50 },
       { localId: "normalizer", type: "Normalizer", displayType: "Normalizer",
-        fields: { ...DENSITY_DEFAULTS.Normalizer }, offsetX: 600, offsetY: 50 },
+        fields: { ...getDefaults("Normalizer") }, offsetX: 600, offsetY: 50 },
     ],
     edges: [
       { sourceLocal: "coordY", targetLocal: "sum",        targetHandle: "Inputs[0]" },
@@ -280,11 +280,11 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     category: "Terrain",
     nodes: [
       { localId: "noise",    type: "SimplexNoise2D", displayType: "SimplexNoise2D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D }, offsetX: 0, offsetY: 0 },
+        fields: { ...getDefaults("SimplexNoise2D") }, offsetX: 0, offsetY: 0 },
       { localId: "warp",     type: "FastGradientWarp", displayType: "FastGradientWarp",
-        fields: { ...DENSITY_DEFAULTS.FastGradientWarp }, offsetX: 300, offsetY: 0 },
+        fields: { ...getDefaults("FastGradientWarp") }, offsetX: 300, offsetY: 0 },
       { localId: "normalizer", type: "Normalizer", displayType: "Normalizer",
-        fields: { ...DENSITY_DEFAULTS.Normalizer }, offsetX: 600, offsetY: 0 },
+        fields: { ...getDefaults("Normalizer") }, offsetX: 600, offsetY: 0 },
     ],
     edges: [
       { sourceLocal: "noise", targetLocal: "warp",       targetHandle: "Input" },
@@ -300,25 +300,25 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     nodes: [
       // Outer branch: BaseHeight → CurveFunction (taper) → Cuboid (broad low wedge)
       { localId: "outerHeight",  type: "BaseHeight",    displayType: "BaseHeight",
-        fields: { ...DENSITY_DEFAULTS.BaseHeight, Distance: true }, offsetX: 0, offsetY: 0 },
+        fields: { ...getDefaults("BaseHeight"), Distance: true }, offsetX: 0, offsetY: 0 },
       { localId: "outerManual",  type: "Curve:Manual",  displayType: "Curve:Manual",
         fields: { Points: [[0, 0], [0.5, 1], [1, 0]] }, offsetX: 300, offsetY: -120 },
       { localId: "outerCurve",   type: "CurveFunction", displayType: "CurveFunction",
         fields: {}, offsetX: 300, offsetY: 0 },
       { localId: "outerCuboid",  type: "Cuboid",        displayType: "Cuboid",
-        fields: { ...DENSITY_DEFAULTS.Cuboid, Scale: { x: 1.8, y: 0.48, z: 1.2 } }, offsetX: 600, offsetY: 0 },
+        fields: { ...getDefaults("Cuboid"), Scale: { x: 1.8, y: 0.48, z: 1.2 } }, offsetX: 600, offsetY: 0 },
       // Inner branch: BaseHeight → CurveFunction (shallower scoop) → Cuboid (narrower)
       { localId: "innerHeight",  type: "BaseHeight",    displayType: "BaseHeight",
-        fields: { ...DENSITY_DEFAULTS.BaseHeight, Distance: true }, offsetX: 0, offsetY: 300 },
+        fields: { ...getDefaults("BaseHeight"), Distance: true }, offsetX: 0, offsetY: 300 },
       { localId: "innerManual",  type: "Curve:Manual",  displayType: "Curve:Manual",
         fields: { Points: [[0, 0], [0.5, 0.7], [1, 0]] }, offsetX: 300, offsetY: 180 },
       { localId: "innerCurve",   type: "CurveFunction", displayType: "CurveFunction",
         fields: {}, offsetX: 300, offsetY: 300 },
       { localId: "innerCuboid",  type: "Cuboid",        displayType: "Cuboid",
-        fields: { ...DENSITY_DEFAULTS.Cuboid, Scale: { x: 0.9, y: 0.28, z: 0.7 } }, offsetX: 600, offsetY: 300 },
+        fields: { ...getDefaults("Cuboid"), Scale: { x: 0.9, y: 0.28, z: 0.7 } }, offsetX: 600, offsetY: 300 },
       // Combine: SmoothMin for soft boolean subtract (outer minus inner scoop)
       { localId: "smoothmin",    type: "SmoothMin",     displayType: "SmoothMin",
-        fields: { ...DENSITY_DEFAULTS.SmoothMin }, offsetX: 950, offsetY: 130 },
+        fields: { ...getDefaults("SmoothMin") }, offsetX: 950, offsetY: 130 },
     ],
     edges: [
       // Outer taper: BaseHeight → CurveFunction (shaped by Manual curve) → Cuboid
@@ -342,9 +342,9 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     category: "Terrain",
     nodes: [
       { localId: "noise",    type: "SimplexNoise3D",  displayType: "SimplexNoise3D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise3D, Scale: 33 }, offsetX: 0, offsetY: 0 },
+        fields: { ...getDefaults("SimplexNoise3D"), Scale: 33 }, offsetX: 0, offsetY: 0 },
       { localId: "rotate",   type: "RotatedPosition", displayType: "RotatedPosition",
-        fields: { ...DENSITY_DEFAULTS.RotatedPosition, AngleDegrees: 45 }, offsetX: 300, offsetY: 0 },
+        fields: { ...getDefaults("RotatedPosition"), AngleDegrees: 45 }, offsetX: 300, offsetY: 0 },
       { localId: "ceiling",  type: "Ceiling",         displayType: "Ceiling",
         fields: { Ceiling: 0.6 }, offsetX: 600, offsetY: 0 },
       { localId: "negate",   type: "Negate",          displayType: "Negate",
@@ -366,13 +366,13 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
       { localId: "height",  type: "CoordinateY", displayType: "CoordinateY",
         fields: {}, offsetX: 0, offsetY: 0 },
       { localId: "hNorm",   type: "Normalizer", displayType: "Normalizer",
-        fields: { ...DENSITY_DEFAULTS.Normalizer }, offsetX: 300, offsetY: 0 },
+        fields: { ...getDefaults("Normalizer") }, offsetX: 300, offsetY: 0 },
       { localId: "caveNoise", type: "SimplexNoise3D", displayType: "SimplexNoise3D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise3D, Scale: 20, Octaves: 2 }, offsetX: 0, offsetY: 200 },
+        fields: { ...getDefaults("SimplexNoise3D"), Scale: 20, Octaves: 2 }, offsetX: 0, offsetY: 200 },
       { localId: "abs",     type: "Abs", displayType: "Abs",
         fields: {}, offsetX: 300, offsetY: 200 },
       { localId: "smoothmin", type: "SmoothMin", displayType: "SmoothMin",
-        fields: { ...DENSITY_DEFAULTS.SmoothMin }, offsetX: 600, offsetY: 80 },
+        fields: { ...getDefaults("SmoothMin") }, offsetX: 600, offsetY: 80 },
     ],
     edges: [
       { sourceLocal: "height",    targetLocal: "hNorm",     targetHandle: "Input" },

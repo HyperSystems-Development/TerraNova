@@ -16,20 +16,34 @@ import {
   directionalityInput,
   directionalityOutput,
 } from "./shared/handles";
-import { getSchemaHandles } from "@/schema/schemaLoader";
+import { getSchemaHandles, getAllSchemaTypes } from "@/schema/schemaLoader";
 import { AssetCategory } from "@/schema/types";
 import connectionsData from "@/data/connections.json";
 
 const connectionMatrix = connectionsData.connectionMatrix as Record<string, Record<string, number>>;
 
 /**
- * Static mapping from node type key (as registered in nodeTypes) to HandleDef[].
- * Used by isValidConnection to enforce type-safe wiring.
+ * Visual-only nodes that participate in layout or annotation but can never
+ * create graph connections.
  */
-export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
-  // ── Density ────────────────────────────────────────────────────────────
+export const NON_CONNECTABLE_NODE_TYPES = new Set(["group", "comment", "frame"]);
 
-  // Noise generators (output only)
+/* ── Compatibility overrides ─────────────────────────────────────────────
+ * Handle definitions keyed by editor type key.  These override the schema
+ * bundle because the bundle uses different handle IDs (casing, naming) or
+ * is missing entries altogether.  As the bundle aligns with the editor's
+ * conventions these overrides can be removed one-by-one.
+ *
+ * New node types that are only in the bundle do NOT need entries here —
+ * they resolve automatically through getSchemaHandles().
+ * ──────────────────────────────────────────────────────────────────────── */
+const HANDLE_OVERRIDES: Record<string, HandleDef[]> = {
+  // ── Editor-only nodes ───────────────────────────────────────────────
+  Root: [densityInput("input", "Input")],
+
+  // ── Density ─────────────────────────────────────────────────────────
+
+  // Noise generators
   SimplexNoise2D: [densityOutput()],
   SimplexNoise3D: [densityOutput()],
   SimplexRidgeNoise2D: [densityOutput()],
@@ -45,7 +59,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   Zero: [densityOutput()],
   One: [densityOutput()],
 
-  // Coordinate readers (output only)
+  // Coordinate readers
   CoordinateX: [densityOutput()],
   CoordinateY: [densityOutput()],
   CoordinateZ: [densityOutput()],
@@ -151,7 +165,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   DistanceToBiomeEdge: [densityOutput()],
   Pipeline: [densityInput("Input", "Input"), densityOutput()],
 
-  // Shape SDFs (output only — pure geometry)
+  // Shape SDFs
   Ellipsoid: [curveInput("Curve", "Curve"), densityOutput()],
   Cuboid: [curveInput("Curve", "Curve"), densityOutput()],
   Cylinder: [curveInput("RadialCurve", "Radial Curve"), curveInput("AxialCurve", "Axial Curve"), densityOutput()],
@@ -171,9 +185,8 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   CurveFunction: [densityInput("Input", "Input"), curveInput("Curve", "Curve"), densityOutput()],
   BlendCurve: [densityInput("InputA", "Input"), densityInput("InputB", "Input"), densityInput("Factor", "Factor"), curveInput("Curve", "Curve"), densityOutput()],
 
-  // ── Curve ──────────────────────────────────────────────────────────────
+  // ── Curve ───────────────────────────────────────────────────────────
 
-  // Output-only curves
   "Curve:Manual": [curveOutput()],
   "Curve:Constant": [curveOutput()],
   "Curve:DistanceExponential": [curveOutput()],
@@ -185,7 +198,6 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Curve:Power": [curveOutput()],
   "Curve:Imported": [curveOutput()],
 
-  // Single-input curves
   "Curve:Inverter": [curveInput("Input", "Input"), curveOutput()],
   "Curve:Not": [curveInput("Input", "Input"), curveOutput()],
   "Curve:Clamp": [curveInput("Input", "Input"), curveOutput()],
@@ -193,14 +205,12 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Curve:Cache": [curveInput("Input", "Input"), curveOutput()],
   "Curve:Exported": [curveInput("Input", "Input"), curveOutput()],
 
-  // New single-input curves
   "Curve:Floor": [curveInput("Input", "Input"), curveOutput()],
   "Curve:Ceiling": [curveInput("Input", "Input"), curveOutput()],
   "Curve:SmoothFloor": [curveInput("Input", "Input"), curveOutput()],
   "Curve:SmoothCeiling": [curveInput("Input", "Input"), curveOutput()],
   "Curve:SmoothClamp": [curveInput("Input", "Input"), curveOutput()],
 
-  // Dual-input curves
   "Curve:Multiplier": [curveInput("Inputs[0]", "Input"), curveInput("Inputs[1]", "Input"), curveOutput()],
   "Curve:Sum": [curveInput("Inputs[0]", "Input"), curveInput("Inputs[1]", "Input"), curveOutput()],
   "Curve:Blend": [curveInput("Inputs[0]", "Input"), curveInput("Inputs[1]", "Input"), curveOutput()],
@@ -209,7 +219,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Curve:SmoothMin": [curveInput("Inputs[0]", "Input"), curveInput("Inputs[1]", "Input"), curveOutput()],
   "Curve:SmoothMax": [curveInput("Inputs[0]", "Input"), curveInput("Inputs[1]", "Input"), curveOutput()],
 
-  // ── Material Provider ──────────────────────────────────────────────────
+  // ── Material Provider ───────────────────────────────────────────────
 
   "Material:Constant": [materialOutput()],
   "Material:Solid": [materialOutput()],
@@ -226,7 +236,6 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Material:Cluster": [materialInput("Input", "Input"), materialOutput()],
   "Material:Exported": [materialInput("Input", "Input"), materialOutput()],
 
-  // Additional material types
   "Material:Queue": [materialInput("Queue[0]", "Material 0"), materialInput("Queue[1]", "Material 1"), materialOutput()],
   "Material:FieldFunction": [densityInput("FieldFunction", "Field Fn"), materialInput("Materials[0]", "Material 0"), materialInput("Materials[1]", "Material 1"), materialOutput()],
   "Material:Solidity": [densityInput("SolidityFunction", "Solidity"), materialOutput()],
@@ -238,7 +247,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Material:Striped": [materialInput("Materials[0]", "Material 0"), materialInput("Materials[1]", "Material 1"), materialOutput()],
   "Material:TerrainDensity": [densityInput("TerrainDensity", "Terrain Density"), materialOutput()],
 
-  // Layer sub-asset types (SpaceAndDepth.Layers[])
+  // Layer sub-asset types
   "Material:ConstantThickness": [materialInput("Material", "Material"), materialOutput()],
   "Material:NoiseThickness": [densityInput("ThicknessFunctionXZ", "Noise"), materialInput("Material", "Material"), materialOutput()],
   "Material:RangeThickness": [materialInput("Material", "Material"), materialOutput()],
@@ -248,7 +257,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Material:Conditional": [densityInput("Condition", "Condition"), materialInput("TrueInput", "True"), materialInput("FalseInput", "False"), materialOutput()],
   "Material:Blend": [materialInput("InputA", "Input"), materialInput("InputB", "Input"), densityInput("Factor", "Factor"), materialOutput()],
 
-  // ── Pattern ────────────────────────────────────────────────────────────
+  // ── Pattern ─────────────────────────────────────────────────────────
 
   "Pattern:BlockType": [patternOutput()],
   "Pattern:Cuboid": [patternOutput()],
@@ -268,14 +277,13 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Pattern:Conditional": [densityInput("Condition", "Condition"), patternInput("TrueInput", "True"), patternInput("FalseInput", "False"), patternOutput()],
   "Pattern:Blend": [patternInput("InputA", "Input"), patternInput("InputB", "Input"), densityInput("Factor", "Factor"), patternOutput()],
 
-  // Additional pattern types
   "Pattern:And": [patternInput("Patterns[0]", "Pattern"), patternInput("Patterns[1]", "Pattern"), patternOutput()],
   "Pattern:Or": [patternInput("Patterns[0]", "Pattern"), patternInput("Patterns[1]", "Pattern"), patternOutput()],
   "Pattern:Not": [patternInput("SubPattern", "Pattern"), patternOutput()],
   "Pattern:Constant": [patternOutput()],
   "Pattern:FieldFunction": [densityInput("FieldFunction", "Field Fn"), patternOutput()],
 
-  // ── Position Provider ──────────────────────────────────────────────────
+  // ── Position Provider ───────────────────────────────────────────────
 
   "Position:List": [positionOutput()],
   "Position:Mesh2D": [positionOutput()],
@@ -290,12 +298,10 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Position:Exported": [positionInput("Input", "Input"), positionOutput()],
   "Position:Union": [positionInput("Providers[0]", "Provider"), positionInput("Providers[1]", "Provider"), positionOutput()],
 
-  // Cross-category positions
   "Position:FieldFunction": [densityInput("FieldFunction", "Field Fn"), positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Conditional": [densityInput("Condition", "Condition"), positionInput("TrueInput", "True"), positionInput("FalseInput", "False"), positionOutput()],
   "Position:DensityBased": [densityInput("DensityFunction", "Density"), positionOutput()],
 
-  // Additional position types
   "Position:BaseHeight": [positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Anchor": [positionInput("PositionProvider", "Positions"), positionOutput()],
   "Position:Bound": [positionInput("PositionProvider", "Positions"), positionOutput()],
@@ -309,7 +315,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Position:Jitter3d": [positionInput("Positions", "Positions"), positionOutput()],
   "Position:Clusters": [positionInput("Distributor", "Distributor"), positionInput("Cluster", "Cluster"), positionOutput()],
 
-  // ── Prop ───────────────────────────────────────────────────────────────
+  // ── Prop ────────────────────────────────────────────────────────────
 
   "Prop:Box": [propOutput()],
   "Prop:Column": [propOutput()],
@@ -328,17 +334,14 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Prop:Weighted": [propInput("Entries[0]", "Entry 0"), propInput("Entries[1]", "Entry 1"), propOutput()],
   "Prop:Exported": [propInput("Input", "Input"), propOutput()],
 
-  // Cross-category props
   "Prop:Density": [densityInput("DensityFunction", "Density"), materialInput("Material", "Material"), propOutput()],
   "Prop:Conditional": [densityInput("Condition", "Condition"), propInput("TrueInput", "True"), propInput("FalseInput", "False"), propOutput()],
   "Prop:Surface": [patternInput("Pattern", "Pattern"), scannerInput("Scanner", "Scanner"), propOutput()],
   "Prop:Cave": [patternInput("Pattern", "Pattern"), scannerInput("Scanner", "Scanner"), propOutput()],
 
-  // Content props
   "Prop:Cuboid": [materialInput("Material", "Material"), propOutput()],
   "Prop:Manual": [propOutput()],
 
-  // Wrapper props
   "Prop:Locator": [
     scannerInput("Scanner", "Scanner"),
     patternInput("Pattern", "Pattern"),
@@ -370,12 +373,14 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
     propOutput(),
   ],
 
-  // Additional prop types
   "Prop:PondFiller": [propOutput()],
   "Prop:Queue": [propInput("Props[0]", "Prop 0"), propInput("Props[1]", "Prop 1"), propOutput()],
   "Prop:Offset": [propInput("Input", "Input"), propOutput()],
+  "Prop:Curve": [curveInput("Curve", "Curve"), propInput("Prop", "Prop"), propOutput()],
+  "Prop:Pattern": [patternInput("Pattern", "Pattern"), propInput("Prop", "Prop"), propOutput()],
+  "Prop:Static": [propInput("Prop", "Prop"), propOutput()],
 
-  // ── Scanner ────────────────────────────────────────────────────────────
+  // ── Scanner ─────────────────────────────────────────────────────────
 
   "Scanner:Origin": [scannerOutput()],
   "Scanner:ColumnLinear": [scannerOutput()],
@@ -388,7 +393,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Scanner:Queue": [scannerInput("Scanners[0]", "Scanner 0"), scannerInput("Scanners[1]", "Scanner 1"), scannerOutput()],
   "Scanner:Direct": [scannerOutput()],
 
-  // ── Assignment ─────────────────────────────────────────────────────────
+  // ── Assignment ──────────────────────────────────────────────────────
 
   "Assignment:Imported": [assignmentOutput()],
   "Assignment:Constant": [propInput("Prop", "Prop"), assignmentOutput()],
@@ -396,7 +401,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Assignment:Weighted": [assignmentInput("Entries[0]", "Entry 0"), assignmentInput("Entries[1]", "Entry 1"), assignmentOutput()],
   "Assignment:FieldFunction": [densityInput("FieldFunction", "Field Fn"), assignmentInput("Assignments[0]", "Assign 0"), assignmentInput("Assignments[1]", "Assign 1"), assignmentOutput()],
 
-  // ── Vector Provider ────────────────────────────────────────────────────
+  // ── Vector Provider ─────────────────────────────────────────────────
 
   "Vector:Constant": [vectorOutput()],
   "Vector:Imported": [vectorOutput()],
@@ -404,7 +409,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Vector:Cache": [vectorInput("VectorProvider", "Vector"), vectorOutput()],
   "Vector:Exported": [vectorInput("Input", "Input"), vectorOutput()],
 
-  // ── Environment Provider ───────────────────────────────────────────────
+  // ── Environment Provider ────────────────────────────────────────────
 
   "Environment:Default": [environmentOutput()],
   "Environment:Biome": [environmentOutput()],
@@ -413,7 +418,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Environment:Imported": [environmentOutput()],
   "Environment:Exported": [environmentInput("Input", "Input"), environmentOutput()],
 
-  // ── Tint Provider ──────────────────────────────────────────────────────
+  // ── Tint Provider ───────────────────────────────────────────────────
 
   "Tint:Constant": [tintOutput()],
   "Tint:Gradient": [tintOutput()],
@@ -421,7 +426,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Tint:Imported": [tintOutput()],
   "Tint:Exported": [tintInput("Input", "Input"), tintOutput()],
 
-  // ── Block Mask ─────────────────────────────────────────────────────────
+  // ── Block Mask ──────────────────────────────────────────────────────
 
   "BlockMask:All": [blockMaskOutput()],
   "BlockMask:None": [blockMaskOutput()],
@@ -429,7 +434,7 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "BlockMask:Set": [blockMaskOutput()],
   "BlockMask:Imported": [blockMaskOutput()],
 
-  // ── Directionality ────────────────────────────────────────────────────
+  // ── Directionality ──────────────────────────────────────────────────
 
   "Directionality:Uniform": [directionalityOutput()],
   "Directionality:Directional": [directionalityOutput()],
@@ -438,22 +443,84 @@ export const HANDLE_REGISTRY: Record<string, HandleDef[]> = {
   "Directionality:Random": [directionalityOutput()],
   "Directionality:Pattern": [patternInput("Pattern", "Pattern"), directionalityOutput()],
   "Directionality:Imported": [directionalityOutput()],
-
-  // ── Root ────────────────────────────────────────────────────────────
-  Root: [densityInput("input", "Input")],
-
-  // ── Annotation nodes (no connectable handles) ────────────────────────
-  comment: [],
-  frame: [],
 };
 
 /**
- * Get handles for a node type. Local overrides take precedence,
- * falls back to schema bundle, then default density output.
+ * Get handles for a node type.  Compatibility overrides take precedence
+ * (preserving editor handle IDs for saved graphs), then schema bundle
+ * provides definitions for any new types, then fallback.
  */
 export function getHandles(nodeType: string): HandleDef[] {
-  return HANDLE_REGISTRY[nodeType] ?? getSchemaHandles(nodeType) ?? [densityOutput()];
+  if (NON_CONNECTABLE_NODE_TYPES.has(nodeType)) return [];
+
+  // 1. Compatibility overrides (editor-only + ID-mismatched types)
+  const override = HANDLE_OVERRIDES[nodeType];
+  if (override) return override;
+
+  // 2. Schema bundle (primary source for new/aligned types)
+  const schemaHandles = getSchemaHandles(nodeType);
+  if (schemaHandles) return schemaHandles;
+
+  // 3. Fallback for unknown types (group, comment, frame, etc.)
+  return [];
 }
+
+/**
+ * Returns handles for a type key if it's known (override or schema),
+ * null otherwise. Does NOT apply the fallback default.
+ */
+function getHandlesIfKnown(typeKey: string): HandleDef[] | null {
+  const override = HANDLE_OVERRIDES[typeKey];
+  if (override) return override;
+  return getSchemaHandles(typeKey);
+}
+
+/**
+ * Collect all known type keys: overrides + all schema types.
+ * Used by Proxy ownKeys for Object.entries/keys iteration.
+ */
+function getAllKnownTypeKeys(): string[] {
+  const schemaTypes = getAllSchemaTypes();
+  const overrideKeys = Object.keys(HANDLE_OVERRIDES);
+  return [...new Set([...overrideKeys, ...schemaTypes])];
+}
+
+/**
+ * Proxy-based HANDLE_REGISTRY for backward compatibility.
+ * Delegates all property access to the resolution chain so consumers
+ * that use HANDLE_REGISTRY[key] continue to work transparently.
+ */
+export const HANDLE_REGISTRY: Record<string, HandleDef[]> = new Proxy(
+  {} as Record<string, HandleDef[]>,
+  {
+    get(_target, prop: string | symbol): HandleDef[] | undefined {
+      if (typeof prop === "symbol") return undefined;
+      if (prop === "toJSON") return undefined;
+      return getHandlesIfKnown(prop) ?? undefined;
+    },
+
+    has(_target, prop: string | symbol): boolean {
+      if (typeof prop === "symbol") return false;
+      return getHandlesIfKnown(prop) !== null;
+    },
+
+    ownKeys(): string[] {
+      return getAllKnownTypeKeys();
+    },
+
+    getOwnPropertyDescriptor(_target, prop: string | symbol) {
+      if (typeof prop === "symbol") return undefined;
+      const handles = getHandlesIfKnown(prop);
+      if (!handles) return undefined;
+      return {
+        configurable: true,
+        enumerable: true,
+        value: handles,
+        writable: false,
+      };
+    },
+  },
+);
 
 /**
  * Look up the HandleDef for a specific handle ID on a node type.
@@ -464,7 +531,7 @@ export function findHandleDef(
   nodeType: string,
   handleId: string,
 ): HandleDef | undefined {
-  const defs = HANDLE_REGISTRY[nodeType] ?? getSchemaHandles(nodeType);
+  const defs = getHandlesIfKnown(nodeType);
   if (!defs) return undefined;
 
   // Exact match first

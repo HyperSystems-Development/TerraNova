@@ -2,7 +2,7 @@ import { memo } from "react";
 import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
 import { positionInput, positionOutput, densityInput, vectorInput } from "@/nodes/shared/handles";
-import { safeDisplay } from "@/nodes/shared/displayUtils";
+import { SchemaFields } from "@/nodes/shared/SchemaFields";
 import { useCompoundHandles } from "@/hooks/useCompoundHandles";
 
 // ── Hoisted handle arrays ───────────────────────────────────────────────
@@ -25,24 +25,11 @@ const CONDITIONAL_POSITION_HANDLES = [
 const DENSITY_BASED_POSITION_HANDLES = [densityInput("DensityFunction", "Density"), positionOutput()];
 const EXPORTED_POSITION_HANDLES = [positionInput("Input", "Input"), positionOutput()];
 
-function formatVec3(v: unknown): string {
-  if (v && typeof v === "object" && "x" in (v as Record<string, unknown>)) {
-    const vec = v as { x: number; y: number; z: number };
-    return `(${vec.x}, ${vec.y}, ${vec.z})`;
-  }
-  return "—";
-}
-
 export const ListPositionNode = memo(function ListPositionNode(props: TypedNodeProps) {
   const data = props.data;
-  const positions = data.fields.Positions;
-  const count = Array.isArray(positions) ? positions.length : 0;
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Positions</span>
-        <span>{count}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -51,16 +38,7 @@ export const Mesh2DPositionNode = memo(function Mesh2DPositionNode(props: TypedN
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Resolution</span>
-          <span>{safeDisplay(data.fields.Resolution, 16)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Jitter</span>
-          <span>{safeDisplay(data.fields.Jitter, 0)}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -69,16 +47,7 @@ export const Mesh3DPositionNode = memo(function Mesh3DPositionNode(props: TypedN
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Resolution</span>
-          <span>{safeDisplay(data.fields.Resolution, 16)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Jitter</span>
-          <span>{safeDisplay(data.fields.Jitter, 0)}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -91,10 +60,7 @@ export const FieldFunctionPositionNode = memo(function FieldFunctionPositionNode
       category={AssetCategory.PositionProvider}
       handles={FIELD_FUNCTION_POSITION_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Threshold</span>
-        <span>{safeDisplay(data.fields.Threshold, 0.5)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -107,10 +73,7 @@ export const OccurrencePositionNode = memo(function OccurrencePositionNode(props
       category={AssetCategory.PositionProvider}
       handles={FIELD_FUNCTION_POSITION_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Seed</span>
-        <span>{safeDisplay(data.fields.Seed, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -123,10 +86,7 @@ export const OffsetPositionNode = memo(function OffsetPositionNode(props: TypedN
       category={AssetCategory.PositionProvider}
       handles={POSITION_PASSTHROUGH_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Offset</span>
-        <span>{formatVec3(data.fields.Offset)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -146,13 +106,9 @@ export const UnionPositionNode = memo(function UnionPositionNode(props: TypedNod
 
 export const SimpleHorizontalPositionNode = memo(function SimpleHorizontalPositionNode(props: TypedNodeProps) {
   const data = props.data;
-  const rangeY = data.fields.RangeY as { Min?: number; Max?: number } | undefined;
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_PASSTHROUGH_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Range Y</span>
-        <span>{rangeY ? `${rangeY.Min ?? 0}–${rangeY.Max ?? 256}` : "0–256"}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -177,10 +133,7 @@ export const ConditionalPositionNode = memo(function ConditionalPositionNode(pro
       category={AssetCategory.PositionProvider}
       handles={CONDITIONAL_POSITION_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Threshold</span>
-        <span>{safeDisplay(data.fields.Threshold, 0.5)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -193,10 +146,7 @@ export const DensityBasedPositionNode = memo(function DensityBasedPositionNode(p
       category={AssetCategory.PositionProvider}
       handles={DENSITY_BASED_POSITION_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Threshold</span>
-        <span>{safeDisplay(data.fields.Threshold, 0.5)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -217,10 +167,7 @@ export const ImportedPositionNode = memo(function ImportedPositionNode(props: Ty
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -233,10 +180,7 @@ export const ExportedPositionNode = memo(function ExportedPositionNode(props: Ty
       category={AssetCategory.PositionProvider}
       handles={EXPORTED_POSITION_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -277,16 +221,9 @@ export const EmptyPositionNode = memo(function EmptyPositionNode(props: TypedNod
 
 export const ScalerPositionNode = memo(function ScalerPositionNode(props: TypedNodeProps) {
   const data = props.data;
-  // Only show inline Scale value when no Vector:Constant is connected to the Scale handle
-  const hasInlineScale = data.fields.Scale && typeof data.fields.Scale === "object" && "x" in (data.fields.Scale as Record<string, unknown>);
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={SCALER_HANDLES}>
-      {hasInlineScale && (
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Scale</span>
-          <span>{formatVec3(data.fields.Scale)}</span>
-        </div>
-      )}
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -295,16 +232,7 @@ export const Jitter2dPositionNode = memo(function Jitter2dPositionNode(props: Ty
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={JITTER_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Magnitude</span>
-          <span>{safeDisplay(data.fields.Magnitude, 14.0)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Seed</span>
-          <span>{safeDisplay(data.fields.Seed, "A")}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -313,31 +241,16 @@ export const Jitter3dPositionNode = memo(function Jitter3dPositionNode(props: Ty
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={JITTER_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Magnitude</span>
-          <span>{safeDisplay(data.fields.Magnitude, 14.0)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Seed</span>
-          <span>{safeDisplay(data.fields.Seed, "A")}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
 
 export const ClustersPositionNode = memo(function ClustersPositionNode(props: TypedNodeProps) {
   const data = props.data;
-  const bounds = data.fields.ClusterBounds as { X?: number; Y?: number; Z?: number } | undefined;
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={CLUSTERS_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Bounds</span>
-        <span>
-          {bounds ? `(${bounds.X ?? 4}, ${bounds.Y ?? 4}, ${bounds.Z ?? 4})` : "(4, 4, 4)"}
-        </span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -346,10 +259,7 @@ export const FrameworkPositionNode = memo(function FrameworkPositionNode(props: 
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -358,16 +268,7 @@ export const BaseHeightPositionNode = memo(function BaseHeightPositionNode(props
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_PASSTHROUGH_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Bed</span>
-          <span className="truncate max-w-[120px]">{safeDisplay(data.fields.BedName, "")}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Y Read</span>
-          <span>{safeDisplay(data.fields.MinYRead, -1)}–{safeDisplay(data.fields.MaxYRead, 1)}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -382,17 +283,9 @@ export const AnchorPositionNode = memo(function AnchorPositionNode(props: TypedN
 
 export const BoundPositionNode = memo(function BoundPositionNode(props: TypedNodeProps) {
   const data = props.data;
-  const bounds = data.fields.Bounds as { MinX?: number; MaxX?: number; MinY?: number; MaxY?: number } | undefined;
   return (
     <BaseNode {...props} category={AssetCategory.PositionProvider} handles={POSITION_PASSTHROUGH_HANDLES}>
-      {bounds ? (
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Y</span>
-          <span>{bounds.MinY ?? 0}–{bounds.MaxY ?? 256}</span>
-        </div>
-      ) : (
-        <div className="text-tn-text-muted text-center py-1">Bound</div>
-      )}
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });

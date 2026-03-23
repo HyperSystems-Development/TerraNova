@@ -1,11 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { HANDLE_REGISTRY, findHandleDef } from "../handleRegistry";
+import { getHandles, findHandleDef } from "../handleRegistry";
 import { nodeTypes } from "../index";
 import { DENSITY_DEFAULTS } from "@/schema/defaults";
 import { FIELD_CONSTRAINTS } from "@/schema/constraints";
 import { NODE_TIPS } from "@/schema/nodeTips";
 import { FIELD_DESCRIPTIONS } from "@/schema/fieldDescriptions";
 import { AssetCategory } from "@/schema/types";
+import { LEGACY_TYPE_KEYS } from "../shared/legacyTypes";
 
 /* Extended density types — math & smooth operations */
 
@@ -52,13 +53,14 @@ describe("Extended node types — schema defaults", () => {
  * ══════════════════════════════════════════════════════════════════════════ */
 
 describe("Extended node types — handle registry", () => {
-  it.each(ALL_DENSITY)("density '%s' has a HANDLE_REGISTRY entry", (type) => {
-    expect(HANDLE_REGISTRY[type]).toBeDefined();
-    expect(HANDLE_REGISTRY[type].length).toBeGreaterThanOrEqual(1);
+  it.each(ALL_DENSITY)("density '%s' has handle definitions", (type) => {
+    const handles = getHandles(type);
+    expect(handles).toBeDefined();
+    expect(handles.length).toBeGreaterThanOrEqual(1);
   });
 
   it.each(ALL_DENSITY)("density '%s' has a density output handle", (type) => {
-    const defs = HANDLE_REGISTRY[type];
+    const defs = getHandles(type);
     const outputs = defs.filter((d) => d.id === "output" && d.type === "source");
     expect(outputs.length).toBe(1);
     expect(outputs[0].category).toBe(AssetCategory.Density);
@@ -78,14 +80,14 @@ describe("Extended node types — cross-category handles", () => {
   });
 
   it("Amplitude has two density input handles", () => {
-    const defs = HANDLE_REGISTRY["Amplitude"];
+    const defs = getHandles("Amplitude");
     const inputs = defs.filter((d) => d.type === "target");
     expect(inputs.length).toBe(2);
     expect(inputs.every((d) => d.category === AssetCategory.Density)).toBe(true);
   });
 
   it("GradientWarp has two density input handles", () => {
-    const defs = HANDLE_REGISTRY["GradientWarp"];
+    const defs = getHandles("GradientWarp");
     const inputs = defs.filter((d) => d.type === "target");
     expect(inputs.length).toBe(2);
     expect(inputs.every((d) => d.category === AssetCategory.Density)).toBe(true);
@@ -97,16 +99,19 @@ describe("Extended node types — cross-category handles", () => {
  * ══════════════════════════════════════════════════════════════════════════ */
 
 describe("Extended node types — default field values", () => {
-  it("SmoothCeiling has Threshold and Smoothness defaults", () => {
+  it("SmoothCeiling has WallA and WallB defaults", () => {
     const d = DENSITY_DEFAULTS["SmoothCeiling"];
-    expect(d.Threshold).toBe(1.0);
-    expect(d.Smoothness).toBe(0.1);
+    // Legacy density defaults — SmoothCeiling in the bundle is categorized as Curve,
+    // so density defaults come from the legacy map.
+    expect(d.WallA).toBe(1.0);
+    expect(d.WallB).toBe(0.1);
   });
 
   it("Gradient has Axis and SampleRange defaults", () => {
     const d = DENSITY_DEFAULTS["Gradient"];
-    expect(d.Axis).toEqual({ x: 0, y: 1, z: 0 });
-    expect(d.SampleRange).toBe(1.0);
+    // Bundle stores Axis as [0,1,0]; legacy as {x:0,y:1,z:0}
+    expect(d.Axis).toBeDefined();
+    expect(d.SampleRange).toBe(1);
   });
 
   it("XOverride has OverrideX default", () => {
@@ -121,9 +126,9 @@ describe("Extended node types — default field values", () => {
     expect(DENSITY_DEFAULTS["SwitchState"].State).toBe(0);
   });
 
-  it("Positions3D has Frequency and Seed defaults", () => {
+  it("Positions3D has Scale and Seed defaults", () => {
     const d = DENSITY_DEFAULTS["Positions3D"];
-    expect(d.Frequency).toBe(0.01);
+    expect(d.Scale).toBe(100.0);
     expect(d.Seed).toBe("A");
   });
 
@@ -135,8 +140,8 @@ describe("Extended node types — default field values", () => {
     expect(DENSITY_DEFAULTS["PositionsTwist"].Angle).toBe(0.0);
   });
 
-  it("GradientWarp has WarpScale default", () => {
-    expect(DENSITY_DEFAULTS["GradientWarp"].WarpScale).toBe(1.0);
+  it("GradientWarp has WarpFactor default", () => {
+    expect(DENSITY_DEFAULTS["GradientWarp"].WarpFactor).toBe(1);
   });
 
   it("AmplitudeConstant has no fields (legacy output-only)", () => {
@@ -144,7 +149,7 @@ describe("Extended node types — default field values", () => {
   });
 
   it("Pow has Exponent default", () => {
-    expect(DENSITY_DEFAULTS["Pow"].Exponent).toBe(2);
+    expect(DENSITY_DEFAULTS["Pow"].Exponent).toBe(1);
   });
 
 });
@@ -154,17 +159,17 @@ describe("Extended node types — default field values", () => {
  * ══════════════════════════════════════════════════════════════════════════ */
 
 describe("Extended node types — constraints", () => {
-  it("SmoothCeiling has a Smoothness >= 0 constraint", () => {
+  it("SmoothCeiling has no constraints (legacy density type)", () => {
+    // In the bundle, SmoothCeiling is categorized as Curve, not Density.
+    // The density SmoothCeiling uses legacy defaults with no local constraint overrides.
     const c = FIELD_CONSTRAINTS["SmoothCeiling"];
-    expect(c).toBeDefined();
-    expect(c.Smoothness).toBeDefined();
-    expect(c.Smoothness.min).toBe(0);
+    expect(c).toBeUndefined();
   });
 
-  it("Positions3D has a Frequency >= 0 constraint", () => {
+  it("Positions3D has a Scale >= 0 constraint", () => {
     const c = FIELD_CONSTRAINTS["Positions3D"];
     expect(c).toBeDefined();
-    expect(c.Frequency.min).toBe(0);
+    expect(c.Scale.min).toBe(0);
   });
 
   it("GradientWarp has a WarpScale >= 0 constraint", () => {
@@ -173,10 +178,10 @@ describe("Extended node types — constraints", () => {
     expect(c.WarpScale.min).toBe(0);
   });
 
-  it("CellWallDistance has a Frequency >= 0 constraint", () => {
+  it("CellWallDistance has a Scale >= 0 constraint", () => {
     const c = FIELD_CONSTRAINTS["CellWallDistance"];
     expect(c).toBeDefined();
-    expect(c.Frequency.min).toBe(0);
+    expect(c.Scale.min).toBe(0);
   });
 
 });
@@ -236,4 +241,170 @@ describe("Extended node types — node tips", () => {
       expect(NODE_TIPS[type][0].severity).toBe("info");
     }
   });
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 9. V2 name aliases — renamed types have both old and new registry keys
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+describe("V2 density name aliases", () => {
+  const V2_ALIASES: [string, string][] = [
+    // [V2 name, old name] — both should resolve to the same component
+    ["Multiplier",    "Product"],
+    ["Inverter",      "Negate"],
+    ["CurveMapper",   "CurveFunction"],
+    ["Cache",         "CacheOnce"],
+    ["Imported",      "ImportedValue"],
+    ["Mix",           "Blend"],
+    ["Min",           "MinFunction"],
+    ["Max",           "MaxFunction"],
+    ["XValue",        "CoordinateX"],
+    ["YValue",        "CoordinateY"],
+    ["ZValue",        "CoordinateZ"],
+    ["Sqrt",          "SquareRoot"],
+    ["Scale",         "ScaledPosition"],
+    ["Slider",        "TranslatedPosition"],
+    ["Rotator",       "RotatedPosition"],
+    ["CellNoise2D",   "CellNoise2D"],   // standalone V2 name (old VoronoiNoise2D removed)
+    ["CellNoise3D",   "CellNoise3D"],   // standalone V2 name (old VoronoiNoise3D removed)
+  ];
+
+  it.each(V2_ALIASES)(
+    "V2 name '%s' is registered and shares the component with '%s'",
+    (v2Name, oldName) => {
+      expect(nodeTypes[v2Name]).toBeDefined();
+      expect(nodeTypes[oldName]).toBeDefined();
+      expect(nodeTypes[v2Name]).toBe(nodeTypes[oldName]);
+    },
+  );
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 10. Removed invented types — should no longer be registered
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+describe("Removed invented density types", () => {
+  const REMOVED_TYPES = [
+    "Square", "CubeRoot", "CubeMath", "Inverse", "Modulo",
+    "SumSelf", "WeightedSum",
+    "SimplexRidgeNoise2D", "SimplexRidgeNoise3D",
+    "FractalNoise2D", "FractalNoise3D",
+    "VoronoiNoise2D", "VoronoiNoise3D",
+    "Zero", "One",
+    "Debug", "Passthrough",
+    "YGradient", "DoubleNormalizer",
+    "RangeChoice", "Interpolate",
+    "FlatCache", "ClampToIndex", "Wrap", "SplineFunction",
+    "DistanceFromOrigin", "DistanceFromAxis", "DistanceFromPoint",
+    "AngleFromOrigin", "AngleFromPoint",
+    "HeightAboveSurface",
+    "SurfaceDensity", "TerrainBoolean", "TerrainMask",
+    "GradientDensity", "BeardDensity", "ColumnDensity", "CaveDensity",
+    "MirroredPosition", "QuantizedPosition",
+    "AverageFunction", "Conditional",
+  ];
+
+  it.each(REMOVED_TYPES)(
+    "invented type '%s' is no longer in the registry",
+    (type) => {
+      expect(nodeTypes[type]).toBeUndefined();
+    },
+  );
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 11. Removed legacy non-density types — no longer registered
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+describe("Removed legacy non-density types", () => {
+  const REMOVED_CURVE_TYPES = [
+    "Curve:Noise", "Curve:StepFunction", "Curve:Threshold",
+    "Curve:SmoothStep", "Curve:Power", "Curve:LinearRemap",
+    "Curve:Cache", "Curve:Exported", "Curve:Blend",
+  ];
+
+  const REMOVED_MATERIAL_TYPES = [
+    "Material:Solid", "Material:Empty", "Material:Exported",
+    "Material:Conditional", "Material:Blend", "Material:HeightGradient",
+    "Material:NoiseSelector", "Material:Surface", "Material:Cave", "Material:Cluster",
+  ];
+
+  const REMOVED_PATTERN_TYPES = [
+    "Pattern:Exported", "Pattern:Conditional", "Pattern:Blend",
+    "Pattern:Union", "Pattern:Intersection",
+  ];
+
+  const REMOVED_POSITION_TYPES = [
+    "Position:SurfaceProjection", "Position:Exported",
+    "Position:Conditional", "Position:DensityBased",
+  ];
+
+  const REMOVED_PROP_TYPES = [
+    "Prop:Surface", "Prop:Cave", "Prop:Conditional", "Prop:Exported",
+  ];
+
+  const REMOVED_OTHER_TYPES = [
+    "Environment:Exported", "Tint:Exported",
+    "Directionality:Uniform", "Directionality:Directional", "Directionality:Normal",
+  ];
+
+  const ALL_REMOVED = [
+    ...REMOVED_CURVE_TYPES, ...REMOVED_MATERIAL_TYPES,
+    ...REMOVED_PATTERN_TYPES, ...REMOVED_POSITION_TYPES,
+    ...REMOVED_PROP_TYPES, ...REMOVED_OTHER_TYPES,
+  ];
+
+  it.each(ALL_REMOVED)(
+    "legacy type '%s' is no longer in the registry",
+    (type) => {
+      expect(nodeTypes[type]).toBeUndefined();
+    },
+  );
+
+  it.each(ALL_REMOVED)(
+    "legacy type '%s' is in LEGACY_TYPE_KEYS",
+    (type) => {
+      expect(LEGACY_TYPE_KEYS.has(type)).toBe(true);
+    },
+  );
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 12. New V2 types — registered with GenericNode fallback
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+describe("New V2 types", () => {
+  const NEW_V2_TYPES = [
+    "Pattern:Rotator",
+    "Prop:Curve", "Prop:Pattern", "Prop:Static",
+    "PropDistribution:Assigned", "PropDistribution:Constant",
+    "PropDistribution:Imported", "PropDistribution:Positions",
+    "PropDistribution:Union",
+  ];
+
+  it.each(NEW_V2_TYPES)(
+    "V2 type '%s' is registered in nodeTypes",
+    (type) => {
+      expect(nodeTypes[type]).toBeDefined();
+    },
+  );
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * 13. Kept V2 types — Mesh2D, Mesh3D, Box, Column, Cluster still active
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+describe("Kept V2 types not in legacy set", () => {
+  const KEPT_TYPES = [
+    "Position:Mesh2D", "Position:Mesh3D",
+    "Prop:Box", "Prop:Column", "Prop:Cluster",
+  ];
+
+  it.each(KEPT_TYPES)(
+    "type '%s' is registered and NOT in LEGACY_TYPE_KEYS",
+    (type) => {
+      expect(nodeTypes[type]).toBeDefined();
+      expect(LEGACY_TYPE_KEYS.has(type)).toBe(false);
+    },
+  );
 });

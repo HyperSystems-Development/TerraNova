@@ -1,21 +1,68 @@
 /**
  * Export transformer: TerraNova internal JSON → Hytale native JSON format.
  *
- * Handles all structural mismatches: type renames, named→array inputs,
- * field renames, $NodeId generation, curve point format, material wrapping, etc.
+ * Key operations:
+ * - Type name mapping (old internal names → V2 names, identity for V2-native)
+ * - $NodeId generation with category-specific prefixes
+ * - Named handle → Inputs[] array conversion for density nodes
+ * - Field renames (e.g. Min→WallB on Clamp, Frequency→Scale on noise)
+ * - Structural decomposition (Conditional→Mix, HeightGradient→Queue, etc.)
+ * - Curve point format ([x,y] → {$NodeId, In, Out})
+ * - Material string wrapping (bare string → {$NodeId, Solid})
+ *
+ * Type and field name maps are inlined here (no external dependency on
+ * translationMaps for these). Shared structural maps (handle ordering,
+ * NodeId rules, etc.) remain in translationMaps.ts.
  */
 
 import {
-  INTERNAL_TO_HYTALE_TYPES,
   DENSITY_NAMED_TO_ARRAY,
   NODE_ID_PREFIX_RULES,
   FIELD_TO_CATEGORY,
-  CLAMP_FIELD_MAP,
   NORMALIZER_FIELDS_EXPORT,
   SKIP_FIELD_CATEGORIES,
 } from "./translationMaps";
 import type { Node } from "@xyflow/react";
 import { DEFAULT_WORLD_HEIGHT } from "@/constants";
+
+// ---------------------------------------------------------------------------
+// Type name mapping (internal → V2/Hytale)
+// ---------------------------------------------------------------------------
+// Maps old TerraNova internal type names to V2 (Hytale) names.
+// Types already using V2 names pass through unchanged via the ?? fallback.
+const INTERNAL_TO_HYTALE_TYPES: Record<string, string> = {
+  Product: "Multiplier",
+  Negate: "Inverter",
+  CurveFunction: "CurveMapper",
+  CacheOnce: "Cache",
+  ImportedValue: "Imported",
+  Blend: "Mix",
+  MinFunction: "Min",
+  MaxFunction: "Max",
+  CoordinateX: "XValue",
+  CoordinateY: "YValue",
+  CoordinateZ: "ZValue",
+  VoronoiNoise2D: "CellNoise2D",
+  VoronoiNoise3D: "CellNoise3D",
+  SquareRoot: "Sqrt",
+  DomainWarp2D: "FastGradientWarp",
+  DomainWarp3D: "FastGradientWarp",
+  ScaledPosition: "Scale",
+  TranslatedPosition: "Slider",
+  RotatedPosition: "Rotator",
+  LinearTransform: "AmplitudeConstant",
+  BlendCurve: "MultiMix",
+  Square: "Pow",
+  CubeMath: "Cube",
+};
+
+// ---------------------------------------------------------------------------
+// Clamp/SmoothClamp field renames (export direction only)
+// ---------------------------------------------------------------------------
+const CLAMP_FIELD_MAP: Record<string, string> = {
+  Min: "WallB",
+  Max: "WallA",
+};
 
 // ---------------------------------------------------------------------------
 // Types

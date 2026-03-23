@@ -2334,3 +2334,39 @@ describe("Point3D / Vector:Constant round-trip", () => {
     expect((exportedRange.$NodeId as string).startsWith("Point3D-")).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Pow import: Exponent must survive import unchanged
+// ---------------------------------------------------------------------------
+
+describe("Pow import preserves Exponent", () => {
+  it("preserves Exponent=3 on Pow import", () => {
+    const { asset } = hytaleToInternal({
+      $NodeId: "PowDensityNode-abc",
+      Type: "Pow",
+      Exponent: 3,
+    });
+    expect(asset.Type).toBe("Pow");
+    expect(asset.Exponent).toBe(3);
+  });
+
+  it("preserves Exponent=2 on Pow import", () => {
+    const { asset } = hytaleToInternal({
+      $NodeId: "PowDensityNode-def",
+      Type: "Pow",
+      Exponent: 2,
+    });
+    expect(asset.Type).toBe("Pow");
+    expect(asset.Exponent).toBe(2);
+  });
+
+  it("preserves Exponent=0.5 on Pow import", () => {
+    const { asset } = hytaleToInternal({
+      $NodeId: "PowDensityNode-ghi",
+      Type: "Pow",
+      Exponent: 0.5,
+    });
+    expect(asset.Type).toBe("Pow");
+    expect(asset.Exponent).toBe(0.5);
+  });
+});
