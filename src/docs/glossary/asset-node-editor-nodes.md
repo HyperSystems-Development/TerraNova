@@ -161,29 +161,9 @@ Applies a repeating striped material pattern.
 
 ---
 
-## Curve Types (inside CurveMapper)
-
-These are not separate nodes. They are options in the CurveMapper properties panel.
-
-### Manual
-
-A hand-drawn spline. Place control points on the curve editor -- the x-axis is input value, y-axis is output value. Most flexible option for terrain profiles.
-
-### DistanceS
-
-An S-shaped curve providing smooth ease-in and ease-out transitions. Used for natural-feeling blends near biome boundaries.
-
-### DistanceExponential
-
-Exponential falloff. Useful when you want a value that drops off quickly near a boundary.
-
----
-
----
-
 ## Curve Types
 
-Curves are a separate asset type used inside `CurveMapper` and as required inputs on `Ellipsoid` and `Plane`. See [Curves Explained](../guides/world/curves-explained.md) for the full guide.
+Curves are a separate asset type used inside `CurveMapper` and as required inputs on `Ellipsoid` and `Plane`. They are not separate nodes — they are options selected in the properties panel. See [Curves Explained](../guides/world/curves-explained.md) for the full guide.
 
 | Curve | Effect |
 |-------|--------|
