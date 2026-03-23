@@ -69,12 +69,14 @@ function applyImportMetadata(
     });
   }
 
-  // Inject comment nodes
+  // Inject comment/frame nodes — mirror X when user's flow direction is RTL
+  const mirror = useSettingsStore.getState().flowDirection === "RL";
+
   if (metadata.hytaleComments.length > 0) {
     const commentNodes: import("@xyflow/react").Node[] = metadata.hytaleComments.map((c, i) => ({
       id: `comment-import-${i}-${crypto.randomUUID()}`,
       type: "comment",
-      position: { x: c.x, y: c.y },
+      position: { x: mirror ? -c.x : c.x, y: c.y },
       data: { type: "comment", text: c.text, width: IMPORT_COMMENT_W, height: IMPORT_COMMENT_H },
       draggable: true,
       selectable: true,
@@ -82,12 +84,11 @@ function applyImportMetadata(
     result = [...result, ...commentNodes];
   }
 
-  // Inject frame nodes from $Groups (rendered behind everything else)
   if (metadata.hytaleGroups.length > 0) {
     const frameNodes: import("@xyflow/react").Node[] = metadata.hytaleGroups.map((g, i) => ({
       id: `frame-import-${i}-${crypto.randomUUID()}`,
       type: "frame",
-      position: { x: g.x, y: g.y },
+      position: { x: mirror ? -g.x : g.x, y: g.y },
       data: { type: "frame", name: g.name, width: IMPORT_FRAME_W, height: IMPORT_FRAME_H },
       draggable: true,
       selectable: true,
@@ -103,13 +104,37 @@ function applyImportMetadata(
  * Conditionally run autoLayout based on the autoLayoutOnOpen setting.
  * Returns the original nodes if the setting is disabled or layout fails.
  */
+const isAnnotation = (n: { type?: string }) => n.type === "comment" || n.type === "frame";
+
 async function maybeAutoLayout(
   nodes: import("@xyflow/react").Node[],
   edges: import("@xyflow/react").Edge[],
 ): Promise<import("@xyflow/react").Node[]> {
   if (!useSettingsStore.getState().autoLayoutOnOpen) return nodes;
   try {
-    return await autoLayout(nodes, edges, useSettingsStore.getState().flowDirection);
+    // Exclude annotation nodes from layout, then reposition them
+    // relative to the layouted graph so they don't end up at Hytale coordinates.
+    const graphNodes = nodes.filter((n) => !isAnnotation(n));
+    const annotationNodes = nodes.filter(isAnnotation);
+    const layouted = await autoLayout(graphNodes, edges, useSettingsStore.getState().flowDirection);
+
+    if (annotationNodes.length > 0) {
+      // Place annotations below the layouted graph
+      let maxY = 0;
+      for (const n of layouted) {
+        const ny = n.position.y + 150;
+        if (ny > maxY) maxY = ny;
+      }
+      let offsetX = 0;
+      const repositioned = annotationNodes.map((n) => {
+        const w = (n.data as Record<string, unknown>).width as number ?? 200;
+        const result = { ...n, position: { x: offsetX, y: maxY + 40 } };
+        offsetX += w + 20;
+        return result;
+      });
+      return [...layouted, ...repositioned];
+    }
+    return layouted;
   } catch {
     return nodes;
   }
@@ -146,9 +171,24 @@ function getReachableNodeIds(
  */
 async function extractBiomeSections(
   wrapper: Record<string, unknown>,
+  importMeta?: ImportMetadata | null,
 ): Promise<{ sections: Record<string, BiomeSectionData>; config: BiomeConfig; sectionKeys: string[] }> {
   const sections: Record<string, BiomeSectionData> = {};
   const sectionKeys: string[] = [];
+
+  // Apply node positions from metadata when auto-layout is off.
+  // Hytale positions are LTR; mirror X when the user's flow direction is RTL.
+  const positions = importMeta?.nodePositions ?? {};
+  const hasPositions = !useSettingsStore.getState().autoLayoutOnOpen && Object.keys(positions).length > 0;
+  const mirrorX = useSettingsStore.getState().flowDirection === "RL";
+  function applyPositions(nodes: import("@xyflow/react").Node[]): import("@xyflow/react").Node[] {
+    if (!hasPositions) return nodes;
+    return nodes.map((n) => {
+      const pos = positions[n.id];
+      if (!pos) return n;
+      return { ...n, position: { x: mirrorX ? -pos.x : pos.x, y: pos.y } };
+    });
+  }
 
   // Terrain → graph the Density subtree
   const terrain = wrapper.Terrain as Record<string, unknown> | undefined;
@@ -163,7 +203,7 @@ async function extractBiomeSections(
         rootNode.data = { ...(rootNode.data as Record<string, unknown>), _outputNode: true, _biomeField: "Terrain" };
         terrainOutputId = rootNode.id;
       }
-      const layoutedNodes = await maybeAutoLayout(nodes, edges);
+      const layoutedNodes = applyPositions(await maybeAutoLayout(nodes, edges));
       // layoutedNodes and edges are freshly created — no clone needed
       const terrainInitial: SectionHistoryEntry = { nodes: layoutedNodes, edges, outputNodeId: terrainOutputId, label: "Initial" };
       sections["Terrain"] = { nodes: layoutedNodes, edges, outputNodeId: terrainOutputId, history: [terrainInitial], historyIndex: 0 };
@@ -181,7 +221,7 @@ async function extractBiomeSections(
       rootNode.data = { ...(rootNode.data as Record<string, unknown>), _outputNode: true };
       matOutputId = rootNode.id;
     }
-    const layoutedNodes = await maybeAutoLayout(nodes, edges);
+    const layoutedNodes = applyPositions(await maybeAutoLayout(nodes, edges));
     // layoutedNodes and edges are freshly created — no clone needed
     const matInitial: SectionHistoryEntry = { nodes: layoutedNodes, edges, outputNodeId: matOutputId, label: "Initial" };
     sections["MaterialProvider"] = { nodes: layoutedNodes, edges, outputNodeId: matOutputId, history: [matInitial], historyIndex: 0 };
@@ -225,7 +265,7 @@ async function extractBiomeSections(
         allEdges.push(...edges);
       }
 
-      const layoutedNodes = await maybeAutoLayout(allNodes, allEdges);
+      const layoutedNodes = applyPositions(await maybeAutoLayout(allNodes, allEdges));
       const key = `Props[${i}]`;
       // layoutedNodes and allEdges are freshly created — no clone needed
       const propInitial: SectionHistoryEntry = { nodes: layoutedNodes, edges: allEdges, outputNodeId: null, label: "Initial" };
@@ -258,7 +298,7 @@ async function extractBiomeSections(
       };
       environmentOutputId = rootNode.id;
     }
-    const layoutedNodes = await maybeAutoLayout(nodes, edges);
+    const layoutedNodes = applyPositions(await maybeAutoLayout(nodes, edges));
     const environmentInitial: SectionHistoryEntry = {
       nodes: layoutedNodes,
       edges,
@@ -299,7 +339,7 @@ async function extractBiomeSections(
       };
       tintOutputId = rootNode.id;
     }
-    const layoutedNodes = await maybeAutoLayout(nodes, edges);
+    const layoutedNodes = applyPositions(await maybeAutoLayout(nodes, edges));
     const tintInitial: SectionHistoryEntry = {
       nodes: layoutedNodes,
       edges,
@@ -672,7 +712,7 @@ export function useTauriIO() {
         } else if (content && typeof content === "object" && isBiomeFile(content as Record<string, unknown>, filePath)) {
           // Biome wrapper file — extract all sections
           const wrapper = content as Record<string, unknown>;
-          const { sections, config, sectionKeys } = await extractBiomeSections(wrapper);
+          const { sections, config, sectionKeys } = await extractBiomeSections(wrapper, importMeta);
 
           // Try to load ContentFields from sibling WorldStructures/MainWorld.json
           let contentFields: Record<string, number> | undefined;
@@ -711,13 +751,14 @@ export function useTauriIO() {
           // Inject comment + frame nodes from $NodeEditorMetadata into the first section
           if (importMeta && firstSection) {
             const extraNodes: import("@xyflow/react").Node[] = [];
+            const mirrorAnnot = useSettingsStore.getState().flowDirection === "RL";
 
             if (importMeta.hytaleGroups.length > 0) {
               importMeta.hytaleGroups.forEach((g, i) => {
                 extraNodes.push({
                   id: `frame-import-${i}-${crypto.randomUUID()}`,
                   type: "frame",
-                  position: { x: g.x, y: g.y },
+                  position: { x: mirrorAnnot ? -g.x : g.x, y: g.y },
                   data: { type: "frame", name: g.name, width: IMPORT_FRAME_W, height: IMPORT_FRAME_H },
                   draggable: true,
                   selectable: true,
@@ -731,7 +772,7 @@ export function useTauriIO() {
                 extraNodes.push({
                   id: `comment-import-${i}-${crypto.randomUUID()}`,
                   type: "comment",
-                  position: { x: c.x, y: c.y },
+                  position: { x: mirrorAnnot ? -c.x : c.x, y: c.y },
                   data: { type: "comment", text: c.text, width: IMPORT_COMMENT_W, height: IMPORT_COMMENT_H },
                   draggable: true,
                   selectable: true,
