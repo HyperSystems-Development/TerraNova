@@ -329,6 +329,7 @@ const SLUG_TITLE_OVERRIDES: Record<string, string> = {
   "reference/reading-the-graph":                             "Reading the Graph",
   "reference/node-effects":                                  "Node Effects",
   "reference/curves":                                        "Curves Reference",
+  "reference/exporting":                                     "Exporting",
 };
 
 function titleFromSlug(slug: string) {
