@@ -2,9 +2,9 @@
 
 This section contains technical reference material for TerraNova / Hytale WorldGen V2.
 
-> **Biome source assets:** `Basic.json`, `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Examples/Example_Mixer_Gradient.json`, `Desert1/Desert1_Oasis.json`, `Plains1/Plains1_Mountains.json`, `Plains1/Plains1_River.json`
+> **Biome source assets:** `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Examples/Example_Mixer_Gradient.json`, `Experimental/Arches.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`, `Generative/Generative_Pillars_Marble_Large.json`, `Generative/Generative_Veins.json`
 >
-> **Audit note:** The source biome assets on this branch actively use `AmplitudeConstant`, and they use `BaseHeight` as a named terrain anchor that is often remapped through `CurveMapper`. If a compact summary table below conflicts with that source-backed wording, prefer this note and the dedicated pages.
+> **Audit note:** Terrain reference examples on this branch should come from Hytale's `Examples/`, `Experimental/`, and `Generative/` biome folders. The source biome assets actively use `AmplitudeConstant`, and they use `BaseHeight` as a named terrain anchor that is often remapped through `CurveMapper`. If a compact summary table below conflicts with that source-backed wording, prefer this note and the dedicated pages.
 
 If you are still learning, start with these focused pages before diving into the full listings below:
 

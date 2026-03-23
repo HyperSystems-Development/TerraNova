@@ -4,7 +4,9 @@
 
 This guide explains how data flows through a WorldGen V2 node graph and gives you a mental model for working in the TerraNova editor.
 
-> **Biome source assets:** `Basic.json`, `Examples/Example_Curve_Mapper.json`
+> **Biome source assets:** `Examples/Example_Curve_Mapper.json`, `Experimental/Arches.json`, `Generative/Generative_Arches.json`
+>
+> Terrain examples on this page should be read against those Hytale `Examples/`, `Experimental/`, and `Generative/` graphs rather than ad hoc sample graphs.
 
 ## How Data Flows
 

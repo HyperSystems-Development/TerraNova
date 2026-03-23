@@ -4,7 +4,9 @@
 
 **Difficulty:** Beginner
 
-> **Biome source assets:** `Basic.json`, `Examples/Example_Curve_Mapper.json`, `Plains1/Plains1_Mountains.json`
+> **Biome source assets:** `Examples/Example_Curve_Mapper.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`
+>
+> Terrain examples on this page are grounded in those Hytale `Examples/`, `Experimental/`, and `Generative/` assets. The graphs below are teaching reductions, not full biome copies.
 
 This walkthrough builds a complete terrain graph from scratch — flat ground, curved height profile, noise variation, caves, and performance wrapping — one step at a time.
 

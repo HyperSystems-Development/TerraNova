@@ -4,9 +4,9 @@ This glossary covers the node types available in the Asset Node Editor for Terra
 
 For a full tabular reference, see [Reference -- Density Node Types](../reference/README.md).
 
-> **Biome source assets:** `Basic.json`, `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Desert1/Desert1_Oasis.json`, `Plains1/Plains1_Mountains.json`, `Plains1/Plains1_River.json`
+> **Biome source assets:** `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Experimental/Arches.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`, `Generative/Generative_Pillars_Marble_Large.json`, `Generative/Generative_Veins.json`
 >
-> Entries below combine registry-level node descriptions with the way those nodes appear in the audited source biome assets.
+> Entries below combine registry-level node descriptions with the way those nodes appear in audited terrain assets from Hytale's `Examples/`, `Experimental/`, and `Generative/` biome folders.
 
 ## Density Nodes
 

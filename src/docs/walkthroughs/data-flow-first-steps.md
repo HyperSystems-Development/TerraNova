@@ -4,7 +4,9 @@
 
 **Difficulty:** Beginner
 
-> **Biome source assets:** `Basic.json`, `Examples/Example_Curve_Mapper.json`
+> **Biome source assets:** `Examples/Example_Curve_Mapper.json`, `Experimental/Arches.json`, `Generative/Generative_Arches.json`
+>
+> Terrain examples on this page should be read against those Hytale `Examples/`, `Experimental/`, and `Generative/` graphs rather than ad hoc sample graphs.
 
 This walkthrough gives you a mental model for how WorldGen V2 node graphs work and gets you to a functioning terrain graph.
 

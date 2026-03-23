@@ -4,9 +4,9 @@
 
 This guide explains exactly how biomes are structured, how the world selects which biome applies at each location, and how to configure each of the four systems a biome controls.
 
-> **Biome source assets:** `Basic.json`, `Desert1/Desert1_Oasis.json`, `Plains1/Plains1_Mountains.json`, `Plains1/Plains1_River.json`
+> **Biome source assets:** `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Experimental/Dunes.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`
 >
-> The JSON fragments below are simplified teaching sketches based on those assets. Use them to understand structure; for exact wiring, inspect the source files directly.
+> The terrain fragments below are simplified teaching sketches based on those Hytale `Examples/`, `Experimental/`, and `Generative/` assets. Use them to understand structure; for exact wiring, inspect the source files directly.
 
 ---
 

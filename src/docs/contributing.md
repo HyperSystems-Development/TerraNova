@@ -210,8 +210,8 @@ If a node only exists in the editor and not in the bundle, note it clearly as ed
 
 ## Source-Backed Terrain Examples
 
-- For terrain, biome, curve, and worldgen examples, start from a real biome/example asset rather than inventing a "representative" graph from memory.
-- Add a short note near the top of the page in this format: `**Biome source assets:** \`Examples/Example_Curve_Mapper.json\`, \`Basic.json\``
+- For terrain, biome, curve, and worldgen examples, start from a real Hytale biome asset in `Examples/`, `Experimental/`, or `Generative/` rather than inventing a "representative" graph from memory.
+- Add a short note near the top of the page in this format: `**Biome source assets:** \`Examples/Example_Curve_Mapper.json\`, \`Experimental/Mountains.json\`, \`Generative/Generative_Arches.json\``
 - If a doc is a teaching reconstruction rather than a direct transcription, say so plainly.
 - If you cannot point to a matching biome asset with confidence, stop and ask before documenting it as a concrete example.
 
