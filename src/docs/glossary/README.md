@@ -2,6 +2,10 @@
 
 This section defines key terms used in TerraNova and Hytale WorldGen V2.
 
+> **Biome source assets:** `Basic.json`, `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Examples/Example_Mixer_Gradient.json`, `Desert1/Desert1_Oasis.json`, `Plains1/Plains1_Mountains.json`, `Plains1/Plains1_River.json`
+>
+> **Audit note:** The source biome assets on this branch actively use `AmplitudeConstant`, and they use `BaseHeight` as a named terrain anchor that is usually shaped downstream rather than explained with fixed sign shorthand. If a compact table entry below conflicts with that source-backed wording, prefer this note and the dedicated guides.
+
 ## Core Concepts
 
 | Term | Definition |
@@ -23,7 +27,7 @@ This section defines key terms used in TerraNova and Hytale WorldGen V2.
 
 | Node | Summary |
 |------|---------|
-| `BaseHeight` | Outputs 0 at a reference Y; positive above, negative below. The foundation of all terrain profiles. |
+| `BaseHeight` | Crosses zero at a named height reference. In source assets it commonly feeds `CurveMapper` or `Sum` to anchor terrain vertically. |
 | `CurveMapper` | Remaps an input value through a custom curve. Used to shape how density changes with height -- creates hills, cliffs, and plateaus. Set Curve type to Manual to draw your own shape. |
 | `SimplexNoise2D` | 2D coherent noise (varies with X and Z). Adds horizontal surface variation -- hills, valleys, uneven ground. |
 | `SimplexNoise3D` | 3D coherent noise (varies with X, Y, and Z). Used for caves, overhangs, and floating terrain. |
@@ -44,7 +48,7 @@ This section defines key terms used in TerraNova and Hytale WorldGen V2.
 | `Inverter` | Multiplies by -1. Flips solid and empty -- used to turn noise into a cave mask. |
 | `Scale` | Multiplies the coordinate space by a factor. Zooms noise in or out. |
 | `Amplitude` | Legacy Y-dependent amplitude multiplier. Takes one density input and a `FunctionForY` curve (e.g. `YValue → CurveMapper`) to scale the input by a value that varies with height. Prefer `Multiplier` for two-input multiplication. |
-| `AmplitudeConstant` | Legacy stub with no configurable fields. Use `Multiplier` + `Constant` to scale a density by a fixed constant. |
+| `AmplitudeConstant` | Common source-asset scale stage. It multiplies a density by a fixed amount; `Multiplier` + `Constant` is the equivalent editor-side construction. |
 | `Clamp` | Limits output to a min/max range. Prevents runaway values. |
 | `SmoothMin` | Like `Min` but with a smooth blend zone at the boundary. |
 | `SmoothMax` | Like `Max` but with a smooth blend zone. |

@@ -43,6 +43,11 @@ type SnippetTypeIssue = {
   reason: "legacy" | "unregistered";
 };
 
+type SourceContextIssue = {
+  file: string;
+  reason: "missing-source-context";
+};
+
 type ResolvedDocLink = {
   slug: string;
   anchor?: string;
@@ -50,6 +55,22 @@ type ResolvedDocLink = {
 
 const DOCS_ROOT = path.join(process.cwd(), "src", "docs");
 const NODES_INDEX = path.join(process.cwd(), "src", "nodes", "index.ts");
+const SOURCE_CONTEXT_DOCS = [
+  "reference/README.md",
+  "reference/node-effects.md",
+  "glossary/README.md",
+  "glossary/asset-node-editor-nodes.md",
+  "guides/setup-data-flow-first-steps.md",
+  "guides/understanding-basic-terrain-generation.md",
+  "guides/world/node-combinations.md",
+  "guides/world/biome-system.md",
+  "guides/terrain/terrain-math-explained.md",
+  "guides/terrain/terrain-types.md",
+  "walkthroughs/data-flow-first-steps.md",
+  "walkthroughs/basic-terrain-generation.md",
+  "walkthroughs/terrain-and-caves.md",
+  "walkthroughs/sky-islands.md",
+] as const;
 
 function listMarkdownFiles(dir: string): string[] {
   const files: string[] = [];
@@ -308,6 +329,25 @@ function collectSnippetTypeIssues(docs: DocRecord[], activeNodeTypes: Set<string
   );
 }
 
+function collectSourceContextIssues(docs: DocRecord[]): SourceContextIssue[] {
+  const docsByRelPath = new Map(docs.map((doc) => [doc.relPath, doc]));
+  const issues: SourceContextIssue[] = [];
+
+  for (const relPath of SOURCE_CONTEXT_DOCS) {
+    const doc = docsByRelPath.get(relPath);
+    if (!doc) {
+      issues.push({ file: relPath, reason: "missing-source-context" });
+      continue;
+    }
+
+    if (!doc.text.includes("Biome source assets:") && !doc.text.includes("Source status:")) {
+      issues.push({ file: relPath, reason: "missing-source-context" });
+    }
+  }
+
+  return issues.sort((a, b) => a.file.localeCompare(b.file));
+}
+
 describe("docs content integrity", () => {
   const docs = collectDocs();
   const activeNodeTypes = collectActiveNodeTypes();
@@ -326,5 +366,9 @@ describe("docs content integrity", () => {
 
   it("keeps runnable snippet fences on active, non-legacy node types", () => {
     expect(collectSnippetTypeIssues(docs, activeNodeTypes)).toEqual([]);
+  });
+
+  it("keeps audited worldgen docs tagged with source context", () => {
+    expect(collectSourceContextIssues(docs)).toEqual([]);
   });
 });

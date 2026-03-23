@@ -4,6 +4,10 @@
 
 This guide is organized by **what terrain you want to make**, not by which nodes exist. Each section describes the visual result, explains why the node combination produces it, and gives you working parameters to start from.
 
+> **Biome source assets:** `Basic.json`, `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Desert1/Desert1_Oasis.json`, `Plains1/Plains1_Mountains.json`, `Plains1/Plains1_River.json`
+>
+> Source-backed sections below are grounded in those assets. The floating-island and skylands sections are teaching recipes for editor work, not 1:1 transcriptions of one audited biome file.
+
 If you are new, do not try to read the whole page in one pass. Start with:
 1. **Flat Plains**
 2. **Rolling Hills**
@@ -334,7 +338,7 @@ Floating island underside - rounded body with a trimmed bottom
 
 **What it looks like:** A world composed entirely of floating sky islands at specific altitude bands — solid terrain existing only within defined Y ranges, with open air above and below. Multiple island layers can exist at different heights.
 
-This technique is based on real-world usage in Hytale skylands mods and is the correct approach for skylands biomes.
+This section is a teaching recipe for altitude-band sky terrain rather than a verbatim audited source biome.
 
 > [!IMPORTANT]
 > The key to this technique is `BaseHeight` with `Distance: true`. In distance mode, `BaseHeight` outputs the raw world Y coordinate minus the named height — a plain distance value, not a density gradient. This lets `CurveMapper` define a precise altitude band where terrain can exist.

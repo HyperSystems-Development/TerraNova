@@ -9,6 +9,8 @@
 >
 > **Format note:** All JSON in this walkthrough uses **Hytale-native format** — the same format exported by Hytale's in-game editor. `$NodeId` UUIDs are omitted for readability (Hytale generates these automatically), but every other field matches what the server expects.
 
+> **Source status:** This walkthrough is a teaching reconstruction in Hytale-native JSON, not a 1:1 transcription of one audited biome asset. I have not found a clean source-biome match in the current biome folder that I can call authoritative for this exact graph.
+
 If this is your first full biome:
 - use the walkthrough mode in the docs pane
 - finish one step before reading the next
