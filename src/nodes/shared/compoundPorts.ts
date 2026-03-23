@@ -24,9 +24,9 @@ export interface CompoundPortConfig {
 export const COMPOUND_PORTS: Record<string, CompoundPortConfig> = {
   // ── Density ────────────────────────────────────────────────────
   Sum:              { arrayBase: "Inputs", label: "Input", category: AssetCategory.Density, minSlots: 2 },
-  Product:          { arrayBase: "Inputs", label: "Input", category: AssetCategory.Density, minSlots: 2 },
-  MinFunction:      { arrayBase: "Inputs", label: "Input", category: AssetCategory.Density, minSlots: 2 },
-  MaxFunction:      { arrayBase: "Inputs", label: "Input", category: AssetCategory.Density, minSlots: 2 },
+  Multiplier:       { arrayBase: "Inputs", label: "Input", category: AssetCategory.Density, minSlots: 2 },
+  Min:              { arrayBase: "Inputs", label: "Input", category: AssetCategory.Density, minSlots: 2 },
+  Max:              { arrayBase: "Inputs", label: "Input", category: AssetCategory.Density, minSlots: 2 },
   AverageFunction:  { arrayBase: "Inputs", label: "Input", category: AssetCategory.Density, minSlots: 2 },
   SmoothMin:        { arrayBase: "Inputs", label: "Input", category: AssetCategory.Density, minSlots: 2 },
   SmoothMax:        { arrayBase: "Inputs", label: "Input", category: AssetCategory.Density, minSlots: 2 },

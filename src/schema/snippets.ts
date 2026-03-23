@@ -92,8 +92,8 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     nodes: [
       {
         localId: "coordY",
-        type: "CoordinateY",
-        displayType: "CoordinateY",
+        type: "YValue",
+        displayType: "YValue",
         fields: {},
         offsetX: 0,
         offsetY: 0,

@@ -144,8 +144,9 @@ describe("Extended node types — default field values", () => {
     expect(DENSITY_DEFAULTS["GradientWarp"].WarpFactor).toBe(1);
   });
 
-  it("AmplitudeConstant has no fields (legacy output-only)", () => {
-    expect(Object.keys(DENSITY_DEFAULTS["AmplitudeConstant"])).toHaveLength(0);
+  it("AmplitudeConstant has Scale and Offset defaults", () => {
+    expect(DENSITY_DEFAULTS["AmplitudeConstant"].Scale).toBe(1);
+    expect(DENSITY_DEFAULTS["AmplitudeConstant"].Offset).toBe(0);
   });
 
   it("Pow has Exponent default", () => {
