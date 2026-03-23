@@ -79,6 +79,11 @@ const SHORT_TO_FULL_PREFIX: Record<string, string> = {
   "Tint:": "TintProvider:",
 };
 
+/** Reverse mapping: full bundle prefix → short editor prefix */
+const FULL_TO_SHORT_PREFIX: Record<string, string> = Object.fromEntries(
+  Object.entries(SHORT_TO_FULL_PREFIX).map(([short, full]) => [full, short]),
+);
+
 /**
  * Resolve a node type key to a bundle key.
  * Tries the key as-is first, then attempts alternative prefix mappings.
@@ -398,10 +403,19 @@ export function isRegisteredNodeType(typeKey: string): boolean {
 }
 
 /**
- * Get all registered (non-sub-type) node type keys from the bundle.
+ * Get all registered (non-sub-type) node type keys from the bundle,
+ * normalized to editor-facing short prefixes (e.g. "Material:" instead
+ * of "MaterialProvider:").
  */
 export function getAllNodeTypes(): string[] {
   return Object.entries(nodes)
     .filter(([, node]) => node.isSubType !== true)
-    .map(([key]) => key);
+    .map(([key]) => {
+      for (const [full, short] of Object.entries(FULL_TO_SHORT_PREFIX)) {
+        if (key.startsWith(full)) {
+          return short + key.slice(full.length);
+        }
+      }
+      return key;
+    });
 }

@@ -108,11 +108,9 @@ describe("getHandles", () => {
     expect(inputs.length).toBe(1);
   });
 
-  it("returns fallback for completely unknown types", () => {
+  it("returns empty handles for completely unknown types", () => {
     const handles = getHandles("CompletelyFakeNode");
-    expect(handles.length).toBe(1);
-    expect(handles[0].type).toBe("source");
-    expect(handles[0].category).toBe(AssetCategory.Density);
+    expect(handles.length).toBe(0);
   });
 
   it("returns valid handles for all density types", () => {

@@ -503,6 +503,7 @@ function createCategoryProxy(
 export const DENSITY_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_DENSITY, AssetCategory.Density);
 export const CURVE_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_CURVE, AssetCategory.Curve, "Curve");
 export const MATERIAL_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_MATERIAL, AssetCategory.MaterialProvider, "MaterialProvider");
+// Conditions are sub-types of MaterialProvider in V2 — there is no separate AssetCategory.Condition
 export const CONDITION_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_CONDITION, AssetCategory.MaterialProvider, "Condition");
 export const PATTERN_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_PATTERN, AssetCategory.Pattern, "Pattern");
 export const POSITION_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_POSITION, AssetCategory.PositionProvider, "PositionProvider");
@@ -539,6 +540,8 @@ const CATEGORY_PREFIX: Record<string, AssetCategory> = {
   TintProvider: AssetCategory.TintProvider,
   BlockMask: AssetCategory.BlockMask,
   Directionality: AssetCategory.Directionality,
+  // Conditions are sub-types of MaterialProvider in V2
+  Condition: AssetCategory.MaterialProvider,
 };
 
 function buildEntries(
@@ -572,6 +575,7 @@ function buildLocalEntries(): CategoryDefaultsEntry[] {
     ...buildEntries(LEGACY_TINT, AssetCategory.TintProvider, "TintProvider"),
     ...buildEntries(LEGACY_BLOCK_MASK, AssetCategory.BlockMask, "BlockMask"),
     ...buildEntries(LEGACY_DIRECTIONALITY, AssetCategory.Directionality, "Directionality"),
+    ...buildEntries(LEGACY_CONDITION, AssetCategory.MaterialProvider, "Condition"),
   ];
 }
 

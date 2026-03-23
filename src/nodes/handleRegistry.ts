@@ -453,8 +453,8 @@ export function getHandles(nodeType: string): HandleDef[] {
   const schemaHandles = getSchemaHandles(nodeType);
   if (schemaHandles) return schemaHandles;
 
-  // 3. Fallback for unknown types
-  return [densityOutput()];
+  // 3. Fallback for unknown types (group, comment, frame, etc.)
+  return [];
 }
 
 /**

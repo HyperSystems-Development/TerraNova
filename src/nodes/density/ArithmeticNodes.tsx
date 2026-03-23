@@ -166,7 +166,7 @@ export const ImportedValueNode = memo(function ImportedValueNode(props: TypedNod
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
-      <SchemaFields typeKey="ImportedValue" fields={data.fields} />
+      <SchemaFields typeKey="Imported" fields={data.fields} />
     </BaseNode>
   );
 });

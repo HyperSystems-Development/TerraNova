@@ -114,7 +114,12 @@ const OLD_TYPE_NAMES = new Set([
   ...UNREPLACEABLE_TYPES,
 ]);
 
-// Old field names that indicate legacy TerraNova naming
+// Old field names that indicate legacy TerraNova naming.
+// Note: some of these (Min, Max, Smoothness, Threshold, Floor, Ceiling) also
+// appear as V2 field names on other node types. Because isOldTerraNovaNaming
+// uses OR logic, a V2 node with one of these fields may be flagged — but the
+// migration is idempotent for V2 nodes (no type rename, and field conversions
+// are gated on specific type checks), so false positives are harmless.
 const OLD_FIELD_NAMES = new Set([
   "Frequency",
   "Gain",
@@ -123,6 +128,12 @@ const OLD_FIELD_NAMES = new Set([
   "AngleDegrees",
   "WarpSeed",
   "Is2D",
+  "Min",
+  "Max",
+  "Smoothness",
+  "Threshold",
+  "Floor",
+  "Ceiling",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -224,6 +235,11 @@ function convertDomainWarpFields(result: Record<string, unknown>): void {
   if ("Is2D" in result) {
     result["2D"] = result.Is2D;
     delete result.Is2D;
+  }
+  // Old DomainWarp used "Amplitude" for warp strength; V2 uses "WarpFactor"
+  if ("Amplitude" in result && !("WarpFactor" in result)) {
+    result.WarpFactor = result.Amplitude;
+    delete result.Amplitude;
   }
 }
 
