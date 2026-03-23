@@ -5,10 +5,6 @@
  * type renames, Inputs[]→named handles, field renames, $NodeId stripping, etc.
  */
 
-import {
-  HYTALE_ARRAY_TO_NAMED,
-  NORMALIZER_FIELDS_EXPORT,
-} from "./translationMaps";
 import { DEFAULT_WORLD_HEIGHT } from "@/constants";
 
 // ---------------------------------------------------------------------------
@@ -47,6 +43,67 @@ const HYTALE_TO_INTERNAL_TYPES: Record<string, string> = {
 const CLAMP_FIELD_REVERSE: Record<string, string> = {
   WallA: "Max",
   WallB: "Min",
+};
+
+// ---------------------------------------------------------------------------
+// Inputs[] → named handle mapping (V2 type name → ordered handle names)
+// ---------------------------------------------------------------------------
+// Pre-computed map covering both Hytale (V2) and internal type names.
+// Used by distributeInputs() to convert Inputs[] arrays into named handles.
+
+const HYTALE_ARRAY_TO_NAMED: Record<string, string[]> = {
+  // Single-input types (V2 names)
+  Inverter: ["Input"], CurveMapper: ["Input"], Cache: ["Input"],
+  Abs: ["Input"], Sqrt: ["Input"], Cube: ["Input"],
+  CubeRoot: ["Input"], Inverse: ["Input"], Modulo: ["Input"],
+  Clamp: ["Input"], SmoothClamp: ["Input"], Normalizer: ["Input"],
+  AmplitudeConstant: ["Input"], FlatCache: ["Input"], Cache2D: ["Input"],
+  FastGradientWarp: ["Input"], Scale: ["Input"], Slider: ["Input"],
+  Rotator: ["Input"], MirroredPosition: ["Input"], QuantizedPosition: ["Input"],
+  SurfaceDensity: ["Input"], TerrainMask: ["Input"], BeardDensity: ["Input"],
+  ColumnDensity: ["Input"], CaveDensity: ["Input"], Debug: ["Input"],
+  Passthrough: ["Input"], Wrap: ["Input"], SplineFunction: ["Input"],
+  Pow: ["Input"], SumSelf: ["Input"], Exported: ["Input"],
+  Imported: ["Input"], YOverride: ["Input"], XOverride: ["Input"],
+  ZOverride: ["Input"], Floor: ["Input"], Ceiling: ["Input"],
+  SmoothCeiling: ["Input"], SmoothFloor: ["Input"], Anchor: ["Input"],
+  PositionsPinch: ["Input"], PositionsTwist: ["Input"],
+  GradientDensity: ["Input"], Gradient: ["Input"], YGradient: ["Input"],
+  ClampToIndex: ["Input"], DoubleNormalizer: ["Input"],
+  // Single-input types (internal names that differ from V2)
+  Negate: ["Input"], CurveFunction: ["Input"], CacheOnce: ["Input"],
+  SquareRoot: ["Input"], CubeMath: ["Input"], LinearTransform: ["Input"],
+  DomainWarp2D: ["Input"], DomainWarp3D: ["Input"],
+  ScaledPosition: ["Input"], TranslatedPosition: ["Input"],
+  RotatedPosition: ["Input"], Square: ["Input"], ImportedValue: ["Input"],
+  // 2-input types
+  Offset: ["Input", "Offset"],
+  GradientWarp: ["Input", "WarpSource"],
+  VectorWarp: ["Input", "WarpVector"],
+  Amplitude: ["Input", "Amplitude"],
+  YSampled: ["Input", "YProvider"],
+  WeightedSum: ["Inputs[0]", "Inputs[1]"],
+  // 3-input types (V2 names)
+  Mix: ["InputA", "InputB", "Factor"],
+  MultiMix: ["InputA", "InputB", "Factor"],
+  // 3-input types (internal names)
+  Blend: ["InputA", "InputB", "Factor"],
+  BlendCurve: ["InputA", "InputB", "Factor"],
+  Interpolate: ["InputA", "InputB", "Factor"],
+  // Conditional variants
+  Conditional: ["Condition", "TrueInput", "FalseInput"],
+  RangeChoice: ["Condition", "TrueInput", "FalseInput"],
+};
+
+// ---------------------------------------------------------------------------
+// Normalizer field nesting (V2 flat fields ↔ internal nested SourceRange/TargetRange)
+// ---------------------------------------------------------------------------
+
+const NORMALIZER_FIELDS = {
+  nested: {
+    SourceRange: { Min: "FromMin", Max: "FromMax" },
+    TargetRange: { Min: "ToMin", Max: "ToMax" },
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -285,7 +342,7 @@ function reverseSmoothFields(
 
 function reverseNormalizerFields(asset: Record<string, unknown>): Record<string, unknown> {
   const result = { ...asset };
-  const { nested } = NORMALIZER_FIELDS_EXPORT;
+  const { nested } = NORMALIZER_FIELDS;
 
   // Rebuild nested objects from flat fields
   for (const [rangeKey, fieldMap] of Object.entries(nested)) {

@@ -1,39 +1,11 @@
 /**
- * Shared translation maps used by both import (hytaleToInternal.ts) and
- * export (internalToHytale.ts) pipelines.
+ * Shared translation maps used by the export pipeline (internalToHytale.ts).
  *
- * Type name maps (INTERNAL_TO_HYTALE_TYPES / HYTALE_TO_INTERNAL_TYPES) have
- * been inlined into each pipeline file to reduce coupling. Only structural
- * maps that are truly shared remain here.
+ * The import pipeline (hytaleToInternal.ts) and graph builder (jsonToGraph.ts)
+ * have inlined their own copies of the maps they need (HYTALE_ARRAY_TO_NAMED,
+ * NORMALIZER_FIELDS) to reduce coupling. Only export-direction maps and
+ * structural constants that are used by the export pipeline remain here.
  */
-
-// Type rename map used only for building the HYTALE_ARRAY_TO_NAMED reverse index.
-// Not exported — each pipeline has its own copy.
-const TYPE_RENAMES: Record<string, string> = {
-  Product: "Multiplier",
-  Negate: "Inverter",
-  CurveFunction: "CurveMapper",
-  CacheOnce: "Cache",
-  ImportedValue: "Imported",
-  Blend: "Mix",
-  MinFunction: "Min",
-  MaxFunction: "Max",
-  CoordinateX: "XValue",
-  CoordinateY: "YValue",
-  CoordinateZ: "ZValue",
-  VoronoiNoise2D: "CellNoise2D",
-  VoronoiNoise3D: "CellNoise3D",
-  SquareRoot: "Sqrt",
-  DomainWarp2D: "FastGradientWarp",
-  DomainWarp3D: "FastGradientWarp",
-  ScaledPosition: "Scale",
-  TranslatedPosition: "Slider",
-  RotatedPosition: "Rotator",
-  LinearTransform: "AmplitudeConstant",
-  BlendCurve: "MultiMix",
-  Square: "Pow",
-  CubeMath: "Cube",
-};
 
 // ---------------------------------------------------------------------------
 // Density input handle mapping (named handles → Inputs[] array order)
@@ -115,25 +87,6 @@ export const DENSITY_NAMED_TO_ARRAY: Record<string, string[]> = {
   Conditional: ["Condition", "TrueInput", "FalseInput"],
   RangeChoice: ["Condition", "TrueInput", "FalseInput"],
 };
-
-/**
- * Reverse: given a Hytale type, get the named handles for Inputs[] indices.
- * Uses the Hytale type name (after mapping).
- */
-export const HYTALE_ARRAY_TO_NAMED: Record<string, string[]> = {};
-
-// Build reverse map using Hytale type names
-for (const [internalType, handles] of Object.entries(DENSITY_NAMED_TO_ARRAY)) {
-  const hytaleType = TYPE_RENAMES[internalType] ?? internalType;
-  // Don't overwrite if already set (first wins for collisions like DomainWarp2D/3D)
-  if (!(hytaleType in HYTALE_ARRAY_TO_NAMED)) {
-    HYTALE_ARRAY_TO_NAMED[hytaleType] = handles;
-  }
-  // Also store by internal type for direct lookups
-  if (!(internalType in HYTALE_ARRAY_TO_NAMED)) {
-    HYTALE_ARRAY_TO_NAMED[internalType] = handles;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // $NodeId prefix rules
@@ -237,8 +190,6 @@ export const FIELD_TO_CATEGORY: Record<string, string> = {
   DistanceFunction: "distanceFunction",
   ReturnType: "returnType",
 };
-
-// Clamp field maps have been inlined into internalToHytale.ts and hytaleToInternal.ts.
 
 // ---------------------------------------------------------------------------
 // Normalizer field flattening
