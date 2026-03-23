@@ -166,6 +166,15 @@ const DEFAULT_SETTINGS: DocsSettings = {
   snippetDisplayMode: "json",
 };
 
+function formatDocsCurveValue(value: number): string {
+  const abs = Math.abs(value);
+  if (abs === 0) return "0";
+  if (abs >= 100) return value.toFixed(0);
+  if (abs >= 10) return value.toFixed(1);
+  if (abs >= 1) return value.toFixed(2);
+  return value.toFixed(3);
+}
+
 function loadSettings(): DocsSettings {
   try {
     const raw = localStorage.getItem("tn-docs-settings");
@@ -1551,19 +1560,29 @@ export function DocsPanel() {
           const yMin = Math.min(...ys), yMax = Math.max(...ys);
           return (
             <div className="docs-wide-block my-4 overflow-hidden rounded-xl border border-tn-border bg-tn-panel/45 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
-              {/* Header: label + axis range summary */}
-              <div className="flex items-center justify-between gap-4 border-b border-tn-border bg-tn-panel px-3 py-2">
+              {/* Header: label + compact range summary */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-tn-border bg-tn-panel px-3 py-2">
                 <span className="text-[11px] font-medium tracking-[0.03em] text-tn-text-muted">
                   {label ?? "Curve"}
                 </span>
-                <span className="font-mono text-[10px] text-tn-text-muted/70">
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-tn-text-muted/75">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-tn-border/80 bg-tn-bg/70 px-2 py-0.5">
+                    <span className="font-semibold text-tn-text-muted/80">Input x</span>
+                    <span className="font-mono text-tn-text-muted">{formatDocsCurveValue(xMin)} to {formatDocsCurveValue(xMax)}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-tn-border/80 bg-tn-bg/70 px-2 py-0.5">
+                    <span className="font-semibold text-tn-text-muted/80">Output y</span>
+                    <span className="font-mono text-tn-text-muted">{formatDocsCurveValue(yMin)} to {formatDocsCurveValue(yMax)}</span>
+                  </span>
+                </div>
+                <span aria-hidden="true" className="hidden font-mono text-[10px] text-tn-text-muted/70">
                   x [{xMin} → {xMax}] &nbsp; y [{yMin} → {yMax}]
                 </span>
               </div>
               {/* Canvas */}
               <div className="bg-[linear-gradient(180deg,rgba(181,147,80,0.05),transparent_70%)] px-3 py-3">
                 <div className={`mx-auto w-full ${docsCurveWidthClass}`}>
-                  <CurveCanvas points={points} compact compactHeight={docsCurveHeight} />
+                  <CurveCanvas points={points} compact compactHeight={docsCurveHeight} docsCompact />
                 </div>
               </div>
               {/* Point table — shown in standard detail mode */}

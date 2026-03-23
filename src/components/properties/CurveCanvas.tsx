@@ -26,6 +26,11 @@ const CROSSHAIR_COLOR = "#e8e2d930";
 const SNAP_GRID = 0.25;
 const SNAP_GRID_HIGHLIGHT = "#5a5347";
 const BOUNDS_PADDING_FACTOR = 0.1;
+const DOCS_GUIDE_COLOR = "#e8e2d918";
+const DOCS_ZERO_GUIDE_COLOR = "#e8e2d92c";
+const DOCS_BADGE_BG = "#161411e6";
+const DOCS_BADGE_BORDER = "#5f584c";
+const DOCS_BADGE_TEXT = "#efe5d8";
 
 interface Bounds {
   xMin: number;
@@ -106,6 +111,34 @@ function formatAxisLabel(v: number): string {
   return v.toFixed(3);
 }
 
+function drawDocsBadge(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  align: "left" | "right" = "left",
+) {
+  ctx.save();
+  ctx.font = "10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+  ctx.textBaseline = "middle";
+
+  const padX = 5;
+  const badgeHeight = 16;
+  const badgeWidth = Math.ceil(ctx.measureText(text).width) + padX * 2;
+  const badgeX = align === "right" ? x - badgeWidth : x;
+
+  ctx.fillStyle = DOCS_BADGE_BG;
+  ctx.fillRect(badgeX, y, badgeWidth, badgeHeight);
+  ctx.strokeStyle = DOCS_BADGE_BORDER;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(badgeX + 0.5, y + 0.5, badgeWidth - 1, badgeHeight - 1);
+
+  ctx.fillStyle = DOCS_BADGE_TEXT;
+  ctx.textAlign = "left";
+  ctx.fillText(text, badgeX + padX, y + badgeHeight / 2 + 0.5);
+  ctx.restore();
+}
+
 const snapToGrid = (v: number, interval: number = SNAP_GRID) =>
   Math.round(v / interval) * interval;
 
@@ -129,7 +162,13 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
 
   const isInteractive = !!onChange && !compact;
   const canvasHeight = compact ? resolvedCompactHeight : CANVAS_HEIGHT;
-  const padding = compact ? Math.max(4, Math.round(canvasHeight * 0.1)) : PADDING;
+  const padding = compact
+    ? (
+        isDocsCompact
+          ? Math.min(Math.max(12, Math.round(canvasHeight * 0.18)), Math.max(12, Math.floor(canvasHeight * 0.25)))
+          : Math.max(4, Math.round(canvasHeight * 0.1))
+      )
+    : PADDING;
 
   // Keep pointsRef in sync with props; compute bounds once on first load (interactive) or always (compact)
   useEffect(() => {
@@ -264,6 +303,9 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
       const { xMin, xMax, yMin, yMax } = boundsRef.current;
       const xTicks = [xMin, xMin + (xMax - xMin) / 2, xMax];
       const yTicks = [yMax, yMin + (yMax - yMin) / 2, yMin];
+      const bottomAxisY = h - padding;
+      const leftAxisX = padding;
+      const badgeHeight = 16;
 
       ctx.strokeStyle = BORDER_COLOR;
       ctx.lineWidth = 1;
@@ -286,11 +328,28 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
         ctx.stroke();
       }
 
+      ctx.strokeStyle = DOCS_GUIDE_COLOR;
+      ctx.lineWidth = 1;
+      for (const tick of xTicks) {
+        const cx = toCanvasX(tick);
+        ctx.beginPath();
+        ctx.moveTo(cx, bottomAxisY);
+        ctx.lineTo(cx, bottomAxisY + 5);
+        ctx.stroke();
+      }
+      for (const tick of yTicks) {
+        const cy = toCanvasY(tick);
+        ctx.beginPath();
+        ctx.moveTo(leftAxisX - 5, cy);
+        ctx.lineTo(leftAxisX, cy);
+        ctx.stroke();
+      }
+
       if (yMin < 0 && yMax > 0) {
         const zeroY = toCanvasY(0);
         ctx.save();
         ctx.setLineDash([4, 4]);
-        ctx.strokeStyle = "#e8e2d925";
+        ctx.strokeStyle = DOCS_ZERO_GUIDE_COLOR;
         ctx.beginPath();
         ctx.moveTo(padding, zeroY);
         ctx.lineTo(w - padding, zeroY);
@@ -298,14 +357,22 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
         ctx.restore();
       }
 
-      ctx.fillStyle = LABEL_COLOR;
-      ctx.font = "10px sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText(formatAxisLabel(yMax), padding + 4, padding + 12);
-      ctx.fillText(formatAxisLabel(yMin), padding + 4, h - padding - 6);
-      ctx.textAlign = "right";
-      ctx.fillText(formatAxisLabel(xMin), padding + 28, h - 6);
-      ctx.fillText(formatAxisLabel(xMax), w - padding, h - 6);
+      if (xMin < 0 && xMax > 0) {
+        const zeroX = toCanvasX(0);
+        ctx.save();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = DOCS_ZERO_GUIDE_COLOR;
+        ctx.beginPath();
+        ctx.moveTo(zeroX, padding);
+        ctx.lineTo(zeroX, h - padding);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      drawDocsBadge(ctx, `y ${formatAxisLabel(yMax)}`, 4, Math.max(2, padding - 4));
+      drawDocsBadge(ctx, `y ${formatAxisLabel(yMin)}`, 4, Math.max(2, h - padding - badgeHeight - 4));
+      drawDocsBadge(ctx, `x ${formatAxisLabel(xMin)}`, padding + 4, Math.max(2, h - badgeHeight - 2));
+      drawDocsBadge(ctx, `x ${formatAxisLabel(xMax)}`, w - padding - 4, Math.max(2, h - badgeHeight - 2), "right");
     }
 
     // Build curve points to render
@@ -352,16 +419,36 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
           ? [curvePoints[0], curvePoints[Math.floor(curvePoints.length / 2)], curvePoints[curvePoints.length - 1]].filter(Boolean)
           : [...pointsRef.current].sort((a, b) => a.x - b.x);
 
+        if (!evaluator) {
+          ctx.save();
+          ctx.strokeStyle = DOCS_GUIDE_COLOR;
+          ctx.lineWidth = 1;
+          for (const point of markerPoints) {
+            const cx = toCanvasX(point.x);
+            ctx.beginPath();
+            ctx.moveTo(cx, h - padding);
+            ctx.lineTo(cx, h - padding + 4);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
         for (const point of markerPoints) {
           const cx = toCanvasX(point.x);
           const cy = toCanvasY(point.y);
+
           ctx.beginPath();
-          ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+          ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+          ctx.fillStyle = BG_COLOR;
+          ctx.fill();
+          ctx.strokeStyle = "#f5ebfb";
+          ctx.lineWidth = 1.25;
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.arc(cx, cy, 1.75, 0, Math.PI * 2);
           ctx.fillStyle = CURVE_COLOR;
           ctx.fill();
-          ctx.strokeStyle = "#f0e6f5";
-          ctx.lineWidth = 1;
-          ctx.stroke();
         }
       }
     }

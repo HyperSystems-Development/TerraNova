@@ -4,6 +4,15 @@ import { DocsPanel } from "../DocsPanel";
 
 const clipboardWriteMock = vi.fn<() => Promise<void>>().mockResolvedValue();
 const scrollIntoViewMock = vi.fn();
+const curveCanvasMock = vi.fn(
+  ({ docsCompact, points }: { docsCompact?: boolean; points?: unknown[] }) => (
+    <div
+      data-testid="curve-canvas"
+      data-docs-compact={String(Boolean(docsCompact))}
+      data-point-count={String(Array.isArray(points) ? points.length : 0)}
+    />
+  ),
+);
 
 vi.mock("@/components/docs/MermaidDiagram", () => ({
   MermaidDiagram: ({ code }: { code: string }) => <div data-testid="mermaid-diagram">{code}</div>,
@@ -15,7 +24,7 @@ vi.mock("@/components/docs/DocNodeGraph", () => ({
 }));
 
 vi.mock("@/components/properties/CurveCanvas", () => ({
-  CurveCanvas: () => <div data-testid="curve-canvas" />,
+  CurveCanvas: (props: { docsCompact?: boolean; points?: unknown[] }) => curveCanvasMock(props),
 }));
 
 vi.mock("@/utils/autoLayout", () => ({
@@ -53,6 +62,7 @@ describe("DocsPanel", () => {
     localStorage.setItem("tn-docs-last-slug", "walkthroughs/sky-islands");
     scrollIntoViewMock.mockReset();
     clipboardWriteMock.mockClear();
+    curveCanvasMock.mockClear();
 
     Object.assign(navigator, {
       clipboard: {
@@ -97,5 +107,18 @@ describe("DocsPanel", () => {
 
     await screen.findByText("Step 0 — Overview: What We're Building");
     expect(screen.queryByText(/^Table of Contents$/)).toBeNull();
+  });
+  it("renders docs curve previews with docs-compact affordances", async () => {
+    localStorage.setItem("tn-docs-last-slug", "reference/curves");
+
+    render(<DocsPanel />);
+
+    await screen.findByText("Curves Reference");
+
+    const curveCanvases = await screen.findAllByTestId("curve-canvas");
+    expect(curveCanvases.length).toBeGreaterThan(0);
+    expect(curveCanvases[0].getAttribute("data-docs-compact")).toBe("true");
+    expect(screen.getAllByText(/Input x/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Output y/i).length).toBeGreaterThan(0);
   });
 });
