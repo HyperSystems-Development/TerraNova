@@ -597,10 +597,12 @@ function CopyButton({ text }: { text: string }) {
 function HeadingAnchor({
   id,
   size,
+  selectedSlug,
   contentRef,
 }: {
   id: string;
   size: "h2" | "h3";
+  selectedSlug: string | null;
   contentRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const [copied, setCopied] = useState(false);
@@ -613,14 +615,14 @@ function HeadingAnchor({
     // Scroll to heading
     const el = contentRef.current?.querySelector(`#${CSS.escape(id)}`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-    // Copy fragment to clipboard
-    const fragment = `#${id}`;
-    navigator.clipboard.writeText(fragment).then(() => {
+    // Copy a docs-relative deep link for the current heading.
+    const headingLink = selectedSlug ? `/${selectedSlug}#${id}` : `#${id}`;
+    navigator.clipboard.writeText(headingLink).then(() => {
       setCopied(true);
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => setCopied(false), 1500);
     }).catch(() => {});
-  }, [id, contentRef]);
+  }, [id, contentRef, selectedSlug]);
 
   return (
     <button
@@ -1761,7 +1763,7 @@ export function DocsPanel() {
       <h2 {...props} id={id} className="group flex items-center gap-2">
         {children}
         {id && (
-          <HeadingAnchor id={id} size="h2" contentRef={contentRef} />
+          <HeadingAnchor id={id} size="h2" selectedSlug={selectedSlug} contentRef={contentRef} />
         )}
       </h2>
     ),
@@ -1769,7 +1771,7 @@ export function DocsPanel() {
       <h3 {...props} id={id} className="group flex items-center gap-2">
         {children}
         {id && (
-          <HeadingAnchor id={id} size="h3" contentRef={contentRef} />
+          <HeadingAnchor id={id} size="h3" selectedSlug={selectedSlug} contentRef={contentRef} />
         )}
       </h3>
     ),
@@ -1783,6 +1785,7 @@ export function DocsPanel() {
     handleCopySnippetJson,
     handleLinkClick,
     handleOpenSnippetInEditor,
+    selectedSlug,
     shouldWrapCodeBlocks,
     snippetDisplayMode,
   ]);
