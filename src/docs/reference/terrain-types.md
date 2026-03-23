@@ -83,10 +83,10 @@ Rolling Hills [Beginner]
 
 ## Mountain Range
 
-High-frequency simplex noise with many octaves creates rugged mountain terrain. A Power curve sharpens the peaks.
+High-frequency simplex noise with many octaves creates rugged mountain terrain. A hand-drawn ease-in curve sharpens the peaks.
 
 ```curve
-Mountain peak sharpening: Power(2) applied after noise
+Mountain peak sharpening: hand-drawn ease-in profile
 [[0,0],[0.25,0.0625],[0.5,0.25],[0.75,0.5625],[1,1]]
 ```
 
@@ -122,7 +122,7 @@ Mountain Range [Intermediate]
 }
 ```
 
-**For sharper peaks:** wrap the noise in a `CurveMapper` using Power(2) before `AmplitudeConstant`. This compresses low values (valleys stay flat) and sharpens high values (peaks become pointed).
+**For sharper peaks:** wrap the noise in a `CurveMapper` using the same ease-in profile shown above before `AmplitudeConstant`. This compresses low values (valleys stay flat) and sharpens high values (peaks become pointed).
 
 ---
 
@@ -232,7 +232,7 @@ See the full build walkthrough: [Sky Islands Walkthrough](../walkthroughs/sky-is
 
 ## Caves
 
-3D simplex noise carves tunnels through otherwise solid terrain. A Threshold cuts the noise into a hard binary mask so caves have crisp walls rather than gradual voids.
+3D simplex noise carves tunnels through otherwise solid terrain. A `CurveMapper` with a hard step profile cuts the noise into a binary mask so caves have crisp walls rather than gradual voids.
 
 ```curve
 Cave carve mask: threshold at 0.65, only top 35% becomes void
@@ -267,39 +267,42 @@ Caves [Intermediate]
       ]
     },
     { "Type": "Inverter", "Skip": false, "Inputs": [{ "Type": "YValue", "Skip": false }] },
-    {
-      "Type": "AmplitudeConstant",
-      "Skip": false,
-      "Value": -2.0,
-      "Inputs": [{
-        "Type": "Threshold",
-        "Skip": false,
-        "Threshold": 0.65,
-        "Inputs": [{
-          "Type": "SimplexNoise3D",
+        {
+          "Type": "AmplitudeConstant",
           "Skip": false,
-          "Scale": 40,
-          "Persistence": 0.5,
-          "Lacunarity": 2.0,
-          "Octaves": 2,
-          "Seed": "caves"
-        }]
-      }]
-    }
+          "Value": -2.0,
+          "Inputs": [{
+            "Type": "CurveMapper",
+            "Skip": false,
+            "Curve": {
+              "Type": "Manual",
+              "Points": [[0,0],[0.649,0],[0.65,1],[1,1]]
+            },
+            "Inputs": [{
+              "Type": "SimplexNoise3D",
+              "Skip": false,
+              "Scale": 40,
+              "Persistence": 0.5,
+              "Lacunarity": 2.0,
+              "Octaves": 2,
+              "Seed": "caves"
+            }]
+          }]
+        }
   ]
 }
 ```
 
 **Tuning knobs:**
 - `Scale: 40`: smaller = tighter cave passages, larger = cavern halls
-- `Threshold: 0.65`: raise to make caves rarer and smaller, lower for more frequent caves
+- Move the hard step in the `CurveMapper`: shift it right to make caves rarer and smaller, left for more frequent caves
 - `Value: -2.0` (outer AmplitudeConstant): how aggressively caves carve
 
 ---
 
 ## Terraced Cliffs
 
-StepFunction applied to a heightmap quantizes the terrain into flat bands, creating a stepped mesa or terraced cliff look. More steps = more bands; fewer = wider shelves.
+A staircase-shaped `CurveMapper` quantizes the heightmap into flat bands, creating a stepped mesa or terraced cliff look. More steps = more bands; fewer = wider shelves.
 
 ```curve
 Terrace steps: 4 flat bands
@@ -317,9 +320,12 @@ Terraced Cliffs [Beginner]
       "Skip": false,
       "Value": 60,
       "Inputs": [{
-        "Type": "StepFunction",
+        "Type": "CurveMapper",
         "Skip": false,
-        "Steps": 6,
+        "Curve": {
+          "Type": "Manual",
+          "Points": [[0,0],[0.249,0],[0.25,0.25],[0.499,0.25],[0.5,0.5],[0.749,0.5],[0.75,0.75],[0.999,0.75],[1,1]]
+        },
         "Inputs": [{
           "Type": "SimplexNoise2D",
           "Skip": false,
@@ -338,17 +344,17 @@ Terraced Cliffs [Beginner]
 ```
 
 **Tuning:**
-- `Steps: 6`: the number of flat shelves. Try 3 for wide mesas, 12 for thin rice-paddy terracing
+- Add or remove plateaus in the `CurveMapper` points: fewer shelves make wider mesas, more shelves make thinner terracing
 - `Value: 60`: total height range across all steps in blocks
 
 ---
 
 ## Ridgelines
 
-Inverting the noise and applying a Power curve creates sharp ridges instead of hills. Low areas become flat, high areas become pointed spines.
+A hand-drawn inversion curve creates sharp ridges instead of hills. Low areas become flat, high areas become pointed spines.
 
 ```curve
-Ridge sharpen: Not + Power(3), peaks are very sharp
+Ridge sharpen: inverted hand-drawn profile, peaks are very sharp
 [[0,1],[0.2,0.488],[0.4,0.216],[0.5,0.125],[0.6,0.064],[0.8,0.008],[1,0]]
 ```
 
@@ -368,21 +374,20 @@ Ridgelines [Intermediate]
           "Skip": false,
           "Value": 80,
           "Inputs": [{
-            "Type": "Power",
+            "Type": "CurveMapper",
             "Skip": false,
-            "Exponent": 3.0,
+            "Curve": {
+              "Type": "Manual",
+              "Points": [[0,1],[0.2,0.488],[0.4,0.216],[0.5,0.125],[0.6,0.064],[0.8,0.008],[1,0]]
+            },
             "Inputs": [{
-              "Type": "Not",
+              "Type": "SimplexNoise2D",
               "Skip": false,
-              "Inputs": [{
-                "Type": "SimplexNoise2D",
-                "Skip": false,
-                "Scale": 120,
-                "Persistence": 0.55,
-                "Lacunarity": 2.0,
-                "Octaves": 5,
-                "Seed": "ridges"
-              }]
+              "Scale": 120,
+              "Persistence": 0.55,
+              "Lacunarity": 2.0,
+              "Octaves": 5,
+              "Seed": "ridges"
             }]
           }]
         }
@@ -393,13 +398,13 @@ Ridgelines [Intermediate]
 }
 ```
 
-**How it works:** `Not` flips noise so valleys become peaks. `Power(3)` then sharpens only the peaks: the math compresses low values toward zero and stretches high values, turning broad bumps into sharp spines.
+**How it works:** the `CurveMapper` uses the profile shown above to flip the noise response and then sharply compress everything except the tallest peaks. That turns broad bumps into narrow ridge spines without relying on legacy curve nodes.
 
 ---
 
 ## Plateau Mesa
 
-A strong S-curve applied after the heightmap flattens out the tops and bottoms and sharpens the cliff transition in the middle. Gives a flat-topped mesa with near-vertical walls.
+A strong hand-drawn S-curve applied after the heightmap flattens out the tops and bottoms and sharpens the cliff transition in the middle. Gives a flat-topped mesa with near-vertical walls.
 
 ```curve
 Mesa profile: flat top and bottom, sharp cliff wall in middle
@@ -422,10 +427,12 @@ Plateau Mesa [Intermediate]
           "Skip": false,
           "Value": 60,
           "Inputs": [{
-            "Type": "SmoothStep",
+            "Type": "CurveMapper",
             "Skip": false,
-            "Edge0": 0.35,
-            "Edge1": 0.65,
+            "Curve": {
+              "Type": "Manual",
+              "Points": [[0,0],[0.3,0.02],[0.45,0.15],[0.5,0.5],[0.55,0.85],[0.7,0.98],[1,1]]
+            },
             "Inputs": [{
               "Type": "SimplexNoise2D",
               "Skip": false,
@@ -444,7 +451,7 @@ Plateau Mesa [Intermediate]
 }
 ```
 
-Narrowing `Edge0` and `Edge1` closer together makes the cliff walls steeper. Separating them creates a more gradual ramp.
+Pull the middle control points closer together in the `CurveMapper` to make the cliff walls steeper. Spread them apart to create a more gradual ramp.
 
 ---
 
@@ -539,10 +546,12 @@ Canyon / Badlands [Advanced]
       "Skip": false,
       "Value": -80,
       "Inputs": [{
-        "Type": "SmoothStep",
+        "Type": "CurveMapper",
         "Skip": false,
-        "Edge0": 0.3,
-        "Edge1": 0.7,
+        "Curve": {
+          "Type": "Manual",
+          "Points": [[0,0],[0.1,0],[0.2,0.05],[0.35,0.5],[0.5,0.95],[0.65,1],[1,1]]
+        },
         "Inputs": [{
           "Type": "SimplexNoise2D",
           "Skip": false,
@@ -573,13 +582,13 @@ Canyon / Badlands [Advanced]
 }
 ```
 
-The key trick: start at `Y=130` (tall plateau), subtract a SmoothStep-shaped noise with amplitude 80. The SmoothStep makes valley walls steep while keeping flat tops and flat floors.
+The key trick: start at `Y=130` (tall plateau), subtract a `CurveMapper`-shaped noise with amplitude 80. The hand-drawn profile makes valley walls steep while keeping flat tops and flat floors.
 
 ---
 
 ## Volcano
 
-A radial mountain shape with a crater at the summit. Uses a Distance node from the volcano's center combined with an inverted Power curve to create the cone, and a small subtracted sphere for the crater.
+A radial mountain shape with a crater at the summit. Uses a cell-distance mask combined with a hand-drawn cone profile to create the mountain body, and leaves the top profile dipped for the crater.
 
 ```curve
 Volcano cone profile: steep sides, dip at peak for crater
@@ -600,9 +609,12 @@ Volcano [Advanced]
       "Skip": false,
       "Value": 70,
       "Inputs": [{
-        "Type": "Power",
+        "Type": "CurveMapper",
         "Skip": false,
-        "Exponent": 0.5,
+        "Curve": {
+          "Type": "Manual",
+          "Points": [[0,0],[0.2,0.5],[0.4,0.85],[0.55,1],[0.65,0.9],[0.75,0.75],[0.85,0.4],[1,0]]
+        },
         "Inputs": [{
           "Type": "Clamp",
           "Skip": false,
@@ -642,7 +654,7 @@ Volcano [Advanced]
 
 ## Spires and Pillars
 
-Very narrow cell noise regions combined with high vertical amplitude and a sharp Power curve create thin stone spires or pillar clusters.
+Very narrow cell noise regions combined with high vertical amplitude and a sharply pinched manual curve create thin stone spires or pillar clusters.
 
 ```curve
 Spire base profile: very sharp dropoff from center
@@ -669,9 +681,12 @@ Spires and Pillars [Advanced]
             "Skip": false,
             "Value": -2.0,
             "Inputs": [{
-              "Type": "Power",
+              "Type": "CurveMapper",
               "Skip": false,
-              "Exponent": 4.0,
+              "Curve": {
+                "Type": "Manual",
+                "Points": [[0,1],[0.15,0.8],[0.3,0.4],[0.45,0.1],[0.6,0.01],[1,0]]
+              },
               "Inputs": [{
                 "Type": "CellNoise2D",
                 "Skip": false,
@@ -711,7 +726,7 @@ Spires and Pillars [Advanced]
 }
 ```
 
-The `Power(4)` exponent is the key: it creates an extremely sharp dropoff from cell centers, keeping only a very narrow pillar. Increasing the exponent makes thinner, more extreme spires.
+The hand-drawn `CurveMapper` profile is the key: it creates an extremely sharp dropoff from cell centers, keeping only a very narrow pillar. Pull the middle points lower to make thinner, more extreme spires.
 
 ---
 

@@ -61,7 +61,7 @@ This is a **noise-driven height map**. The noise (output: `-1` to `1`) is scaled
 {"min": 70, "max": 150, "label": "Typical noise-driven height range"}
 ```
 
-Whenever you see `AmplitudeConstant` + `Sum` + `Constant`, you're looking at scale-and-offset. The equivalent in TerraNova's native nodes is `Curve:LinearRemap`.
+Whenever you see `AmplitudeConstant` + `Sum` + `Constant`, you're looking at scale-and-offset. In TerraNova's active node set, the closest direct tools are `Normalizer` or an explicit scale-plus-offset chain like this one.
 
 ### Pattern 3: Noise → Curve → Mask
 

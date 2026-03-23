@@ -92,16 +92,15 @@ Not (1 - x) — flip a mask from positive to negative space
 [[0,1],[0.25,0.75],[0.5,0.5],[0.75,0.25],[1,0]]
 ```
 
-#### Most-used curves
+#### Most-used curve tools
 
-- **`Curve:Manual`**: draw any shape with control points
-- **`Curve:SmoothStep`**: smooth on/off transition between two heights
+- **`Curve:Manual`**: draw any shape with control points, including threshold-like, smooth-step-like, and power-like remaps
 - **`Curve:DistanceExponential`**: island falloff from center to edge
-- **`Curve:LinearRemap`**: rescale noise from `[-1, 1]` to `[70, 150]` (height range)
+- **`Normalizer`**: rescale noise from `[-1, 1]` into a practical terrain range
 - **`Curve:Inverter`**: negate (`-x`), essential for the height formula
 - **`Curve:Not`**: flip a mask (`1 - x`)
 - **`Curve:Clamp`**: cut off values outside `[Min, Max]`
-- **`Curve:Power`**: sharpen or soften falloffs with `x ^ exponent`
+- **`Pow`**: sharpen or soften density falloffs with `x ^ exponent`
 
 ---
 
@@ -168,18 +167,17 @@ When you open a Hytale biome JSON in TerraNova, you can inspect the exact node g
 
 ```
 SimplexNoise2D (Scale: 200, Octaves: 4)
-  → Not          (flip: low values become ridges)
-  → Power(2.0)   (sharpen peaks)
+  → CurveMapper (manual inverted ridge profile)
   → AmplitudeConstant(120)
   → Sum with Inverter(YValue)
 ```
 
 ```curve
-Ridge shape — Not + Power(2) applied to noise
+Ridge shape — manual inverted ridge profile
 [[0,1],[0.25,0.5625],[0.5,0.25],[0.75,0.0625],[1,0]]
 ```
 
-Key: `Not` flips the noise so the *low* valleys become *high* ridge peaks. `Power` with a high exponent then sharpens those peaks dramatically.
+Key: a manually drawn curve flips the noise so the *low* valleys become *high* ridge peaks, then sharply compresses everything except the tallest peaks.
 
 ---
 
@@ -205,23 +203,23 @@ Cell center = 1.0 (solid core). Cell edge = 0.0 (air). `DistanceExponential` con
 
 ```
 SimplexNoise3D (Scale: 40, Octaves: 2)   [cave shapes]
-  → Threshold(0.7)                        [only keep high-value pockets]
+  → CurveMapper (manual hard step at 0.7) [only keep high-value pockets]
   → Multiplier with base terrain density  [carve from solid rock only]
 ```
 
-3D noise carves tunnels through solid terrain. Use `Threshold` to make the caves crisply carved rather than gradual. Multiply (not subtract) so caves only appear in already-solid terrain.
+3D noise carves tunnels through solid terrain. Use a hard-step `CurveMapper` profile to make the caves crisply carved rather than gradual. Multiply (not subtract) so caves only appear in already-solid terrain.
 
 ---
 
 ### 🌊 Beaches and shorelines
 
 ```
-YValue → LinearRemap(Source: [58, 65], Target: [0, 1])
-       → SmoothStep(Edge0: 0.3, Edge1: 0.7)   [blend zone at shoreline]
+YValue → Normalizer(58→65 to 0→1)
+       → CurveMapper(manual shoreline blend)   [blend zone at shoreline]
 ```
 
 ```curve
-Beach blend zone — SmoothStep 0.3→0.7
+Beach blend zone — manual shoreline blend
 [[0,0],[0.3,0],[0.45,0.156],[0.5,0.5],[0.55,0.844],[0.7,1],[1,1]]
 ```
 
@@ -236,16 +234,16 @@ Below Y=58 → sand. Above Y=65 → grass. Between → smooth blend. Adjust the 
 ### ⛰ Terraced cliffs
 
 ```
-SimplexNoise2D  →  StepFunction(Steps: 6)  →  AmplitudeConstant(80)
+SimplexNoise2D  →  CurveMapper(manual staircase)  →  AmplitudeConstant(80)
                → Sum with Inverter(YValue)
 ```
 
 ```curve
-Terraced height — StepFunction with 6 steps
+Terraced height — manual staircase profile
 [[0,0],[0.166,0],[0.167,0.167],[0.333,0.167],[0.334,0.333],[0.5,0.333],[0.501,0.5],[0.667,0.5],[0.668,0.667],[0.833,0.667],[0.834,0.833],[1,0.833]]
 ```
 
-`StepFunction` quantizes the continuous noise into discrete bands, creating the flat plateau shelves of terraced terrain. More steps = more, thinner terraces.
+A hand-drawn staircase curve quantizes the continuous noise into discrete bands, creating the flat plateau shelves of terraced terrain. More steps = more, thinner terraces.
 
 ---
 
@@ -262,7 +260,7 @@ Else
   → Assignment(Stone)  [bedrock]
 ```
 
-Use `Height` or `YValue` + `LinearRemap` + `SmoothStep` to create smooth blends between material bands rather than hard cuts.
+Use `Height` or `YValue` + `Normalizer` + `CurveMapper` to create smooth blends between material bands rather than hard cuts.
 
 ---
 
@@ -273,12 +271,12 @@ Use `Height` or `YValue` + `LinearRemap` + `SmoothStep` to create smooth blends 
 | Natural random terrain | `SimplexNoise2D` + `SimplexNoise3D` |
 | Island/region separation | `CellNoise2D` |
 | Organic cell edges | `FastGradientWarp` |
-| Height-based everything | `YValue` + `LinearRemap` |
+| Height-based everything | `YValue` + `Normalizer` or `CurveMapper` |
 | Blend two terrain layers | `Mix` or `SmoothMin` |
-| Sharp terrain cut | `Min` or `Threshold` |
+| Sharp terrain cut | `Min` or `CurveMapper` with a hard step |
 | Smooth terrain merge | `SmoothMin` / `SmoothMax` |
 | Scale noise amplitude | `AmplitudeConstant` |
-| Smooth material transition | `SmoothStep` |
-| Any value remapping | `Curve:LinearRemap` or `Curve:Manual` |
+| Smooth material transition | `CurveMapper` with an S-curve |
+| Any value remapping | `Curve:Manual` or `Normalizer` |
 | Invert a mask | `Curve:Not` |
 | Negate a value | `Curve:Inverter` |

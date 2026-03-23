@@ -1,6 +1,6 @@
 # Curves Reference
 
-Curves **remap** a value. They take an input in some range and produce an output: sharpening a transition, flipping a gradient, clamping noise, or scaling it to a new range. Every `Curve:` node in the graph is doing exactly this.
+Curves **remap** a value. They take an input in some range and produce an output: sharpening a transition, flipping a gradient, clamping noise, or scaling it to a new range. Some sections below are active `Curve:` asset types on this branch, while others are useful manual-curve archetypes you recreate with `Curve:Manual` or a density-side helper like `Pow`.
 
 > **How to read the previews below:** The horizontal axis is the input value. The vertical axis is the output value. A flat line at the top means "always output 1". A diagonal line means "output equals input" (no remapping). The shape of the curve shows you how the remapping behaves.
 
@@ -59,9 +59,9 @@ Constant — Value: 0.7 (always outputs 0.7)
 
 ---
 
-## Power
+## Manual Archetype: Power
 
-Applies `y = x ^ exponent`. This is one of the most useful curves for controlling how gradients "lean": pushing values toward 0 (high exponent) or toward 1 (fractional exponent).
+There is no dedicated `Curve:Power` node in the active registry on this branch. Use `Curve:Manual` to draw this profile, or use density-side `Pow` when you need exponentiation directly in the graph. The shape still matters because it controls how gradients "lean": pushing values toward 0 (high exponent) or toward 1 (fractional exponent).
 
 ```curve
 Power — Exponent: 0.5 (square root — bias toward 1)
@@ -87,9 +87,9 @@ Power — Exponent: 3.0 (cubic — strong bias toward 0)
 
 ---
 
-## SmoothStep
+## Manual Archetype: SmoothStep
 
-Produces a smooth hermite interpolation between two edge values. Below `Edge0` the output is 0. Above `Edge1` the output is 1. Between them it follows an S-shaped curve with zero derivative at both ends (no sharp corners).
+There is no dedicated `Curve:SmoothStep` node in the active registry on this branch. Recreate this with `Curve:Manual` when you want a smooth hermite-style transition: below `Edge0` the output is 0, above `Edge1` the output is 1, and between them it follows an S-shaped curve with zero derivative at both ends.
 
 ```curve
 SmoothStep — Edge0: 0.2, Edge1: 0.8
@@ -110,9 +110,9 @@ SmoothStep — Edge0: 0.0, Edge1: 1.0 (full-range S-curve)
 
 ---
 
-## Threshold
+## Manual Archetype: Threshold
 
-A hard binary step. Outputs 0 below the threshold, 1 at or above it. No smooth blending: pure on/off.
+There is no dedicated `Curve:Threshold` node in the active registry on this branch. Recreate this with `Curve:Manual` when you need a hard binary step: 0 below the threshold, 1 at or above it, with no smooth blending.
 
 ```curve
 Threshold — 0.3 (everything above 0.3 → 1)
@@ -128,9 +128,9 @@ Threshold — 0.7 (only the top 30% → 1)
 
 ---
 
-## StepFunction
+## Manual Archetype: StepFunction
 
-Quantizes the input into discrete steps. Each step is a flat band of equal width.
+There is no dedicated `Curve:StepFunction` node in the active registry on this branch. Recreate this with `Curve:Manual` when you want to quantize the input into discrete flat bands.
 
 ```curve
 StepFunction — Steps: 2 (two bands)
@@ -201,9 +201,9 @@ Clamp — Min: 0.0, Max: 0.5 (cut off upper half)
 
 ---
 
-## LinearRemap
+## Manual Archetype: LinearRemap
 
-Maps values from one range to another. Input in `SourceRange` → output in `TargetRange`. Values outside the source range are extrapolated linearly.
+There is no dedicated `Curve:LinearRemap` node in the active registry on this branch. Recreate this with `Curve:Manual` when you need a custom remap curve, or use density-side `Normalizer` / explicit scale-plus-offset math when you want a simple linear range conversion.
 
 ### What Min and Max do in both ranges
 
@@ -270,16 +270,16 @@ This creates an "S-shaped" falloff with a sharper outer edge than inner — usef
 Curves are most powerful when chained. Common patterns:
 
 ### Sharpen a noise mask
-`SimplexNoise2D` → `Not` → `Power(Exponent: 3)` → dense peaks, sharp cutoff
+`SimplexNoise2D` → `Curve:Manual` (power-like inversion profile) → dense peaks, sharp cutoff
 
 ### Remap noise to height
-`SimplexNoise2D` → `LinearRemap(Source: -1→1, Target: 80→140)` → height map
+`SimplexNoise2D` → `Normalizer` or `Curve:Manual` → height map
 
 ### Create a material band
-`YValue` → `LinearRemap` → `SmoothStep(Edge0: 0.4, Edge1: 0.6)` → blended band at a specific elevation
+`YValue` → `Normalizer` → `Curve:Manual` (smooth-step-like band) → blended band at a specific elevation
 
 ### Create terraced cliffs
-Heightmap → `StepFunction(Steps: 6)` → `Sum` with terrain density → stepped terrain
+Heightmap → `Curve:Manual` (staircase profile) → `Sum` with terrain density → stepped terrain
 
 ---
 
@@ -289,13 +289,13 @@ Heightmap → `StepFunction(Steps: 6)` → `Sum` with terrain density → steppe
 |---|---|
 | **Manual** | Any custom shape |
 | **Constant** | Fixed numeric value |
-| **Power** | Ease in/out, sharpen falloffs |
-| **SmoothStep** | Smooth blend between two levels |
-| **Threshold** | Hard on/off mask |
-| **StepFunction** | Terraced/quantized terrain |
+| **Power-like manual curve** | Ease in/out, sharpen falloffs |
+| **Smooth-step-like manual curve** | Smooth blend between two levels |
+| **Threshold-like manual curve** | Hard on/off mask |
+| **Step-function-like manual curve** | Terraced/quantized terrain |
 | **DistanceExponential** | Island/feature falloff from center |
 | **Clamp** | Cap extremes, cut negatives |
-| **LinearRemap** | Rescale from one range to another |
+| **Linear-remap-like manual curve** | Rescale from one range to another |
 | **Inverter** | Negate (`-x`), core of height formula |
 | **Not** | Flip a mask (`1 - x`) |
 | **DistanceS** | Complex dual-rate falloff |

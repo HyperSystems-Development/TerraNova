@@ -1322,7 +1322,7 @@ Create a new biome file (e.g., `StormIslandsBiome.json`) and split the noise ran
 |------|-------------|----------|
 | `Mix` | Interpolates between two inputs using a factor | Smooth transitions between terrain types |
 | `CurveMapper` | Applies a manual curve (`[{ In: x, Out: y }]` points) to reshape values | Fine-tune island edge falloff profiles |
-| `SimplexRidgeNoise2D` | Ridge noise (inverted simplex) | Mountain ridges on island surfaces |
+| `Pow` | Raises the input to an exponent while preserving sign | Sharpen island masks or make cliff falloffs more dramatic |
 | `Normalizer` | Remaps value from one range (`FromMin`/`FromMax`) to another (`ToMin`/`ToMax`) | Converting noise ranges for specific uses |
 | `Exported` / `Imported` | Name a density for reuse elsewhere in the biome | Share terrain calculations between materials and props |
 | `SimpleHorizontal` | Applies a material within a Y range | Height-based material bands (e.g., snow above Y=140) |

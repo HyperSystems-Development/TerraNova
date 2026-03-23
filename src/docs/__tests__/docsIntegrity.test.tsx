@@ -7,6 +7,8 @@ import { describe, expect, it } from "vitest";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
+import { jsonToGraph } from "@/utils/jsonToGraph";
+import { isLegacyTypeKey } from "@/nodes/shared/legacyTypes";
 
 type DocRecord = {
   relPath: string;
@@ -34,12 +36,20 @@ type FenceIssue = {
   message: string;
 };
 
+type SnippetTypeIssue = {
+  file: string;
+  label: string;
+  type: string;
+  reason: "legacy" | "unregistered";
+};
+
 type ResolvedDocLink = {
   slug: string;
   anchor?: string;
 } | null;
 
 const DOCS_ROOT = path.join(process.cwd(), "src", "docs");
+const NODES_INDEX = path.join(process.cwd(), "src", "nodes", "index.ts");
 
 function listMarkdownFiles(dir: string): string[] {
   const files: string[] = [];
@@ -121,6 +131,24 @@ function collectDocs(): DocRecord[] {
       headingIds: extractHeadingIds(text),
     };
   });
+}
+
+function collectActiveNodeTypes(): Set<string> {
+  const nodeIndex = fs.readFileSync(NODES_INDEX, "utf8");
+  const startToken = "export const nodeTypes: Record<string, ComponentType<any>> = {";
+  const start = nodeIndex.indexOf(startToken);
+  const end = nodeIndex.indexOf("\n};", start);
+  if (start < 0 || end < 0) {
+    throw new Error("Could not locate nodeTypes registry in src/nodes/index.ts");
+  }
+
+  const body = nodeIndex.slice(start + startToken.length, end);
+  const types = new Set<string>();
+  for (const match of body.matchAll(/^\s*(?:"([^"]+)"|([A-Za-z0-9_]+))\s*:/gm)) {
+    const type = match[1] ?? match[2];
+    if (type) types.add(type);
+  }
+  return types;
 }
 
 function collectInternalLinkIssues(docs: DocRecord[]): LinkIssue[] {
@@ -243,8 +271,46 @@ function collectFenceIssues(docs: DocRecord[]): FenceIssue[] {
   );
 }
 
+function collectSnippetTypeIssues(docs: DocRecord[], activeNodeTypes: Set<string>): SnippetTypeIssue[] {
+  const issues: SnippetTypeIssue[] = [];
+
+  for (const doc of docs) {
+    for (const match of doc.text.matchAll(/```snippet\r?\n([\s\S]*?)\r?\n```/g)) {
+      const body = match[1].trim();
+      const lines = body.split(/\r?\n/);
+      const hasHeader =
+        !!lines[0] &&
+        !lines[0].trim().startsWith("{") &&
+        !lines[0].trim().startsWith("[");
+      const label = hasHeader ? lines[0].trim() : doc.slug;
+      const snippetJson = hasHeader ? lines.slice(1).join("\n").trim() : body;
+      const parsed = JSON.parse(snippetJson) as Record<string, unknown>;
+      const { nodes } = jsonToGraph(parsed);
+
+      for (const node of nodes) {
+        const type = String(node.type ?? "");
+        if (isLegacyTypeKey(type)) {
+          issues.push({ file: doc.relPath, label, type, reason: "legacy" });
+          continue;
+        }
+        if (!activeNodeTypes.has(type)) {
+          issues.push({ file: doc.relPath, label, type, reason: "unregistered" });
+        }
+      }
+    }
+  }
+
+  return issues.sort((a, b) =>
+    a.file.localeCompare(b.file) ||
+    a.label.localeCompare(b.label) ||
+    a.type.localeCompare(b.type) ||
+    a.reason.localeCompare(b.reason),
+  );
+}
+
 describe("docs content integrity", () => {
   const docs = collectDocs();
+  const activeNodeTypes = collectActiveNodeTypes();
 
   it("keeps internal markdown links pointed at real docs pages", () => {
     expect(collectInternalLinkIssues(docs)).toEqual([]);
@@ -256,5 +322,9 @@ describe("docs content integrity", () => {
 
   it("keeps custom docs fences parseable", () => {
     expect(collectFenceIssues(docs)).toEqual([]);
+  });
+
+  it("keeps runnable snippet fences on active, non-legacy node types", () => {
+    expect(collectSnippetTypeIssues(docs, activeNodeTypes)).toEqual([]);
   });
 });
