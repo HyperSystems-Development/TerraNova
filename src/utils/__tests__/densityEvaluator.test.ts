@@ -1430,6 +1430,26 @@ describe("GradientWarp", () => {
       expect(result.values[i]).toBe(5);
     }
   });
+
+  it("uses forward differences with correct magnitude", () => {
+    // CoordinateX -> GradientWarp (both WarpSource and Input) -> root
+    // f(x) = x, so base = x, fwdX = x + slopeRange
+    // deltaX = (x + slopeRange) - x = slopeRange
+    // gradient_x = slopeRange / slopeRange = 1.0
+    // warped_x = x + warpFactor * 1.0 = x + warpFactor
+    // Output = CoordinateX at warped position = x + warpFactor
+    // At x=5 with warpFactor=1, slopeRange=1: result should be 6
+    const nodes = [
+      makeNode("cx", "CoordinateX"),
+      makeNode("gw", "GradientWarp", { WarpFactor: 1, SlopeRange: 1, Is2D: true }),
+    ];
+    const edges = [
+      makeEdge("cx", "gw", "Input"),
+      makeEdge("cx", "gw", "WarpSource"),
+    ];
+    const val = evalAt(nodes, edges, 5, 0, 0, "gw");
+    expect(val).toBeCloseTo(6, 5);
+  });
 });
 
 /* ── SwitchState ─────────────────────────────────────────────────── */

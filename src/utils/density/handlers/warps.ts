@@ -21,22 +21,20 @@ const handleGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const slopeRange = Number(fields.SlopeRange ?? fields.SampleRange ?? 1.0);
   const is2D = fields.Is2D === true;
 
-  // V2: central finite differences — sample at ± slopeRange from origin.
-  // gradient ≈ (f(x+e) - f(x-e)) / (2e) for each axis.
-  const invRange = 1.0 / (2.0 * slopeRange);
+  // V2: forward finite differences — single base evaluation, then forward samples.
+  // gradient ≈ (f(x+e) - f(x)) / e for each axis.
+  const base = ctx.getInput(inputs, "WarpSource", x, y, z);
+  const invRange = 1.0 / slopeRange;
 
-  const deltaX = ctx.getInput(inputs, "WarpSource", x + slopeRange, y, z)
-               - ctx.getInput(inputs, "WarpSource", x - slopeRange, y, z);
-  const deltaZ = ctx.getInput(inputs, "WarpSource", x, y, z + slopeRange)
-               - ctx.getInput(inputs, "WarpSource", x, y, z - slopeRange);
+  const deltaX = ctx.getInput(inputs, "WarpSource", x + slopeRange, y, z) - base;
+  const deltaZ = ctx.getInput(inputs, "WarpSource", x, y, z + slopeRange) - base;
 
   let wx = x + warpFactor * deltaX * invRange;
   let wy = y;
   let wz = z + warpFactor * deltaZ * invRange;
 
   if (!is2D) {
-    const deltaY = ctx.getInput(inputs, "WarpSource", x, y + slopeRange, z)
-                 - ctx.getInput(inputs, "WarpSource", x, y - slopeRange, z);
+    const deltaY = ctx.getInput(inputs, "WarpSource", x, y + slopeRange, z) - base;
     wy = y + warpFactor * deltaY * invRange;
   }
 
