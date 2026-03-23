@@ -1,4 +1,4 @@
-import { startTransition, useDeferredValue, useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { startTransition, useDeferredValue, useMemo, useState, useEffect, useCallback, useRef, memo } from "react";
 import "highlight.js/styles/atom-one-dark.css";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -523,7 +523,7 @@ const TAG_STYLES: Record<string, { label: string; className: string }> = {
   experimental: { label: "⚗",           className: "text-orange-400 border-orange-400/30 bg-orange-400/10" },
 };
 
-function DocTreeNodeItem({
+const DocTreeNodeItem = memo(function DocTreeNodeItem({
   node,
   selectedSlug,
   onSelect,
@@ -641,7 +641,7 @@ function DocTreeNodeItem({
       )}
     </div>
   );
-}
+});
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -1124,6 +1124,11 @@ export function DocsPanel() {
     (next?: boolean) => {
       setSidebarCollapsed((current) => (typeof next === "boolean" ? next : !current));
     },
+    [],
+  );
+
+  const toggleFolderCollapsed = useCallback(
+    (slug: string) => setCollapsedFolders((prev) => ({ ...prev, [slug]: !prev[slug] })),
     [],
   );
 
@@ -2151,9 +2156,7 @@ export function DocsPanel() {
                   onSelect={loadDoc}
                   onResolveFolderSlug={resolveFolderSlug}
                   collapsed={collapsedFolders}
-                  onToggleCollapse={(slug) =>
-                    setCollapsedFolders((prev) => ({ ...prev, [slug]: !prev[slug] }))
-                  }
+                  onToggleCollapse={toggleFolderCollapsed}
                   activeItemRef={activeItemRef}
                   settings={settings}
                 />
