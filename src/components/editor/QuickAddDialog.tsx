@@ -3,9 +3,8 @@ import { useReactFlow } from "@xyflow/react";
 import { ALL_DEFAULTS, type CategoryDefaultsEntry } from "@/schema/defaults";
 import { SNIPPET_CATALOG, placeSnippet, type SnippetDefinition } from "@/schema/snippets";
 import { AssetCategory, CATEGORY_COLORS } from "@/schema/types";
-import { HANDLE_REGISTRY } from "@/nodes/handleRegistry";
+import { getHandles, findCompatibleInterjectHandles } from "@/nodes/handleRegistry";
 import { BlockIcon } from "@/components/properties/BlockIcon";
-import { findCompatibleInterjectHandles } from "@/nodes/handleRegistry";
 import { useEditorStore } from "@/stores/editorStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useProjectStore } from "@/stores/projectStore";
@@ -112,8 +111,8 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
   const compatibleCategories = useMemo(() => {
     if (!pendingConnection) return null;
     const { nodeType, handleId } = pendingConnection;
-    const defs = HANDLE_REGISTRY[nodeType];
-    if (!defs) return null;
+    const defs = getHandles(nodeType);
+    if (!defs.length) return null;
     const handleDef = defs.find((h) => h.id === handleId);
     if (!handleDef) return null;
     // Terrain/prop awareness: prioritize block for terrain, plant for prop
@@ -240,8 +239,8 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
 
       // Auto-connect if pending connection
       if (pendingConnection) {
-        const handles = HANDLE_REGISTRY[nodeTypeKey];
-        if (handles) {
+        const handles = getHandles(nodeTypeKey);
+        if (handles.length) {
           const needsTarget = pendingConnection.handleType === "source";
           const compatHandle = handles.find(
             (h) =>

@@ -4,6 +4,7 @@ import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
 import { materialInput, materialOutput, densityInput } from "@/nodes/shared/handles";
 import { safeDisplay } from "@/nodes/shared/displayUtils";
+import { SchemaFields } from "@/nodes/shared/SchemaFields";
 import { useCompoundHandles } from "@/hooks/useCompoundHandles";
 
 /* ── Hoisted static handle arrays ──────────────────────────────────── */
@@ -51,10 +52,7 @@ export const ConstantMaterialNode = memo(function ConstantMaterialNode(props: Ty
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={HANDLES_MAT_OUT}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Material</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Material, "stone")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -150,10 +148,7 @@ export const ConditionalMaterialNode = memo(function ConditionalMaterialNode(pro
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_CONDITIONAL}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Threshold</span>
-        <span>{safeDisplay(data.fields.Threshold, 0.5)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -172,19 +167,13 @@ export const BlendMaterialNode = memo(function BlendMaterialNode(props: TypedNod
 
 export const HeightGradientMaterialNode = memo(function HeightGradientMaterialNode(props: TypedNodeProps) {
   const data = props.data;
-  const range = data.fields.Range as { Min?: number; Max?: number } | undefined;
   return (
     <BaseNode
       {...props}
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_HEIGHT_GRADIENT}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Range</span>
-        <span>
-          {range ? `[${range.Min ?? 0}, ${range.Max ?? 256}]` : "—"}
-        </span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -198,16 +187,7 @@ export const NoiseSelectorMaterialNode = memo(function NoiseSelectorMaterialNode
       category={AssetCategory.MaterialProvider}
       handles={handles}
     >
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Freq</span>
-          <span>{safeDisplay(data.fields.Frequency, 0.01)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Threshold</span>
-          <span>{safeDisplay(data.fields.Threshold, 0.5)}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -216,10 +196,7 @@ export const SolidMaterialNode = memo(function SolidMaterialNode(props: TypedNod
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={HANDLES_MAT_OUT}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Material</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Material, "stone")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -264,10 +241,7 @@ export const ClusterMaterialNode = memo(function ClusterMaterialNode(props: Type
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_MAT_IN_OUT}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Radius</span>
-        <span>{safeDisplay(data.fields.Radius, 3)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -276,10 +250,7 @@ export const ImportedMaterialNode = memo(function ImportedMaterialNode(props: Ty
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={HANDLES_MAT_OUT}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -292,10 +263,7 @@ export const ExportedMaterialNode = memo(function ExportedMaterialNode(props: Ty
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_MAT_IN_OUT}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -338,10 +306,7 @@ export const ConstantThicknessNode = memo(function ConstantThicknessNode(props: 
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_MAT_MATERIAL_OUT}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Thickness</span>
-        <span>{safeDisplay(data.fields.Thickness, 0)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -366,43 +331,20 @@ export const RangeThicknessNode = memo(function RangeThicknessNode(props: TypedN
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_MAT_MATERIAL_OUT}
     >
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Range</span>
-          <span>{safeDisplay(data.fields.RangeMin, 0)}–{safeDisplay(data.fields.RangeMax, 0)}</span>
-        </div>
-        {data.fields.Seed != null ? (
-          <div className="flex justify-between">
-            <span className="text-tn-text-muted">Seed</span>
-            <span className="truncate max-w-[80px]">{data.fields.Seed}</span>
-          </div>
-        ) : null}
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
 
 export const WeightedThicknessNode = memo(function WeightedThicknessNode(props: TypedNodeProps) {
   const data = props.data;
-  const entries = (data.fields.PossibleThicknesses as Array<{ Weight: number; Thickness: number }>) ?? [];
   return (
     <BaseNode
       {...props}
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_MAT_MATERIAL_OUT}
     >
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Entries</span>
-          <span>{entries.length}</span>
-        </div>
-        {data.fields.Seed != null ? (
-          <div className="flex justify-between">
-            <span className="text-tn-text-muted">Seed</span>
-            <span className="truncate max-w-[80px]">{data.fields.Seed}</span>
-          </div>
-        ) : null}
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });

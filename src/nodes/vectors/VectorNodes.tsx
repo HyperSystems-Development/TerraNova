@@ -2,7 +2,7 @@ import { memo } from "react";
 import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
 import { vectorInput, vectorOutput, densityInput } from "@/nodes/shared/handles";
-import { safeDisplay } from "@/nodes/shared/displayUtils";
+import { SchemaFields } from "@/nodes/shared/SchemaFields";
 
 // ── Hoisted handle arrays ───────────────────────────────────────────────
 const VECTOR_OUTPUT_HANDLES = [vectorOutput()];
@@ -10,22 +10,11 @@ const DENSITY_GRADIENT_VECTOR_HANDLES = [densityInput("DensityFunction", "Densit
 const CACHE_VECTOR_HANDLES = [vectorInput("VectorProvider", "Vector"), vectorOutput()];
 const EXPORTED_VECTOR_HANDLES = [vectorInput("Input", "Input"), vectorOutput()];
 
-function formatVec3(v: unknown): string {
-  if (v && typeof v === "object" && "x" in (v as Record<string, unknown>)) {
-    const vec = v as { x: number; y: number; z: number };
-    return `(${vec.x}, ${vec.y}, ${vec.z})`;
-  }
-  return "—";
-}
-
 export const ConstantVectorNode = memo(function ConstantVectorNode(props: TypedNodeProps) {
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.VectorProvider} handles={VECTOR_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Value</span>
-        <span>{formatVec3(data.fields.Value)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -62,10 +51,7 @@ export const ExportedVectorNode = memo(function ExportedVectorNode(props: TypedN
       category={AssetCategory.VectorProvider}
       handles={EXPORTED_VECTOR_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -74,10 +60,7 @@ export const ImportedVectorNode = memo(function ImportedVectorNode(props: TypedN
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.VectorProvider} handles={VECTOR_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });

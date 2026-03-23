@@ -47,70 +47,63 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   // DENSITY — Core Noise
   // ═══════════════════════════════════════════════════════════════════════════
   SimplexNoise2D: {
-    Frequency: {
-      short: "Controls feature size. Lower values produce larger, smoother features; higher values create smaller, more detailed noise.",
-      extended: "Frequency determines the spatial rate of change of the noise function. A Frequency of 0.01 means one full noise cycle spans ~100 blocks. In Hytale mode this field is displayed as Scale (1/Frequency) — a Scale of 100 means the same thing. Common values: 0.001–0.005 for terrain base shape, 0.01–0.05 for surface detail, 0.1+ for fine grain texture.",
-    },
-    Amplitude: {
-      short: "Scales the output range to [-Amplitude, +Amplitude]. Larger values create more extreme density differences.",
-      extended: "Amplitude controls the vertical extent of the noise output. An Amplitude of 1.0 outputs values in [-1, 1]. For terrain height, this maps directly to block height variation — an Amplitude of 30 with a gradient creates hills up to 30 blocks tall. The final terrain shape depends on how this amplitude interacts with downstream nodes like Normalizer or Clamp.",
+    Scale: {
+      short: "Controls feature size. Higher values produce larger, smoother features; lower values create smaller, more detailed noise.",
+      extended: "Scale determines the spatial wavelength of the noise function. A Scale of 100 means one full noise cycle spans ~100 blocks. Common values: 200–1000 for terrain base shape, 20–100 for surface detail, 1–10 for fine grain texture.",
     },
     Seed: "Random seed for noise generation. Different seeds produce different patterns; same seed always produces the same result.",
     Octaves: {
       short: "Number of noise layers to combine. More octaves add finer detail but increase computation cost.",
-      extended: "Each octave adds a layer of noise at increasingly higher frequency and lower amplitude (controlled by Lacunarity and Gain). 1 octave = smooth rolling hills. 4 octaves = natural-looking terrain with both large features and small details. 6+ octaves = very detailed but expensive. The output range grows with more octaves: for Gain=0.5, the theoretical max is Amplitude * (1 + 0.5 + 0.25 + ...) ≈ Amplitude * 2.",
+      extended: "Each octave adds a layer of noise at increasingly higher frequency and lower amplitude (controlled by Lacunarity and Persistence). 1 octave = smooth rolling hills. 4 octaves = natural-looking terrain with both large features and small details. 6+ octaves = very detailed but expensive.",
     },
     Lacunarity: "Frequency multiplier between successive octaves. Values > 1 make each octave finer. Default 2.0 doubles frequency per octave.",
-    Gain: {
+    Persistence: {
       short: "Amplitude multiplier between successive octaves. Values < 1 (typical: 0.5) make each octave contribute less, creating a natural falloff.",
-      extended: "Gain (also called Persistence in some systems) controls how much each successive octave contributes. At Gain=0.5 (default), each octave has half the amplitude of the previous one, producing natural-looking fractal detail. Higher Gain (e.g. 0.7) makes fine details more prominent. Lower Gain (e.g. 0.3) keeps only the broad shape. In Hytale mode this field may be displayed as Persistence.",
+      extended: "Persistence controls how much each successive octave contributes. At Persistence=0.5 (default), each octave has half the amplitude of the previous one, producing natural-looking fractal detail. Higher Persistence (e.g. 0.7) makes fine details more prominent. Lower Persistence (e.g. 0.3) keeps only the broad shape.",
     },
   },
   SimplexNoise3D: {
-    Frequency: "Controls feature size in 3D. Lower values produce larger, smoother features; higher values create smaller, more detailed noise.",
-    Amplitude: "Scales the output range to [-Amplitude, +Amplitude]. Larger values create more extreme density differences.",
+    Scale: "Controls feature size in 3D. Higher values produce larger, smoother features; lower values create smaller, more detailed noise.",
     Seed: "Random seed for noise generation. Different seeds produce different patterns; same seed always produces the same result.",
     Octaves: "Number of noise layers to combine. More octaves add finer detail but increase computation cost.",
     Lacunarity: "Frequency multiplier between successive octaves. Values > 1 make each octave finer. Default 2.0 doubles frequency per octave.",
-    Gain: "Amplitude multiplier between successive octaves. Values < 1 (typical: 0.5) make each octave contribute less.",
+    Persistence: "Amplitude multiplier between successive octaves. Values < 1 (typical: 0.5) make each octave contribute less.",
   },
   SimplexRidgeNoise2D: {
-    Frequency: "Controls feature size. Lower values produce wider ridges spaced further apart; higher values create tighter, more frequent ridges.",
-    Amplitude: "Scales the ridge peaks. Output range is [0, Amplitude] since negative values are folded positive.",
+    Scale: "Controls feature size. Higher values produce wider ridges spaced further apart; lower values create tighter, more frequent ridges.",
     Seed: "Random seed for noise generation. Different seeds produce different ridge patterns.",
     Octaves: "Number of noise layers. More octaves add finer ridge detail.",
   },
   SimplexRidgeNoise3D: {
-    Frequency: "Controls feature size in 3D. Lower values produce wider ridges; higher values create tighter ridges.",
-    Amplitude: "Scales the ridge peaks. Output range is [0, Amplitude] since negative values are folded positive.",
+    Scale: "Controls feature size in 3D. Higher values produce wider ridges; lower values create tighter ridges.",
     Seed: "Random seed for noise generation. Different seeds produce different 3D ridge patterns.",
     Octaves: "Number of noise layers. More octaves add finer ridge detail.",
   },
   VoronoiNoise2D: {
-    Frequency: "Controls cell size. Lower values create larger cells; higher values create smaller, more numerous cells.",
+    Scale: "Controls cell size. Higher values create larger cells; lower values create smaller, more numerous cells.",
     Seed: "Random seed for cell point generation. Different seeds rearrange the cell pattern.",
   },
   VoronoiNoise3D: {
-    Frequency: "Controls cell size in 3D. Lower values create larger cells; higher values create smaller, more numerous cells.",
+    Scale: "Controls cell size in 3D. Higher values create larger cells; lower values create smaller, more numerous cells.",
     Seed: "Random seed for cell point generation. Different seeds rearrange the 3D cell pattern.",
   },
   FractalNoise2D: {
-    Frequency: "Base frequency of the first octave. Controls overall feature size.",
+    Scale: "Base scale of the first octave. Controls overall feature size.",
     Octaves: "Number of noise layers. Each octave adds finer detail at increasing frequency.",
     Lacunarity: "Frequency multiplier between octaves. Default 2.0 doubles frequency each octave.",
-    Gain: "Amplitude multiplier between octaves. Default 0.5 halves amplitude each octave for natural falloff.",
+    Persistence: "Amplitude multiplier between octaves. Default 0.5 halves amplitude each octave for natural falloff.",
   },
   FractalNoise3D: {
-    Frequency: "Base frequency of the first octave in 3D. Controls overall feature size.",
+    Scale: "Base scale of the first octave in 3D. Controls overall feature size.",
     Octaves: "Number of noise layers. Each octave adds finer detail at increasing frequency.",
     Lacunarity: "Frequency multiplier between octaves. Default 2.0 doubles frequency each octave.",
-    Gain: "Amplitude multiplier between octaves. Default 0.5 halves amplitude each octave for natural falloff.",
+    Persistence: "Amplitude multiplier between octaves. Default 0.5 halves amplitude each octave for natural falloff.",
   },
   DomainWarp2D: {
-    Amplitude: "How far sample positions are displaced. Higher values create more dramatic coordinate distortion.",
+    WarpFactor: "How far sample positions are displaced. Higher values create more dramatic coordinate distortion.",
   },
   DomainWarp3D: {
-    Amplitude: "How far sample positions are displaced in 3D. Higher values create more dramatic coordinate distortion.",
+    WarpFactor: "How far sample positions are displaced in 3D. Higher values create more dramatic coordinate distortion.",
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -145,13 +138,12 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   // DENSITY — Smooth Operations
   // ═══════════════════════════════════════════════════════════════════════════
   SmoothClamp: {
-    Min: "Minimum allowed output value (soft boundary). The transition near Min is smoothed by the Smoothness factor.",
-    Max: "Maximum allowed output value (soft boundary). The transition near Max is smoothed by the Smoothness factor.",
-    Smoothness: "Controls how gradual the clamping transition is. Higher values create softer edges; 0 is equivalent to a hard clamp.",
+    WallA: "Upper clamp boundary (soft). The transition near WallA is smoothed by the curve function.",
+    WallB: "Lower clamp boundary (soft). The transition near WallB is smoothed by the curve function.",
   },
   SmoothFloor: {
-    Threshold: "The floor value below which the input is smoothly clamped. Acts as a soft lower bound.",
-    Smoothness: "Controls how gradual the floor transition is. Higher values create a softer curve near the threshold.",
+    WallA: "The floor boundary below which the input is smoothly clamped. Acts as a soft lower bound.",
+    WallB: "Controls the smoothing range around the floor boundary.",
   },
   SmoothMin: {
     Smoothness: "Controls blending radius between the two inputs. Higher values create a smoother, more gradual minimum. 0 is equivalent to hard min.",
@@ -171,7 +163,7 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     Distance: "When true, outputs the signed distance from the base height (y - baseY). When false, outputs the base height value itself.",
   },
   PositionsCellNoise: {
-    Frequency: "Controls the cell size of the noise pattern. Lower values create larger cells.",
+    Scale: "Controls the cell size of the noise pattern. Higher values create larger cells.",
     Seed: "Random seed for noise generation. Different seeds produce different cell patterns.",
   },
 
@@ -179,8 +171,8 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   // DENSITY — Additional Operations
   // ═══════════════════════════════════════════════════════════════════════════
   SmoothCeiling: {
-    Threshold: "The ceiling value above which the input is smoothly clamped. Acts as a soft upper bound.",
-    Smoothness: "Controls how gradual the ceiling transition is. Higher values create a softer curve near the threshold.",
+    WallA: "The ceiling boundary above which the input is smoothly clamped. Acts as a soft upper bound.",
+    WallB: "Controls the smoothing range around the ceiling boundary.",
   },
   Gradient: {
     Axis: "Direction along which to compute the directional derivative (default [0,1,0] = Y axis).",
@@ -198,7 +190,7 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     State: "The integer state value output by this node. Connect to a Switch node's selector to control which input is selected.",
   },
   Positions3D: {
-    Frequency: "Controls the cell size of the 3D noise pattern. Lower values create larger cells.",
+    Scale: "Controls the cell size of the 3D noise pattern. Higher values create larger cells.",
     Seed: "Random seed for noise generation. Different seeds produce different cell patterns.",
   },
   PositionsPinch: {
@@ -208,7 +200,10 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     Angle: "Twist angle in degrees. Positions are rotated around the Y axis proportionally to their Y coordinate.",
   },
   GradientWarp: {
-    WarpScale: "How far sample positions are displaced along the gradient. Higher values create more dramatic distortion.",
+    SampleRange: "Finite-difference step size for estimating the gradient. Larger values smooth out noise.",
+    WarpFactor: "How far sample positions are displaced along the gradient. Higher values create more dramatic distortion.",
+    "2D": "Whether to restrict warping to the XZ plane.",
+    YFor2D: "Fixed Y level for 2D gradient sampling.",
   },
   FastGradientWarp: {
     WarpFactor: "Displacement magnitude multiplier. Higher values create stronger warping distortion.",
@@ -220,7 +215,7 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     Is2D: "When true, warping is computed in 2D (XZ plane only), ignoring the Y coordinate.",
   },
   CellWallDistance: {
-    Frequency: "Controls the cell size. Lower values create larger cells with more distant walls.",
+    Scale: "Controls the cell size. Higher values create larger cells with more distant walls.",
     Seed: "Random seed for cell generation. Different seeds produce different cell layouts.",
   },
 
@@ -228,12 +223,12 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   // DENSITY — Clamping & Range
   // ═══════════════════════════════════════════════════════════════════════════
   Clamp: {
-    Min: "Minimum allowed output value. Any input below this is raised to Min.",
-    Max: "Maximum allowed output value. Any input above this is lowered to Max.",
+    WallA: "Upper clamp boundary. Any input above this is lowered to WallA.",
+    WallB: "Lower clamp boundary. Any input below this is raised to WallB.",
   },
   ClampToIndex: {
-    Min: "Minimum index value (typically 0). Input values below this are clamped up.",
-    Max: "Maximum index value (typically 255). Input values above this are clamped down.",
+    WallA: "Maximum index value (typically 255). Input values above this are clamped down.",
+    WallB: "Minimum index value (typically 0). Input values below this are clamped up.",
   },
   Normalizer: {
     SourceRange: "The expected input range {Min, Max}. Values in this range are mapped to TargetRange.",

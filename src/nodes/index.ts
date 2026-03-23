@@ -3,25 +3,21 @@ import type { ComponentType } from "react";
 // ── Density nodes ──────────────────────────────────────────────────────
 import {
   SimplexNoise2DNode, ConstantNode, SumNode, ClampNode,
-  SimplexNoise3DNode, SimplexRidgeNoise2DNode, SimplexRidgeNoise3DNode,
+  SimplexNoise3DNode,
   VoronoiNoise2DNode, VoronoiNoise3DNode,
-  SumSelfNode, WeightedSumNode, ProductNode, NegateNode, AbsNode,
-  SquareRootNode, CubeRootNode, SquareNode, CubeMathNode, InverseNode,
-  ModuloNode, ImportedValueNode, OffsetConstantNode,
-  ClampToIndexNode, NormalizerNode, DoubleNormalizerNode, RangeChoiceNode,
-  LinearTransformNode, InterpolateNode,
+  ProductNode, NegateNode, AbsNode,
+  SquareRootNode, ImportedValueNode, OffsetConstantNode,
+  NormalizerNode,
+  LinearTransformNode,
   CoordinateXNode, CoordinateYNode, CoordinateZNode,
-  DistanceFromOriginNode, DistanceFromAxisNode, DistanceFromPointNode,
-  AngleFromOriginNode, AngleFromPointNode, HeightAboveSurfaceNode, AngleNode,
-  CurveFunctionNode, SplineFunctionNode, FlatCacheNode,
-  ConditionalNode, SwitchNode, BlendNode, BlendCurveNode,
-  MinFunctionNode, MaxFunctionNode, AverageFunctionNode, MultiMixNode,
-  CacheOnceNode, WrapNode, TranslatedPositionNode, ScaledPositionNode,
-  RotatedPositionNode, MirroredPositionNode, QuantizedPositionNode,
-  SurfaceDensityNode, TerrainBooleanNode, TerrainMaskNode, GradientDensityNode,
-  BeardDensityNode, ColumnDensityNode, CaveDensityNode,
-  FractalNoise2DNode, FractalNoise3DNode, DomainWarp2DNode, DomainWarp3DNode,
-  DebugNode, YGradientNode, PassthroughNode, ZeroNode, OneNode, ExportedDensityNode,
+  AngleNode,
+  CurveFunctionNode,
+  SwitchNode, BlendNode, BlendCurveNode,
+  MinFunctionNode, MaxFunctionNode, MultiMixNode,
+  CacheOnceNode, TranslatedPositionNode, ScaledPositionNode,
+  RotatedPositionNode,
+  DomainWarp2DNode, DomainWarp3DNode,
+  ExportedDensityNode,
   AmplitudeConstantNode, PowNode, SmoothClampNode, FloorDensityNode,
   CeilingDensityNode, SmoothFloorNode, SmoothMinNode, SmoothMaxNode,
   AnchorNode, YOverrideNode, BaseHeightNode, OffsetDensityNode,
@@ -38,11 +34,10 @@ import {
 // ── Curve nodes ────────────────────────────────────────────────────────
 import {
   ManualCurveNode, ConstantCurveNode, DistanceExponentialCurveNode,
-  DistanceSCurveNode, NoiseCurveNode, StepFunctionCurveNode,
-  ThresholdCurveNode, SmoothStepCurveNode, PowerCurveNode,
+  DistanceSCurveNode,
   MultiplierCurveNode, SumCurveNode, InverterCurveNode, NotCurveNode,
-  ClampCurveNode, LinearRemapCurveNode, CacheCurveNode, BlendCurveNodeC,
-  ImportedCurveNode, ExportedCurveNode,
+  ClampCurveNode,
+  ImportedCurveNode,
   FloorCurveNode, CeilingCurveNode, SmoothFloorCurveNode, SmoothCeilingCurveNode,
   SmoothClampCurveNode, MinCurveNode, MaxCurveNode, SmoothMinCurveNode, SmoothMaxCurveNode,
 } from "./curves";
@@ -50,10 +45,7 @@ import {
 // ── Material nodes ─────────────────────────────────────────────────────
 import {
   ConstantMaterialNode, SpaceAndDepthMaterialNode, WeightedRandomMaterialNode,
-  ConditionalMaterialNode, BlendMaterialNode, HeightGradientMaterialNode,
-  NoiseSelectorMaterialNode, SolidMaterialNode, EmptyMaterialNode,
-  SurfaceMaterialNode, CaveMaterialNode, ClusterMaterialNode,
-  ImportedMaterialNode, ExportedMaterialNode, FieldFunctionMaterialNode,
+  ImportedMaterialNode, FieldFunctionMaterialNode,
   ConstantThicknessNode, NoiseThicknessNode, RangeThicknessNode, WeightedThicknessNode,
   QueueMaterialNode, SolidityMaterialNode, TerrainDensityMaterialNode,
   SimpleHorizontalMaterialNode, DownwardDepthMaterialNode, UpwardDepthMaterialNode,
@@ -64,8 +56,7 @@ import {
 import {
   FloorPatternNode, CeilingPatternNode, WallPatternNode, SurfacePatternNode,
   BlockTypePatternNode, BlockSetPatternNode, CuboidPatternNode,
-  OffsetPatternNode, ConditionalPatternNode, BlendPatternNode,
-  UnionPatternNode, IntersectionPatternNode, ImportedPatternNode, ExportedPatternNode,
+  OffsetPatternNode, ImportedPatternNode,
   ConstantPatternNode,
   FieldFunctionPatternNode,
   AndPatternNode,
@@ -78,8 +69,7 @@ import {
   ListPositionNode, Mesh2DPositionNode, Mesh3DPositionNode,
   FieldFunctionPositionNode, OccurrencePositionNode, OffsetPositionNode,
   UnionPositionNode, SimpleHorizontalPositionNode, CachePositionNode,
-  ConditionalPositionNode, DensityBasedPositionNode, SurfaceProjectionPositionNode,
-  ImportedPositionNode, ExportedPositionNode,
+  ImportedPositionNode,
   SquareGrid2dPositionNode, SquareGrid3dPositionNode, ScalerPositionNode,
   Jitter2dPositionNode, Jitter3dPositionNode, TriangularGrid2dPositionNode,
   ClustersPositionNode, EmptyPositionNode,
@@ -89,8 +79,8 @@ import {
 // ── Prop nodes ─────────────────────────────────────────────────────────
 import {
   BoxPropNode, ColumnPropNode, ClusterPropNode, DensityPropNode,
-  PrefabPropNode, ConditionalPropNode, WeightedRandomPropNode,
-  SurfacePropNode, CavePropNode, ImportedPropNode, ExportedPropNode,
+  PrefabPropNode, WeightedRandomPropNode,
+  ImportedPropNode,
   UnionPropNode, WeightedPropNode,
   CuboidPropNode, ManualPropNode, LocatorPropNode, MaskPropNode,
   RandomRotatorPropNode, StaticRotatorPropNode, OrienterPropNode,
@@ -121,12 +111,11 @@ import {
 // ── Environment / Tint / BlockMask / Directionality nodes ──────────────
 import {
   DefaultEnvironmentNode, BiomeEnvironmentNode,
-  ImportedEnvironmentNode, ExportedEnvironmentNode,
-  ConstantTintNode, GradientTintNode, ImportedTintNode, ExportedTintNode,
+  ImportedEnvironmentNode,
+  ConstantTintNode, GradientTintNode, ImportedTintNode,
   AllBlockMaskNode, NoneBlockMaskNode, SingleBlockMaskNode,
   SetBlockMaskNode, ImportedBlockMaskNode,
-  UniformDirectionalityNode, DirectionalDirectionalityNode,
-  NormalDirectionalityNode, StaticDirectionalityNode, ImportedDirectionalityNode,
+  StaticDirectionalityNode, ImportedDirectionalityNode,
   ConstantEnvironmentNode, DensityDelimitedEnvironmentNode,
   DensityDelimitedTintNode, RandomDirectionalityNode, PatternDirectionalityNode,
 } from "./environment";
@@ -154,78 +143,54 @@ import { GenericNode } from "./GenericNode";
  * (e.g., "Curve:Constant" vs density "Constant").
  */
 export const nodeTypes: Record<string, ComponentType<any>> = {
-  // ── Density ──────────────────────────────────────────────────────────
+  // ── Density (V2 active types) ────────────────────────────────────────
   SimplexNoise2D: SimplexNoise2DNode,
   SimplexNoise3D: SimplexNoise3DNode,
-  SimplexRidgeNoise2D: SimplexRidgeNoise2DNode,
-  SimplexRidgeNoise3D: SimplexRidgeNoise3DNode,
-  VoronoiNoise2D: VoronoiNoise2DNode,
-  VoronoiNoise3D: VoronoiNoise3DNode,
+  CellNoise2D: VoronoiNoise2DNode,        // V2 name for VoronoiNoise2D
+  CellNoise3D: VoronoiNoise3DNode,        // V2 name for VoronoiNoise3D
   Sum: SumNode,
-  SumSelf: SumSelfNode,
-  WeightedSum: WeightedSumNode,
   Product: ProductNode,
+  Multiplier: ProductNode,                 // V2 name for Product
   Negate: NegateNode,
+  Inverter: NegateNode,                    // V2 name for Negate
   Abs: AbsNode,
   SquareRoot: SquareRootNode,
-  CubeRoot: CubeRootNode,
-  Square: SquareNode,
-  CubeMath: CubeMathNode,
-  Inverse: InverseNode,
-  Modulo: ModuloNode,
+  Sqrt: SquareRootNode,                    // V2 name for SquareRoot
   Constant: ConstantNode,
   ImportedValue: ImportedValueNode,
+  Imported: ImportedValueNode,             // V2 name for ImportedValue
   Clamp: ClampNode,
-  ClampToIndex: ClampToIndexNode,
   Normalizer: NormalizerNode,
-  DoubleNormalizer: DoubleNormalizerNode,
-  RangeChoice: RangeChoiceNode,
   LinearTransform: LinearTransformNode,
-  Interpolate: InterpolateNode,
+  AmplitudeConstant: AmplitudeConstantNode, // V2 name for LinearTransform
   CoordinateX: CoordinateXNode,
   CoordinateY: CoordinateYNode,
   CoordinateZ: CoordinateZNode,
-  DistanceFromOrigin: DistanceFromOriginNode,
-  DistanceFromAxis: DistanceFromAxisNode,
-  DistanceFromPoint: DistanceFromPointNode,
-  AngleFromOrigin: AngleFromOriginNode,
-  AngleFromPoint: AngleFromPointNode,
-  HeightAboveSurface: HeightAboveSurfaceNode,
+  XValue: CoordinateXNode,                 // V2 name for CoordinateX
+  YValue: CoordinateYNode,                 // V2 name for CoordinateY
+  ZValue: CoordinateZNode,                 // V2 name for CoordinateZ
   CurveFunction: CurveFunctionNode,
-  SplineFunction: SplineFunctionNode,
-  FlatCache: FlatCacheNode,
-  Conditional: ConditionalNode,
+  CurveMapper: CurveFunctionNode,          // V2 name for CurveFunction
   Switch: SwitchNode,
   Blend: BlendNode,
+  Mix: BlendNode,                          // V2 name for Blend
   BlendCurve: BlendCurveNode,
+  MultiMix: MultiMixNode,                  // V2 name for BlendCurve
   MinFunction: MinFunctionNode,
+  Min: MinFunctionNode,                    // V2 name for MinFunction
   MaxFunction: MaxFunctionNode,
-  AverageFunction: AverageFunctionNode,
-  MultiMix: MultiMixNode,
+  Max: MaxFunctionNode,                    // V2 name for MaxFunction
   CacheOnce: CacheOnceNode,
-  Wrap: WrapNode,
+  Cache: CacheOnceNode,                    // V2 name for CacheOnce
   TranslatedPosition: TranslatedPositionNode,
+  Slider: TranslatedPositionNode,          // V2 name for TranslatedPosition
   ScaledPosition: ScaledPositionNode,
+  Scale: ScaledPositionNode,               // V2 name for ScaledPosition
   RotatedPosition: RotatedPositionNode,
-  MirroredPosition: MirroredPositionNode,
-  QuantizedPosition: QuantizedPositionNode,
-  SurfaceDensity: SurfaceDensityNode,
-  TerrainBoolean: TerrainBooleanNode,
-  TerrainMask: TerrainMaskNode,
-  GradientDensity: GradientDensityNode,
-  BeardDensity: BeardDensityNode,
-  ColumnDensity: ColumnDensityNode,
-  CaveDensity: CaveDensityNode,
-  FractalNoise2D: FractalNoise2DNode,
-  FractalNoise3D: FractalNoise3DNode,
+  Rotator: RotatedPositionNode,            // V2 name for RotatedPosition
   DomainWarp2D: DomainWarp2DNode,
   DomainWarp3D: DomainWarp3DNode,
-  Debug: DebugNode,
-  YGradient: YGradientNode,
-  Passthrough: PassthroughNode,
-  Zero: ZeroNode,
-  One: OneNode,
-  AmplitudeConstant: AmplitudeConstantNode,
+  FastGradientWarp: FastGradientWarpNode,  // V2 name for DomainWarp2D/3D
   Pow: PowNode,
   SmoothClamp: SmoothClampNode,
   Floor: FloorDensityNode,
@@ -250,7 +215,6 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   PositionsPinch: PositionsPinchNode,
   PositionsTwist: PositionsTwistNode,
   GradientWarp: GradientWarpNode,
-  FastGradientWarp: FastGradientWarpNode,
   VectorWarp: VectorWarpNode,
   Terrain: TerrainNode,
   CellWallDistance: CellWallDistanceNode,
@@ -278,16 +242,7 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Curve:Inverter": InverterCurveNode,
   "Curve:Not": NotCurveNode,
   "Curve:Clamp": ClampCurveNode,
-  "Curve:LinearRemap": LinearRemapCurveNode,
-  "Curve:Noise": NoiseCurveNode,
-  "Curve:Cache": CacheCurveNode,
-  "Curve:Blend": BlendCurveNodeC,
-  "Curve:StepFunction": StepFunctionCurveNode,
-  "Curve:Threshold": ThresholdCurveNode,
-  "Curve:SmoothStep": SmoothStepCurveNode,
-  "Curve:Power": PowerCurveNode,
   "Curve:Imported": ImportedCurveNode,
-  "Curve:Exported": ExportedCurveNode,
   "Curve:Floor": FloorCurveNode,
   "Curve:Ceiling": CeilingCurveNode,
   "Curve:SmoothFloor": SmoothFloorCurveNode,
@@ -302,19 +257,8 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Material:Constant": ConstantMaterialNode,
   "Material:SpaceAndDepth": SpaceAndDepthMaterialNode,
   "Material:WeightedRandom": WeightedRandomMaterialNode,
-  "Material:Conditional": ConditionalMaterialNode,
-  "Material:Blend": BlendMaterialNode,
-  "Material:HeightGradient": HeightGradientMaterialNode,
-  "Material:NoiseSelectorMaterial": NoiseSelectorMaterialNode,
-  "Material:NoiseSelector": NoiseSelectorMaterialNode,
-  "Material:Solid": SolidMaterialNode,
-  "Material:Empty": EmptyMaterialNode,
-  "Material:Surface": SurfaceMaterialNode,
-  "Material:Cave": CaveMaterialNode,
-  "Material:Cluster": ClusterMaterialNode,
   "Material:FieldFunction": FieldFunctionMaterialNode,
   "Material:Imported": ImportedMaterialNode,
-  "Material:Exported": ExportedMaterialNode,
   // Layer sub-asset types (SpaceAndDepth V2)
   "Material:ConstantThickness": ConstantThicknessNode,
   "Material:NoiseThickness": NoiseThicknessNode,
@@ -339,17 +283,13 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Pattern:BlockSet": BlockSetPatternNode,
   "Pattern:Cuboid": CuboidPatternNode,
   "Pattern:Offset": OffsetPatternNode,
-  "Pattern:Conditional": ConditionalPatternNode,
-  "Pattern:Blend": BlendPatternNode,
-  "Pattern:Union": UnionPatternNode,
-  "Pattern:Intersection": IntersectionPatternNode,
   "Pattern:Constant": ConstantPatternNode,
   "Pattern:Imported": ImportedPatternNode,
-  "Pattern:Exported": ExportedPatternNode,
   "Pattern:FieldFunction": FieldFunctionPatternNode,
   "Pattern:And": AndPatternNode,
   "Pattern:Or": OrPatternNode,
   "Pattern:Not": NotPatternNode,
+  "Pattern:Rotator": GenericNode,
 
   // ── Position Provider ────────────────────────────────────────────────
   "Position:List": ListPositionNode,
@@ -361,11 +301,7 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Position:Union": UnionPositionNode,
   "Position:SimpleHorizontal": SimpleHorizontalPositionNode,
   "Position:Cache": CachePositionNode,
-  "Position:Conditional": ConditionalPositionNode,
-  "Position:DensityBased": DensityBasedPositionNode,
-  "Position:SurfaceProjection": SurfaceProjectionPositionNode,
   "Position:Imported": ImportedPositionNode,
-  "Position:Exported": ExportedPositionNode,
   "Position:SquareGrid2d": SquareGrid2dPositionNode,
   "Position:SquareGrid3d": SquareGrid3dPositionNode,
   "Position:Scaler": ScalerPositionNode,
@@ -385,10 +321,7 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Prop:Cluster": ClusterPropNode,
   "Prop:Density": DensityPropNode,
   "Prop:Prefab": PrefabPropNode,
-  "Prop:Conditional": ConditionalPropNode,
   "Prop:WeightedRandom": WeightedRandomPropNode,
-  "Prop:Surface": SurfacePropNode,
-  "Prop:Cave": CavePropNode,
   "Prop:Union": UnionPropNode,
   "Prop:Weighted": WeightedPropNode,
   "Prop:Cuboid": CuboidPropNode,
@@ -401,10 +334,12 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Prop:DensitySelector": DensitySelectorPropNode,
   "Prop:UniquePrefab": UniquePrefabPropNode,
   "Prop:Imported": ImportedPropNode,
-  "Prop:Exported": ExportedPropNode,
   "Prop:PondFiller": PondFillerPropNode,
   "Prop:Queue": QueuePropNode,
   "Prop:Offset": OffsetPropNode,
+  "Prop:Curve": GenericNode,
+  "Prop:Pattern": GenericNode,
+  "Prop:Static": GenericNode,
 
   // ── Scanner ──────────────────────────────────────────────────────────
   "Scanner:Origin": OriginScannerNode,
@@ -438,14 +373,12 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "Environment:Constant": ConstantEnvironmentNode,
   "Environment:DensityDelimited": DensityDelimitedEnvironmentNode,
   "Environment:Imported": ImportedEnvironmentNode,
-  "Environment:Exported": ExportedEnvironmentNode,
 
   // ── Tint Provider ────────────────────────────────────────────────────
   "Tint:Constant": ConstantTintNode,
   "Tint:Gradient": GradientTintNode,
   "Tint:DensityDelimited": DensityDelimitedTintNode,
   "Tint:Imported": ImportedTintNode,
-  "Tint:Exported": ExportedTintNode,
 
   // ── Block Mask ───────────────────────────────────────────────────────
   "BlockMask:All": AllBlockMaskNode,
@@ -455,13 +388,17 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "BlockMask:Imported": ImportedBlockMaskNode,
 
   // ── Directionality ───────────────────────────────────────────────────
-  "Directionality:Uniform": UniformDirectionalityNode,
-  "Directionality:Directional": DirectionalDirectionalityNode,
-  "Directionality:Normal": NormalDirectionalityNode,
   "Directionality:Static": StaticDirectionalityNode,
   "Directionality:Random": RandomDirectionalityNode,
   "Directionality:Pattern": PatternDirectionalityNode,
   "Directionality:Imported": ImportedDirectionalityNode,
+
+  // ── Prop Distribution ──────────────────────────────────────────────
+  "PropDistribution:Assigned": GenericNode,
+  "PropDistribution:Constant": GenericNode,
+  "PropDistribution:Imported": GenericNode,
+  "PropDistribution:Positions": GenericNode,
+  "PropDistribution:Union": GenericNode,
 
   // ── Groups ──────────────────────────────────────────────────────────
   group: GroupNode,

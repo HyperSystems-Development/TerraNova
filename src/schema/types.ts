@@ -17,6 +17,7 @@ export enum AssetCategory {
   Biome = "Biome",
   Settings = "Settings",
   Directionality = "Directionality",
+  PropDistribution = "PropDistribution",
 }
 
 /** Base fields shared by most V2 asset types */
@@ -82,4 +83,5 @@ export const CATEGORY_COLORS: Record<AssetCategory, string> = {
   [AssetCategory.Biome]: "#4E9E8F",
   [AssetCategory.Settings]: "#8C8878",
   [AssetCategory.Directionality]: "#B8648B",
+  [AssetCategory.PropDistribution]: "#9B6EA5",
 };
