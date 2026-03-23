@@ -4,9 +4,9 @@
 
 This guide explains the actual math behind the nodes -- no prior knowledge required. By the end you will understand *why* certain combinations produce hills, caves, overhangs, and floating islands, and *how* to tune each parameter to get the result you want.
 
-> **Biome source assets:** `Basic.json`, `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Desert1/Desert1_Oasis.json`, `Plains1/Plains1_Mountains.json`, `Plains1/Plains1_River.json`
+> **Biome source assets:** `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Examples/Example_Mixer_Gradient.json`, `Experimental/Arches.json`, `Experimental/Dunes.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`, `Generative/Generative_Pillars_Marble_Large.json`, `Generative/Generative_Veins.json`
 >
-> The formulas below are compact explanations of patterns seen in those assets and the active editor node set. The skylands section later in this guide is a teaching reconstruction, not a 1:1 copy of one audited biome file.
+> The formulas below are compact explanations of patterns seen in those terrain assets and the active editor node set. The skylands section later in this guide is a teaching reconstruction, not a 1:1 copy of one audited biome file.
 
 ---
 
@@ -319,6 +319,40 @@ density = Sum(
 
 The cave noise amplitude controls cave size. If the 3D noise multiplier is 0.1, caves are small. If it is 0.8, caves dominate the landscape.
 
+```nodegraph
+{
+  "height": 240,
+  "nodes": [
+    { "id": "bh",  "label": "BaseHeight",     "category": "terrain", "sub": "Y = 64",           "x": 0,   "y": 20  },
+    { "id": "sn2", "label": "SimplexNoise2D",  "category": "terrain", "sub": "Scale 0.01 Oct 4", "x": 0,   "y": 110 },
+    { "id": "c",   "label": "Constant",        "category": "math",    "sub": "Value 0.4",         "x": 0,   "y": 175 },
+    { "id": "mul", "label": "Multiplier",      "category": "math",    "sub": "noise × 0.4",       "x": 200, "y": 135 },
+    { "id": "sn3", "label": "SimplexNoise3D",  "category": "terrain", "sub": "ScaleXZ 0.03",      "x": 0,   "y": 245 },
+    { "id": "inv", "label": "Inverter",        "category": "math",    "sub": "× −1",              "x": 200, "y": 245 },
+    { "id": "sum", "label": "Sum",             "category": "math",                                 "x": 400, "y": 120 },
+    { "id": "out", "label": "Terrain Out",     "category": "output",                               "x": 600, "y": 120 }
+  ],
+  "edges": [
+    { "from": "bh",  "to": "sum" },
+    { "from": "sn2", "to": "mul" },
+    { "from": "c",   "to": "mul" },
+    { "from": "mul", "to": "sum", "label": "hills" },
+    { "from": "sn3", "to": "inv" },
+    { "from": "inv", "to": "sum", "label": "cave carve" },
+    { "from": "sum", "to": "out", "label": "density" }
+  ],
+  "steps": [
+    { "nodeId": "bh",  "text": "BaseHeight anchors the terrain at Y=64. It outputs a strong positive density below that line (solid rock) and strong negative above it (air). The zero crossing is the ground plane. Every other input in this Sum either raises or lowers that plane locally." },
+    { "nodeId": "sn2", "text": "SimplexNoise2D varies smoothly across XZ. Each output sample is in [−1, +1]. At any given X/Z position, the value is constant for the entire vertical column — so this noise shifts the surface up or down but cannot create overhangs. Scale 0.01 means features repeat roughly every 100 blocks." },
+    { "nodeId": "mul", "text": "Multiplier scales the noise amplitude: hills = noise × 0.4. At maximum noise (+1) this adds +0.4 to the density, raising terrain. At minimum (−1) it subtracts 0.4, lowering terrain. The Constant value directly controls hill height — double it to double the height variation." },
+    { "nodeId": "sn3", "text": "SimplexNoise3D varies in all three dimensions — X, Y, and Z. Unlike the 2D noise, a vertical column does NOT stay constant. At some Y levels the noise is high, at others low. This is the prerequisite for caves: the density can dip below zero within a mostly-solid region." },
+    { "nodeId": "inv", "text": "Inverter multiplies by −1. Positive 3D noise becomes negative. Adding this negative value to the Sum subtracts from the total density — carving holes. Where the 3D noise was +0.5, the inverted value is −0.5, and the sum loses 0.5 density at that point. If that dips the total below zero, a cave forms." },
+    { "nodeId": "sum", "text": "Sum combines all three signals: density = BaseHeight + (noise2D × 0.4) + (−noise3D). The zero crossing of this combined field is where the terrain surface sits. Bumps from the 2D noise create hills. Pockets from the 3D noise create caves. Both effects are independent and additive." },
+    { "nodeId": "out", "text": "The final combined density reaches Terrain Out. Surface hills come from the 2D noise amplitude; cave frequency and size come from the 3D noise scale. Tune them separately — they do not affect each other." }
+  ]
+}
+```
+
 ---
 
 ### Recipe: Why overhangs need YSampled
@@ -395,6 +429,38 @@ The band curve alone produces a flat solid slab -- a perfect horizontal layer of
 
 Each additional layer is a `BaseHeight(Distance) → CurveMapper(different Y band) → Multiplier(× Constant)` path, summed at the end. The `Constant` acts as a layer weight -- setting it to 1 adds the layer at full strength, lower values make it a subtle secondary feature.
 
+```nodegraph
+{
+  "height": 260,
+  "nodes": [
+    { "id": "bh",  "label": "BaseHeight",    "category": "terrain", "sub": "Distance: true",     "x": 0,   "y": 20  },
+    { "id": "cm",  "label": "CurveMapper",   "category": "filter",  "sub": "Y band curve",       "x": 200, "y": 20  },
+    { "id": "sn3", "label": "SimplexNoise3D","category": "terrain", "sub": "ScaleXZ 100 ScaleY 50","x": 0,  "y": 130 },
+    { "id": "s1",  "label": "Sum",           "category": "math",    "sub": "band + 3D noise",    "x": 400, "y": 75  },
+    { "id": "nm",  "label": "Normalizer",    "category": "filter",  "sub": "[-2,2] → [-1,1]",    "x": 580, "y": 75  },
+    { "id": "s2",  "label": "Sum",           "category": "math",                                  "x": 760, "y": 75  },
+    { "id": "out", "label": "Terrain Out",   "category": "output",                                "x": 940, "y": 75  }
+  ],
+  "edges": [
+    { "from": "bh",  "to": "cm"  },
+    { "from": "cm",  "to": "s1",  "label": "band density" },
+    { "from": "sn3", "to": "s1",  "label": "3D noise" },
+    { "from": "s1",  "to": "nm"  },
+    { "from": "nm",  "to": "s2",  "label": "island layer 1" },
+    { "from": "s2",  "to": "out", "label": "density" }
+  ],
+  "steps": [
+    { "nodeId": "bh",  "text": "BaseHeight with Distance: true outputs the raw signed Y distance from the named reference height — essentially the world Y coordinate. With Distance: false it would output a terrain density suitable for ground planes. Here we need the raw number so the CurveMapper can remap it to a band shape." },
+    { "nodeId": "cm",  "text": "CurveMapper converts the raw Y value into a band density. The curve outputs negative below and above the target altitude range, and positive only in the middle — e.g. positive between Y=90 and Y=150. This is the altitude gate: the CurveMapper decides where in vertical space the island layer can exist." },
+    { "nodeId": "sn3", "text": "SimplexNoise3D breaks the flat slab into individual islands. Without it, the positive region from the CurveMapper would form a continuous horizontal sheet. The 3D noise varies in all axes — where it is negative, it pulls the sum below zero within the band, carving gaps between islands." },
+    { "nodeId": "s1",  "text": "Sum adds band density and 3D noise: combined = bandCurve + noise3D. Both are in [−1, +1] range. Their sum can reach [−2, +2]. This is why Normalizer is required next — without it the outer Sum would receive unpredictable amplitudes that break any weight-based layering." },
+    { "nodeId": "nm",  "text": "Normalizer remaps [−2, +2] back to [−1, +1]. This is the critical range-clamp that makes the outer Sum predictable. Without it, the first island layer alone could output ±2, overwhelming any additional layers or weights applied downstream." },
+    { "nodeId": "s2",  "text": "The outer Sum is where additional island layers would be added — each one a separate BaseHeight(Distance) → CurveMapper(different Y band) path, optionally scaled by a Constant. Currently it only has the one layer, but structuring it as a Sum makes extending to multi-layer skylands straightforward." },
+    { "nodeId": "out", "text": "Terrain Out receives the final altitude-banded island density. Islands exist only where the band curve is positive and the 3D noise reinforces it. Widen the positive region in the CurveMapper to make taller island bands; narrow it for thin floating shelves." }
+  ]
+}
+```
+
 ---
 
 ### Recipe: Biome blending
@@ -410,6 +476,35 @@ density = Mix(desert_density, forest_density, weight)
 Where `weight` crosses 0.5, the two terrains are equally mixed -- a gradual transition. The width of that transition in world space is controlled by the Scale of `BiomeNoise`.
 
 **Common mistake:** using the same noise for terrain variation and biome blending. This creates a strong correlation between terrain shape and biome boundaries, which looks unnatural. Use two independent noise nodes with different seeds and scales.
+
+```nodegraph
+{
+  "height": 240,
+  "nodes": [
+    { "id": "ta",  "label": "Terrain A",       "category": "terrain", "sub": "e.g. desert plateaus", "x": 0,   "y": 20  },
+    { "id": "tb",  "label": "Terrain B",       "category": "terrain", "sub": "e.g. forest hills",    "x": 0,   "y": 120 },
+    { "id": "bn",  "label": "SimplexNoise2D",  "category": "terrain", "sub": "Scale 0.002 biome",    "x": 0,   "y": 210 },
+    { "id": "nm",  "label": "Normalizer",      "category": "filter",  "sub": "[-1,1] → [0,1]",       "x": 200, "y": 210 },
+    { "id": "mix", "label": "Mix",             "category": "math",    "sub": "A×(1-w) + B×w",        "x": 400, "y": 110 },
+    { "id": "out", "label": "Terrain Out",     "category": "output",                                  "x": 600, "y": 110 }
+  ],
+  "edges": [
+    { "from": "ta",  "to": "mix" },
+    { "from": "tb",  "to": "mix" },
+    { "from": "bn",  "to": "nm"  },
+    { "from": "nm",  "to": "mix", "label": "blend weight" },
+    { "from": "mix", "to": "out", "label": "density" }
+  ],
+  "steps": [
+    { "nodeId": "ta",  "text": "Terrain A is the full density graph for the first terrain type — for example, a desert plateau graph with BaseHeight → CurveMapper → Sum. This entire sub-graph feeds into Mix as a single density value at each point." },
+    { "nodeId": "tb",  "text": "Terrain B is the full density graph for the second terrain type — for example, a forest hills graph with noise and CurveMapper. Neither terrain graph knows about the other; they are computed independently and only combined at the Mix node." },
+    { "nodeId": "bn",  "text": "A dedicated biome blend noise — separate from any terrain noise. Large Scale (0.002 = ~500 blocks) creates wide biome regions. This noise MUST use a different Seed from all terrain noise. If you reuse terrain noise here, biome borders will always align with terrain features, which looks artificial." },
+    { "nodeId": "nm",  "text": "Normalizer remaps the noise from [−1, +1] to [0, 1]. Mix requires its weight in [0, 1]. Without this step, negative noise values would produce weights below zero, which Mix does not handle correctly — terrain A would become over-represented." },
+    { "nodeId": "mix", "text": "Mix computes: output = A × (1 − weight) + B × weight. At weight=0 the result is pure Terrain A. At weight=1 it is pure Terrain B. At weight=0.5 the densities are equally averaged — a smooth blended boundary where both terrain shapes coexist. The width of the transition zone in world space is determined by how fast the biome noise changes." },
+    { "nodeId": "out", "text": "The blended density reaches Terrain Out. The seam between biomes is gradual — a wide transition zone rather than a hard cut. Increase the biome noise Scale to widen biome regions and smooth transitions; decrease it for a more fragmented, patchy biome distribution." }
+  ]
+}
+```
 
 ---
 
