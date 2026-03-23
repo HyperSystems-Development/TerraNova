@@ -134,7 +134,7 @@ describe("DocsPanel", () => {
     expect(curvePreviewSize.value).toBe("compact");
     expect(snippetDisplay.value).toBe("json");
 
-    fireEvent.click(screen.getByRole("button", { name: /Reference/i }));
+    fireEvent.click(screen.getByText("Reference").closest("button") as HTMLButtonElement);
 
     expect(curvePreviewSize.value).toBe("comfortable");
     expect(snippetDisplay.value).toBe("both");
