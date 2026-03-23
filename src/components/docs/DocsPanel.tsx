@@ -937,6 +937,7 @@ export function DocsPanel() {
   const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
   const activeItemRef = useRef<HTMLButtonElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const walkthroughShellRef = useRef<HTMLDivElement | null>(null);
   // Keep a ref in sync with selectedSlug so mdComponents/handleLinkClick don't recreate on every nav
   const selectedSlugRef = useRef<string | null>(null);
   const addToast = useToastStore((s) => s.addToast);
@@ -1364,11 +1365,11 @@ export function DocsPanel() {
 
   // Auto-select first result when searching
   useEffect(() => {
-    if (!normalizedFilter) return;
+    if (!normalizedFilter || !settings.autoOpenFirstSearchResult) return;
     const firstSlug = findFirstFileSlug(filteredTree);
     if (firstSlug && firstSlug !== selectedSlug) loadDoc(firstSlug);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredTree, normalizedFilter, selectedSlug]);
+  }, [filteredTree, normalizedFilter, selectedSlug, settings.autoOpenFirstSearchResult]);
 
   const handleLinkClick = useCallback(
     (href: string) => {
@@ -1484,8 +1485,8 @@ export function DocsPanel() {
                 </div>
               )}
               <div className="bg-[linear-gradient(180deg,rgba(181,147,80,0.05),transparent_70%)] px-3 py-3">
-                <div className="mx-auto w-full max-w-[520px]">
-                  <CurveCanvas points={points} compact compactHeight={96} />
+                <div className={`mx-auto w-full ${docsCurveWidthClass}`}>
+                  <CurveCanvas points={points} compact compactHeight={docsCurveHeight} />
                 </div>
               </div>
             </div>
@@ -1957,7 +1958,10 @@ export function DocsPanel() {
                   <button
                     className="rounded border border-tn-border bg-tn-panel px-3 py-1 text-sm text-tn-text hover:bg-tn-panel/80"
                     onClick={() => {
-                      setWalkthroughActive((v) => !v);
+                      setWalkthroughActive((v) => {
+                        if (!v) setTimeout(() => walkthroughShellRef.current?.focus(), 0);
+                        return !v;
+                      });
                       setWalkthroughStep(0);
                     }}
                   >
@@ -1970,6 +1974,7 @@ export function DocsPanel() {
 
             {walkthroughActive ? (
               <div
+                ref={walkthroughShellRef}
                 className="docs-reading-shell flex flex-col gap-4"
                 onKeyDown={(e) => {
                   if (e.key === "ArrowLeft") setWalkthroughStep((s) => Math.max(0, s - 1));
@@ -2043,14 +2048,18 @@ export function DocsPanel() {
           <div className="text-tn-text-muted">Select a document to view.</div>
         )}
         {showScrollTop && (
-          <button
-            type="button"
-            onClick={() => { contentRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }}
-            title="Scroll to top"
-            className="sticky bottom-4 float-right mr-2 flex h-8 w-8 items-center justify-center rounded-full border border-tn-border bg-tn-panel/90 text-tn-text-muted shadow-md backdrop-blur-sm hover:bg-tn-accent/20 hover:text-tn-text transition-colors"
-          >
-            <ChevronLeft className="h-4 w-4 rotate-90" />
-          </button>
+          <div className="sticky bottom-4 pointer-events-none" style={{ height: 0 }}>
+            <div className="pointer-events-auto absolute bottom-0 right-4">
+              <button
+                type="button"
+                onClick={() => { contentRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }}
+                title="Scroll to top"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-tn-border bg-tn-panel/90 text-tn-text-muted shadow-md backdrop-blur-sm hover:bg-tn-accent/20 hover:text-tn-text transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4 rotate-90" />
+              </button>
+            </div>
+          </div>
         )}
         </div>
       </div>
