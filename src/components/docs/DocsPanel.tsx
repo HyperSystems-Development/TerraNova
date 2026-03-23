@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ChevronLeft, ChevronRight, ChevronDown, Folder, FileText, X,
   BookOpen, Map as MapIcon, Wrench, Library, ScrollText, GitPullRequest, Copy, Check,
-  Compass, GraduationCap, LayoutTemplate, Hash, List, Settings,
+  Compass, GraduationCap, Hash, List, Settings,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -278,7 +278,6 @@ const ROOT_SECTION_ORDER = [
   { key: "getting-started", title: "Getting Started", slug: "getting-started" },
   { key: "walkthroughs", title: "Walkthroughs", slug: "walkthroughs" },
   { key: "guides", title: "Guides", slug: "guides" },
-  { key: "templates", title: "Doc Templates", slug: "templates" },
   { key: "glossary", title: "Glossary", slug: "glossary" },
   { key: "reference", title: "Reference", slug: "reference" },
   { key: "troubleshooting", title: "Troubleshooting", slug: "troubleshooting" },
@@ -290,7 +289,6 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   "getting-started": Compass,
   walkthroughs:    MapIcon,
   guides:          GraduationCap,
-  templates:       LayoutTemplate,
   glossary:        Library,
   reference:       ScrollText,
   troubleshooting: Wrench,
@@ -919,6 +917,7 @@ export function DocsPanel() {
   const [walkthroughActive, setWalkthroughActive] = useState(false);
   const [walkthroughStep, setWalkthroughStep] = useState(0);
   const [walkthroughSteps, setWalkthroughSteps] = useState<Array<{ title: string; content: string }>>([]);
+  const [walkthroughShowFull, setWalkthroughShowFull] = useState(false);
   const [isExperimental, setIsExperimental] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -938,6 +937,7 @@ export function DocsPanel() {
   const activeItemRef = useRef<HTMLButtonElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const walkthroughShellRef = useRef<HTMLDivElement | null>(null);
+  const searchCursorRef = useRef(-1);
   // Keep a ref in sync with selectedSlug so mdComponents/handleLinkClick don't recreate on every nav
   const selectedSlugRef = useRef<string | null>(null);
   const addToast = useToastStore((s) => s.addToast);
@@ -1080,6 +1080,7 @@ export function DocsPanel() {
       } else {
         setWalkthroughSteps([]);
         setWalkthroughActive(false);
+        setWalkthroughShowFull(false);
       }
 
       if (anchor && contentRef.current) {
@@ -1356,10 +1357,11 @@ export function DocsPanel() {
     }
   }, [selectedSlug]);
 
-  // Auto-expand all sidebar folders when a search is active
+  // Auto-expand all sidebar folders when a search is active; reset cursor
   useEffect(() => {
     if (normalizedFilter) {
       setCollapsedFolders({});
+      searchCursorRef.current = -1;
     }
   }, [normalizedFilter]);
 
@@ -1707,6 +1709,31 @@ export function DocsPanel() {
                 placeholder="Search docs…"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setFilter("");
+                    searchInputRef.current?.blur();
+                    return;
+                  }
+                  if (!normalizedFilter || filtered.length === 0) return;
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    searchCursorRef.current = Math.min(searchCursorRef.current + 1, filtered.length - 1);
+                    loadDoc(filtered[searchCursorRef.current].slug);
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    searchCursorRef.current = Math.max(searchCursorRef.current - 1, 0);
+                    loadDoc(filtered[searchCursorRef.current].slug);
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    const idx = searchCursorRef.current >= 0 ? searchCursorRef.current : 0;
+                    if (filtered[idx]) {
+                      loadDoc(filtered[idx].slug);
+                      setFilter("");
+                      searchInputRef.current?.blur();
+                    }
+                  }
+                }}
               />
               {filter && (
                 <button
@@ -1979,40 +2006,69 @@ export function DocsPanel() {
                 onKeyDown={(e) => {
                   if (e.key === "ArrowLeft") setWalkthroughStep((s) => Math.max(0, s - 1));
                   if (e.key === "ArrowRight") setWalkthroughStep((s) => Math.min(walkthroughSteps.length - 1, s + 1));
+                  if (e.key === "Escape") setWalkthroughActive(false);
                 }}
                 tabIndex={-1}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-semibold text-tn-text">{walkthroughSteps[walkthroughStep].title}</div>
+                  <div className="text-sm font-semibold text-tn-text">
+                    {walkthroughShowFull ? "Full document" : walkthroughSteps[walkthroughStep].title}
+                  </div>
                   <div className="flex items-center gap-2">
+                    {!walkthroughShowFull && (
+                      <>
+                        <button
+                          className="rounded border border-tn-border bg-tn-panel px-2 py-1 text-xs text-tn-text hover:bg-tn-panel/80 disabled:opacity-50"
+                          disabled={walkthroughStep === 0}
+                          onClick={() => setWalkthroughStep((s) => Math.max(0, s - 1))}
+                        >
+                          ← Previous
+                        </button>
+                        <button
+                          className="rounded border border-tn-border bg-tn-panel px-2 py-1 text-xs text-tn-text hover:bg-tn-panel/80 disabled:opacity-50"
+                          disabled={walkthroughStep >= walkthroughSteps.length - 1}
+                          onClick={() => setWalkthroughStep((s) => Math.min(walkthroughSteps.length - 1, s + 1))}
+                        >
+                          Next →
+                        </button>
+                      </>
+                    )}
                     <button
-                      className="rounded border border-tn-border bg-tn-panel px-2 py-1 text-xs text-tn-text hover:bg-tn-panel/80 disabled:opacity-50"
-                      disabled={walkthroughStep === 0}
-                      onClick={() => setWalkthroughStep((s) => Math.max(0, s - 1))}
+                      className={`rounded border px-2 py-1 text-xs transition-colors ${walkthroughShowFull ? "border-tn-accent/60 bg-tn-accent/15 text-tn-accent" : "border-tn-border bg-tn-panel text-tn-text-muted hover:text-tn-text hover:bg-tn-panel/80"}`}
+                      onClick={() => setWalkthroughShowFull((v) => !v)}
+                      title={walkthroughShowFull ? "Back to step view" : "View the full document"}
                     >
-                      ← Previous
-                    </button>
-                    <button
-                      className="rounded border border-tn-border bg-tn-panel px-2 py-1 text-xs text-tn-text hover:bg-tn-panel/80 disabled:opacity-50"
-                      disabled={walkthroughStep >= walkthroughSteps.length - 1}
-                      onClick={() => setWalkthroughStep((s) => Math.min(walkthroughSteps.length - 1, s + 1))}
-                    >
-                      Next →
+                      {walkthroughShowFull ? "Step view" : "Full doc"}
                     </button>
                   </div>
                 </div>
 
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeSlug, rehypeHighlight]}
-                  components={mdComponents}
-                >
-                  {walkthroughSteps[walkthroughStep].content}
-                </ReactMarkdown>
+                {walkthroughShowFull ? (
+                  <>
+                    <DocToc entries={tocEntries} contentRef={contentRef} defaultOpen={settings.showTocByDefault} />
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeSlug, rehypeHighlight]}
+                      components={mdComponents}
+                    >
+                      {rawMd}
+                    </ReactMarkdown>
+                  </>
+                ) : (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeSlug, rehypeHighlight]}
+                    components={mdComponents}
+                  >
+                    {walkthroughSteps[walkthroughStep].content}
+                  </ReactMarkdown>
+                )}
 
-                <div className="text-xs text-tn-text-muted" aria-live="polite">
-                  Step {walkthroughStep + 1} of {walkthroughSteps.length}
-                </div>
+                {!walkthroughShowFull && (
+                  <div className="text-xs text-tn-text-muted" aria-live="polite">
+                    Step {walkthroughStep + 1} of {walkthroughSteps.length}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="docs-reading-shell">
