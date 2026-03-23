@@ -58,7 +58,7 @@ export function CanvasContextMenu({ x, y, onClose, onQuickAdd }: CanvasContextMe
               id,
               type: "frame",
               position: flowPos,
-              data: { type: "frame", name: "", width: 400, height: 300 },
+              data: { type: "frame", name: "", width: 300, height: 200 },
               draggable: true,
               selectable: true,
               zIndex: -1,
