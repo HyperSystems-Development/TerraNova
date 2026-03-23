@@ -2,9 +2,9 @@
 
 This reference describes the most important node families and how they affect terrain.
 
-> **Biome source assets:** `Basic.json`, `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Examples/Example_Mixer_Gradient.json`, `Desert1/Desert1_Oasis.json`, `Plains1/Plains1_Mountains.json`, `Plains1/Plains1_River.json`
+> **Biome source assets:** `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Examples/Example_Mixer_Gradient.json`, `Experimental/Arches.json`, `Experimental/Dunes.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Arches.json`, `Generative/Generative_Pillars_Marble_Large.json`, `Generative/Generative_Veins.json`
 >
-> The summaries below are grounded in those assets and the active TerraNova node set. Example chains are schematic summaries unless called out as direct source fragments.
+> The summaries below are grounded in those terrain-bearing Hytale biome assets and the active TerraNova node set. Example chains are schematic summaries unless called out as direct source fragments.
 
 ## Core concept: graph = terrain
 
@@ -88,7 +88,7 @@ These do not change terrain density directly, but they use terrain outputs to de
 
 ## Common source-backed patterns
 
-### Basic terrain anchor (`Basic.json`)
+### Height-anchored terrain profile (`Examples/Example_Curve_Mapper.json`)
 
 ```text
 SimplexNoise2D
@@ -97,7 +97,7 @@ SimplexNoise2D
   -> Sum
 ```
 
-This is the simplest recurring production pattern in the audited assets: a named height anchor comes through `BaseHeight`, a manual `CurveMapper` shapes that vertical distance, and `SimplexNoise2D` adds horizontal variation.
+This is the simplest recurring production pattern in the audited terrain examples: a named height anchor comes through `BaseHeight`, a manual `CurveMapper` shapes that vertical distance, and `SimplexNoise2D` adds horizontal variation.
 
 ### Cell-based regions (`Examples/Example_CellNoise2D.json`)
 
@@ -110,28 +110,36 @@ CellNoise2D (CellType: Distance2Div)
 
 This example asset uses cell noise directly in terrain density while `CurveMapper(BaseHeight)` still controls the vertical anchor.
 
-### Warped edge masks (`Desert1_Oasis.json`, `Plains1_River.json`)
+### Experimental blend masks (`Experimental/Dunes.json`)
 
 ```text
-Imported / Inverter / river-or-oasis mask
-  -> FastGradientWarp
-  -> Normalizer or CurveMapper
+Gradient / Imported mask
+  -> Normalizer
   -> Mix / Max / Min
 ```
 
-In the audited oasis and river biomes, `FastGradientWarp` is mostly a boundary-shaping stage inside a larger mask pipeline, not a standalone terrain recipe.
+In the audited dunes terrain, `Gradient`, `Normalizer`, `Mix`, `Max`, and `Min` work together as a boundary-shaping pipeline. The important source-backed pattern is the blend stack itself, not one isolated node.
 
-### Shared production stacks (`Plains1_Mountains.json`, `Examples/Example_Mixer_Gradient.json`)
+### Shared production stacks (`Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Pillars_Marble_Large.json`)
 
 ```text
-Exported -> Cache -> Imported
-                    + Mix
-                    + Normalizer
-                    + CurveMapper
-                    + YSampled
+Imported / Cache / BaseHeight
+                     -> CurveMapper
+                     -> Mix / Normalizer
+                     -> Sum / Min / Max
 ```
 
-The heavier source biomes reuse expensive subgraphs instead of recomputing them. `Exported` / `Imported`, `Cache`, `Mix`, `Normalizer`, and `YSampled` show up together when a biome needs layered terrain or shared selectors across systems.
+The heavier experimental and generative terrain assets reuse expensive subgraphs instead of recomputing them. `Imported`, `Cache`, `CurveMapper`, `Mix`, `Normalizer`, `Sum`, `Min`, and `Max` show up together when a biome needs layered terrain or shared selectors across systems.
+
+### Shape-driven terrain carving (`Experimental/Arches.json`, `Generative/Generative_Arches.json`, `Generative/Generative_Veins.json`)
+
+```text
+PositionsCellNoise -> Mesh2D / Mesh3D
+                   -> SmoothMin / Max / Sum
+                   -> CurveMapper or Normalizer
+```
+
+The arches, pillars, and veins assets use position providers plus mesh-driven shapes to build terrain that reads as carved, suspended, or volumetric. These are good source-backed examples when a doc needs terrain built from reusable shapes instead of just noise.
 
 ---
 

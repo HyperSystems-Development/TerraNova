@@ -48,6 +48,11 @@ type SourceContextIssue = {
   reason: "missing-source-context";
 };
 
+type TerrainSourcePoolIssue = {
+  file: string;
+  missing: Array<"Examples" | "Experimental" | "Generative">;
+};
+
 type ResolvedDocLink = {
   slug: string;
   anchor?: string;
@@ -70,6 +75,24 @@ const SOURCE_CONTEXT_DOCS = [
   "walkthroughs/basic-terrain-generation.md",
   "walkthroughs/terrain-and-caves.md",
   "walkthroughs/sky-islands.md",
+] as const;
+
+const TERRAIN_SOURCE_POOL_DOCS = [
+  "reference/README.md",
+  "reference/node-effects.md",
+  "reference/reading-the-graph.md",
+  "reference/curves.md",
+  "glossary/README.md",
+  "glossary/asset-node-editor-nodes.md",
+  "guides/setup-data-flow-first-steps.md",
+  "guides/understanding-basic-terrain-generation.md",
+  "guides/world/node-combinations.md",
+  "guides/world/biome-system.md",
+  "guides/terrain/terrain-math-explained.md",
+  "guides/terrain/terrain-types.md",
+  "walkthroughs/data-flow-first-steps.md",
+  "walkthroughs/basic-terrain-generation.md",
+  "walkthroughs/terrain-and-caves.md",
 ] as const;
 
 function listMarkdownFiles(dir: string): string[] {
@@ -348,6 +371,34 @@ function collectSourceContextIssues(docs: DocRecord[]): SourceContextIssue[] {
   return issues.sort((a, b) => a.file.localeCompare(b.file));
 }
 
+function collectTerrainSourcePoolIssues(docs: DocRecord[]): TerrainSourcePoolIssue[] {
+  const docsByRelPath = new Map(docs.map((doc) => [doc.relPath, doc]));
+  const issues: TerrainSourcePoolIssue[] = [];
+
+  for (const relPath of TERRAIN_SOURCE_POOL_DOCS) {
+    const doc = docsByRelPath.get(relPath);
+    if (!doc) {
+      issues.push({
+        file: relPath,
+        missing: ["Examples", "Experimental", "Generative"],
+      });
+      continue;
+    }
+
+    const missing = [
+      !doc.text.includes("Examples/") ? "Examples" : null,
+      !doc.text.includes("Experimental/") ? "Experimental" : null,
+      !doc.text.includes("Generative/") ? "Generative" : null,
+    ].filter(Boolean) as Array<"Examples" | "Experimental" | "Generative">;
+
+    if (missing.length > 0) {
+      issues.push({ file: relPath, missing });
+    }
+  }
+
+  return issues.sort((a, b) => a.file.localeCompare(b.file));
+}
+
 describe("docs content integrity", () => {
   const docs = collectDocs();
   const activeNodeTypes = collectActiveNodeTypes();
@@ -370,5 +421,9 @@ describe("docs content integrity", () => {
 
   it("keeps audited worldgen docs tagged with source context", () => {
     expect(collectSourceContextIssues(docs)).toEqual([]);
+  });
+
+  it("keeps terrain docs sourced from Examples, Experimental, and Generative biome folders", () => {
+    expect(collectTerrainSourcePoolIssues(docs)).toEqual([]);
   });
 });
