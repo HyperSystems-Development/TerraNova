@@ -146,8 +146,10 @@ type DocsSettings = {
   fontSize: "default" | "small" | "medium" | "large";
   wrapCodeBlocks: boolean;
   showStickyHeader: boolean;
+  showRelatedDocs: boolean;
   autoOpenFirstSearchResult: boolean;
   curvePreviewDetail: "minimal" | "standard";
+  curvePreviewScale: "compact" | "comfortable";
   snippetDisplayMode: "json" | "nodegraph" | "both";
 };
 
@@ -161,10 +163,71 @@ const DEFAULT_SETTINGS: DocsSettings = {
   fontSize: "default",
   wrapCodeBlocks: false,
   showStickyHeader: false,
+  showRelatedDocs: true,
   autoOpenFirstSearchResult: false,
   curvePreviewDetail: "minimal",
+  curvePreviewScale: "compact",
   snippetDisplayMode: "json",
 };
+
+type DocsSettingsPresetId = "balanced" | "focused" | "reference";
+
+type DocsSettingsPreset = {
+  id: DocsSettingsPresetId;
+  label: string;
+  description: string;
+  settings: DocsSettings;
+};
+
+const DOCS_SETTINGS_PRESETS: DocsSettingsPreset[] = [
+  {
+    id: "balanced",
+    label: "Balanced",
+    description: "General-purpose browsing and reading.",
+    settings: { ...DEFAULT_SETTINGS },
+  },
+  {
+    id: "focused",
+    label: "Focused",
+    description: "Roomier reading with richer walkthrough previews.",
+    settings: {
+      ...DEFAULT_SETTINGS,
+      readingWidth: "wide",
+      fontSize: "medium",
+      showTocByDefault: true,
+      showStickyHeader: true,
+      showRelatedDocs: false,
+      curvePreviewDetail: "standard",
+      curvePreviewScale: "comfortable",
+      snippetDisplayMode: "nodegraph",
+    },
+  },
+  {
+    id: "reference",
+    label: "Reference",
+    description: "Denser navigation with fuller preview context.",
+    settings: {
+      ...DEFAULT_SETTINGS,
+      showDifficultyTags: true,
+      compactTree: true,
+      showProgressBar: true,
+      showTocByDefault: true,
+      showFolderCount: true,
+      showStickyHeader: true,
+      showRelatedDocs: true,
+      autoOpenFirstSearchResult: true,
+      curvePreviewDetail: "standard",
+      curvePreviewScale: "comfortable",
+      snippetDisplayMode: "both",
+    },
+  },
+];
+
+const DOCS_SETTINGS_KEYS = Object.keys(DEFAULT_SETTINGS) as Array<keyof DocsSettings>;
+
+function matchesDocsSettingsPreset(current: DocsSettings, preset: DocsSettings): boolean {
+  return DOCS_SETTINGS_KEYS.every((key) => current[key] === preset[key]);
+}
 
 function formatDocsCurveValue(value: number): string {
   const abs = Math.abs(value);
@@ -1044,8 +1107,13 @@ export function DocsPanel() {
   );
   const shouldWrapCodeBlocks = settings.wrapCodeBlocks;
   const showCurveStats = settings.curvePreviewDetail === "standard";
-  const docsCurveHeight = showCurveStats ? 112 : 96;
-  const docsCurveWidthClass = showCurveStats ? "max-w-[480px]" : "max-w-[440px]";
+  const comfortableCurvePreview = settings.curvePreviewScale === "comfortable";
+  const docsCurveHeight = showCurveStats
+    ? (comfortableCurvePreview ? 128 : 112)
+    : (comfortableCurvePreview ? 110 : 96);
+  const docsCurveWidthClass = showCurveStats
+    ? (comfortableCurvePreview ? "max-w-[560px]" : "max-w-[480px]")
+    : (comfortableCurvePreview ? "max-w-[520px]" : "max-w-[440px]");
   const snippetDisplayMode = settings.snippetDisplayMode;
 
   const docTree = useMemo(() => buildDocTree(entries), [entries]);
@@ -1893,6 +1961,28 @@ export function DocsPanel() {
 
         {showSettings ? (
           <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+            <SettingsSection label="Profiles">
+              <div className="grid gap-2">
+                {DOCS_SETTINGS_PRESETS.map((preset) => {
+                  const isActive = matchesDocsSettingsPreset(settings, preset.settings);
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                        isActive
+                          ? "border-tn-accent bg-tn-accent/12 text-tn-text"
+                          : "border-tn-border bg-tn-bg/50 text-tn-text-muted hover:border-tn-text-muted/40 hover:text-tn-text"
+                      }`}
+                      onClick={() => setSettings({ ...preset.settings })}
+                    >
+                      <div className="text-[12px] font-semibold leading-tight">{preset.label}</div>
+                      <div className="mt-0.5 text-[10px] leading-tight opacity-80">{preset.description}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </SettingsSection>
             <SettingsSection label="Tree">
               <SettingsToggle
                 label="Difficulty tags"
@@ -1956,6 +2046,12 @@ export function DocsPanel() {
                 onChange={(v) => setSettings((s) => ({ ...s, showStickyHeader: v }))}
               />
               <SettingsToggle
+                label="Related docs"
+                description="Show See also / Referenced by links at the end of a doc"
+                value={settings.showRelatedDocs}
+                onChange={(v) => setSettings((s) => ({ ...s, showRelatedDocs: v }))}
+              />
+              <SettingsToggle
                 label="Wrap code blocks"
                 description="Wrap long snippets instead of horizontal scrolling"
                 value={settings.wrapCodeBlocks}
@@ -1982,6 +2078,16 @@ export function DocsPanel() {
                 onChange={(value) => setSettings((s) => ({ ...s, curvePreviewDetail: value }))}
               />
               <SettingsSelect
+                label="Curve preview size"
+                description="Compact keeps the page tighter; Comfortable gives labels more room"
+                value={settings.curvePreviewScale}
+                options={[
+                  { value: "compact", label: "Compact" },
+                  { value: "comfortable", label: "Comfortable" },
+                ]}
+                onChange={(value) => setSettings((s) => ({ ...s, curvePreviewScale: value }))}
+              />
+              <SettingsSelect
                 label="Snippet display"
                 description="Show terrain snippets as JSON, nodegraph, or both"
                 value={settings.snippetDisplayMode}
@@ -1996,7 +2102,7 @@ export function DocsPanel() {
             <button
               type="button"
               className="mt-2 text-[11px] text-tn-text-muted hover:text-tn-text underline"
-              onClick={() => setSettings(DEFAULT_SETTINGS)}
+              onClick={() => setSettings({ ...DEFAULT_SETTINGS })}
             >
               Reset to defaults
             </button>
@@ -2268,13 +2374,15 @@ export function DocsPanel() {
                   {rawMd}
                 </ReactMarkdown>
 
-                <RelatedDocs
-                  selectedSlug={selectedSlug}
-                  outboundLinks={outboundLinks}
-                  backlinks={backlinks}
-                  entries={entries}
-                  loadDoc={loadDoc}
-                />
+                {settings.showRelatedDocs && (
+                  <RelatedDocs
+                    selectedSlug={selectedSlug}
+                    outboundLinks={outboundLinks}
+                    backlinks={backlinks}
+                    entries={entries}
+                    loadDoc={loadDoc}
+                  />
+                )}
                 <PrevNextNav
                   selectedSlug={selectedSlug}
                   entries={entries}

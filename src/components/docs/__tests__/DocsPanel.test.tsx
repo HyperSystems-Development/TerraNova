@@ -121,4 +121,23 @@ describe("DocsPanel", () => {
     expect(screen.getAllByText(/Input x/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Output y/i).length).toBeGreaterThan(0);
   });
+
+  it("applies docs settings presets to the fine-tune controls", async () => {
+    render(<DocsPanel />);
+
+    await screen.findByText("Walkthrough: Building a Sky Islands Biome from Scratch");
+    fireEvent.click(screen.getByTitle("Docs settings"));
+
+    const curvePreviewSize = screen.getByLabelText(/Curve preview size/i) as HTMLSelectElement;
+    const snippetDisplay = screen.getByLabelText(/Snippet display/i) as HTMLSelectElement;
+
+    expect(curvePreviewSize.value).toBe("compact");
+    expect(snippetDisplay.value).toBe("json");
+
+    fireEvent.click(screen.getByRole("button", { name: /Reference/i }));
+
+    expect(curvePreviewSize.value).toBe("comfortable");
+    expect(snippetDisplay.value).toBe("both");
+    expect(screen.getByText(/Related docs/i)).toBeTruthy();
+  });
 });
