@@ -64,6 +64,9 @@ importers:
       codemirror:
         specifier: ^6.0.2
         version: 6.0.2
+      highlight.js:
+        specifier: ^11.11.1
+        version: 11.11.1
       lucide-react:
         specifier: ^0.563.0
         version: 0.563.0(react@19.2.4)
