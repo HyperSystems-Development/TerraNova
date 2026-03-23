@@ -18,6 +18,7 @@ import {
   type EdgeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import ReactMarkdown from "react-markdown";
 import type { ClipboardData } from "@/utils/clipboard";
 
 // Category colour palette matching densitySubcategories.ts
@@ -36,6 +37,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   framework:   "#8C8878",
   output:      "#b5924c",
   curve:       "#A67EB8",
+  density:     "#B8763C", // legacy alias used in older docs -- maps to terrain color
   default:     "#4A90D9",
 };
 
@@ -379,9 +381,9 @@ export function DocNodeGraph({ nodes, edges, height, steps, headerAction }: DocN
               </button>
             </div>
           </div>
-          <p className="text-sm text-tn-text leading-relaxed whitespace-normal break-words">
-            {steps[safeIndex].text}
-          </p>
+          <div className="text-sm text-tn-text leading-relaxed [&_code]:text-[0.85em] [&_code]:bg-white/8 [&_code]:rounded [&_code]:px-1 [&_strong]:font-semibold">
+            <ReactMarkdown>{steps[safeIndex].text}</ReactMarkdown>
+          </div>
         </div>
       )}
     </div>

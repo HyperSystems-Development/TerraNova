@@ -824,11 +824,10 @@ function DocToc({ entries, contentRef, defaultOpen = true }: { entries: TocEntry
 
   useEffect(() => {
     const contentEl = contentRef.current;
-    if (!contentEl || entries.length === 0) return;
+    if (!contentEl) return;
     const headingEls = entries
       .map(({ id }) => contentEl.querySelector(`#${CSS.escape(id)}`) as HTMLElement | null)
       .filter(Boolean) as HTMLElement[];
-    if (headingEls.length === 0) return;
 
     const observer = new IntersectionObserver(
       (obs) => {
@@ -960,6 +959,10 @@ export function DocsPanel() {
   const [navHistory, setNavHistory] = useState<string[]>([]);
   const [navIndex, setNavIndex] = useState(-1);
   const navIndexRef = useRef(-1);
+  const setNavIndexBoth = useCallback((i: number) => {
+    navIndexRef.current = i;
+    setNavIndex(i);
+  }, []);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [docIndex, setDocIndex] = useState<Record<string, string>>({});
@@ -1015,6 +1018,7 @@ export function DocsPanel() {
     const list: DocEntry[] = [];
     for (const [path, loader] of Object.entries(docsModules)) {
       const slug = slugFromPath(path);
+      if (slug.startsWith("templates/")) continue;
       const title = titleFromSlug(slug);
       list.push({ slug, title, path, loader });
     }
@@ -1126,20 +1130,18 @@ export function DocsPanel() {
           next.push(slug);
           return next;
         });
-        navIndexRef.current = newIndex;
-        setNavIndex(newIndex);
+        setNavIndexBoth(newIndex);
       }
 
       // Detect experimental flag
       setIsExperimental(text.includes("<!-- experimental -->"));
 
       const steps = extractWalkthroughSteps(text);
-      if (steps.length > 0) {
-        setWalkthroughSteps(steps);
-      } else {
-        setWalkthroughSteps([]);
+      setWalkthroughSteps(steps);
+      setWalkthroughStep(0);
+      setWalkthroughShowFull(false);
+      if (steps.length === 0) {
         setWalkthroughActive(false);
-        setWalkthroughShowFull(false);
       }
 
       if (anchor && contentRef.current) {
@@ -1278,19 +1280,17 @@ export function DocsPanel() {
     const i = navIndexRef.current;
     if (i <= 0) return;
     const newIndex = i - 1;
-    navIndexRef.current = newIndex;
-    setNavIndex(newIndex);
+    setNavIndexBoth(newIndex);
     loadDoc(navHistory[newIndex], undefined, false);
-  }, [navHistory, loadDoc]);
+  }, [navHistory, loadDoc, setNavIndexBoth]);
 
   const navForward = useCallback(() => {
     const i = navIndexRef.current;
     if (i >= navHistory.length - 1) return;
     const newIndex = i + 1;
-    navIndexRef.current = newIndex;
-    setNavIndex(newIndex);
+    setNavIndexBoth(newIndex);
     loadDoc(navHistory[newIndex], undefined, false);
-  }, [navHistory, loadDoc]);
+  }, [navHistory, loadDoc, setNavIndexBoth]);
 
   // Load last-read or default doc on first render
   useEffect(() => {
@@ -1535,18 +1535,46 @@ export function DocsPanel() {
         }
         try {
           const points = JSON.parse(pointsJson) as [number, number][];
+          const xs = points.map((p) => p[0]);
+          const ys = points.map((p) => p[1]);
+          const xMin = Math.min(...xs), xMax = Math.max(...xs);
+          const yMin = Math.min(...ys), yMax = Math.max(...ys);
           return (
             <div className="docs-wide-block my-4 overflow-hidden rounded-xl border border-tn-border bg-tn-panel/45 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
-              {label && (
-                <div className="border-b border-tn-border bg-tn-panel px-3 py-2 text-[11px] font-medium tracking-[0.03em] text-tn-text-muted">
-                  {label}
-                </div>
-              )}
+              {/* Header: label + axis range summary */}
+              <div className="flex items-center justify-between gap-4 border-b border-tn-border bg-tn-panel px-3 py-2">
+                <span className="text-[11px] font-medium tracking-[0.03em] text-tn-text-muted">
+                  {label ?? "Curve"}
+                </span>
+                <span className="font-mono text-[10px] text-tn-text-muted/70">
+                  x [{xMin} → {xMax}] &nbsp; y [{yMin} → {yMax}]
+                </span>
+              </div>
+              {/* Canvas */}
               <div className="bg-[linear-gradient(180deg,rgba(181,147,80,0.05),transparent_70%)] px-3 py-3">
                 <div className={`mx-auto w-full ${docsCurveWidthClass}`}>
                   <CurveCanvas points={points} compact compactHeight={docsCurveHeight} />
                 </div>
               </div>
+              {/* Point table — shown in standard detail mode */}
+              {showCurveStats && (
+                <div className="border-t border-tn-border px-3 py-2">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted mb-1.5">
+                    Control points
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {points.map((p, i) => (
+                      <span
+                        key={i}
+                        className="font-mono text-[10px] rounded border border-tn-border bg-tn-bg px-1.5 py-0.5 text-tn-text-muted"
+                        title={`Point ${i + 1}: x=${p[0]}, y=${p[1]}`}
+                      >
+                        ({p[0]}, {p[1]})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           );
         } catch {
@@ -1740,6 +1768,7 @@ export function DocsPanel() {
   }), [
     docsCurveHeight,
     docsCurveWidthClass,
+    showCurveStats,
     entriesBySlug,
     handleCopyNodeGraphBlock,
     handleCopySnippetGraph,
@@ -1752,7 +1781,13 @@ export function DocsPanel() {
   const selectedEntry = selectedSlug ? entriesBySlug.get(selectedSlug) ?? null : null;
 
   return (
-    <div className="flex h-full">
+    <div
+      className="flex h-full"
+      onKeyDown={(e) => {
+        if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); navBack(); }
+        if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); navForward(); }
+      }}
+    >
       <div
         className={`docs-sidebar relative flex flex-col transition-all duration-200 border-r border-tn-border bg-tn-panel/80 ${
           sidebarCollapsed ? "hidden" : "w-64 min-w-[220px]"
@@ -1769,6 +1804,7 @@ export function DocsPanel() {
                 onChange={(e) => setFilter(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
+                    searchCursorRef.current = -1;
                     setFilter("");
                     searchInputRef.current?.blur();
                     return;
@@ -1777,16 +1813,17 @@ export function DocsPanel() {
                   if (e.key === "ArrowDown") {
                     e.preventDefault();
                     searchCursorRef.current = Math.min(searchCursorRef.current + 1, filtered.length - 1);
-                    loadDoc(filtered[searchCursorRef.current].slug);
+                    if (filtered[searchCursorRef.current]) loadDoc(filtered[searchCursorRef.current].slug);
                   } else if (e.key === "ArrowUp") {
                     e.preventDefault();
                     searchCursorRef.current = Math.max(searchCursorRef.current - 1, 0);
-                    loadDoc(filtered[searchCursorRef.current].slug);
+                    if (filtered[searchCursorRef.current]) loadDoc(filtered[searchCursorRef.current].slug);
                   } else if (e.key === "Enter") {
                     e.preventDefault();
                     const idx = searchCursorRef.current >= 0 ? searchCursorRef.current : 0;
                     if (filtered[idx]) {
                       loadDoc(filtered[idx].slug);
+                      searchCursorRef.current = -1;
                       setFilter("");
                       searchInputRef.current?.blur();
                     }
@@ -1797,7 +1834,7 @@ export function DocsPanel() {
                 <button
                   type="button"
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 text-tn-text-muted hover:text-tn-text focus:outline-none"
-                  onClick={() => setFilter("")}
+                  onClick={() => { searchCursorRef.current = -1; setFilter(""); }}
                   title="Clear search"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -2002,7 +2039,7 @@ export function DocsPanel() {
         )}
       </div>
 
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="relative flex-1 flex flex-col min-h-0">
         {/* Reading progress bar */}
         {settings.showProgressBar && (
           <div className="h-0.5 w-full bg-tn-border shrink-0">
@@ -2020,10 +2057,6 @@ export function DocsPanel() {
           data-reading-width={settings.readingWidth}
           data-font-size={settings.fontSize === "default" ? undefined : settings.fontSize}
           data-code-wrap={shouldWrapCodeBlocks ? "wrap" : "scroll"}
-          onKeyDown={(e) => {
-            if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); navBack(); }
-            if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); navForward(); }
-          }}
           tabIndex={-1}
         >
         {selectedSlug ? (
@@ -2095,7 +2128,10 @@ export function DocsPanel() {
                     className="rounded border border-tn-border bg-tn-panel px-3 py-1 text-sm text-tn-text hover:bg-tn-panel/80"
                     onClick={() => {
                       setWalkthroughActive((v) => {
-                        if (!v) setTimeout(() => walkthroughShellRef.current?.focus(), 0);
+                        if (!v) {
+                          contentRef.current?.scrollTo({ top: 0 });
+                          setTimeout(() => walkthroughShellRef.current?.focus(), 0);
+                        }
                         return !v;
                       });
                       setWalkthroughStep(0);
@@ -2113,11 +2149,14 @@ export function DocsPanel() {
                 ref={walkthroughShellRef}
                 className="docs-reading-shell flex flex-col gap-4"
                 onKeyDown={(e) => {
+                  if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Escape") {
+                    e.stopPropagation();
+                  }
                   if (e.key === "ArrowLeft") setWalkthroughStep((s) => Math.max(0, s - 1));
                   if (e.key === "ArrowRight") setWalkthroughStep((s) => Math.min(walkthroughSteps.length - 1, s + 1));
                   if (e.key === "Escape") setWalkthroughActive(false);
                 }}
-                tabIndex={-1}
+                tabIndex={0}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-sm font-semibold text-tn-text">
@@ -2217,21 +2256,17 @@ export function DocsPanel() {
         ) : (
           <div className="text-tn-text-muted">Select a document to view.</div>
         )}
-        {showScrollTop && (
-          <div className="sticky bottom-4 pointer-events-none" style={{ height: 0 }}>
-            <div className="pointer-events-auto absolute bottom-0 right-4">
-              <button
-                type="button"
-                onClick={() => { contentRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }}
-                title="Scroll to top"
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-tn-border bg-tn-panel/90 text-tn-text-muted shadow-md backdrop-blur-sm hover:bg-tn-accent/20 hover:text-tn-text transition-colors"
-              >
-                <ChevronLeft className="h-4 w-4 rotate-90" />
-              </button>
-            </div>
-          </div>
-        )}
         </div>
+        {showScrollTop && (
+          <button
+            type="button"
+            onClick={() => { contentRef.current?.scrollTo({ top: 0, behavior: "smooth" }); }}
+            title="Scroll to top"
+            className="absolute bottom-4 right-4 z-30 flex h-8 w-8 items-center justify-center rounded-full border border-tn-border bg-tn-panel/90 text-tn-text-muted shadow-md backdrop-blur-sm hover:bg-tn-accent/20 hover:text-tn-text transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4 rotate-90" />
+          </button>
+        )}
       </div>
     </div>
   );
