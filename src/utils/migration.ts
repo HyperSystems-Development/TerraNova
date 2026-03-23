@@ -160,6 +160,13 @@ function convertSmoothnessToRange(result: Record<string, unknown>): void {
   }
 }
 
+function convertSmoothnessToSmoothRange(result: Record<string, unknown>): void {
+  if ("Smoothness" in result) {
+    result.SmoothRange = result.Smoothness;
+    delete result.Smoothness;
+  }
+}
+
 function convertThresholdToLimit(result: Record<string, unknown>): void {
   if ("Threshold" in result) {
     result.Limit = result.Threshold;
@@ -321,7 +328,7 @@ export function migrateToV2Names(
   // SmoothFloor/SmoothCeiling: Threshold → Limit, Smoothness → SmoothRange
   if (v2Type === "SmoothFloor" || v2Type === "SmoothCeiling") {
     convertThresholdToLimit(result);
-    convertSmoothnessToRange(result);
+    convertSmoothnessToSmoothRange(result);
   }
 
   // Floor density: Floor field → Limit

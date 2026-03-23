@@ -380,12 +380,7 @@ function reverseAmplitudeConstantFields(asset: Record<string, unknown>): Record<
   return result;
 }
 
-function reversePowFields(asset: Record<string, unknown>): Record<string, unknown> {
-  const result = { ...asset };
-  // If Exponent === 2, this was Square
-  delete result.Exponent;
-  return result;
-}
+// reversePowFields removed: Pow maps to Pow (identity), Exponent passes through.
 
 function reverseColumnLinearFields(asset: Record<string, unknown>): Record<string, unknown> {
   const result = { ...asset };
@@ -1145,10 +1140,7 @@ function transformNodeToInternal(
     processedFields = reverseAmplitudeConstantFields(processedFields);
   }
 
-  // Pow → Square (if Exponent=2)
-  if (hytaleType === "Pow") {
-    processedFields = reversePowFields(processedFields);
-  }
+  // Pow maps to Pow (identity); Exponent passes through untouched.
 
   // YOverride / XOverride / ZOverride: Value → OverrideY / OverrideX / OverrideZ
   if (hytaleType === "YOverride" && "Value" in processedFields) {

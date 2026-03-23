@@ -14,7 +14,7 @@ const handleSmoothFloor: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const v = ctx.getInput(inputs, "Input", x, y, z);
   // V2: WallA = floor boundary. Legacy fallback: Threshold/Limit.
   const threshold = Number(fields.WallA ?? fields.Threshold ?? fields.Limit ?? 0);
-  const k = Math.max(Number(fields.WallB ?? fields.Smoothness ?? fields.SmoothRange ?? 0.1), 0.001);
+  const k = Math.max(Number(fields.WallB ?? fields.Range ?? fields.Smoothness ?? fields.SmoothRange ?? 0.1), 0.001);
   return smoothMax(v, threshold, k);
 };
 
@@ -22,7 +22,7 @@ const handleSmoothCeiling: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const v = ctx.getInput(inputs, "Input", x, y, z);
   // V2: WallA = ceiling boundary. Legacy fallback: Threshold/Limit.
   const threshold = Number(fields.WallA ?? fields.Threshold ?? fields.Limit ?? 0);
-  const k = Math.max(Number(fields.WallB ?? fields.Smoothness ?? fields.SmoothRange ?? 0.1), 0.001);
+  const k = Math.max(Number(fields.WallB ?? fields.Range ?? fields.Smoothness ?? fields.SmoothRange ?? 0.1), 0.001);
   return smoothMin(v, threshold, k);
 };
 

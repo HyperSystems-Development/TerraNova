@@ -409,8 +409,18 @@ export function getDefaults(typeKey: string): DefaultFields {
   const legacy = LEGACY_FLAT[typeKey] ?? {};
   const bundleDefaults = getNodeDefaults(typeKey);
 
-  // Merge: legacy underneath, bundle on top (bundle wins on conflicts)
+  // For bare keys (no prefix), the caller expects Density-category defaults.
+  // If the bundle entry resolves to a different category (e.g. Curve:SmoothClamp
+  // instead of Density SmoothClamp), skip bundle defaults to avoid injecting
+  // wrong fields like Curve: null into density nodes.
   if (Object.keys(bundleDefaults).length > 0) {
+    const hasPrefixed = typeKey.includes(":");
+    if (!hasPrefixed) {
+      const bundleCategory = getSchemaCategory(typeKey);
+      if (bundleCategory && bundleCategory !== AssetCategory.Density) {
+        return { ...legacy };
+      }
+    }
     return { ...legacy, ...bundleDefaults };
   }
 

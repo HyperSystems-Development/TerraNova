@@ -128,11 +128,27 @@ describe("migrateToV2Names – field conversions", () => {
     expect(result!).not.toHaveProperty("Threshold");
   });
 
+  it("converts Smoothness → SmoothRange on SmoothFloor", () => {
+    const result = migrateToV2Names({ Type: "SmoothFloor", Smoothness: 0.2 });
+    expect(result).not.toBeNull();
+    expect(result!.SmoothRange).toBe(0.2);
+    expect(result!).not.toHaveProperty("Smoothness");
+    expect(result!).not.toHaveProperty("Range");
+  });
+
   it("converts Threshold → Limit on SmoothCeiling", () => {
     const result = migrateToV2Names({ Type: "SmoothCeiling", Threshold: 0.8 });
     expect(result).not.toBeNull();
     expect(result!.Limit).toBe(0.8);
     expect(result!).not.toHaveProperty("Threshold");
+  });
+
+  it("converts Smoothness → SmoothRange on SmoothCeiling", () => {
+    const result = migrateToV2Names({ Type: "SmoothCeiling", Smoothness: 0.4 });
+    expect(result).not.toBeNull();
+    expect(result!.SmoothRange).toBe(0.4);
+    expect(result!).not.toHaveProperty("Smoothness");
+    expect(result!).not.toHaveProperty("Range");
   });
 
   it("converts Floor field → Limit on Floor density node", () => {
