@@ -318,9 +318,10 @@ export function migrateToV2Names(
     convertSmoothnessToRange(result);
   }
 
-  // SmoothFloor/SmoothCeiling: Threshold → Limit
+  // SmoothFloor/SmoothCeiling: Threshold → Limit, Smoothness → SmoothRange
   if (v2Type === "SmoothFloor" || v2Type === "SmoothCeiling") {
     convertThresholdToLimit(result);
+    convertSmoothnessToRange(result);
   }
 
   // Floor density: Floor field → Limit

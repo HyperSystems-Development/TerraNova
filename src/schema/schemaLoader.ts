@@ -140,7 +140,7 @@ function mapCategory(handleType: string): AssetCategory {
  * Returns null if the node type isn't in the bundle.
  */
 export function getSchemaHandles(nodeType: string): HandleDef[] | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
 
   const handles: HandleDef[] = [];
@@ -181,7 +181,7 @@ export function getSchemaHandles(nodeType: string): HandleDef[] | null {
  * Returns null if the node type isn't in the bundle.
  */
 export function getSchemaDefaults(nodeType: string): Record<string, unknown> | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
 
   const defaults: Record<string, unknown> = {};
@@ -198,7 +198,7 @@ export function getSchemaDefaults(nodeType: string): Record<string, unknown> | n
  * Returns null if the node type isn't in the bundle.
  */
 export function getSchemaConstraints(nodeType: string): Record<string, FieldConstraint> | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
 
   const constraints: Record<string, FieldConstraint> = {};
@@ -226,7 +226,7 @@ export function getSchemaConstraints(nodeType: string): Record<string, FieldCons
  * Returns null if the node type isn't in the bundle.
  */
 export function getSchemaDescriptions(nodeType: string): Record<string, string> | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
 
   const descriptions: Record<string, string> = {};
@@ -242,7 +242,7 @@ export function getSchemaDescriptions(nodeType: string): Record<string, string> 
  * Get the description for a specific port (input/output) on a node.
  */
 export function getSchemaPortDescription(nodeType: string, portId: string): string | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
 
   for (const inp of node.inputs) {
@@ -258,7 +258,7 @@ export function getSchemaPortDescription(nodeType: string, portId: string): stri
  * Get the node description from the schema bundle.
  */
 export function getSchemaNodeDescription(nodeType: string): string | null {
-  return nodes[nodeType]?.description ?? null;
+  return resolveNodeKey(nodeType)?.description ?? null;
 }
 
 /**
@@ -272,7 +272,7 @@ export function getAllSchemaTypes(): string[] {
  * Get the category of a node type from the schema bundle.
  */
 export function getSchemaCategory(nodeType: string): AssetCategory | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
   return HANDLE_TYPE_TO_CATEGORY[node.category] ?? null;
 }
@@ -282,7 +282,7 @@ export function getSchemaCategory(nodeType: string): AssetCategory | null {
  * Returns null if the node is not a bridge type.
  */
 export function getSchemaBridgeInfo(nodeType: string): { from: AssetCategory; to: AssetCategory } | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
 
   const nodeCategory = mapCategory(node.category);
@@ -304,7 +304,7 @@ export function getSchemaBridgeInfo(nodeType: string): { from: AssetCategory; to
  * Returns `{}` if the type is not found in the bundle.
  */
 export function getNodeDefaults(typeKey: string): Record<string, unknown> {
-  const node = nodes[typeKey];
+  const node = resolveNodeKey(typeKey);
   if (!node) return {};
 
   const defaults: Record<string, unknown> = {};
@@ -321,7 +321,7 @@ export function getNodeDefaults(typeKey: string): Record<string, unknown> {
  * Returns `{}` if the type is not found or has no constrained fields.
  */
 export function getNodeConstraints(typeKey: string): Record<string, FieldConstraint> {
-  const node = nodes[typeKey];
+  const node = resolveNodeKey(typeKey);
   if (!node) return {};
 
   const constraints: Record<string, FieldConstraint> = {};
@@ -348,7 +348,7 @@ export function getNodeConstraints(typeKey: string): Record<string, FieldConstra
  * Returns `{ inputs: [], outputs: [] }` if the type is not found.
  */
 export function getNodeHandles(typeKey: string): { inputs: HandleInfo[]; outputs: HandleInfo[] } {
-  const node = nodes[typeKey];
+  const node = resolveNodeKey(typeKey);
   if (!node) return { inputs: [], outputs: [] };
 
   const inputs: HandleInfo[] = node.inputs.map((inp) => ({
@@ -392,7 +392,7 @@ export function getNodeFields(typeKey: string): FieldDef[] {
  * Check whether a type key corresponds to a registered (non-sub-type) node.
  */
 export function isRegisteredNodeType(typeKey: string): boolean {
-  const node = nodes[typeKey];
+  const node = resolveNodeKey(typeKey);
   if (!node) return false;
   return node.isSubType !== true;
 }

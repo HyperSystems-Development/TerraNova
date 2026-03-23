@@ -27,8 +27,9 @@ const handleSimplexNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) => {
   const octaves = Math.max(1, Number(fields.Octaves ?? 1));
   const lacunarity = Number(fields.Lacunarity ?? 1.0);
   const persistence = resolvePersistence(fields);
+  const amp = (fields.Amplitude as number) ?? 1.0;
   const noise = ctx.getNoise2D(seed);
-  return fbm2D(noise, x, z, scale, scale, octaves, lacunarity, persistence, seed);
+  return fbm2D(noise, x, z, scale, scale, octaves, lacunarity, persistence, seed) * amp;
 };
 
 const handleSimplexNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) => {
@@ -38,8 +39,9 @@ const handleSimplexNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) => {
   const octaves = Math.max(1, Number(fields.Octaves ?? 1));
   const lacunarity = Number(fields.Lacunarity ?? 1.0);
   const persistence = resolvePersistence(fields);
+  const amp = (fields.Amplitude as number) ?? 1.0;
   const noise = ctx.getNoise3D(seed);
-  return fbm3D(noise, x, y, z, scaleXZ, scaleY, octaves, lacunarity, persistence, seed);
+  return fbm3D(noise, x, y, z, scaleXZ, scaleY, octaves, lacunarity, persistence, seed) * amp;
 };
 
 const handleSimplexRidgeNoise2D: NodeHandler = (ctx, fields, _inputs, x, _y, z) => {

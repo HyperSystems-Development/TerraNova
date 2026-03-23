@@ -1112,7 +1112,7 @@
           "default": "A",
           "description": "Seed for the warp noise."
         },
-        "Is2D": {
+        "2D": {
           "type": "boolean",
           "required": false,
           "default": false,

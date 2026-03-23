@@ -104,7 +104,7 @@ describe("Extended node types — default field values", () => {
     // Legacy density defaults — SmoothCeiling in the bundle is categorized as Curve,
     // so density defaults come from the legacy map.
     expect(d.WallA).toBe(1.0);
-    expect(d.WallB).toBe(0.0);
+    expect(d.WallB).toBe(0.1);
   });
 
   it("Gradient has Axis and SampleRange defaults", () => {

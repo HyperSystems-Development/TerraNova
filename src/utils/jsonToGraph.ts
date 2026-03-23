@@ -1,4 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
+import { HYTALE_ARRAY_TO_NAMED } from "./translationMaps";
 
 interface V2Asset {
   Type?: string;
@@ -9,56 +10,6 @@ interface GraphResult {
   nodes: Node[];
   edges: Edge[];
 }
-
-// ---------------------------------------------------------------------------
-// Inputs[] → named handle mapping (V2 type name → ordered handle names)
-// ---------------------------------------------------------------------------
-// Pre-computed map covering both Hytale (V2) and internal type names.
-// Used to convert Inputs[] array indices into named target handles for edges.
-
-const HYTALE_ARRAY_TO_NAMED: Record<string, string[]> = {
-  // Single-input types (V2 names)
-  Inverter: ["Input"], CurveMapper: ["Input"], Cache: ["Input"],
-  Abs: ["Input"], Sqrt: ["Input"], Cube: ["Input"],
-  CubeRoot: ["Input"], Inverse: ["Input"], Modulo: ["Input"],
-  Clamp: ["Input"], SmoothClamp: ["Input"], Normalizer: ["Input"],
-  AmplitudeConstant: ["Input"], FlatCache: ["Input"], Cache2D: ["Input"],
-  FastGradientWarp: ["Input"], Scale: ["Input"], Slider: ["Input"],
-  Rotator: ["Input"], MirroredPosition: ["Input"], QuantizedPosition: ["Input"],
-  SurfaceDensity: ["Input"], TerrainMask: ["Input"], BeardDensity: ["Input"],
-  ColumnDensity: ["Input"], CaveDensity: ["Input"], Debug: ["Input"],
-  Passthrough: ["Input"], Wrap: ["Input"], SplineFunction: ["Input"],
-  Pow: ["Input"], SumSelf: ["Input"], Exported: ["Input"],
-  Imported: ["Input"], YOverride: ["Input"], XOverride: ["Input"],
-  ZOverride: ["Input"], Floor: ["Input"], Ceiling: ["Input"],
-  SmoothCeiling: ["Input"], SmoothFloor: ["Input"], Anchor: ["Input"],
-  PositionsPinch: ["Input"], PositionsTwist: ["Input"],
-  GradientDensity: ["Input"], Gradient: ["Input"], YGradient: ["Input"],
-  ClampToIndex: ["Input"], DoubleNormalizer: ["Input"],
-  // Single-input types (internal names that differ from V2)
-  Negate: ["Input"], CurveFunction: ["Input"], CacheOnce: ["Input"],
-  SquareRoot: ["Input"], CubeMath: ["Input"], LinearTransform: ["Input"],
-  DomainWarp2D: ["Input"], DomainWarp3D: ["Input"],
-  ScaledPosition: ["Input"], TranslatedPosition: ["Input"],
-  RotatedPosition: ["Input"], Square: ["Input"], ImportedValue: ["Input"],
-  // 2-input types
-  Offset: ["Input", "Offset"],
-  GradientWarp: ["Input", "WarpSource"],
-  VectorWarp: ["Input", "WarpVector"],
-  Amplitude: ["Input", "Amplitude"],
-  YSampled: ["Input", "YProvider"],
-  WeightedSum: ["Inputs[0]", "Inputs[1]"],
-  // 3-input types (V2 names)
-  Mix: ["InputA", "InputB", "Factor"],
-  MultiMix: ["InputA", "InputB", "Factor"],
-  // 3-input types (internal names)
-  Blend: ["InputA", "InputB", "Factor"],
-  BlendCurve: ["InputA", "InputB", "Factor"],
-  Interpolate: ["InputA", "InputB", "Factor"],
-  // Conditional variants
-  Conditional: ["Condition", "TrueInput", "FalseInput"],
-  RangeChoice: ["Condition", "TrueInput", "FalseInput"],
-};
 
 /**
  * Migration map for renamed handles (compound inputs refactor).
