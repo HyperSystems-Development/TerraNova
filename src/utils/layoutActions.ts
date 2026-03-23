@@ -4,20 +4,25 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useToastStore } from "@/stores/toastStore";
 
+const isAnnotation = (n: { type?: string }) => n.type === "comment" || n.type === "frame";
+
 export async function handleAutoLayout(reactFlow: ReactFlowInstance) {
   const { nodes, edges, setNodes, commitState } = useEditorStore.getState();
   if (nodes.length === 0) return;
   try {
+    const graphNodes = nodes.filter((n) => !isAnnotation(n));
+    const annotationNodes = nodes.filter(isAnnotation);
     const { autoLayout } = await import("@/utils/autoLayout");
     const layouted = await autoLayout(
-      nodes,
+      graphNodes,
       edges,
       useSettingsStore.getState().flowDirection,
     );
-    setNodes(layouted);
+    setNodes([...layouted, ...annotationNodes]);
     commitState("Auto layout");
     setTimeout(() => {
-      reactFlow.fitView({ padding: 0.1, duration: 300 });
+      const fitNodes = useEditorStore.getState().nodes.filter((n) => !isAnnotation(n));
+      reactFlow.fitView({ nodes: fitNodes, padding: 0.1, duration: 300 });
     }, 50);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
@@ -50,9 +55,11 @@ export async function handleAutoLayoutSelected() {
 export async function handleTidyUp() {
   const { nodes, setNodes, commitState } = useEditorStore.getState();
   if (nodes.length === 0) return;
+  const graphNodes = nodes.filter((n) => !isAnnotation(n));
+  const annotationNodes = nodes.filter(isAnnotation);
   const { tidyUp } = await import("@/utils/autoLayout");
   const gridSize = useUIStore.getState().gridSize;
-  const tidied = tidyUp(nodes, gridSize);
-  setNodes(tidied);
+  const tidied = tidyUp(graphNodes, gridSize);
+  setNodes([...tidied, ...annotationNodes]);
   commitState("Tidy up");
 }
