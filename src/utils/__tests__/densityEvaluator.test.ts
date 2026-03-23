@@ -1878,3 +1878,46 @@ describe("Positions3D ReturnType delegation", () => {
     }
   });
 });
+
+/* ── Switch/SwitchState default verification ─────────────────────── */
+
+describe("Switch/SwitchState", () => {
+  it("default switchState is 0", () => {
+    // Build a Switch node with no SwitchState ancestor — the default state should be 0.
+    // Switch with SwitchStates uses hashSeed comparison against ctx.switchState.
+    // Without a SwitchState override, ctx.switchState defaults to 0.
+    // A Switch with a simple Selector field uses that index directly.
+    const nodes = [
+      makeNode("sw", "Switch", { Selector: 0 }),
+      makeNode("a", "Constant", { Value: 10 }),
+      makeNode("b", "Constant", { Value: 20 }),
+    ];
+    const edges = [
+      makeEdge("a", "sw", "Inputs[0]"),
+      makeEdge("b", "sw", "Inputs[1]"),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "sw");
+    expect(ctx).not.toBeNull();
+    // Default selector 0 should pick Inputs[0] → 10
+    const val = ctx!.evaluate("sw", 0, 0, 0);
+    expect(val).toBe(10);
+  });
+
+  it("SwitchState defaults to 0 matching V2 behavior", () => {
+    // Verify that the evaluation context initializes switchState to 0.
+    // When no SwitchState node overrides it, a Switch with SwitchStates
+    // should match against state 0.
+    const nodes = [
+      makeNode("sw", "Switch", { SwitchStates: [0] }),
+      makeNode("a", "Constant", { Value: 42 }),
+    ];
+    const edges = [
+      makeEdge("a", "sw", "Inputs[0]"),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "sw");
+    expect(ctx).not.toBeNull();
+    // hashSeed(0) should equal ctx.switchState (which is 0 by default)
+    const val = ctx!.evaluate("sw", 0, 0, 0);
+    expect(val).toBe(42);
+  });
+});
