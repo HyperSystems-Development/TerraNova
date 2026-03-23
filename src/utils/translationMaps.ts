@@ -1,14 +1,15 @@
 /**
- * Bidirectional translation maps between TerraNova internal format and Hytale native JSON.
- * All mappings derived from 9 real biome files + decompiled worldgen docs.
+ * Shared translation maps used by both import (hytaleToInternal.ts) and
+ * export (internalToHytale.ts) pipelines.
+ *
+ * Type name maps (INTERNAL_TO_HYTALE_TYPES / HYTALE_TO_INTERNAL_TYPES) have
+ * been inlined into each pipeline file to reduce coupling. Only structural
+ * maps that are truly shared remain here.
  */
 
-// ---------------------------------------------------------------------------
-// Type name mappings (Internal ↔ Hytale)
-// ---------------------------------------------------------------------------
-
-export const INTERNAL_TO_HYTALE_TYPES: Record<string, string> = {
-  // Confirmed from real files
+// Type rename map used only for building the HYTALE_ARRAY_TO_NAMED reverse index.
+// Not exported — each pipeline has its own copy.
+const TYPE_RENAMES: Record<string, string> = {
   Product: "Multiplier",
   Negate: "Inverter",
   CurveFunction: "CurveMapper",
@@ -33,15 +34,6 @@ export const INTERNAL_TO_HYTALE_TYPES: Record<string, string> = {
   Square: "Pow",
   CubeMath: "Cube",
 };
-
-/** Auto-reversed mapping: Hytale → Internal */
-export const HYTALE_TO_INTERNAL_TYPES: Record<string, string> = Object.fromEntries(
-  Object.entries(INTERNAL_TO_HYTALE_TYPES).map(([k, v]) => [v, k]),
-);
-
-// FastGradientWarp is its own internal type (not collapsed to DomainWarp2D).
-// Remove the auto-reversed entry which would incorrectly alias it.
-delete HYTALE_TO_INTERNAL_TYPES["FastGradientWarp"];
 
 // ---------------------------------------------------------------------------
 // Density input handle mapping (named handles → Inputs[] array order)
@@ -132,7 +124,7 @@ export const HYTALE_ARRAY_TO_NAMED: Record<string, string[]> = {};
 
 // Build reverse map using Hytale type names
 for (const [internalType, handles] of Object.entries(DENSITY_NAMED_TO_ARRAY)) {
-  const hytaleType = INTERNAL_TO_HYTALE_TYPES[internalType] ?? internalType;
+  const hytaleType = TYPE_RENAMES[internalType] ?? internalType;
   // Don't overwrite if already set (first wins for collisions like DomainWarp2D/3D)
   if (!(hytaleType in HYTALE_ARRAY_TO_NAMED)) {
     HYTALE_ARRAY_TO_NAMED[hytaleType] = handles;
@@ -246,19 +238,7 @@ export const FIELD_TO_CATEGORY: Record<string, string> = {
   ReturnType: "returnType",
 };
 
-// ---------------------------------------------------------------------------
-// Clamp/SmoothClamp field renames
-// ---------------------------------------------------------------------------
-
-export const CLAMP_FIELD_MAP: Record<string, string> = {
-  Min: "WallB",
-  Max: "WallA",
-};
-
-export const CLAMP_FIELD_REVERSE: Record<string, string> = {
-  WallA: "Max",
-  WallB: "Min",
-};
+// Clamp field maps have been inlined into internalToHytale.ts and hytaleToInternal.ts.
 
 // ---------------------------------------------------------------------------
 // Normalizer field flattening

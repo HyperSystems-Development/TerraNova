@@ -6,12 +6,48 @@
  */
 
 import {
-  HYTALE_TO_INTERNAL_TYPES,
   HYTALE_ARRAY_TO_NAMED,
-  CLAMP_FIELD_REVERSE,
   NORMALIZER_FIELDS_EXPORT,
 } from "./translationMaps";
 import { DEFAULT_WORLD_HEIGHT } from "@/constants";
+
+// ---------------------------------------------------------------------------
+// Type name mapping (V2/Hytale → internal)
+// ---------------------------------------------------------------------------
+// Maps V2 (Hytale) type names to old internal names used by the editor.
+// Types that are the same in both formats pass through unchanged via the ?? fallback.
+const HYTALE_TO_INTERNAL_TYPES: Record<string, string> = {
+  Multiplier: "Product",
+  Inverter: "Negate",
+  CurveMapper: "CurveFunction",
+  Cache: "CacheOnce",
+  Imported: "ImportedValue",
+  Mix: "Blend",
+  Min: "MinFunction",
+  Max: "MaxFunction",
+  XValue: "CoordinateX",
+  YValue: "CoordinateY",
+  ZValue: "CoordinateZ",
+  CellNoise2D: "VoronoiNoise2D",
+  CellNoise3D: "VoronoiNoise3D",
+  Sqrt: "SquareRoot",
+  // FastGradientWarp is its own internal type (not collapsed to DomainWarp2D)
+  Scale: "ScaledPosition",
+  Slider: "TranslatedPosition",
+  Rotator: "RotatedPosition",
+  AmplitudeConstant: "LinearTransform",
+  MultiMix: "BlendCurve",
+  Pow: "Square",
+  Cube: "CubeMath",
+};
+
+// ---------------------------------------------------------------------------
+// Clamp/SmoothClamp field renames (import direction only)
+// ---------------------------------------------------------------------------
+const CLAMP_FIELD_REVERSE: Record<string, string> = {
+  WallA: "Max",
+  WallB: "Min",
+};
 
 // ---------------------------------------------------------------------------
 // Types

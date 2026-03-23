@@ -3,7 +3,6 @@ import { getLanguageHelpers } from "../useLanguage";
 import { hytaleLanguage } from "../hytale";
 import { internalToHytale } from "@/utils/internalToHytale";
 import { hytaleToInternal } from "@/utils/hytaleToInternal";
-import { INTERNAL_TO_HYTALE_TYPES } from "@/utils/translationMaps";
 
 // ---------------------------------------------------------------------------
 // Language helper basics
@@ -393,8 +392,32 @@ describe("end-to-end: Hytale display → internal → export → import round-tr
 // ---------------------------------------------------------------------------
 
 describe("language system consistency", () => {
-  it("Hytale type display names match the export type mapping", () => {
-    for (const [internal, hytale] of Object.entries(INTERNAL_TO_HYTALE_TYPES)) {
+  it("Hytale type display names include key type renames", () => {
+    // Verify that the Hytale language has display name overrides for renamed types
+    const expectedRenames: Record<string, string> = {
+      Product: "Multiplier",
+      Negate: "Inverter",
+      CurveFunction: "CurveMapper",
+      CacheOnce: "Cache",
+      ImportedValue: "Imported",
+      Blend: "Mix",
+      MinFunction: "Min",
+      MaxFunction: "Max",
+      CoordinateX: "XValue",
+      CoordinateY: "YValue",
+      CoordinateZ: "ZValue",
+      VoronoiNoise2D: "CellNoise2D",
+      VoronoiNoise3D: "CellNoise3D",
+      SquareRoot: "Sqrt",
+      ScaledPosition: "Scale",
+      TranslatedPosition: "Slider",
+      RotatedPosition: "Rotator",
+      LinearTransform: "AmplitudeConstant",
+      BlendCurve: "MultiMix",
+      Square: "Pow",
+      CubeMath: "Cube",
+    };
+    for (const [internal, hytale] of Object.entries(expectedRenames)) {
       expect(hytaleLanguage.typeDisplayNames[internal]).toBe(hytale);
     }
   });
