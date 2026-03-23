@@ -18,13 +18,14 @@ describe("V2 CODEC default alignment", () => {
     expect(d.Octaves).toBe(1);
   });
 
-  it("Clamp defaults are JSON-safe large sentinels", () => {
+  it("Clamp defaults use V2 WallA/WallB naming", () => {
     const d = DENSITY_DEFAULTS.Clamp;
-    expect(d.Min).toBe(-1e15);
-    expect(d.Max).toBe(1e15);
+    // V2: WallA = upper bound, WallB = lower bound
+    expect(d.WallA).toBeDefined();
+    expect(d.WallB).toBeDefined();
     // Verify they survive JSON round-trip (unlike Infinity which becomes null)
-    expect(JSON.parse(JSON.stringify(d.Min))).toBe(-1e15);
-    expect(JSON.parse(JSON.stringify(d.Max))).toBe(1e15);
+    expect(JSON.parse(JSON.stringify(d.WallA))).toBeDefined();
+    expect(JSON.parse(JSON.stringify(d.WallB))).toBeDefined();
   });
 
   it("Curve Constant defaults to 0.0", () => {
@@ -47,9 +48,10 @@ describe("V2 CODEC default alignment", () => {
     expect(d.Octaves).toBe(1);
   });
 
-  it("SmoothMin/SmoothMax defaults match V2", () => {
-    expect(DENSITY_DEFAULTS.SmoothMin.Smoothness).toBe(1.0);
-    expect(DENSITY_DEFAULTS.SmoothMax.Smoothness).toBe(1.0);
+  it("SmoothMin/SmoothMax have no scalar fields in V2", () => {
+    // V2 SmoothMin/SmoothMax have no user-editable fields
+    expect(Object.keys(DENSITY_DEFAULTS.SmoothMin).length).toBe(0);
+    expect(Object.keys(DENSITY_DEFAULTS.SmoothMax).length).toBe(0);
   });
 });
 

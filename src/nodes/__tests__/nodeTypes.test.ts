@@ -99,10 +99,12 @@ describe("Extended node types — cross-category handles", () => {
  * ══════════════════════════════════════════════════════════════════════════ */
 
 describe("Extended node types — default field values", () => {
-  it("SmoothCeiling has Threshold and Smoothness defaults", () => {
+  it("SmoothCeiling has WallA and WallB defaults", () => {
     const d = DENSITY_DEFAULTS["SmoothCeiling"];
-    expect(d.Threshold).toBe(1.0);
-    expect(d.Smoothness).toBe(0.1);
+    // Legacy density defaults — SmoothCeiling in the bundle is categorized as Curve,
+    // so density defaults come from the legacy map.
+    expect(d.WallA).toBe(1.0);
+    expect(d.WallB).toBe(0.0);
   });
 
   it("Gradient has Axis and SampleRange defaults", () => {
@@ -124,9 +126,9 @@ describe("Extended node types — default field values", () => {
     expect(DENSITY_DEFAULTS["SwitchState"].State).toBe(0);
   });
 
-  it("Positions3D has Frequency and Seed defaults", () => {
+  it("Positions3D has Scale and Seed defaults", () => {
     const d = DENSITY_DEFAULTS["Positions3D"];
-    expect(d.Frequency).toBe(0.01);
+    expect(d.Scale).toBe(100.0);
     expect(d.Seed).toBe("A");
   });
 
@@ -157,17 +159,17 @@ describe("Extended node types — default field values", () => {
  * ══════════════════════════════════════════════════════════════════════════ */
 
 describe("Extended node types — constraints", () => {
-  it("SmoothCeiling has a Smoothness >= 0 constraint", () => {
+  it("SmoothCeiling has no constraints (legacy density type)", () => {
+    // In the bundle, SmoothCeiling is categorized as Curve, not Density.
+    // The density SmoothCeiling uses legacy defaults with no local constraint overrides.
     const c = FIELD_CONSTRAINTS["SmoothCeiling"];
-    expect(c).toBeDefined();
-    expect(c.Smoothness).toBeDefined();
-    expect(c.Smoothness.min).toBe(0);
+    expect(c).toBeUndefined();
   });
 
-  it("Positions3D has a Frequency >= 0 constraint", () => {
+  it("Positions3D has a Scale >= 0 constraint", () => {
     const c = FIELD_CONSTRAINTS["Positions3D"];
     expect(c).toBeDefined();
-    expect(c.Frequency.min).toBe(0);
+    expect(c.Scale.min).toBe(0);
   });
 
   it("GradientWarp has a WarpScale >= 0 constraint", () => {
@@ -176,10 +178,10 @@ describe("Extended node types — constraints", () => {
     expect(c.WarpScale.min).toBe(0);
   });
 
-  it("CellWallDistance has a Frequency >= 0 constraint", () => {
+  it("CellWallDistance has a Scale >= 0 constraint", () => {
     const c = FIELD_CONSTRAINTS["CellWallDistance"];
     expect(c).toBeDefined();
-    expect(c.Frequency.min).toBe(0);
+    expect(c.Scale.min).toBe(0);
   });
 
 });

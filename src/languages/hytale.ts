@@ -1,7 +1,5 @@
 import type { LanguageDefinition } from "./types";
 
-const safeInverse = (v: number): number => (v === 0 ? 0 : 1 / v);
-
 /**
  * Display name overrides for internal type names that differ from V2 names.
  * Types not listed here display as-is (most V2 types are already their own display name).
@@ -41,46 +39,14 @@ export const hytaleLanguage: LanguageDefinition = {
 
   typeDisplayNames: TYPE_DISPLAY_NAMES,
 
+  // V2 field names are used internally, so no display-name overrides are needed.
+  // Legacy files are migrated at load time (migration.ts) to V2 field names.
   fieldDisplayNames: {
-    Clamp: { Min: "WallB", Max: "WallA" },
-    SmoothClamp: { Min: "WallB", Max: "WallA" },
     RotatedPosition: { AngleDegrees: "SpinAngle" },
-    DomainWarp2D: { Amplitude: "WarpFactor" },
-    DomainWarp3D: { Amplitude: "WarpFactor" },
-    SimplexNoise2D: { Gain: "Persistence" },
-    SimplexNoise3D: { Gain: "Persistence" },
   },
 
-  fieldTransforms: {
-    SimplexNoise2D: {
-      Frequency: {
-        displayName: "Scale",
-        toDisplay: safeInverse,
-        fromDisplay: safeInverse,
-      },
-    },
-    SimplexNoise3D: {
-      Frequency: {
-        displayName: "Scale",
-        toDisplay: safeInverse,
-        fromDisplay: safeInverse,
-      },
-    },
-    VoronoiNoise2D: {
-      Frequency: {
-        displayName: "Scale",
-        toDisplay: safeInverse,
-        fromDisplay: safeInverse,
-      },
-    },
-    VoronoiNoise3D: {
-      Frequency: {
-        displayName: "Scale",
-        toDisplay: safeInverse,
-        fromDisplay: safeInverse,
-      },
-    },
-  },
+  // No field value transforms needed — internal values now match V2 directly.
+  fieldTransforms: {},
 
   hiddenTypes: new Set([
     "SimplexRidgeNoise2D",

@@ -13,11 +13,10 @@ const OUTPUT_ONLY_HANDLES = [densityOutput()];
  */
 function LegacyNoiseBody({ fields }: { fields: Record<string, unknown> }) {
   const entries: Array<[string, string, unknown]> = [
-    ["Frequency", "Freq", fields.Frequency ?? (fields.Scale != null ? 1 / (fields.Scale as number) : undefined)],
-    ["Amplitude", "Amp", fields.Amplitude],
+    ["Scale", "Scale", fields.Scale ?? fields.Frequency],
     ["Octaves", "Oct", fields.Octaves],
     ["Lacunarity", "Lac", fields.Lacunarity],
-    ["Gain", "Gain", fields.Gain ?? fields.Persistence],
+    ["Persistence", "Pers", fields.Persistence ?? fields.Gain],
     ["Seed", "Seed", fields.Seed],
   ];
   const visible = entries.filter(([, , v]) => v != null);

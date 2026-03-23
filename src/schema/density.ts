@@ -141,19 +141,18 @@ export interface DensityFields extends BaseFields {
   Type: DensityType;
 }
 
-/** Noise parameters shared by simplex/voronoi types */
+/** Noise parameters shared by simplex/voronoi types (V2 field names) */
 export interface NoiseParams {
-  Frequency?: number;
+  Scale?: number;
   Seed?: number | string;
   Octaves?: number;
   Lacunarity?: number;
-  Gain?: number;
+  Persistence?: number;
 }
 
 /** SimplexNoise2D/3D */
 export interface SimplexNoise extends DensityFields, NoiseParams {
   Type: "SimplexNoise2D" | "SimplexNoise3D";
-  Amplitude?: number;
 }
 
 /** Constant value */
@@ -175,12 +174,12 @@ export interface WeightedSumDensity extends DensityFields {
   Weights?: number[];
 }
 
-/** Clamp input between min and max */
+/** Clamp input between WallB (lower) and WallA (upper) */
 export interface ClampDensity extends DensityFields {
   Type: "Clamp";
   Input?: DensityFields;
-  Min?: number;
-  Max?: number;
+  WallA?: number;
+  WallB?: number;
 }
 
 /** Normalize input from source range to target range */

@@ -39,12 +39,12 @@ export const ClampToIndexNode = memo(function ClampToIndexNode(props: TypedNodeP
     >
       <div className="space-y-1">
         <div className="flex justify-between">
-          <span className="text-tn-text-muted">Min</span>
-          <span>{safeDisplay(data.fields.Min, 0)}</span>
+          <span className="text-tn-text-muted">WallB</span>
+          <span>{safeDisplay(data.fields.WallB ?? data.fields.Min, 0)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-tn-text-muted">Max</span>
-          <span>{safeDisplay(data.fields.Max, 255)}</span>
+          <span className="text-tn-text-muted">WallA</span>
+          <span>{safeDisplay(data.fields.WallA ?? data.fields.Max, 255)}</span>
         </div>
       </div>
     </BaseNode>
@@ -161,28 +161,9 @@ export const InterpolateNode = memo(function InterpolateNode(props: TypedNodePro
 
 export const SmoothClampNode = memo(function SmoothClampNode(props: TypedNodeProps) {
   const data = props.data;
-  // V2 schema: WallA/WallB. Legacy: Min/Max/Smoothness.
-  const hasV2Fields = data.fields.WallA != null || data.fields.WallB != null;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
-      {hasV2Fields ? (
-        <SchemaFields typeKey="SmoothClamp" fields={data.fields} />
-      ) : (
-        <div className="space-y-1">
-          <div className="flex justify-between">
-            <span className="text-tn-text-muted">Min</span>
-            <span>{safeDisplay(data.fields.Min, 0)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-tn-text-muted">Max</span>
-            <span>{safeDisplay(data.fields.Max, 1)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-tn-text-muted">Smooth</span>
-            <span>{safeDisplay(data.fields.Smoothness, 0.1)}</span>
-          </div>
-        </div>
-      )}
+      <SchemaFields typeKey="SmoothClamp" fields={data.fields} />
     </BaseNode>
   );
 });
@@ -205,47 +186,18 @@ export const CeilingDensityNode = memo(function CeilingDensityNode(props: TypedN
 
 export const SmoothFloorNode = memo(function SmoothFloorNode(props: TypedNodeProps) {
   const data = props.data;
-  // V2 schema: WallA/WallB. Legacy: Threshold/Smoothness.
-  const hasV2Fields = data.fields.WallA != null || data.fields.WallB != null;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
-      {hasV2Fields ? (
-        <SchemaFields typeKey="SmoothFloor" fields={data.fields} />
-      ) : (
-        <div className="space-y-1">
-          <div className="flex justify-between">
-            <span className="text-tn-text-muted">Threshold</span>
-            <span>{safeDisplay(data.fields.Threshold, 0)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-tn-text-muted">Smooth</span>
-            <span>{safeDisplay(data.fields.Smoothness, 0.1)}</span>
-          </div>
-        </div>
-      )}
+      <SchemaFields typeKey="SmoothFloor" fields={data.fields} />
     </BaseNode>
   );
 });
 
 export const SmoothCeilingNode = memo(function SmoothCeilingNode(props: TypedNodeProps) {
   const data = props.data;
-  const hasV2Fields = data.fields.WallA != null || data.fields.WallB != null;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
-      {hasV2Fields ? (
-        <SchemaFields typeKey="SmoothCeiling" fields={data.fields} />
-      ) : (
-        <div className="space-y-1">
-          <div className="flex justify-between">
-            <span className="text-tn-text-muted">Threshold</span>
-            <span>{safeDisplay(data.fields.Threshold, 1)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-tn-text-muted">Smooth</span>
-            <span>{safeDisplay(data.fields.Smoothness, 0.1)}</span>
-          </div>
-        </div>
-      )}
+      <SchemaFields typeKey="SmoothCeiling" fields={data.fields} />
     </BaseNode>
   );
 });
@@ -255,10 +207,7 @@ export const SmoothMinNode = memo(function SmoothMinNode(props: TypedNodeProps) 
   const handles = useCompoundHandles(props.id, "SmoothMin");
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={handles}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Smooth</span>
-        <span>{safeDisplay(data.fields.Smoothness, 0.1)}</span>
-      </div>
+      <SchemaFields typeKey="SmoothMin" fields={data.fields} />
     </BaseNode>
   );
 });
@@ -268,10 +217,7 @@ export const SmoothMaxNode = memo(function SmoothMaxNode(props: TypedNodeProps) 
   const handles = useCompoundHandles(props.id, "SmoothMax");
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={handles}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Smooth</span>
-        <span>{safeDisplay(data.fields.Smoothness, 0.1)}</span>
-      </div>
+      <SchemaFields typeKey="SmoothMax" fields={data.fields} />
     </BaseNode>
   );
 });

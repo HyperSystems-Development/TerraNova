@@ -98,8 +98,8 @@ export const FractalNoise2DNode = memo(function FractalNoise2DNode(props: TypedN
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
       <div className="space-y-1">
         <div className="flex justify-between">
-          <span className="text-tn-text-muted">Freq</span>
-          <span>{safeDisplay(data.fields.Frequency, 0.01)}</span>
+          <span className="text-tn-text-muted">Scale</span>
+          <span>{safeDisplay(data.fields.Scale ?? data.fields.Frequency, 1)}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Oct</span>
@@ -110,8 +110,8 @@ export const FractalNoise2DNode = memo(function FractalNoise2DNode(props: TypedN
           <span>{safeDisplay(data.fields.Lacunarity, 2)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-tn-text-muted">Gain</span>
-          <span>{safeDisplay(data.fields.Gain, 0.5)}</span>
+          <span className="text-tn-text-muted">Pers</span>
+          <span>{safeDisplay(data.fields.Persistence ?? data.fields.Gain, 0.5)}</span>
         </div>
       </div>
     </BaseNode>
@@ -124,8 +124,8 @@ export const FractalNoise3DNode = memo(function FractalNoise3DNode(props: TypedN
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
       <div className="space-y-1">
         <div className="flex justify-between">
-          <span className="text-tn-text-muted">Freq</span>
-          <span>{safeDisplay(data.fields.Frequency, 0.01)}</span>
+          <span className="text-tn-text-muted">Scale</span>
+          <span>{safeDisplay(data.fields.Scale ?? data.fields.Frequency, 1)}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Oct</span>
@@ -136,8 +136,8 @@ export const FractalNoise3DNode = memo(function FractalNoise3DNode(props: TypedN
           <span>{safeDisplay(data.fields.Lacunarity, 2)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-tn-text-muted">Gain</span>
-          <span>{safeDisplay(data.fields.Gain, 0.5)}</span>
+          <span className="text-tn-text-muted">Pers</span>
+          <span>{safeDisplay(data.fields.Persistence ?? data.fields.Gain, 0.5)}</span>
         </div>
       </div>
     </BaseNode>
@@ -149,8 +149,8 @@ export const DomainWarp2DNode = memo(function DomainWarp2DNode(props: TypedNodeP
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
       <div className="flex justify-between">
-        <span className="text-tn-text-muted">Amplitude</span>
-        <span>{safeDisplay(data.fields.Amplitude, 1)}</span>
+        <span className="text-tn-text-muted">WarpFactor</span>
+        <span>{safeDisplay(data.fields.WarpFactor ?? data.fields.Amplitude, 1)}</span>
       </div>
     </BaseNode>
   );
@@ -161,8 +161,8 @@ export const DomainWarp3DNode = memo(function DomainWarp3DNode(props: TypedNodeP
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
       <div className="flex justify-between">
-        <span className="text-tn-text-muted">Amplitude</span>
-        <span>{safeDisplay(data.fields.Amplitude, 1)}</span>
+        <span className="text-tn-text-muted">WarpFactor</span>
+        <span>{safeDisplay(data.fields.WarpFactor ?? data.fields.Amplitude, 1)}</span>
       </div>
     </BaseNode>
   );
@@ -323,8 +323,8 @@ export const CellWallDistanceNode = memo(function CellWallDistanceNode(props: Ty
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
       <div className="space-y-1">
         <div className="flex justify-between">
-          <span className="text-tn-text-muted">Freq</span>
-          <span>{safeDisplay(data.fields.Frequency, 0.01)}</span>
+          <span className="text-tn-text-muted">Scale</span>
+          <span>{safeDisplay(data.fields.Scale ?? data.fields.Frequency, 100)}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Seed</span>
@@ -357,8 +357,8 @@ export const PositionsCellNoiseNode = memo(function PositionsCellNoiseNode(props
     <BaseNode {...props} category={AssetCategory.Density} handles={POSITIONS_CELL_NOISE_HANDLES}>
       <div className="space-y-1">
         <div className="flex justify-between">
-          <span className="text-tn-text-muted">Freq</span>
-          <span>{safeDisplay(data.fields.Frequency, 0.01)}</span>
+          <span className="text-tn-text-muted">Scale</span>
+          <span>{safeDisplay(data.fields.Scale ?? data.fields.Frequency, 100)}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Seed</span>
@@ -375,8 +375,8 @@ export const Positions3DNode = memo(function Positions3DNode(props: TypedNodePro
     <BaseNode {...props} category={AssetCategory.Density} handles={POSITIONS_3D_HANDLES}>
       <div className="space-y-1">
         <div className="flex justify-between">
-          <span className="text-tn-text-muted">Freq</span>
-          <span>{safeDisplay(data.fields.Frequency, 0.01)}</span>
+          <span className="text-tn-text-muted">Scale</span>
+          <span>{safeDisplay(data.fields.Scale ?? data.fields.Frequency, 100)}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-tn-text-muted">Seed</span>

@@ -140,19 +140,19 @@ describe("analyzeGraph — fully connected graph", () => {
 
 /* ── Rule 5: Clamp Min > Max ──────────────────────────────────────── */
 
-describe("analyzeGraph — Clamp Min > Max", () => {
-  it("warns when Clamp Min exceeds Max", () => {
-    const nodes = [makeNode("c", "Clamp", { Min: 1, Max: 0 })];
+describe("analyzeGraph — Clamp WallB > WallA", () => {
+  it("warns when Clamp WallB exceeds WallA (V2 naming)", () => {
+    const nodes = [makeNode("c", "Clamp", { WallA: 0, WallB: 1 })];
     const diagnostics = analyzeGraph(nodes, []);
     const warnings = diagnostics.filter(
-      (d) => d.severity === "warning" && d.message.includes("Min") && d.message.includes("exceeds"),
+      (d) => d.severity === "warning" && d.message.includes("WallB") && d.message.includes("exceeds"),
     );
     expect(warnings.length).toBe(1);
     expect(warnings[0].nodeId).toBe("c");
   });
 
-  it("does not warn when Clamp Min <= Max", () => {
-    const nodes = [makeNode("c", "Clamp", { Min: 0, Max: 1 })];
+  it("does not warn when Clamp WallB <= WallA", () => {
+    const nodes = [makeNode("c", "Clamp", { WallA: 1, WallB: 0 })];
     const diagnostics = analyzeGraph(nodes, []);
     const warnings = diagnostics.filter(
       (d) => d.severity === "warning" && d.message.includes("exceeds"),
@@ -160,14 +160,23 @@ describe("analyzeGraph — Clamp Min > Max", () => {
     expect(warnings.length).toBe(0);
   });
 
-  it("warns when SmoothClamp Min exceeds Max", () => {
-    const nodes = [makeNode("sc", "SmoothClamp", { Min: 5, Max: 2, Smoothness: 0.5 })];
+  it("warns when SmoothClamp WallB exceeds WallA (V2 naming)", () => {
+    const nodes = [makeNode("sc", "SmoothClamp", { WallA: 2, WallB: 5 })];
     const diagnostics = analyzeGraph(nodes, []);
     const warnings = diagnostics.filter(
-      (d) => d.severity === "warning" && d.message.includes("Min") && d.message.includes("exceeds"),
+      (d) => d.severity === "warning" && d.message.includes("WallB") && d.message.includes("exceeds"),
     );
     expect(warnings.length).toBe(1);
     expect(warnings[0].nodeId).toBe("sc");
+  });
+
+  it("also handles legacy Min/Max field names", () => {
+    const nodes = [makeNode("c", "Clamp", { Min: 1, Max: 0 })];
+    const diagnostics = analyzeGraph(nodes, []);
+    const warnings = diagnostics.filter(
+      (d) => d.severity === "warning" && d.message.includes("exceeds"),
+    );
+    expect(warnings.length).toBe(1);
   });
 });
 

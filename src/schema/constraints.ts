@@ -33,15 +33,14 @@ const LOCAL_OVERRIDES: Record<string, Record<string, FieldConstraint>> = {
     Scale: { min: 0, max: 10000, message: "Scale must be >= 0" },
   },
 
-  // Clamping
+  // Clamping (V2: WallA = upper bound, WallB = lower bound)
   Clamp: {
-    Min: { required: true, message: "Clamp requires Min" },
-    Max: { required: true, message: "Clamp requires Max" },
+    WallA: { required: true, message: "Clamp requires WallA (upper bound)" },
+    WallB: { required: true, message: "Clamp requires WallB (lower bound)" },
   },
   SmoothClamp: {
-    Min: { required: true, message: "SmoothClamp requires Min" },
-    Max: { required: true, message: "SmoothClamp requires Max" },
-    Smoothness: { min: 0, message: "Smoothness must be >= 0" },
+    WallA: { required: true, message: "SmoothClamp requires WallA (upper bound)" },
+    WallB: { required: true, message: "SmoothClamp requires WallB (lower bound)" },
   },
 
   // Math
@@ -49,23 +48,9 @@ const LOCAL_OVERRIDES: Record<string, Record<string, FieldConstraint>> = {
     Exponent: { required: true, message: "Pow requires an Exponent" },
   },
 
-  // Smooth operations
-  SmoothFloor: {
-    Smoothness: { min: 0, message: "Smoothness must be >= 0" },
-  },
-  SmoothMin: {
-    Smoothness: { min: 0, message: "Smoothness must be >= 0" },
-  },
-  SmoothMax: {
-    Smoothness: { min: 0, message: "Smoothness must be >= 0" },
-  },
-  SmoothCeiling: {
-    Smoothness: { min: 0, message: "Smoothness must be >= 0" },
-  },
-
   // 3D position noise
   Positions3D: {
-    Frequency: { min: 0, message: "Frequency must be > 0" },
+    Scale: { min: 0, message: "Scale must be >= 0" },
   },
 
   // Warp
@@ -75,7 +60,7 @@ const LOCAL_OVERRIDES: Record<string, Record<string, FieldConstraint>> = {
 
   // Cell wall distance
   CellWallDistance: {
-    Frequency: { min: 0, message: "Frequency must be > 0" },
+    Scale: { min: 0, message: "Scale must be >= 0" },
   },
 
   // Material depth/space types
@@ -97,7 +82,7 @@ const LOCAL_OVERRIDES: Record<string, Record<string, FieldConstraint>> = {
 
   // Position sampling
   PositionsCellNoise: {
-    Frequency: { min: 0, message: "Frequency must be > 0" },
+    Scale: { min: 0, message: "Scale must be >= 0" },
   },
 
   // Gradient

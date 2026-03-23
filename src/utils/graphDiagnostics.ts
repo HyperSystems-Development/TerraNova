@@ -354,17 +354,17 @@ export function analyzeGraph(
     }
   }
 
-  // 5. Clamp Min > Max warning
+  // 5. Clamp WallB > WallA warning (V2 naming: WallA=upper, WallB=lower)
   for (const node of nodes) {
     const type = getNodeType(node);
     if (type === "Clamp" || type === "SmoothClamp") {
       const fields = getNodeFields(node);
-      const min = typeof fields.Min === "number" ? fields.Min : undefined;
-      const max = typeof fields.Max === "number" ? fields.Max : undefined;
-      if (min !== undefined && max !== undefined && min > max) {
+      const lower = typeof fields.WallB === "number" ? fields.WallB : typeof fields.Min === "number" ? fields.Min : undefined;
+      const upper = typeof fields.WallA === "number" ? fields.WallA : typeof fields.Max === "number" ? fields.Max : undefined;
+      if (lower !== undefined && upper !== undefined && lower > upper) {
         diagnostics.push({
           nodeId: node.id,
-          message: `${type}: Min (${min}) exceeds Max (${max}) — empty range`,
+          message: `${type}: WallB (${lower}) exceeds WallA (${upper}) — empty range`,
           severity: "warning",
         });
       }
@@ -540,24 +540,26 @@ export function analyzeGraph(
     if (!sourceRange) continue;
 
     // Check Clamp/SmoothClamp targets: only warn if source is entirely outside clamp range
+    // V2 naming: WallA = upper bound, WallB = lower bound
     if (targetType === "Clamp" || targetType === "SmoothClamp") {
       const fields = getNodeFields(targetNode);
-      const clampMin = typeof fields.Min === "number" ? fields.Min : undefined;
-      const clampMax = typeof fields.Max === "number" ? fields.Max : undefined;
-      if (clampMin !== undefined && clampMax !== undefined) {
-        // Source entirely below clamp range — output will always be clampMin
-        if (sourceRange[1] < clampMin) {
+      // Support both V2 names (WallA/WallB) and legacy names (Min/Max) for older saved files
+      const clampLower = typeof fields.WallB === "number" ? fields.WallB : typeof fields.Min === "number" ? fields.Min : undefined;
+      const clampUpper = typeof fields.WallA === "number" ? fields.WallA : typeof fields.Max === "number" ? fields.Max : undefined;
+      if (clampLower !== undefined && clampUpper !== undefined) {
+        // Source entirely below clamp range — output will always be clampLower
+        if (sourceRange[1] < clampLower) {
           diagnostics.push({
             nodeId: targetNode.id,
-            message: `${sourceType} output [${sourceRange[0]}, ${sourceRange[1]}] is entirely below Min (${clampMin}) — output will always be ${clampMin}`,
+            message: `${sourceType} output [${sourceRange[0]}, ${sourceRange[1]}] is entirely below WallB (${clampLower}) — output will always be ${clampLower}`,
             severity: "info",
           });
         }
-        // Source entirely above clamp range — output will always be clampMax
-        if (sourceRange[0] > clampMax) {
+        // Source entirely above clamp range — output will always be clampUpper
+        if (sourceRange[0] > clampUpper) {
           diagnostics.push({
             nodeId: targetNode.id,
-            message: `${sourceType} output [${sourceRange[0]}, ${sourceRange[1]}] is entirely above Max (${clampMax}) — output will always be ${clampMax}`,
+            message: `${sourceType} output [${sourceRange[0]}, ${sourceRange[1]}] is entirely above WallA (${clampUpper}) — output will always be ${clampUpper}`,
             severity: "info",
           });
         }
