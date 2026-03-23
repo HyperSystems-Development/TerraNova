@@ -1,4 +1,5 @@
 import { startTransition, useDeferredValue, useMemo, useState, useEffect, useCallback, useRef } from "react";
+import "highlight.js/styles/atom-one-dark.css";
 import type { LucideIcon } from "lucide-react";
 import {
   ChevronLeft, ChevronRight, ChevronDown, Folder, FileText, X,
@@ -142,6 +143,7 @@ type DocsSettings = {
   showTocByDefault: boolean;
   showFolderCount: boolean;
   readingWidth: "narrow" | "standard" | "wide";
+  fontSize: "default" | "small" | "medium" | "large";
   wrapCodeBlocks: boolean;
   showStickyHeader: boolean;
   autoOpenFirstSearchResult: boolean;
@@ -156,6 +158,7 @@ const DEFAULT_SETTINGS: DocsSettings = {
   showTocByDefault: false,
   showFolderCount: false,
   readingWidth: "standard",
+  fontSize: "default",
   wrapCodeBlocks: false,
   showStickyHeader: false,
   autoOpenFirstSearchResult: false,
@@ -749,6 +752,62 @@ function RelatedDocs({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PrevNextNav({
+  selectedSlug,
+  entries,
+  loadDoc,
+}: {
+  selectedSlug: string;
+  entries: DocEntry[];
+  loadDoc: (slug: string) => void;
+}) {
+  // Use section-ordered slugs matching ROOT_SECTION_ORDER, filtering out templates
+  const orderedSlugs = useMemo(() => {
+    const sectionOrder = ROOT_SECTION_ORDER.map((s) => s.key);
+    return [...entries].sort((a, b) => {
+      const sA = sectionOrder.indexOf(a.slug.split("/")[0]);
+      const sB = sectionOrder.indexOf(b.slug.split("/")[0]);
+      if (sA !== sB) return (sA === -1 ? 999 : sA) - (sB === -1 ? 999 : sB);
+      return a.slug.localeCompare(b.slug);
+    }).filter((e) => !e.slug.startsWith("templates/"));
+  }, [entries]);
+
+  const idx = orderedSlugs.findIndex((e) => e.slug === selectedSlug);
+  if (idx === -1) return null;
+  const prev = idx > 0 ? orderedSlugs[idx - 1] : null;
+  const next = idx < orderedSlugs.length - 1 ? orderedSlugs[idx + 1] : null;
+  if (!prev && !next) return null;
+
+  return (
+    <div className="mt-8 flex items-stretch gap-3 border-t border-tn-border pt-5">
+      {prev ? (
+        <button
+          type="button"
+          className="flex flex-1 flex-col items-start gap-0.5 rounded-lg border border-tn-border px-4 py-3 text-left transition-colors hover:border-tn-accent/60 hover:bg-tn-accent/5"
+          onClick={() => loadDoc(prev.slug)}
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted flex items-center gap-1">
+            <ChevronLeft className="h-3 w-3" /> Previous
+          </span>
+          <span className="text-sm font-medium text-tn-text">{prev.title}</span>
+        </button>
+      ) : <div className="flex-1" />}
+      {next ? (
+        <button
+          type="button"
+          className="flex flex-1 flex-col items-end gap-0.5 rounded-lg border border-tn-border px-4 py-3 text-right transition-colors hover:border-tn-accent/60 hover:bg-tn-accent/5"
+          onClick={() => loadDoc(next.slug)}
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted flex items-center gap-1">
+            Next <ChevronRight className="h-3 w-3" />
+          </span>
+          <span className="text-sm font-medium text-tn-text">{next.title}</span>
+        </button>
+      ) : <div className="flex-1" />}
     </div>
   );
 }
@@ -1800,6 +1859,18 @@ export function DocsPanel() {
                 ]}
                 onChange={(value) => setSettings((s) => ({ ...s, readingWidth: value }))}
               />
+              <SettingsSelect
+                label="Font size"
+                description="Adjust the text size in the reading area"
+                value={settings.fontSize}
+                options={[
+                  { value: "default", label: "Default (13px)" },
+                  { value: "small", label: "Small (12px)" },
+                  { value: "medium", label: "Medium (14px)" },
+                  { value: "large", label: "Large (15px)" },
+                ]}
+                onChange={(value) => setSettings((s) => ({ ...s, fontSize: value }))}
+              />
               <SettingsToggle
                 label="Reading progress bar"
                 description="Thin bar showing scroll progress"
@@ -1866,13 +1937,51 @@ export function DocsPanel() {
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto" ref={sidebarScrollRef}>
-            {filter.trim() && (
-              <div className="border-b border-tn-border px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-tn-text-muted">
-                {filtered.length} result{filtered.length === 1 ? "" : "s"}
-              </div>
-            )}
-            {filteredTree.length === 0 && filter.trim() ? (
-              <div className="px-4 py-6 text-center text-xs text-tn-text-muted">No results for "{filter}"</div>
+            {normalizedFilter ? (
+              <>
+                <div className="border-b border-tn-border px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-tn-text-muted">
+                  {filtered.length} result{filtered.length === 1 ? "" : "s"}
+                </div>
+                {filtered.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-xs text-tn-text-muted">No results for "{filter}"</div>
+                ) : (
+                  filtered.map((entry) => {
+                    const isSelected = selectedSlug === entry.slug;
+                    const snippet = (() => {
+                      const text = docIndex[entry.slug] ?? "";
+                      const lower = text.toLowerCase();
+                      const idx = lower.indexOf(normalizedFilter.toLowerCase());
+                      if (idx === -1) return null;
+                      const start = Math.max(0, idx - 40);
+                      const end = Math.min(text.length, idx + normalizedFilter.length + 60);
+                      const raw = text.slice(start, end).replace(/\s+/g, " ").trim();
+                      const hi = raw.toLowerCase().indexOf(normalizedFilter.toLowerCase());
+                      if (hi === -1) return raw;
+                      return (
+                        <>
+                          {raw.slice(0, hi)}
+                          <mark className="bg-tn-accent/30 text-tn-text rounded-sm">{raw.slice(hi, hi + normalizedFilter.length)}</mark>
+                          {raw.slice(hi + normalizedFilter.length)}
+                        </>
+                      );
+                    })();
+                    return (
+                      <button
+                        key={entry.slug}
+                        type="button"
+                        ref={isSelected ? (el) => { (activeItemRef as React.MutableRefObject<HTMLButtonElement | null>).current = el; } : undefined}
+                        className={`flex w-full flex-col gap-0.5 border-b border-tn-border/40 px-3 py-2 text-left transition-colors hover:bg-tn-accent/8 ${isSelected ? "bg-tn-accent/12" : ""}`}
+                        onClick={() => { loadDoc(entry.slug); }}
+                      >
+                        <span className={`text-[12px] font-semibold ${isSelected ? "text-tn-accent" : "text-tn-text"}`}>{entry.title}</span>
+                        {snippet && (
+                          <span className="text-[10px] leading-snug text-tn-text-muted line-clamp-2">{snippet}</span>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </>
             ) : (
               filteredTree.map((node) => (
                 <DocTreeNodeItem
@@ -1910,6 +2019,7 @@ export function DocsPanel() {
           id="docs-content"
           ref={contentRef}
           data-reading-width={settings.readingWidth}
+          data-font-size={settings.fontSize === "default" ? undefined : settings.fontSize}
           data-code-wrap={shouldWrapCodeBlocks ? "wrap" : "scroll"}
           onKeyDown={(e) => {
             if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); navBack(); }
@@ -2094,6 +2204,11 @@ export function DocsPanel() {
                   selectedSlug={selectedSlug}
                   outboundLinks={outboundLinks}
                   backlinks={backlinks}
+                  entries={entries}
+                  loadDoc={loadDoc}
+                />
+                <PrevNextNav
+                  selectedSlug={selectedSlug}
                   entries={entries}
                   loadDoc={loadDoc}
                 />

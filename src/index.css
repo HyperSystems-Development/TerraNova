@@ -120,6 +120,10 @@ body,
   overflow-wrap: anywhere;
 }
 
+.docs-content[data-font-size="small"]  { font-size: 12px; }
+.docs-content[data-font-size="medium"] { font-size: 14px; }
+.docs-content[data-font-size="large"]  { font-size: 15px; }
+
 .docs-reading-shell {
   width: 100%;
 }
@@ -135,6 +139,11 @@ body,
   margin-left: auto;
   margin-right: auto;
 }
+
+.docs-content[data-reading-width="narrow"]  .docs-reading-shell > :not(.docs-wide-block) { width: min(100%, 580px); }
+.docs-content[data-reading-width="wide"]    .docs-reading-shell > :not(.docs-wide-block) { width: min(100%, 960px); }
+.docs-content[data-reading-width="narrow"]  .docs-reading-shell > .docs-wide-block       { width: min(100%, 720px); }
+.docs-content[data-reading-width="wide"]    .docs-reading-shell > .docs-wide-block       { width: min(100%, 1100px); }
 
 /* Sidebar docs navigation */
 .docs-sidebar {
@@ -407,7 +416,9 @@ body,
   background: rgba(181, 147, 80, 0.06);
 }
 
-.docs-content code.hljs {
+/* Override hljs backgrounds so they sit on TN's own pre background */
+.docs-content code.hljs,
+.docs-content pre code.hljs {
   background: transparent;
   padding: 0;
 }
@@ -417,6 +428,15 @@ body,
   padding: 0;
   white-space: inherit;
 }
+
+/* Tone down hljs token colors slightly to stay readable on warm dark bg */
+.docs-content .hljs-string  { color: #b8d9a0; }
+.docs-content .hljs-number  { color: #d4a96a; }
+.docs-content .hljs-keyword { color: #b48de0; }
+.docs-content .hljs-comment { color: #6a7d6a; font-style: italic; }
+.docs-content .hljs-attr    { color: #7cbfe0; }
+.docs-content .hljs-literal { color: #d4a96a; }
+.docs-content .hljs-name    { color: #e0957c; }
 
 .docs-snippet-card {
   backdrop-filter: blur(4px);
