@@ -391,3 +391,96 @@ export function isOldTerraNovaNaming(node: Record<string, unknown>): boolean {
 
   return false;
 }
+
+// ---------------------------------------------------------------------------
+// Recursive tree detection: does any node in the tree use old naming?
+// ---------------------------------------------------------------------------
+
+/**
+ * Recursively checks whether any node in an asset tree uses old TerraNova
+ * naming conventions. Walks all object-valued properties looking for
+ * sub-objects with a `Type` field.
+ */
+export function hasOldTerraNovaNaming(root: Record<string, unknown>): boolean {
+  if (isOldTerraNovaNaming(root)) return true;
+
+  for (const value of Object.values(root)) {
+    if (value && typeof value === "object") {
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          if (item && typeof item === "object" && !Array.isArray(item)) {
+            if (hasOldTerraNovaNaming(item as Record<string, unknown>)) return true;
+          }
+        }
+      } else {
+        if (hasOldTerraNovaNaming(value as Record<string, unknown>)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// Recursive tree migration
+// ---------------------------------------------------------------------------
+
+/**
+ * Recursively migrates an entire asset tree from old TerraNova naming to V2.
+ *
+ * Walks all object-valued properties. Any sub-object with a `Type` field that
+ * uses old naming is migrated via `migrateToV2Names`. Un-replaceable nodes
+ * are left as-is (with a warning logged).
+ *
+ * Returns the migrated tree and a list of conversions that were applied.
+ */
+export function migrateAssetTree(
+  root: Record<string, unknown>,
+): { result: Record<string, unknown>; conversions: string[] } {
+  const conversions: string[] = [];
+
+  function walk(node: Record<string, unknown>): Record<string, unknown> {
+    let current = node;
+
+    // Migrate this node if it has a Type and uses old naming
+    if (current.Type && isOldTerraNovaNaming(current)) {
+      const oldType = current.Type as string;
+      const migrated = migrateToV2Names(current);
+      if (migrated) {
+        conversions.push(`${oldType} → ${migrated.Type as string}`);
+        current = migrated;
+      } else {
+        conversions.push(`${oldType} → [un-replaceable, kept as-is]`);
+        // Keep the node as-is but still recurse into children
+        current = { ...current };
+      }
+    } else {
+      current = { ...current };
+    }
+
+    // Recurse into object-valued properties
+    for (const [key, value] of Object.entries(current)) {
+      if (key === "Type") continue;
+      if (value && typeof value === "object") {
+        if (Array.isArray(value)) {
+          current[key] = value.map((item) => {
+            if (item && typeof item === "object" && !Array.isArray(item)) {
+              const rec = item as Record<string, unknown>;
+              if (rec.Type) return walk(rec);
+            }
+            return item;
+          });
+        } else {
+          const rec = value as Record<string, unknown>;
+          if (rec.Type) {
+            current[key] = walk(rec);
+          }
+        }
+      }
+    }
+
+    return current;
+  }
+
+  const result = walk(root);
+  return { result, conversions };
+}

@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { migrateToV2Names, isOldTerraNovaNaming } from "../migration";
+import { describe, it, expect, vi } from "vitest";
+import { migrateToV2Names, isOldTerraNovaNaming, hasOldTerraNovaNaming, migrateAssetTree } from "../migration";
+import { normalizeImport, normalizeImportWithMeta } from "../fileTypeDetection";
 
 // ---------------------------------------------------------------------------
 // Type rename mapping (23 entries)
@@ -529,5 +530,226 @@ describe("isOldTerraNovaNaming", () => {
   it("returns false for un-replaceable types (they're internal-only, not old naming)", () => {
     expect(isOldTerraNovaNaming({ Type: "SumSelf" })).toBe(true);
     expect(isOldTerraNovaNaming({ Type: "CubeRoot" })).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// hasOldTerraNovaNaming – recursive tree detection
+// ---------------------------------------------------------------------------
+
+describe("hasOldTerraNovaNaming", () => {
+  it("detects old naming at root level", () => {
+    expect(hasOldTerraNovaNaming({ Type: "Product" })).toBe(true);
+  });
+
+  it("detects old naming in nested child", () => {
+    expect(
+      hasOldTerraNovaNaming({
+        Type: "Clamp",
+        WallA: 1,
+        WallB: 0,
+        Input: { Type: "Negate", Input: { Type: "Constant", Value: 1 } },
+      }),
+    ).toBe(true);
+  });
+
+  it("detects old naming in deeply nested child", () => {
+    expect(
+      hasOldTerraNovaNaming({
+        Type: "Clamp",
+        WallA: 1,
+        WallB: 0,
+        Input: {
+          Type: "Multiplier",
+          InputA: { Type: "Constant", Value: 1 },
+          InputB: { Type: "VoronoiNoise2D", Frequency: 4 },
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it("returns false when entire tree uses V2 naming", () => {
+    expect(
+      hasOldTerraNovaNaming({
+        Type: "Clamp",
+        WallA: 1,
+        WallB: 0,
+        Input: {
+          Type: "Multiplier",
+          InputA: { Type: "Constant", Value: 1 },
+          InputB: { Type: "CellNoise2D", Scale: 0.25 },
+        },
+      }),
+    ).toBe(false);
+  });
+
+  it("detects old naming in array children", () => {
+    expect(
+      hasOldTerraNovaNaming({
+        Type: "MultiMix",
+        Inputs: [
+          { Type: "Constant", Value: 1 },
+          { Type: "Blend", InputA: { Type: "Constant", Value: 0 } },
+        ],
+      }),
+    ).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// migrateAssetTree – recursive tree migration
+// ---------------------------------------------------------------------------
+
+describe("migrateAssetTree", () => {
+  it("migrates a single root node", () => {
+    const { result, conversions } = migrateAssetTree({ Type: "Product" });
+    expect(result.Type).toBe("Multiplier");
+    expect(conversions).toContain("Product → Multiplier");
+  });
+
+  it("migrates nested nodes recursively", () => {
+    const tree = {
+      Type: "Negate",
+      Input: {
+        Type: "VoronoiNoise2D",
+        Frequency: 4,
+        Gain: 0.5,
+      },
+    };
+    const { result, conversions } = migrateAssetTree(tree);
+    expect(result.Type).toBe("Inverter");
+    const child = result.Input as Record<string, unknown>;
+    expect(child.Type).toBe("CellNoise2D");
+    expect(child.Scale).toBe(0.25);
+    expect(child.Persistence).toBe(0.5);
+    expect(child).not.toHaveProperty("Frequency");
+    expect(child).not.toHaveProperty("Gain");
+    expect(conversions).toHaveLength(2);
+  });
+
+  it("migrates deeply nested chains", () => {
+    const tree = {
+      Type: "Blend",
+      InputA: { Type: "CoordinateX" },
+      InputB: {
+        Type: "CurveFunction",
+        Points: [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+        Input: { Type: "Product" },
+      },
+    };
+    const { result, conversions } = migrateAssetTree(tree);
+    expect(result.Type).toBe("Mix");
+    expect((result.InputA as Record<string, unknown>).Type).toBe("XValue");
+    const inputB = result.InputB as Record<string, unknown>;
+    expect(inputB.Type).toBe("CurveMapper");
+    expect((inputB.Input as Record<string, unknown>).Type).toBe("Multiplier");
+    expect(conversions).toHaveLength(4);
+  });
+
+  it("handles un-replaceable nodes gracefully", () => {
+    const tree = {
+      Type: "Product",
+      Input: { Type: "SumSelf", Input: { Type: "Constant", Value: 1 } },
+    };
+    const { result, conversions } = migrateAssetTree(tree);
+    expect(result.Type).toBe("Multiplier");
+    const child = result.Input as Record<string, unknown>;
+    // Un-replaceable types are kept as-is
+    expect(child.Type).toBe("SumSelf");
+    // But children of un-replaceable nodes are still walked (Constant stays Constant)
+    expect(conversions).toContain("Product → Multiplier");
+    expect(conversions).toContain("SumSelf → [un-replaceable, kept as-is]");
+  });
+
+  it("leaves already-V2-named trees unchanged", () => {
+    const tree = {
+      Type: "Clamp",
+      WallA: 1,
+      WallB: 0,
+      Input: { Type: "Multiplier", InputA: { Type: "Constant", Value: 1 } },
+    };
+    const { result, conversions } = migrateAssetTree(tree);
+    expect(result).toEqual(tree);
+    expect(conversions).toHaveLength(0);
+  });
+
+  it("migrates nodes inside arrays", () => {
+    const tree = {
+      Type: "BlendCurve",
+      Inputs: [
+        { Type: "Product" },
+        { Type: "Negate", Input: { Type: "CoordinateY" } },
+      ],
+    };
+    const { result, conversions } = migrateAssetTree(tree);
+    expect(result.Type).toBe("MultiMix");
+    const inputs = result.Inputs as Record<string, unknown>[];
+    expect(inputs[0].Type).toBe("Multiplier");
+    expect(inputs[1].Type).toBe("Inverter");
+    expect((inputs[1].Input as Record<string, unknown>).Type).toBe("YValue");
+    expect(conversions).toHaveLength(4);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Integration: normalizeImport migrates old TerraNova files
+// ---------------------------------------------------------------------------
+
+describe("normalizeImport – old TerraNova migration integration", () => {
+  it("migrates a file with old TerraNova naming on import", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const oldFile = {
+      Type: "Negate",
+      Input: {
+        Type: "VoronoiNoise2D",
+        Frequency: 2,
+        Gain: 0.7,
+      },
+    };
+    const result = normalizeImport(oldFile);
+    expect(result.Type).toBe("Inverter");
+    const child = result.Input as Record<string, unknown>;
+    expect(child.Type).toBe("CellNoise2D");
+    expect(child.Scale).toBe(0.5);
+    expect(child.Persistence).toBe(0.7);
+    expect(child).not.toHaveProperty("Frequency");
+
+    // Should log a warning
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    const msg = warnSpy.mock.calls[0][0] as string;
+    expect(msg).toContain("Migrated old naming");
+    expect(msg).toContain("Negate");
+    expect(msg).toContain("VoronoiNoise2D");
+    warnSpy.mockRestore();
+  });
+
+  it("does not migrate already-V2-named files", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // Use types/fields that won't trigger Hytale detection
+    // (WallA/WallB would trigger hasHytaleFieldNames)
+    const v2File = {
+      Type: "Constant",
+      Value: 42,
+    };
+    const result = normalizeImport(v2File);
+    expect(result).toEqual(v2File);
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it("migrates old naming via normalizeImportWithMeta", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const oldFile = {
+      Type: "Product",
+      InputA: { Type: "CoordinateX" },
+      InputB: { Type: "Constant", Value: 2 },
+    };
+    const { content, metadata } = normalizeImportWithMeta(oldFile);
+    expect(content.Type).toBe("Multiplier");
+    expect((content.InputA as Record<string, unknown>).Type).toBe("XValue");
+    expect(metadata).toBeNull();
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    warnSpy.mockRestore();
   });
 });
