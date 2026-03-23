@@ -33,7 +33,7 @@ const handleExported: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   return ctx.getInput(inputs, "Input", x, y, z);
 };
 
-const handleImportedValue: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleImported: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   return ctx.getInput(inputs, "Input", x, y, z);
 };
 
@@ -95,7 +95,8 @@ export function buildOverrideHandlers(): Map<string, NodeHandler> {
     ["ZOverride", handleZOverride],
     ["Anchor", handleAnchor],
     ["Exported", handleExported],
-    ["ImportedValue", handleImportedValue],
+    ["Imported", handleImported],
+    ["ImportedValue", handleImported],
     ["Offset", handleOffset],
     ["Distance", handleDistance],
     ["Amplitude", handleAmplitude],

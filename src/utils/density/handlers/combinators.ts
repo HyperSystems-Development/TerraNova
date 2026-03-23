@@ -8,7 +8,7 @@ const handleConditional: NodeHandler = (ctx, fields, inputs, x, y, z) => {
     : ctx.getInput(inputs, "FalseInput", x, y, z);
 };
 
-const handleMinFunction: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleMin: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   let result = ctx.getInput(inputs, "Inputs[0]", x, y, z);
   for (let i = 1; inputs.has(`Inputs[${i}]`); i++) {
     result = Math.min(result, ctx.getInput(inputs, `Inputs[${i}]`, x, y, z));
@@ -16,7 +16,7 @@ const handleMinFunction: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   return result;
 };
 
-const handleMaxFunction: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleMax: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   let result = ctx.getInput(inputs, "Inputs[0]", x, y, z);
   for (let i = 1; inputs.has(`Inputs[${i}]`); i++) {
     result = Math.max(result, ctx.getInput(inputs, `Inputs[${i}]`, x, y, z));
@@ -34,7 +34,7 @@ const handleAverageFunction: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   return avgCount > 0 ? avgSum / avgCount : 0;
 };
 
-const handleBlend: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleMix: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   const a = ctx.getInput(inputs, "InputA", x, y, z);
   const b = ctx.getInput(inputs, "InputB", x, y, z);
   const hasFactor = inputs.has("Factor");
@@ -94,12 +94,15 @@ const handleMultiMix: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 export function buildCombinatorHandlers(): Map<string, NodeHandler> {
   return new Map<string, NodeHandler>([
     ["Conditional", handleConditional],
-    ["MinFunction", handleMinFunction],
-    ["MaxFunction", handleMaxFunction],
+    ["Min", handleMin],
+    ["MinFunction", handleMin],
+    ["Max", handleMax],
+    ["MaxFunction", handleMax],
     ["AverageFunction", handleAverageFunction],
-    ["Blend", handleBlend],
+    ["Mix", handleMix],
+    ["Blend", handleMix],
     ["Switch", handleSwitch],
-    ["BlendCurve", handleBlendCurve],
     ["MultiMix", handleMultiMix],
+    ["BlendCurve", handleBlendCurve],
   ]);
 }
