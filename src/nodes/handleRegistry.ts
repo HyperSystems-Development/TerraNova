@@ -42,21 +42,21 @@ const HANDLE_OVERRIDES: Record<string, HandleDef[]> = {
   SimplexNoise3D: [densityOutput()],
   SimplexRidgeNoise2D: [densityOutput()],
   SimplexRidgeNoise3D: [densityOutput()],
-  VoronoiNoise2D: [densityOutput()],
-  VoronoiNoise3D: [densityOutput()],
+  CellNoise2D: [densityOutput()],
+  CellNoise3D: [densityOutput()],
   FractalNoise2D: [densityOutput()],
   FractalNoise3D: [densityOutput()],
   Constant: [densityOutput()],
-  ImportedValue: [densityOutput()],
+  Imported: [densityOutput()],
   GradientDensity: [densityOutput()],
   YGradient: [densityOutput()],
   Zero: [densityOutput()],
   One: [densityOutput()],
 
   // Coordinate readers
-  CoordinateX: [densityOutput()],
-  CoordinateY: [densityOutput()],
-  CoordinateZ: [densityOutput()],
+  XValue: [densityOutput()],
+  YValue: [densityOutput()],
+  ZValue: [densityOutput()],
   DistanceFromOrigin: [densityOutput()],
   DistanceFromAxis: [densityOutput()],
   DistanceFromPoint: [vectorInput("VectorProvider", "Vector"), densityOutput()],
@@ -66,9 +66,9 @@ const HANDLE_OVERRIDES: Record<string, HandleDef[]> = {
 
   // Single-input density transforms
   SumSelf: [densityInput("Input", "Input"), densityOutput()],
-  Negate: [densityInput("Input", "Input"), densityOutput()],
+  Inverter: [densityInput("Input", "Input"), densityOutput()],
   Abs: [densityInput("Input", "Input"), densityOutput()],
-  SquareRoot: [densityInput("Input", "Input"), densityOutput()],
+  Sqrt: [densityInput("Input", "Input"), densityOutput()],
   CubeRoot: [densityInput("Input", "Input"), densityOutput()],
   Square: [densityInput("Input", "Input"), densityOutput()],
   CubeMath: [densityInput("Input", "Input"), densityOutput()],
@@ -78,8 +78,8 @@ const HANDLE_OVERRIDES: Record<string, HandleDef[]> = {
   ClampToIndex: [densityInput("Input", "Input"), densityOutput()],
   Normalizer: [densityInput("Input", "Input"), densityOutput()],
   DoubleNormalizer: [densityInput("Input", "Input"), densityOutput()],
-  LinearTransform: [densityInput("Input", "Input"), densityOutput()],
-  CacheOnce: [densityInput("Input", "Input"), densityOutput()],
+  AmplitudeConstant: [densityInput("Input", "Input"), densityOutput()],
+  Cache: [densityInput("Input", "Input"), densityOutput()],
   Wrap: [densityInput("Input", "Input"), densityOutput()],
   FlatCache: [densityInput("Input", "Input"), densityOutput()],
   SplineFunction: [densityInput("Input", "Input"), densityOutput()],
@@ -87,9 +87,9 @@ const HANDLE_OVERRIDES: Record<string, HandleDef[]> = {
   Debug: [densityInput("Input", "Input"), densityOutput()],
 
   // Position transforms (single density input)
-  TranslatedPosition: [densityInput("Input", "Input"), densityOutput()],
-  ScaledPosition: [densityInput("Input", "Input"), densityOutput()],
-  RotatedPosition: [densityInput("Input", "Input"), vectorInput("NewYAxis", "Y Axis"), densityOutput()],
+  Slider: [densityInput("Input", "Input"), densityOutput()],
+  Scale: [densityInput("Input", "Input"), densityOutput()],
+  Rotator: [densityInput("Input", "Input"), vectorInput("NewYAxis", "Y Axis"), densityOutput()],
   MirroredPosition: [densityInput("Input", "Input"), densityOutput()],
   QuantizedPosition: [densityInput("Input", "Input"), densityOutput()],
 
@@ -99,27 +99,25 @@ const HANDLE_OVERRIDES: Record<string, HandleDef[]> = {
   BeardDensity: [densityInput("Input", "Input"), densityOutput()],
   ColumnDensity: [densityInput("Input", "Input"), densityOutput()],
   CaveDensity: [densityInput("Input", "Input"), densityOutput()],
-  DomainWarp2D: [densityInput("Input", "Input"), densityOutput()],
-  DomainWarp3D: [densityInput("Input", "Input"), densityOutput()],
+  FastGradientWarp: [densityInput("Input", "Input"), densityOutput()],
 
   // Dual-input density
   Sum: [densityInput("Inputs[0]", "Input"), densityInput("Inputs[1]", "Input"), densityOutput()],
   WeightedSum: [densityInput("Inputs[0]", "Input 0"), densityInput("Inputs[1]", "Input 1"), densityOutput()],
-  Product: [densityInput("Inputs[0]", "Input"), densityInput("Inputs[1]", "Input"), densityOutput()],
-  MinFunction: [densityInput("Inputs[0]", "Input"), densityInput("Inputs[1]", "Input"), densityOutput()],
-  MaxFunction: [densityInput("Inputs[0]", "Input"), densityInput("Inputs[1]", "Input"), densityOutput()],
+  Multiplier: [densityInput("Inputs[0]", "Input"), densityInput("Inputs[1]", "Input"), densityOutput()],
+  Min: [densityInput("Inputs[0]", "Input"), densityInput("Inputs[1]", "Input"), densityOutput()],
+  Max: [densityInput("Inputs[0]", "Input"), densityInput("Inputs[1]", "Input"), densityOutput()],
   AverageFunction: [densityInput("Inputs[0]", "Input"), densityInput("Inputs[1]", "Input"), densityOutput()],
   Switch: [densityInput("Inputs[0]", "Case 0"), densityInput("Inputs[1]", "Case 1"), densityOutput()],
   TerrainBoolean: [densityInput("Inputs[0]", "Input"), densityInput("Inputs[1]", "Input"), densityOutput()],
 
   // Triple-input density
   Interpolate: [densityInput("InputA", "Input"), densityInput("InputB", "Input"), densityInput("Factor", "Factor"), densityOutput()],
-  Blend: [densityInput("InputA", "Input"), densityInput("InputB", "Input"), densityInput("Factor", "Factor"), densityOutput()],
+  Mix: [densityInput("InputA", "Input"), densityInput("InputB", "Input"), densityInput("Factor", "Factor"), densityOutput()],
   Conditional: [densityInput("Condition", "Condition"), densityInput("TrueInput", "True"), densityInput("FalseInput", "False"), densityOutput()],
   RangeChoice: [densityInput("Condition", "Condition"), densityInput("TrueInput", "True"), densityInput("FalseInput", "False"), densityOutput()],
 
   // Additional math
-  AmplitudeConstant: [densityOutput()],
   Pow: [densityInput("Input", "Input"), densityOutput()],
 
   // Smooth operations
@@ -152,7 +150,6 @@ const HANDLE_OVERRIDES: Record<string, HandleDef[]> = {
   PositionsPinch: [positionInput("Positions", "Positions"), curveInput("PinchCurve", "Pinch Curve"), densityOutput()],
   PositionsTwist: [positionInput("Positions", "Positions"), curveInput("TwistCurve", "Twist Curve"), densityOutput()],
   GradientWarp: [densityInput("Input", "Input"), densityInput("WarpSource", "Warp Source"), densityOutput()],
-  FastGradientWarp: [densityInput("Input", "Input"), densityOutput()],
   VectorWarp: [densityInput("Input", "Input"), densityInput("Magnitude", "Magnitude"), vectorInput("WarpVector", "Warp Vector"), densityOutput()],
   Terrain: [densityOutput()],
   CellWallDistance: [densityOutput()],
@@ -176,8 +173,7 @@ const HANDLE_OVERRIDES: Record<string, HandleDef[]> = {
   MultiMix: [densityInput("Selector", "Selector"), densityInput("Densities[0]", "Density 0"), densityInput("Densities[1]", "Density 1"), densityInput("Densities[2]", "Density 2"), densityInput("Densities[3]", "Density 3"), densityOutput()],
 
   // Cross-category density nodes
-  CurveFunction: [densityInput("Input", "Input"), curveInput("Curve", "Curve"), densityOutput()],
-  BlendCurve: [densityInput("InputA", "Input"), densityInput("InputB", "Input"), densityInput("Factor", "Factor"), curveInput("Curve", "Curve"), densityOutput()],
+  CurveMapper: [densityInput("Input", "Input"), curveInput("Curve", "Curve"), densityOutput()],
 
   // ── Curve ───────────────────────────────────────────────────────────
 

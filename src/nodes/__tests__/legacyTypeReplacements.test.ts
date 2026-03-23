@@ -18,7 +18,7 @@ describe("getLegacyReplacement", () => {
     expect(getLegacyReplacement("SimplexRidgeNoise2D")).toBe("SimplexNoise2D");
     expect(getLegacyReplacement("SimplexRidgeNoise3D")).toBe("SimplexNoise3D");
     expect(getLegacyReplacement("DoubleNormalizer")).toBe("Normalizer");
-    expect(getLegacyReplacement("AverageFunction")).toBe("Blend");
+    expect(getLegacyReplacement("AverageFunction")).toBe("Mix");
     expect(getLegacyReplacement("FlatCache")).toBe("Cache2D");
     expect(getLegacyReplacement("Amplitude")).toBe("AmplitudeConstant");
     expect(getLegacyReplacement("Zero")).toBe("Constant");

@@ -245,37 +245,36 @@ describe("Extended node types — node tips", () => {
 });
 
 /* ══════════════════════════════════════════════════════════════════════════
- * 9. V2 name aliases — renamed types have both old and new registry keys
+ * 9. V2 names are the only registered density names
  * ══════════════════════════════════════════════════════════════════════════ */
 
-describe("V2 density name aliases", () => {
-  const V2_ALIASES: [string, string][] = [
-    // [V2 name, old name] — both should resolve to the same component
-    ["Multiplier",    "Product"],
-    ["Inverter",      "Negate"],
-    ["CurveMapper",   "CurveFunction"],
-    ["Cache",         "CacheOnce"],
-    ["Imported",      "ImportedValue"],
-    ["Mix",           "Blend"],
-    ["Min",           "MinFunction"],
-    ["Max",           "MaxFunction"],
-    ["XValue",        "CoordinateX"],
-    ["YValue",        "CoordinateY"],
-    ["ZValue",        "CoordinateZ"],
-    ["Sqrt",          "SquareRoot"],
-    ["Scale",         "ScaledPosition"],
-    ["Slider",        "TranslatedPosition"],
-    ["Rotator",       "RotatedPosition"],
-    ["CellNoise2D",   "CellNoise2D"],   // standalone V2 name (old VoronoiNoise2D removed)
-    ["CellNoise3D",   "CellNoise3D"],   // standalone V2 name (old VoronoiNoise3D removed)
+describe("V2 density names are registered", () => {
+  const V2_NAMES = [
+    "Multiplier", "Inverter", "CurveMapper", "Cache", "Imported",
+    "Mix", "Min", "Max", "XValue", "YValue", "ZValue", "Sqrt",
+    "Scale", "Slider", "Rotator", "CellNoise2D", "CellNoise3D",
+    "MultiMix", "FastGradientWarp", "AmplitudeConstant",
   ];
 
-  it.each(V2_ALIASES)(
-    "V2 name '%s' is registered and shares the component with '%s'",
-    (v2Name, oldName) => {
+  it.each(V2_NAMES)(
+    "V2 name '%s' is registered",
+    (v2Name) => {
       expect(nodeTypes[v2Name]).toBeDefined();
-      expect(nodeTypes[oldName]).toBeDefined();
-      expect(nodeTypes[v2Name]).toBe(nodeTypes[oldName]);
+    },
+  );
+
+  const REMOVED_OLD_NAMES = [
+    "Product", "Negate", "CurveFunction", "CacheOnce", "ImportedValue",
+    "Blend", "MinFunction", "MaxFunction", "CoordinateX", "CoordinateY",
+    "CoordinateZ", "SquareRoot", "ScaledPosition", "TranslatedPosition",
+    "RotatedPosition", "BlendCurve", "LinearTransform",
+    "DomainWarp2D", "DomainWarp3D",
+  ];
+
+  it.each(REMOVED_OLD_NAMES)(
+    "old name '%s' is no longer registered",
+    (oldName) => {
+      expect(nodeTypes[oldName]).toBeUndefined();
     },
   );
 });
