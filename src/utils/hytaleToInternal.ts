@@ -1042,9 +1042,10 @@ function transformNodeToInternal(
     }
   }
 
-  // Build output
+  // Build output -- preserve $NodeId so position metadata can be matched later
   const output: Record<string, unknown> = {
     Type: internalType,
+    ...(nodeId ? { __hytaleNodeId: nodeId } : {}),
   };
 
   // Switch → Conditional (density context only)

@@ -168,7 +168,10 @@ export function jsonToGraph(json: V2Asset, startX = 0, startY = 0, idPrefix = "g
   }
 
   function processAsset(asset: V2Asset, x: number, y: number, parentFieldName?: string): string {
-    const nodeId = nextId();
+    // Use preserved Hytale $NodeId when available so positions from
+    // $NodeEditorMetadata can be matched; fall back to auto-generated ID.
+    const hytaleId = (asset as Record<string, unknown>).__hytaleNodeId as string | undefined;
+    const nodeId = hytaleId ?? nextId();
     const fields: Record<string, unknown> = {};
     let childIndex = 0;
     const rawType = asset.Type ?? "unknown";
@@ -186,7 +189,7 @@ export function jsonToGraph(json: V2Asset, startX = 0, startY = 0, idPrefix = "g
       : resolveNodeType(rawType, parentFieldName);
 
     for (const [key, value] of Object.entries(asset)) {
-      if (key === "Type") continue;
+      if (key === "Type" || key === "__hytaleNodeId") continue;
 
       // Restore disconnected subtrees as independent roots (no edge to parent)
       if (key === "$DisconnectedTrees" && Array.isArray(value)) {
