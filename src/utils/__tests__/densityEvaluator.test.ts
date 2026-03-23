@@ -1158,11 +1158,11 @@ describe("getEvalStatus", () => {
     expect(getEvalStatus("VectorWarp")).toBe(EvalStatus.Approximated);
     expect(getEvalStatus("PositionsCellNoise")).toBe(EvalStatus.Approximated);
     expect(getEvalStatus("Shell")).toBe(EvalStatus.Approximated);
+    expect(getEvalStatus("Terrain")).toBe(EvalStatus.Approximated);
+    expect(getEvalStatus("HeightAboveSurface")).toBe(EvalStatus.Approximated);
   });
 
   it("returns Unsupported for context-dependent types", () => {
-    expect(getEvalStatus("HeightAboveSurface")).toBe(EvalStatus.Unsupported);
-    expect(getEvalStatus("Terrain")).toBe(EvalStatus.Unsupported);
     expect(getEvalStatus("Pipeline")).toBe(EvalStatus.Unsupported);
     expect(getEvalStatus("SurfaceDensity")).toBe(EvalStatus.Unsupported);
   });
@@ -1919,5 +1919,87 @@ describe("Switch/SwitchState", () => {
     // hashSeed(0) should equal ctx.switchState (which is 0 by default)
     const val = ctx!.evaluate("sw", 0, 0, 0);
     expect(val).toBe(42);
+  });
+});
+
+/* ── Terrain proxy ───────────────────────────────────────────────── */
+
+describe("Terrain proxy", () => {
+  it("returns baseHeight - y", () => {
+    const nodes = [makeNode("t", "Terrain", {})];
+    const ctx = createEvaluationContext(nodes, [], "t", { contentFields: { BaseHeight: 100 } });
+    expect(ctx).not.toBeNull();
+    // At y=80: below surface → positive (100 - 80 = 20)
+    expect(ctx!.evaluate("t", 0, 80, 0)).toBe(20);
+    // At y=120: above surface → negative (100 - 120 = -20)
+    expect(ctx!.evaluate("t", 0, 120, 0)).toBe(-20);
+    // At y=100: exactly at surface → 0
+    expect(ctx!.evaluate("t", 0, 100, 0)).toBe(0);
+  });
+
+  it("falls back to Base contentField", () => {
+    const nodes = [makeNode("t", "Terrain", {})];
+    const ctx = createEvaluationContext(nodes, [], "t", { contentFields: { Base: 64 } });
+    expect(ctx).not.toBeNull();
+    expect(ctx!.evaluate("t", 0, 50, 0)).toBe(14);
+  });
+
+  it("defaults to 100 when no contentFields provided", () => {
+    const nodes = [makeNode("t", "Terrain", {})];
+    const ctx = createEvaluationContext(nodes, [], "t");
+    expect(ctx).not.toBeNull();
+    expect(ctx!.evaluate("t", 0, 60, 0)).toBe(40);
+  });
+
+  it("is marked as approximated", () => {
+    expect(getEvalStatus("Terrain")).toBe(EvalStatus.Approximated);
+  });
+});
+
+/* ── HeightAboveSurface proxy ────────────────────────────────────── */
+
+describe("HeightAboveSurface proxy", () => {
+  it("returns y - baseHeight", () => {
+    const nodes = [makeNode("h", "HeightAboveSurface", {})];
+    const ctx = createEvaluationContext(nodes, [], "h", { contentFields: { BaseHeight: 100 } });
+    expect(ctx).not.toBeNull();
+    // At y=120: above surface → positive (120 - 100 = 20)
+    expect(ctx!.evaluate("h", 0, 120, 0)).toBe(20);
+    // At y=80: below surface → negative (80 - 100 = -20)
+    expect(ctx!.evaluate("h", 0, 80, 0)).toBe(-20);
+    // At y=100: exactly at surface → 0
+    expect(ctx!.evaluate("h", 0, 100, 0)).toBe(0);
+  });
+
+  it("falls back to Base contentField", () => {
+    const nodes = [makeNode("h", "HeightAboveSurface", {})];
+    const ctx = createEvaluationContext(nodes, [], "h", { contentFields: { Base: 64 } });
+    expect(ctx).not.toBeNull();
+    expect(ctx!.evaluate("h", 0, 80, 0)).toBe(16);
+  });
+
+  it("defaults to 100 when no contentFields provided", () => {
+    const nodes = [makeNode("h", "HeightAboveSurface", {})];
+    const ctx = createEvaluationContext(nodes, [], "h");
+    expect(ctx).not.toBeNull();
+    expect(ctx!.evaluate("h", 0, 140, 0)).toBe(40);
+  });
+
+  it("is inverse of Terrain proxy", () => {
+    const nodesT = [makeNode("t", "Terrain", {})];
+    const nodesH = [makeNode("h", "HeightAboveSurface", {})];
+    const ctxT = createEvaluationContext(nodesT, [], "t", { contentFields: { BaseHeight: 100 } });
+    const ctxH = createEvaluationContext(nodesH, [], "h", { contentFields: { BaseHeight: 100 } });
+    expect(ctxT).not.toBeNull();
+    expect(ctxH).not.toBeNull();
+    for (const y of [0, 50, 100, 150, 200]) {
+      const tVal = ctxT!.evaluate("t", 0, y, 0);
+      const hVal = ctxH!.evaluate("h", 0, y, 0);
+      expect(tVal + hVal).toBe(0);
+    }
+  });
+
+  it("is marked as approximated", () => {
+    expect(getEvalStatus("HeightAboveSurface")).toBe(EvalStatus.Approximated);
   });
 });

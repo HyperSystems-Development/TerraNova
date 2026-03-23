@@ -103,6 +103,18 @@ const handleBaseHeight: NodeHandler = (ctx, fields, _inputs, _x, y) => {
   return distance ? (y - baseY) : baseY;
 };
 
+// Terrain proxy: positive below surface, negative above
+const handleTerrain: NodeHandler = (ctx, _fields, _inputs, _x, y, _z) => {
+  const baseY = Number(ctx.contentFields["BaseHeight"] ?? ctx.contentFields["Base"] ?? 100);
+  return baseY - y;
+};
+
+// HeightAboveSurface proxy: inverse of terrain
+const handleHeightAboveSurface: NodeHandler = (ctx, _fields, _inputs, _x, y, _z) => {
+  const baseY = Number(ctx.contentFields["BaseHeight"] ?? ctx.contentFields["Base"] ?? 100);
+  return y - baseY;
+};
+
 export function buildPositionHandlers(): Map<string, NodeHandler> {
   return new Map<string, NodeHandler>([
     ["CoordinateX", handleCoordinateX],
@@ -118,5 +130,7 @@ export function buildPositionHandlers(): Map<string, NodeHandler> {
     ["GradientDensity", handleGradientDensity],
     ["Gradient", handleGradient],
     ["BaseHeight", handleBaseHeight],
+    ["Terrain", handleTerrain],
+    ["HeightAboveSurface", handleHeightAboveSurface],
   ]);
 }
