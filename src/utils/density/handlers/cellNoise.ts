@@ -15,9 +15,9 @@ const handlePositionsCellNoise: NodeHandler = (ctx, fields, inputs, x, y, z) => 
   // Exact cell wall distance from voronoi d1/d2 side-channel
   ctx.cellWallDist = Math.max(0, (lastVoronoiDistances.d2 - lastVoronoiDistances.d1) / 2.0);
   // ReturnType delegation (matching VoronoiNoise2D/3D handlers)
-  if (returnType === "Curve" || returnType === "CurveReturnType") {
+  if (returnType === "Curve") {
     raw = ctx.applyCurve("ReturnCurve", raw, inputs);
-  } else if (returnType === "Density" || returnType === "DensityReturnType") {
+  } else if (returnType === "Density") {
     raw = ctx.getInput(inputs, "ReturnDensity", x, y, z) * raw;
   }
   return raw;
@@ -44,9 +44,9 @@ const handlePositions3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   // Exact cell wall distance from voronoi d1/d2 side-channel
   ctx.cellWallDist = Math.max(0, (lastVoronoiDistances.d2 - lastVoronoiDistances.d1) / 2.0);
   // ReturnType delegation (matching VoronoiNoise2D/3D handlers)
-  if (returnType === "Curve" || returnType === "CurveReturnType") {
+  if (returnType === "Curve") {
     raw = ctx.applyCurve("ReturnCurve", raw, inputs);
-  } else if (returnType === "Density" || returnType === "DensityReturnType") {
+  } else if (returnType === "Density") {
     raw = ctx.getInput(inputs, "ReturnDensity", x, y, z) * raw;
   }
   return raw;

@@ -331,8 +331,10 @@ export function voronoiNoise2D(
       xPrimed = (xPrimed + PRIME_X) | 0;
     }
 
-    lastVoronoiDistances.d1 = distance0;
-    lastVoronoiDistances.d2 = distance1;
+    // Store actual (non-squared) distances for CellWallDistance side-channel.
+    // Euclidean accumulates squared distances; apply sqrt before storing.
+    lastVoronoiDistances.d1 = df === "Euclidean" ? Math.sqrt(distance0) : distance0;
+    lastVoronoiDistances.d2 = df === "Euclidean" ? Math.sqrt(distance1) : distance1;
     return resolveReturn(df, rt, distance0, distance1, closestHash);
   };
 }
@@ -404,8 +406,10 @@ export function voronoiNoise3D(
       xPrimed = (xPrimed + PRIME_X) | 0;
     }
 
-    lastVoronoiDistances.d1 = distance0;
-    lastVoronoiDistances.d2 = distance1;
+    // Store actual (non-squared) distances for CellWallDistance side-channel.
+    // Euclidean accumulates squared distances; apply sqrt before storing.
+    lastVoronoiDistances.d1 = df === "Euclidean" ? Math.sqrt(distance0) : distance0;
+    lastVoronoiDistances.d2 = df === "Euclidean" ? Math.sqrt(distance1) : distance1;
     return resolveReturn(df, rt, distance0, distance1, closestHash);
   };
 }

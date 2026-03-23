@@ -68,7 +68,12 @@ const handleYSampled: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const v0 = ctx.getInput(inputs, "Input", x, y0, z);
   const v1 = ctx.getInput(inputs, "Input", x, y1, z);
   const ratio = (y - y0) / sampleDist;
-  return v0 + (v1 - v0) * ratio;
+  const isInterpolated = fields.IsInterpolated !== false; // default true
+  if (isInterpolated) {
+    return v0 + (v1 - v0) * ratio;
+  } else {
+    return ratio < 0.5 ? v0 : v1;
+  }
 };
 
 const handleSwitchState: NodeHandler = (ctx, fields, inputs, x, y, z) => {

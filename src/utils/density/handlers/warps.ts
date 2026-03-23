@@ -21,6 +21,8 @@ const handleGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const slopeRange = Number(fields.SlopeRange ?? fields.SampleRange ?? 1.0);
   const is2D = fields.Is2D === true;
 
+  if (slopeRange <= 0) return ctx.getInput(inputs, "Input", x, y, z);
+
   // V2: forward finite differences — single base evaluation, then forward samples.
   // gradient ≈ (f(x+e) - f(x)) / e for each axis.
   const base = ctx.getInput(inputs, "WarpSource", x, y, z);
