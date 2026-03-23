@@ -238,6 +238,9 @@ export const randVecs3D = new Float32Array([
   0.13998385,0.7601631,-0.63447344,0.0,0.44844192,-0.84528923,0.29049253,0.0,
 ]);
 
+// ── Side-channel for d1/d2 distances (used by CellWallDistance) ──
+export const lastVoronoiDistances = { d1: 0, d2: 0 };
+
 // ── Return type resolution ──
 
 function resolveReturn(
@@ -328,6 +331,8 @@ export function voronoiNoise2D(
       xPrimed = (xPrimed + PRIME_X) | 0;
     }
 
+    lastVoronoiDistances.d1 = distance0;
+    lastVoronoiDistances.d2 = distance1;
     return resolveReturn(df, rt, distance0, distance1, closestHash);
   };
 }
@@ -399,6 +404,8 @@ export function voronoiNoise3D(
       xPrimed = (xPrimed + PRIME_X) | 0;
     }
 
+    lastVoronoiDistances.d1 = distance0;
+    lastVoronoiDistances.d2 = distance1;
     return resolveReturn(df, rt, distance0, distance1, closestHash);
   };
 }

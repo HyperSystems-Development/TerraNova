@@ -1,4 +1,5 @@
 import type { NodeHandler } from "../evalContext";
+import { lastVoronoiDistances } from "../voronoiNoise";
 
 const handlePositionsCellNoise: NodeHandler = (ctx, fields, _inputs, x, _y, z) => {
   const scale = Number(fields.Scale ?? 1.0);
@@ -11,8 +12,8 @@ const handlePositionsCellNoise: NodeHandler = (ctx, fields, _inputs, x, _y, z) =
   const sx = scale !== 0 ? x / scale : x;
   const sz = scale !== 0 ? z / scale : z;
   const raw = noise(sx, sz);
-  // Approximate cell wall distance from the raw value
-  ctx.cellWallDist = Math.max(0, 0.5 - Math.abs(raw + 0.5));
+  // Exact cell wall distance from voronoi d1/d2 side-channel
+  ctx.cellWallDist = Math.max(0, (lastVoronoiDistances.d2 - lastVoronoiDistances.d1) / 2.0);
   return raw;
 };
 
@@ -33,7 +34,10 @@ const handlePositions3D: NodeHandler = (ctx, fields, _inputs, x, y, z) => {
   const sx = scale !== 0 ? x / scale : x;
   const sy = scale !== 0 ? y / scale : y;
   const sz = scale !== 0 ? z / scale : z;
-  return noise(sx, sy, sz);
+  const raw = noise(sx, sy, sz);
+  // Exact cell wall distance from voronoi d1/d2 side-channel
+  ctx.cellWallDist = Math.max(0, (lastVoronoiDistances.d2 - lastVoronoiDistances.d1) / 2.0);
+  return raw;
 };
 
 export function buildCellNoiseHandlers(): Map<string, NodeHandler> {

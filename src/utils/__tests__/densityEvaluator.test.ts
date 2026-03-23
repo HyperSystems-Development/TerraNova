@@ -1701,3 +1701,55 @@ describe("YSampled — floor-based interpolation", () => {
     expect(result).toBeCloseTo(12, 5);
   });
 });
+
+/* ── CellWallDistance exact propagation via d1/d2 ────────────────── */
+
+describe("CellWallDistance — exact d1/d2 propagation", () => {
+  it("returns non-negative values", () => {
+    // PositionsCellNoise → Sum ← CellWallDistance
+    // Evaluating Sum forces both to be evaluated; CellWallDistance reads ctx.cellWallDist
+    const nodes = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "wall-test" }),
+      makeNode("cwd", "CellWallDistance"),
+      makeNode("sum", "Sum"),
+    ];
+    const edges = [
+      makeEdge("pcn", "sum", "Inputs[0]"),
+      makeEdge("cwd", "sum", "Inputs[1]"),
+    ];
+    // Evaluate at several positions and check CellWallDistance contribution
+    const ctx = createEvaluationContext(nodes, edges, "sum");
+    expect(ctx).not.toBeNull();
+    for (let i = 0; i < 20; i++) {
+      const x = (i * 17) % 100 - 50;
+      const z = (i * 31) % 100 - 50;
+      // Evaluate the cell noise node to set cellWallDist, then read CellWallDistance
+      ctx!.evaluate("pcn", x, Y_LEVEL, z);
+      const wallDist = ctx!.evaluate("cwd", x, Y_LEVEL, z);
+      expect(wallDist).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("varies spatially (not constant)", () => {
+    const nodes = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "wall-vary" }),
+      makeNode("cwd", "CellWallDistance"),
+      makeNode("sum", "Sum"),
+    ];
+    const edges = [
+      makeEdge("pcn", "sum", "Inputs[0]"),
+      makeEdge("cwd", "sum", "Inputs[1]"),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "sum");
+    expect(ctx).not.toBeNull();
+    const values = new Set<number>();
+    for (let i = 0; i < 20; i++) {
+      const x = (i * 17) % 100 - 50;
+      const z = (i * 31) % 100 - 50;
+      ctx!.evaluate("pcn", x, Y_LEVEL, z);
+      values.add(ctx!.evaluate("cwd", x, Y_LEVEL, z));
+    }
+    // Should have more than 1 unique value across 20 sample points
+    expect(values.size).toBeGreaterThan(1);
+  });
+});
