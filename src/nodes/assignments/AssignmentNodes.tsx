@@ -2,7 +2,7 @@ import { memo } from "react";
 import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
 import { assignmentInput, assignmentOutput, densityInput, propInput } from "@/nodes/shared/handles";
-import { safeDisplay } from "@/nodes/shared/displayUtils";
+import { SchemaFields } from "@/nodes/shared/SchemaFields";
 import { useCompoundHandles } from "@/hooks/useCompoundHandles";
 
 // ── Hoisted handle arrays ───────────────────────────────────────────────
@@ -40,10 +40,7 @@ export const FieldFunctionAssignmentNode = memo(function FieldFunctionAssignment
       category={AssetCategory.Assignment}
       handles={FIELD_FUNCTION_ASSIGNMENT_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Threshold</span>
-        <span>{safeDisplay(data.fields.Threshold, 0.5)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -77,10 +74,7 @@ export const ImportedAssignmentNode = memo(function ImportedAssignmentNode(props
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Assignment} handles={ASSIGNMENT_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });

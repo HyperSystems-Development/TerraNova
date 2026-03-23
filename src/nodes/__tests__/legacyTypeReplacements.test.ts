@@ -23,6 +23,8 @@ describe("getLegacyReplacement", () => {
     expect(getLegacyReplacement("Amplitude")).toBe("AmplitudeConstant");
     expect(getLegacyReplacement("Zero")).toBe("Constant");
     expect(getLegacyReplacement("One")).toBe("Constant");
+    expect(getLegacyReplacement("VoronoiNoise2D")).toBe("CellNoise2D");
+    expect(getLegacyReplacement("VoronoiNoise3D")).toBe("CellNoise3D");
   });
 
   it("returns the replacement for curve types with 1:1 equivalents", () => {

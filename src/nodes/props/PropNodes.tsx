@@ -2,6 +2,7 @@ import { memo } from "react";
 import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
 import { safeDisplay } from "@/nodes/shared/displayUtils";
+import { SchemaFields } from "@/nodes/shared/SchemaFields";
 import {
   propInput,
   propOutput,
@@ -73,28 +74,11 @@ const UNIQUE_PREFAB_PROP_HANDLES = [
   propOutput(),
 ];
 
-function formatVec3(v: unknown): string {
-  if (v && typeof v === "object" && "x" in (v as Record<string, unknown>)) {
-    const vec = v as { x: number; y: number; z: number };
-    return `(${vec.x}, ${vec.y}, ${vec.z})`;
-  }
-  return "—";
-}
-
 export const BoxPropNode = memo(function BoxPropNode(props: TypedNodeProps) {
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Prop} handles={PROP_OUTPUT_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Size</span>
-          <span>{formatVec3(data.fields.Size)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Material</span>
-          <span className="truncate max-w-[100px]">{safeDisplay(data.fields.Material, "stone")}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -103,16 +87,7 @@ export const ColumnPropNode = memo(function ColumnPropNode(props: TypedNodeProps
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Prop} handles={PROP_OUTPUT_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Height</span>
-          <span>{safeDisplay(data.fields.Height, 4)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Material</span>
-          <span className="truncate max-w-[100px]">{safeDisplay(data.fields.Material, "stone")}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -196,10 +171,7 @@ export const ConditionalPropNode = memo(function ConditionalPropNode(props: Type
       category={AssetCategory.Prop}
       handles={CONDITIONAL_PROP_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Threshold</span>
-        <span>{safeDisplay(data.fields.Threshold, 0.5)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -245,10 +217,7 @@ export const ImportedPropNode = memo(function ImportedPropNode(props: TypedNodeP
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Prop} handles={PROP_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -261,10 +230,7 @@ export const ExportedPropNode = memo(function ExportedPropNode(props: TypedNodeP
       category={AssetCategory.Prop}
       handles={EXPORTED_PROP_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -297,21 +263,9 @@ export const WeightedPropNode = memo(function WeightedPropNode(props: TypedNodeP
 
 export const CuboidPropNode = memo(function CuboidPropNode(props: TypedNodeProps) {
   const data = props.data;
-  const bounds = data.fields.Bounds as { PointA?: number[]; PointB?: number[] } | undefined;
-  const ptA = bounds?.PointA ?? [0, 0, 0];
-  const ptB = bounds?.PointB ?? [1, 1, 1];
   return (
     <BaseNode {...props} category={AssetCategory.Prop} handles={CUBOID_PROP_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Point A</span>
-          <span>({ptA.join(", ")})</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Point B</span>
-          <span>({ptB.join(", ")})</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -328,10 +282,7 @@ export const LocatorPropNode = memo(function LocatorPropNode(props: TypedNodePro
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Prop} handles={LOCATOR_PROP_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Placement Cap</span>
-        <span>{safeDisplay(data.fields.PlacementCap, 1)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -348,39 +299,16 @@ export const RandomRotatorPropNode = memo(function RandomRotatorPropNode(props: 
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Prop} handles={RANDOM_ROTATOR_PROP_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Seed</span>
-          <span>{safeDisplay(data.fields.Seed, "A")}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Horizontal</span>
-          <span>{data.fields.HorizontalRotations ? "Yes" : "No"}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
 
 export const StaticRotatorPropNode = memo(function StaticRotatorPropNode(props: TypedNodeProps) {
   const data = props.data;
-  const rotation = data.fields.Rotation as { Yaw?: string; Pitch?: string; Roll?: string } | undefined;
   return (
     <BaseNode {...props} category={AssetCategory.Prop} handles={STATIC_ROTATOR_PROP_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Yaw</span>
-          <span>{safeDisplay(rotation?.Yaw, "None")}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Pitch</span>
-          <span>{safeDisplay(rotation?.Pitch, "None")}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Roll</span>
-          <span>{safeDisplay(rotation?.Roll, "None")}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -389,10 +317,7 @@ export const OrienterPropNode = memo(function OrienterPropNode(props: TypedNodeP
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Prop} handles={ORIENTER_PROP_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Seed</span>
-        <span>{safeDisplay(data.fields.Seed, "A")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });

@@ -1,47 +1,57 @@
 /**
- * Bidirectional translation maps between TerraNova internal format and Hytale native JSON.
- * All mappings derived from 9 real biome files + decompiled worldgen docs.
+ * Shared translation maps used by the import pipeline (hytaleToInternal.ts),
+ * graph builder (jsonToGraph.ts), and export pipeline (internalToHytale.ts).
  */
 
 // ---------------------------------------------------------------------------
-// Type name mappings (Internal ↔ Hytale)
+// Inputs[] → named handle mapping (V2 type name → ordered handle names)
 // ---------------------------------------------------------------------------
+// Shared map used by both the import pipeline and graph builder to convert
+// Inputs[] array indices into named target handles for edges.
 
-export const INTERNAL_TO_HYTALE_TYPES: Record<string, string> = {
-  // Confirmed from real files
-  Product: "Multiplier",
-  Negate: "Inverter",
-  CurveFunction: "CurveMapper",
-  CacheOnce: "Cache",
-  ImportedValue: "Imported",
-  Blend: "Mix",
-  MinFunction: "Min",
-  MaxFunction: "Max",
-  CoordinateX: "XValue",
-  CoordinateY: "YValue",
-  CoordinateZ: "ZValue",
-  VoronoiNoise2D: "CellNoise2D",
-  VoronoiNoise3D: "CellNoise3D",
-  SquareRoot: "Sqrt",
-  DomainWarp2D: "FastGradientWarp",
-  DomainWarp3D: "FastGradientWarp",
-  ScaledPosition: "Scale",
-  TranslatedPosition: "Slider",
-  RotatedPosition: "Rotator",
-  LinearTransform: "AmplitudeConstant",
-  BlendCurve: "MultiMix",
-  Square: "Pow",
-  CubeMath: "Cube",
+export const HYTALE_ARRAY_TO_NAMED: Record<string, string[]> = {
+  // Single-input types (V2 names)
+  Inverter: ["Input"], CurveMapper: ["Input"], Cache: ["Input"],
+  Abs: ["Input"], Sqrt: ["Input"], Cube: ["Input"],
+  CubeRoot: ["Input"], Inverse: ["Input"], Modulo: ["Input"],
+  Clamp: ["Input"], SmoothClamp: ["Input"], Normalizer: ["Input"],
+  AmplitudeConstant: ["Input"], FlatCache: ["Input"], Cache2D: ["Input"],
+  FastGradientWarp: ["Input"], Scale: ["Input"], Slider: ["Input"],
+  Rotator: ["Input"], MirroredPosition: ["Input"], QuantizedPosition: ["Input"],
+  SurfaceDensity: ["Input"], TerrainMask: ["Input"], BeardDensity: ["Input"],
+  ColumnDensity: ["Input"], CaveDensity: ["Input"], Debug: ["Input"],
+  Passthrough: ["Input"], Wrap: ["Input"], SplineFunction: ["Input"],
+  Pow: ["Input"], SumSelf: ["Input"], Exported: ["Input"],
+  Imported: ["Input"], YOverride: ["Input"], XOverride: ["Input"],
+  ZOverride: ["Input"], Floor: ["Input"], Ceiling: ["Input"],
+  SmoothCeiling: ["Input"], SmoothFloor: ["Input"], Anchor: ["Input"],
+  PositionsPinch: ["Input"], PositionsTwist: ["Input"],
+  GradientDensity: ["Input"], Gradient: ["Input"], YGradient: ["Input"],
+  ClampToIndex: ["Input"], DoubleNormalizer: ["Input"],
+  // Single-input types (internal names that differ from V2)
+  Negate: ["Input"], CurveFunction: ["Input"], CacheOnce: ["Input"],
+  SquareRoot: ["Input"], CubeMath: ["Input"], LinearTransform: ["Input"],
+  DomainWarp2D: ["Input"], DomainWarp3D: ["Input"],
+  ScaledPosition: ["Input"], TranslatedPosition: ["Input"],
+  RotatedPosition: ["Input"], Square: ["Input"], ImportedValue: ["Input"],
+  // 2-input types
+  Offset: ["Input", "Offset"],
+  GradientWarp: ["Input", "WarpSource"],
+  VectorWarp: ["Input", "WarpVector"],
+  Amplitude: ["Input", "Amplitude"],
+  YSampled: ["Input", "YProvider"],
+  WeightedSum: ["Inputs[0]", "Inputs[1]"],
+  // 3-input types (V2 names)
+  Mix: ["InputA", "InputB", "Factor"],
+  MultiMix: ["InputA", "InputB", "Factor"],
+  // 3-input types (internal names)
+  Blend: ["InputA", "InputB", "Factor"],
+  BlendCurve: ["InputA", "InputB", "Factor"],
+  Interpolate: ["InputA", "InputB", "Factor"],
+  // Conditional variants
+  Conditional: ["Condition", "TrueInput", "FalseInput"],
+  RangeChoice: ["Condition", "TrueInput", "FalseInput"],
 };
-
-/** Auto-reversed mapping: Hytale → Internal */
-export const HYTALE_TO_INTERNAL_TYPES: Record<string, string> = Object.fromEntries(
-  Object.entries(INTERNAL_TO_HYTALE_TYPES).map(([k, v]) => [v, k]),
-);
-
-// FastGradientWarp is its own internal type (not collapsed to DomainWarp2D).
-// Remove the auto-reversed entry which would incorrectly alias it.
-delete HYTALE_TO_INTERNAL_TYPES["FastGradientWarp"];
 
 // ---------------------------------------------------------------------------
 // Density input handle mapping (named handles → Inputs[] array order)
@@ -123,25 +133,6 @@ export const DENSITY_NAMED_TO_ARRAY: Record<string, string[]> = {
   Conditional: ["Condition", "TrueInput", "FalseInput"],
   RangeChoice: ["Condition", "TrueInput", "FalseInput"],
 };
-
-/**
- * Reverse: given a Hytale type, get the named handles for Inputs[] indices.
- * Uses the Hytale type name (after mapping).
- */
-export const HYTALE_ARRAY_TO_NAMED: Record<string, string[]> = {};
-
-// Build reverse map using Hytale type names
-for (const [internalType, handles] of Object.entries(DENSITY_NAMED_TO_ARRAY)) {
-  const hytaleType = INTERNAL_TO_HYTALE_TYPES[internalType] ?? internalType;
-  // Don't overwrite if already set (first wins for collisions like DomainWarp2D/3D)
-  if (!(hytaleType in HYTALE_ARRAY_TO_NAMED)) {
-    HYTALE_ARRAY_TO_NAMED[hytaleType] = handles;
-  }
-  // Also store by internal type for direct lookups
-  if (!(internalType in HYTALE_ARRAY_TO_NAMED)) {
-    HYTALE_ARRAY_TO_NAMED[internalType] = handles;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // $NodeId prefix rules
@@ -244,20 +235,6 @@ export const FIELD_TO_CATEGORY: Record<string, string> = {
   TintProvider: "tint",
   DistanceFunction: "distanceFunction",
   ReturnType: "returnType",
-};
-
-// ---------------------------------------------------------------------------
-// Clamp/SmoothClamp field renames
-// ---------------------------------------------------------------------------
-
-export const CLAMP_FIELD_MAP: Record<string, string> = {
-  Min: "WallB",
-  Max: "WallA",
-};
-
-export const CLAMP_FIELD_REVERSE: Record<string, string> = {
-  WallA: "Max",
-  WallB: "Min",
 };
 
 // ---------------------------------------------------------------------------

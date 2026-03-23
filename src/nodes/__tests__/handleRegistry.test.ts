@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
+  getHandles,
   HANDLE_REGISTRY,
   NON_CONNECTABLE_NODE_TYPES,
   findHandleDef,
-  getHandles,
 } from "../handleRegistry";
 import { nodeTypes } from "../index";
 import { AssetCategory } from "@/schema/types";
@@ -70,12 +70,70 @@ describe("HANDLE_REGISTRY", () => {
       ).toBeGreaterThanOrEqual(1);
     }
   });
+});
+
+describe("HANDLE_REGISTRY proxy", () => {
+  it("supports bracket access for known types", () => {
+    expect(HANDLE_REGISTRY["SimplexNoise2D"]).toBeDefined();
+    expect(HANDLE_REGISTRY["SimplexNoise2D"].length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("returns undefined for unknown types", () => {
+    expect(HANDLE_REGISTRY["CompletelyFakeNode"]).toBeUndefined();
+  });
+
+  it("supports 'in' operator", () => {
+    expect("SimplexNoise2D" in HANDLE_REGISTRY).toBe(true);
+    expect("CompletelyFakeNode" in HANDLE_REGISTRY).toBe(false);
+  });
+
+  it("supports Object.entries iteration", () => {
+    const entries = Object.entries(HANDLE_REGISTRY);
+    expect(entries.length).toBeGreaterThan(0);
+    for (const [key, defs] of entries) {
+      expect(typeof key).toBe("string");
+      expect(Array.isArray(defs)).toBe(true);
+      expect(defs.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("includes schema-only types not in overrides", () => {
+    // The proxy should include all schema types via Object.entries
+    const keys = Object.keys(HANDLE_REGISTRY);
+    // Should include both override keys and schema-only keys
+    expect(keys.length).toBeGreaterThan(200);
+  });
+});
+
+describe("getHandles", () => {
+  it("returns overrides for editor-only Root node", () => {
+    const handles = getHandles("Root");
+    expect(handles.length).toBeGreaterThanOrEqual(1);
+    const inputs = handles.filter((h) => h.type === "target");
+    expect(inputs.length).toBe(1);
+  });
+
+  it("returns empty handles for completely unknown types", () => {
+    const handles = getHandles("CompletelyFakeNode");
+    expect(handles.length).toBe(0);
+  });
 
   it("does not expose fallback handles for non-connectable annotation nodes", () => {
     expect(getHandles("comment")).toEqual([]);
     expect(getHandles("frame")).toEqual([]);
     expect(findHandleDef("comment", "output")).toBeUndefined();
     expect(findHandleDef("frame", "output")).toBeUndefined();
+  });
+
+  it("returns valid handles for all density types", () => {
+    const densityTypes = ["SimplexNoise2D", "Sum", "Clamp", "Amplitude", "VectorWarp"];
+    for (const type of densityTypes) {
+      const handles = getHandles(type);
+      expect(handles.length).toBeGreaterThanOrEqual(1);
+      const output = handles.find((h) => h.id === "output" && h.type === "source");
+      expect(output, `${type} should have a density output`).toBeDefined();
+      expect(output!.category).toBe(AssetCategory.Density);
+    }
   });
 });
 

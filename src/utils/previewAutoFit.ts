@@ -387,7 +387,8 @@ export function analyzeGraphDefaults(
     const type = (node.data as Record<string, unknown>)?.type as string | undefined;
     if (type?.includes("Noise")) {
       const fields = (node.data as Record<string, unknown>)?.fields as Record<string, unknown> | undefined;
-      const freq = Number(fields?.Frequency ?? 0.01);
+      const scale = Number(fields?.Scale ?? 1);
+      const freq = scale !== 0 ? 1 / scale : Number(fields?.Frequency ?? 0.01);
       if (freq > 0) {
         const range = Math.min(DEFAULT_WORLD_HEIGHT, Math.ceil(2 / freq));
         return {
@@ -396,7 +397,7 @@ export function analyzeGraphDefaults(
           suggestedRangeMin: Math.max(-256, -range),
           suggestedRangeMax: Math.min(DEFAULT_WORLD_HEIGHT, range),
           confidence: "medium",
-          reason: `Noise frequency ${freq} → range ~${range}`,
+          reason: `Noise scale ${scale} → range ~${range}`,
         };
       }
     }

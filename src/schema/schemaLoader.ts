@@ -41,9 +41,74 @@ interface BundleNode {
   fields: Record<string, BundleField>;
   inputs: BundlePort[];
   outputs: BundlePort[];
+  isSubType?: boolean;
+}
+
+/* ── Exported types for new accessors ────────────────────────────── */
+
+export interface HandleInfo {
+  id: string;
+  handleType: string;
+  label: string;
+}
+
+export interface FieldDef {
+  name: string;
+  type: string;
+  default: unknown;
+  required?: boolean;
+  min?: number;
+  max?: number;
+  enum?: string[];
 }
 
 const nodes = (bundleJson as { nodes: Record<string, BundleNode> }).nodes;
+
+/* ── Node key resolution ─────────────────────────────────────────── */
+
+/**
+ * Maps the short category prefixes used in the app's nodeTypes registry
+ * to the full category names used in the bundle.
+ * E.g. "Material:" -> "MaterialProvider:", "Position:" -> "PositionProvider:"
+ */
+const SHORT_TO_FULL_PREFIX: Record<string, string> = {
+  "Material:": "MaterialProvider:",
+  "Position:": "PositionProvider:",
+  "Vector:": "VectorProvider:",
+  "Environment:": "EnvironmentProvider:",
+  "Tint:": "TintProvider:",
+};
+
+/** Reverse mapping: full bundle prefix → short editor prefix */
+const FULL_TO_SHORT_PREFIX: Record<string, string> = Object.fromEntries(
+  Object.entries(SHORT_TO_FULL_PREFIX).map(([short, full]) => [full, short]),
+);
+
+/**
+ * Resolve a node type key to a bundle key.
+ * Tries the key as-is first, then attempts alternative prefix mappings.
+ */
+function resolveNodeKey(typeKey: string): BundleNode | undefined {
+  // Direct match
+  if (nodes[typeKey]) return nodes[typeKey];
+
+  // Try expanding short prefix to full category prefix
+  for (const [short, full] of Object.entries(SHORT_TO_FULL_PREFIX)) {
+    if (typeKey.startsWith(short)) {
+      const fullKey = full + typeKey.slice(short.length);
+      if (nodes[fullKey]) return nodes[fullKey];
+    }
+  }
+
+  // Try bare name (strip prefix) — some bundle entries use flat keys
+  const colonIdx = typeKey.indexOf(":");
+  if (colonIdx >= 0) {
+    const bare = typeKey.slice(colonIdx + 1);
+    if (nodes[bare]) return nodes[bare];
+  }
+
+  return undefined;
+}
 
 /* ── Category mapping ─────────────────────────────────────────────── */
 
@@ -61,6 +126,7 @@ const HANDLE_TYPE_TO_CATEGORY: Record<string, AssetCategory> = {
   TintProvider: AssetCategory.TintProvider,
   BlockMask: AssetCategory.BlockMask,
   Directionality: AssetCategory.Directionality,
+  PropDistribution: AssetCategory.PropDistribution,
 };
 
 function mapCategory(handleType: string): AssetCategory {
@@ -79,7 +145,7 @@ function mapCategory(handleType: string): AssetCategory {
  * Returns null if the node type isn't in the bundle.
  */
 export function getSchemaHandles(nodeType: string): HandleDef[] | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
 
   const handles: HandleDef[] = [];
@@ -120,7 +186,7 @@ export function getSchemaHandles(nodeType: string): HandleDef[] | null {
  * Returns null if the node type isn't in the bundle.
  */
 export function getSchemaDefaults(nodeType: string): Record<string, unknown> | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
 
   const defaults: Record<string, unknown> = {};
@@ -137,7 +203,7 @@ export function getSchemaDefaults(nodeType: string): Record<string, unknown> | n
  * Returns null if the node type isn't in the bundle.
  */
 export function getSchemaConstraints(nodeType: string): Record<string, FieldConstraint> | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
 
   const constraints: Record<string, FieldConstraint> = {};
@@ -165,7 +231,7 @@ export function getSchemaConstraints(nodeType: string): Record<string, FieldCons
  * Returns null if the node type isn't in the bundle.
  */
 export function getSchemaDescriptions(nodeType: string): Record<string, string> | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
 
   const descriptions: Record<string, string> = {};
@@ -181,7 +247,7 @@ export function getSchemaDescriptions(nodeType: string): Record<string, string> 
  * Get the description for a specific port (input/output) on a node.
  */
 export function getSchemaPortDescription(nodeType: string, portId: string): string | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
 
   for (const inp of node.inputs) {
@@ -197,7 +263,7 @@ export function getSchemaPortDescription(nodeType: string, portId: string): stri
  * Get the node description from the schema bundle.
  */
 export function getSchemaNodeDescription(nodeType: string): string | null {
-  return nodes[nodeType]?.description ?? null;
+  return resolveNodeKey(nodeType)?.description ?? null;
 }
 
 /**
@@ -211,7 +277,7 @@ export function getAllSchemaTypes(): string[] {
  * Get the category of a node type from the schema bundle.
  */
 export function getSchemaCategory(nodeType: string): AssetCategory | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
   return HANDLE_TYPE_TO_CATEGORY[node.category] ?? null;
 }
@@ -221,7 +287,7 @@ export function getSchemaCategory(nodeType: string): AssetCategory | null {
  * Returns null if the node is not a bridge type.
  */
 export function getSchemaBridgeInfo(nodeType: string): { from: AssetCategory; to: AssetCategory } | null {
-  const node = nodes[nodeType];
+  const node = resolveNodeKey(nodeType);
   if (!node) return null;
 
   const nodeCategory = mapCategory(node.category);
@@ -234,4 +300,122 @@ export function getSchemaBridgeInfo(nodeType: string): { from: AssetCategory; to
     }
   }
   return null;
+}
+
+/* ── Primary-source accessors ────────────────────────────────────── */
+
+/**
+ * Get default field values for a node type.
+ * Returns `{}` if the type is not found in the bundle.
+ */
+export function getNodeDefaults(typeKey: string): Record<string, unknown> {
+  const node = resolveNodeKey(typeKey);
+  if (!node) return {};
+
+  const defaults: Record<string, unknown> = {};
+  for (const [fieldName, field] of Object.entries(node.fields)) {
+    if (field.default !== undefined && field.default !== null) {
+      defaults[fieldName] = field.default;
+    }
+  }
+  return defaults;
+}
+
+/**
+ * Get min/max/required constraints for each field of a node type.
+ * Returns `{}` if the type is not found or has no constrained fields.
+ */
+export function getNodeConstraints(typeKey: string): Record<string, FieldConstraint> {
+  const node = resolveNodeKey(typeKey);
+  if (!node) return {};
+
+  const constraints: Record<string, FieldConstraint> = {};
+  for (const [fieldName, field] of Object.entries(node.fields)) {
+    const constraint: FieldConstraint = {};
+    if (field.required) {
+      constraint.required = true;
+    }
+    if (field.min !== undefined) {
+      constraint.min = field.min;
+    }
+    if (field.max !== undefined) {
+      constraint.max = field.max;
+    }
+    if (Object.keys(constraint).length > 0) {
+      constraints[fieldName] = constraint;
+    }
+  }
+  return constraints;
+}
+
+/**
+ * Get the input and output handle definitions for a node type.
+ * Returns `{ inputs: [], outputs: [] }` if the type is not found.
+ */
+export function getNodeHandles(typeKey: string): { inputs: HandleInfo[]; outputs: HandleInfo[] } {
+  const node = resolveNodeKey(typeKey);
+  if (!node) return { inputs: [], outputs: [] };
+
+  const inputs: HandleInfo[] = node.inputs.map((inp) => ({
+    id: inp.id,
+    handleType: inp.handleType,
+    label: inp.label,
+  }));
+
+  const outputs: HandleInfo[] = node.outputs.map((out) => ({
+    id: out.id,
+    handleType: out.handleType,
+    label: out.label,
+  }));
+
+  return { inputs, outputs };
+}
+
+/**
+ * Get ordered field definitions for a node type.
+ * Returns `[]` if the type is not found or has no fields.
+ */
+export function getNodeFields(typeKey: string): FieldDef[] {
+  const node = resolveNodeKey(typeKey);
+  if (!node) return [];
+
+  return Object.entries(node.fields).map(([name, field]) => {
+    const def: FieldDef = {
+      name,
+      type: field.type,
+      default: field.default ?? undefined,
+    };
+    if (field.required !== undefined) def.required = field.required;
+    if (field.min !== undefined) def.min = field.min;
+    if (field.max !== undefined) def.max = field.max;
+    if (field.enum !== undefined) def.enum = field.enum;
+    return def;
+  });
+}
+
+/**
+ * Check whether a type key corresponds to a registered (non-sub-type) node.
+ */
+export function isRegisteredNodeType(typeKey: string): boolean {
+  const node = resolveNodeKey(typeKey);
+  if (!node) return false;
+  return node.isSubType !== true;
+}
+
+/**
+ * Get all registered (non-sub-type) node type keys from the bundle,
+ * normalized to editor-facing short prefixes (e.g. "Material:" instead
+ * of "MaterialProvider:").
+ */
+export function getAllNodeTypes(): string[] {
+  return Object.entries(nodes)
+    .filter(([, node]) => node.isSubType !== true)
+    .map(([key]) => {
+      for (const [full, short] of Object.entries(FULL_TO_SHORT_PREFIX)) {
+        if (key.startsWith(full)) {
+          return short + key.slice(full.length);
+        }
+      }
+      return key;
+    });
 }
