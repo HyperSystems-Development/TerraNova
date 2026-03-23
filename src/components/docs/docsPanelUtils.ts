@@ -170,6 +170,10 @@ export interface WalkthroughStep {
   content: string;
 }
 
+function isWalkthroughStepTitle(title: string): boolean {
+  return /^Step\b/i.test(title);
+}
+
 export function stripDocComments(markdown: string): string {
   return markdown.replace(/<!--[\s\S]*?-->/g, "");
 }
@@ -187,7 +191,7 @@ export function extractWalkthroughSteps(markdown: string): WalkthroughStep[] {
     const title = newlineIndex >= 0 ? section.slice(0, newlineIndex).trim() : section.trim();
     const content = newlineIndex >= 0 ? section.slice(newlineIndex + 1).trim() : "";
     return { title, content };
-  });
+  }).filter((section) => isWalkthroughStepTitle(section.title));
 }
 
 export function filterDocTree(nodes: DocTreeNode[], allowed: Set<string>): DocTreeNode[] {

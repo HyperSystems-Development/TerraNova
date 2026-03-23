@@ -97,11 +97,15 @@ describe("docsPanelUtils", () => {
   it("strips doc comments and extracts walkthrough steps", () => {
     const markdown = `# Intro
 <!-- walkthrough -->
+## Table of Contents
+- [Step One](#step-one)
 ## Step One
 First.
 <!-- hidden -->
 ## Step Two
-Second.`;
+Second.
+## Summary
+Done.`;
 
     expect(stripDocComments(markdown)).not.toContain("hidden");
     expect(extractWalkthroughSteps(markdown)).toEqual([

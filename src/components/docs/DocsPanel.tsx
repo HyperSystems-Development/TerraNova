@@ -1093,6 +1093,13 @@ export function DocsPanel() {
     return filterDocTree(docTree, allowed) as DocTreeNodeData[];
   }, [docTree, filtered, normalizedFilter]);
 
+  const scrollToAnchor = useCallback((anchor: string) => {
+    setTimeout(() => {
+      const el = contentRef.current?.querySelector(`#${CSS.escape(anchor)}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }, []);
+
   const loadDoc = useCallback(
     async (slug: string, anchor?: string, pushHistory = true) => {
       const entry = entriesBySlug.get(slug);
@@ -1144,11 +1151,8 @@ export function DocsPanel() {
         setWalkthroughActive(false);
       }
 
-      if (anchor && contentRef.current) {
-        setTimeout(() => {
-          const el = contentRef.current?.querySelector(`#${CSS.escape(anchor)}`);
-          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 50);
+      if (anchor) {
+        scrollToAnchor(anchor);
       } else {
         // Restore saved scroll position for this doc (if any), otherwise reset to top
         const savedScroll = scrollMemoryRef.current[slug] ?? 0;
@@ -1157,7 +1161,7 @@ export function DocsPanel() {
         }, 20);
       }
     },
-    [entriesBySlug],
+    [entriesBySlug, scrollToAnchor, setNavIndexBoth],
   );
 
   const handleCopySnippetJson = useCallback(async (snippetJson: string, label?: string) => {
@@ -1440,19 +1444,23 @@ export function DocsPanel() {
 
       const target = entriesBySlug.get(resolved.slug) ?? entriesBySlug.get(resolved.slug.replace(/\.md$/, ""));
       if (target) {
+        if (target.slug === slug && resolved.anchor) {
+          scrollToAnchor(resolved.anchor);
+          return true;
+        }
         loadDoc(target.slug, resolved.anchor);
         return true;
       }
 
       // If the link is an anchor within the same document, just scroll
       if (resolved.slug === slug && resolved.anchor) {
-        loadDoc(resolved.slug, resolved.anchor);
+        scrollToAnchor(resolved.anchor);
         return true;
       }
 
       return false;
     },
-    [entriesBySlug, loadDoc],
+    [entriesBySlug, loadDoc, scrollToAnchor],
   );
 
   const mdComponents = useMemo(() => ({

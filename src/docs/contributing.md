@@ -226,7 +226,7 @@ Use relative paths for all internal links:
 
 ```markdown
 [Node Combinations](../guides/world/node-combinations.md)
-[Walkthrough: Terrain and Caves](./terrain-and-caves.md)
+[Walkthrough: Terrain and Caves](./walkthroughs/terrain-and-caves.md)
 [Getting Started](../getting-started.md)
 ```
 
