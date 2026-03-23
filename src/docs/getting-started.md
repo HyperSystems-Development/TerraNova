@@ -153,3 +153,4 @@ Toggle inline node previews — small thumbnails on each node — with **T**.
 - **[Walkthrough: Terrain and Caves](./walkthroughs/terrain-and-caves.md)** — shape hills, mountains, and carve cave systems
 - **[Guide: Understanding Basic Terrain](./guides/understanding-basic-terrain-generation.md)** — how density and noise work together
 - **[Glossary](./glossary/README.md)** — definitions for every node type and term
+- **[Exporting](./reference/exporting.md)** — deploy to Hytale, export SVG diagrams, and understand the node-to-JSON type mapping

@@ -12,6 +12,7 @@ If you are still learning, start with these focused pages before diving into the
 - [Curves Reference](./curves.md) — curve types and shape previews
 - [Reading the Graph](./reading-the-graph.md) — how to read the editor visually
 - [Terrain Snippets](./terrain-types.md) — paste-ready terrain examples
+- [Exporting](./exporting.md) — export paths, node-to-Hytale type mapping, field renames
 
 Use the rest of this page when you need exact terms, schemas, or category listings.
 
