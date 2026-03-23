@@ -1067,7 +1067,6 @@ export function DocsPanel() {
   // Per-doc scroll position memory: slug → scrollTop
   const scrollMemoryRef = useRef<Record<string, number>>({});
   const prevSlugRef = useRef<string | null>(null);
-  const prevCollapsedFoldersRef = useRef<Record<string, boolean> | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
   const activeItemRef = useRef<HTMLButtonElement | null>(null);
@@ -1120,36 +1119,11 @@ export function DocsPanel() {
   const tocEntries = useMemo(() => parseToc(rawMd), [rawMd]);
   const normalizedFilter = deferredFilter.trim();
 
-  const getAllFolderSlugs = useCallback((nodes: DocTreeNodeData[]): string[] => {
-    const slugs: string[] = [];
-    for (const node of nodes) {
-      if (node.type === "folder") {
-        slugs.push(node.slug);
-        slugs.push(...getAllFolderSlugs(node.children));
-      }
-    }
-    return slugs;
-  }, []);
-
   const toggleSidebarCollapsed = useCallback(
     (next?: boolean) => {
-      setSidebarCollapsed((current) => {
-        const target = typeof next === "boolean" ? next : !current;
-
-        if (target) {
-          prevCollapsedFoldersRef.current = collapsedFolders;
-          const allFolders = getAllFolderSlugs(docTree);
-          const collapsedState = Object.fromEntries(allFolders.map((s) => [s, true]));
-          setCollapsedFolders(collapsedState);
-        } else if (prevCollapsedFoldersRef.current) {
-          setCollapsedFolders(prevCollapsedFoldersRef.current);
-          prevCollapsedFoldersRef.current = null;
-        }
-
-        return target;
-      });
+      setSidebarCollapsed((current) => (typeof next === "boolean" ? next : !current));
     },
-    [collapsedFolders, docTree, getAllFolderSlugs],
+    [],
   );
 
   const filtered = useMemo(() => {
@@ -1452,6 +1426,19 @@ export function DocsPanel() {
     } catch {
       // ignore
     }
+  }, [sidebarCollapsed]);
+
+  // Reader-first collapse behavior: hiding the sidebar should preserve tree state
+  // and move focus into the reading surface rather than the hidden menu.
+  useEffect(() => {
+    if (!sidebarCollapsed) return;
+
+    setShowSettings(false);
+    const frame = requestAnimationFrame(() => {
+      contentRef.current?.focus({ preventScroll: true });
+    });
+
+    return () => cancelAnimationFrame(frame);
   }, [sidebarCollapsed]);
 
   // Persist docs settings

@@ -2,6 +2,10 @@
 
 This guide explains how to look at any TerraNova (or Hytale) node graph and understand what it does, even if you didn't build it.
 
+> **Biome source assets:** `Basic.json`, `Examples/Example_Curve_Mapper.json`, `Plains1/Plains1_Mountains.json`
+>
+> The recurring graph patterns below are drawn from those real biome/example graphs. The diagrams are simplified teaching sketches, but the node combinations and roles are taken from actual assets rather than invented examples.
+
 ---
 
 ## The direction of data flow

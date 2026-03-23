@@ -2,6 +2,10 @@
 
 Each section shows a common wiring pattern -- what nodes to connect and why. The diagrams mirror how they look in the actual editor.
 
+> **Biome source assets:** `Basic.json`, `Examples/Example_CellNoise2D.json`, `Examples/Example_Mixer_Gradient.json`, `Desert1/Desert1_Oasis.json`, `Plains1/Plains1_Mountains.json`, `Plains1/Plains1_River.json`
+>
+> These patterns are simplified reading diagrams derived from those assets plus the active editor node set. They show recurring graph shapes, not full biome copies.
+
 **Beginner?** Start with patterns 1-4, then try the [Basic Terrain Generation guide](../understanding-basic-terrain-generation.md).
 **Advanced?** Patterns 7-14 cover blending, warping, shape SDFs, and full terrain stacks. Pattern 15 covers the skylands altitude band technique.
 
@@ -97,7 +101,7 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
 
 ## 4. BaseHeight + CurveMapper (Height Profile)
 
-**What it does:** `BaseHeight` outputs 0 at a reference Y, negative below, positive above. `CurveMapper` remaps those values through a hand-drawn curve to sculpt the vertical terrain profile -- flat plains, sharp cliffs, or rolling hills.
+**What it does:** `BaseHeight` crosses 0 at a named height reference. `CurveMapper` remaps that anchor through a hand-drawn curve to sculpt the vertical terrain profile -- flat plains, sharp cliffs, or rolling hills.
 
 **When to use it:** Every terrain setup needs this as its vertical backbone before adding noise.
 
@@ -118,7 +122,7 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "from": "sum", "to": "out" }
   ],
   "steps": [
-    { "nodeId": "bh",  "text": "BaseHeight outputs 0 at Y=64, positive above (solid), negative below (air). It is the vertical zero-line of your terrain. Every terrain graph starts here." },
+    { "nodeId": "bh",  "text": "BaseHeight is the vertical zero-line of your terrain. In the audited source assets it usually anchors the graph before CurveMapper, Sum, or later reuse via Exported/Imported." },
     { "nodeId": "cf",  "text": "CurveMapper remaps the BaseHeight value through a hand-drawn curve. A flat line keeps the default shape. An S-curve creates cliff overhangs. A steep drop at one end creates mesas. This is how you sculpt terrain height without noise." },
     { "nodeId": "sn",  "text": "SimplexNoise2D adds horizontal variation to the terrain -- hills and valleys. Without it, the terrain would be completely flat at every Y level defined by the curve." },
     { "nodeId": "sum", "text": "Sum adds the CurveMapper output and the noise together. The curve sets the overall vertical shape; the noise gives it organic surface variation. Both are still in density units -- positive = solid." },

@@ -4,16 +4,21 @@ This glossary covers the node types available in the Asset Node Editor for Terra
 
 For a full tabular reference, see [Reference -- Density Node Types](../reference/README.md).
 
+> **Biome source assets:** `Basic.json`, `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Desert1/Desert1_Oasis.json`, `Plains1/Plains1_Mountains.json`, `Plains1/Plains1_River.json`
+>
+> Entries below combine registry-level node descriptions with the way those nodes appear in the audited source biome assets.
+
 ## Density Nodes
 
 Density nodes output a scalar value (-1 to 1 typically) evaluated at each (x,y,z) coordinate. Positive values produce solid blocks; zero or negative produce air.
 
 ### BaseHeight
 
-Defines a reference height (Y level). Outputs `0` at that height.
+Defines or reads a named height reference and gives you the vertical anchor for terrain.
 
-- Values **above** the reference -- positive (solid)
-- Values **below** the reference -- negative (air)
+- It crosses `0` at the referenced height.
+- With `Distance: true`, it outputs signed distance from that height.
+- In the audited source assets, it usually feeds `CurveMapper`, which decides how that anchor becomes terrain density.
 
 Common use: `BaseHeight` sets the ground "zero line", which other nodes then warp and shape.
 
@@ -92,7 +97,7 @@ A performance optimization wrapper. Instead of evaluating the wrapped density at
 
 ### GradientWarp
 
-Displaces the sampling position using another density function. Creates twisted, turbulent terrain. `FastGradientWarp` is a cheaper version with similar results at lower cost — prefer it unless you need maximum quality.
+Displaces the sampling position using another density function. Creates twisted, turbulent terrain. In the audited source assets, `FastGradientWarp` is the variant that appears in real biome graphs (`Desert1_Oasis.json`, `Plains1_River.json`).
 
 ### Gradient
 
@@ -112,7 +117,7 @@ This produces noise at 35% of its natural amplitude.
 
 ### CellWallDistance
 
-Outputs the distance to the nearest Voronoi cell wall. Produces a value near 0 at cell edges and near 1 at cell centers. Used to carve river channel networks, crack patterns, and biome-internal region divisions.
+Outputs the distance to the nearest Voronoi cell wall. Produces a value near 0 at cell edges and near 1 at cell centers. It does not appear in the audited biome set, so treat it as an available registry node rather than a source-backed common pattern.
 
 ### Cache / Cache2D
 

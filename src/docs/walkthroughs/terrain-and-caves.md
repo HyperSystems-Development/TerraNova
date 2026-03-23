@@ -2,6 +2,8 @@
 
 <!-- walkthrough -->
 
+> **Biome source assets:** `Basic.json`, `Examples/Example_Curve_Mapper.json`, `Plains1/Plains1_Mountains.json`
+
 This walkthrough takes you through building four distinct terrain types from scratch, then adding caves to any of them. Each section builds on the last — work through them in order or jump to whichever shape you need.
 
 ## Step 1 — Flat Plains (Baseline)
@@ -10,7 +12,7 @@ The simplest terrain: a flat surface at a fixed height. This is the starting poi
 
 **Nodes needed:** `BaseHeight` → `Sum` → `Terrain Out`
 
-`BaseHeight` outputs `0` at a reference Y level — negative above it (air), positive below (solid). The world generator places solid blocks wherever density is positive, so this alone gives a perfectly flat plane.
+`BaseHeight` crosses `0` at a reference Y level and gives you the vertical anchor everything else builds on. In the source assets, the most common next step is to feed it into `CurveMapper` or combine it with noise in `Sum`.
 
 1. Right-click the canvas → **Add Node** → **Terrain** → **BaseHeight**
 2. In the properties panel set `Distance` to `false` (default).
@@ -131,7 +133,7 @@ Mountain cliff profile - broad base, steep wall, flatter top
     { "from": "ys",  "to": "out", "label": "density" }
   ],
   "steps": [
-    { "nodeId": "bh",  "text": "BaseHeight outputs 0 at Y=64. Above is positive (solid), below is negative (air). On its own this gives a flat plane — it's just an anchor for the shape." },
+    { "nodeId": "bh",  "text": "BaseHeight marks the vertical anchor by crossing zero at Y=64. On its own it gives you the flat reference plane that later curve and noise stages build from." },
     { "nodeId": "cf",  "text": "CurveMapper remaps the BaseHeight value using a drawn curve. A gentle S-curve creates a sharp cliff band: the terrain rises steeply through a narrow Y range instead of smoothly. Steepen the curve middle section to make cliffs more vertical." },
     { "nodeId": "sn",  "text": "SimplexNoise2D adds horizontal variation so the mountain isn't a perfectly uniform ridge. Low Scale (0.005) gives broad variation — individual peaks and saddles. Increase the Constant Value on the Multiplier to make peaks taller." },
     { "nodeId": "sum", "text": "Sum combines the curve-shaped height profile with the noise variation. The CurveMapper controls the overall vertical shape; the noise gives it organic peaks and ridges." },

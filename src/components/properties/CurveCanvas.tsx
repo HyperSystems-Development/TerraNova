@@ -142,6 +142,22 @@ function drawDocsBadge(
 const snapToGrid = (v: number, interval: number = SNAP_GRID) =>
   Math.round(v / interval) * interval;
 
+function resolveDocsMarkerPoints(
+  curvePoints: NormalizedPoint[],
+  sourcePoints: NormalizedPoint[],
+  evaluator?: (x: number) => number,
+): NormalizedPoint[] {
+  if (curvePoints.length === 0) return [];
+  if (evaluator) {
+    return [
+      curvePoints[0],
+      curvePoints[Math.floor(curvePoints.length / 2)],
+      curvePoints[curvePoints.length - 1],
+    ].filter(Boolean);
+  }
+  return [...sourcePoints].sort((a, b) => a.x - b.x);
+}
+
 export function CurveCanvas({ points, onChange, onCommit, evaluator, label, compact, compactHeight, docsCompact }: CurveCanvasProps) {
   const isDocsCompact = docsCompact ?? false;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -149,6 +165,8 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
   const pointsRef = useRef<NormalizedPoint[]>([]);
   const dragRef = useRef<DragState | null>(null);
   const hoverIndexRef = useRef<number>(-1);
+  const docsHoverIndexRef = useRef<number>(-1);
+  const docsMarkerPointsRef = useRef<NormalizedPoint[]>([]);
   const rafRef = useRef<number>(0);
   const resolvedCompactHeight = compact ? Math.max(40, compactHeight ?? 40) : CANVAS_HEIGHT;
   const sizeRef = useRef({ w: 0, h: resolvedCompactHeight });
@@ -389,6 +407,9 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
       const sorted = [...pointsRef.current].sort((a, b) => a.x - b.x);
       curvePoints = sorted.length >= 2 ? catmullRomInterpolate(sorted) : sorted;
     }
+    docsMarkerPointsRef.current = isDocsCompact
+      ? resolveDocsMarkerPoints(curvePoints, pointsRef.current, evaluator)
+      : [];
 
     if (curvePoints.length > 0) {
       const { yMin } = boundsRef.current;
@@ -415,9 +436,33 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
       ctx.stroke();
 
       if (isDocsCompact) {
-        const markerPoints = evaluator
-          ? [curvePoints[0], curvePoints[Math.floor(curvePoints.length / 2)], curvePoints[curvePoints.length - 1]].filter(Boolean)
-          : [...pointsRef.current].sort((a, b) => a.x - b.x);
+        const markerPoints = docsMarkerPointsRef.current;
+        const hoveredMarkerIndex =
+          docsHoverIndexRef.current >= 0 && docsHoverIndexRef.current < markerPoints.length
+            ? docsHoverIndexRef.current
+            : -1;
+        const hoveredMarker = hoveredMarkerIndex >= 0 ? markerPoints[hoveredMarkerIndex] : null;
+
+        if (hoveredMarker) {
+          const hoverCX = toCanvasX(hoveredMarker.x);
+          const hoverCY = toCanvasY(hoveredMarker.y);
+
+          ctx.save();
+          ctx.setLineDash([3, 3]);
+          ctx.strokeStyle = DOCS_ZERO_GUIDE_COLOR;
+          ctx.lineWidth = 1;
+
+          ctx.beginPath();
+          ctx.moveTo(hoverCX, hoverCY);
+          ctx.lineTo(hoverCX, h - padding);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(padding, hoverCY);
+          ctx.lineTo(hoverCX, hoverCY);
+          ctx.stroke();
+          ctx.restore();
+        }
 
         if (!evaluator) {
           ctx.save();
@@ -433,22 +478,46 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
           ctx.restore();
         }
 
-        for (const point of markerPoints) {
+        markerPoints.forEach((point, index) => {
           const cx = toCanvasX(point.x);
           const cy = toCanvasY(point.y);
+          const isHovered = index === hoveredMarkerIndex;
+
+          if (isHovered) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+            ctx.fillStyle = "#bf96cc22";
+            ctx.fill();
+          }
 
           ctx.beginPath();
-          ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+          ctx.arc(cx, cy, isHovered ? 5 : 4, 0, Math.PI * 2);
           ctx.fillStyle = BG_COLOR;
           ctx.fill();
-          ctx.strokeStyle = "#f5ebfb";
-          ctx.lineWidth = 1.25;
+          ctx.strokeStyle = isHovered ? HOVER_COLOR : "#f5ebfb";
+          ctx.lineWidth = isHovered ? 1.5 : 1.25;
           ctx.stroke();
 
           ctx.beginPath();
-          ctx.arc(cx, cy, 1.75, 0, Math.PI * 2);
-          ctx.fillStyle = CURVE_COLOR;
+          ctx.arc(cx, cy, isHovered ? 2.2 : 1.75, 0, Math.PI * 2);
+          ctx.fillStyle = isHovered ? HOVER_COLOR : CURVE_COLOR;
           ctx.fill();
+        });
+
+        if (hoveredMarker) {
+          const hoverCX = toCanvasX(hoveredMarker.x);
+          const hoverCY = toCanvasY(hoveredMarker.y);
+          const badgeText = `(${formatAxisLabel(hoveredMarker.x)}, ${formatAxisLabel(hoveredMarker.y)})`;
+          const align = hoverCX > w * 0.68 ? "right" : "left";
+          const badgeY = hoverCY < padding + 24 ? hoverCY + 10 : hoverCY - 24;
+          const badgeX = align === "right" ? hoverCX - 10 : hoverCX + 10;
+          drawDocsBadge(
+            ctx,
+            badgeText,
+            badgeX,
+            Math.max(2, Math.min(h - 18, badgeY)),
+            align,
+          );
         }
       }
     }
@@ -591,6 +660,27 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
     [toCanvasX, toCanvasY],
   );
 
+  const hitTestDocsMarker = useCallback(
+    (cx: number, cy: number): number => {
+      let bestIdx = -1;
+      let bestDist = HIT_RADIUS * HIT_RADIUS;
+      for (let i = 0; i < docsMarkerPointsRef.current.length; i++) {
+        const point = docsMarkerPointsRef.current[i];
+        const px = toCanvasX(point.x);
+        const py = toCanvasY(point.y);
+        const dx = cx - px;
+        const dy = cy - py;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < bestDist) {
+          bestDist = d2;
+          bestIdx = i;
+        }
+      }
+      return bestIdx;
+    },
+    [toCanvasX, toCanvasY],
+  );
+
   // -----------------------------------------------------------------------
   // Pointer handlers
   // -----------------------------------------------------------------------
@@ -621,10 +711,20 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
-      if (!isInteractive) return;
       const rect = canvasRef.current!.getBoundingClientRect();
       const cx = e.clientX - rect.left;
       const cy = e.clientY - rect.top;
+
+      if (!isInteractive) {
+        if (!isDocsCompact) return;
+        const newHover = hitTestDocsMarker(cx, cy);
+        if (newHover !== docsHoverIndexRef.current) {
+          docsHoverIndexRef.current = newHover;
+          canvasRef.current!.style.cursor = newHover >= 0 ? "pointer" : "default";
+          requestDraw();
+        }
+        return;
+      }
 
       if (dragRef.current) {
         const drag = dragRef.current;
@@ -661,7 +761,7 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
       }
       requestDraw();
     },
-    [isInteractive, fromCanvasX, fromCanvasY, hitTest, emitChange, requestDraw],
+    [isInteractive, isDocsCompact, fromCanvasX, fromCanvasY, hitTest, hitTestDocsMarker, emitChange, requestDraw],
   );
 
   const handlePointerUp = useCallback(
@@ -679,6 +779,8 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
 
   const handlePointerLeave = useCallback(() => {
     cursorPosRef.current = null;
+    docsHoverIndexRef.current = -1;
+    if (canvasRef.current) canvasRef.current.style.cursor = "default";
     requestDraw();
   }, [requestDraw]);
 
@@ -758,7 +860,12 @@ export function CurveCanvas({ points, onChange, onCommit, evaluator, label, comp
   if (compact) {
     return (
       <div ref={containerRef} style={{ width: "100%", height: canvasHeight }}>
-        <canvas ref={canvasRef} style={{ display: "block" }} />
+        <canvas
+          ref={canvasRef}
+          style={{ display: "block" }}
+          onPointerMove={isDocsCompact ? handlePointerMove : undefined}
+          onPointerLeave={isDocsCompact ? handlePointerLeave : undefined}
+        />
       </div>
     );
   }

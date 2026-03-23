@@ -140,4 +140,21 @@ describe("DocsPanel", () => {
     expect(snippetDisplay.value).toBe("both");
     expect(screen.getByText(/Related docs/i)).toBeTruthy();
   });
+
+  it("hides the docs menu without rewriting tree state and focuses the reader", async () => {
+    const persistedTreeState = { walkthroughs: false, reference: true };
+    localStorage.setItem("tn-docs-collapsed", JSON.stringify(persistedTreeState));
+
+    render(<DocsPanel />);
+
+    await screen.findByText("Walkthrough: Building a Sky Islands Biome from Scratch");
+    fireEvent.click(screen.getByTitle("Hide docs tree"));
+
+    await waitFor(() => {
+      expect(document.getElementById("docs-content")).toBe(document.activeElement);
+    });
+
+    expect(JSON.parse(localStorage.getItem("tn-docs-collapsed") ?? "{}")).toEqual(persistedTreeState);
+    expect(screen.getByTitle("Show docs tree")).toBeTruthy();
+  });
 });

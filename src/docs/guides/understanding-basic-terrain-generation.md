@@ -4,6 +4,8 @@
 
 This guide explains the core concepts behind TerraNova / Hytale WorldGen V2 terrain generation.
 
+> **Biome source assets:** `Basic.json`, `Examples/Example_Curve_Mapper.json`, `Plains1/Plains1_Mountains.json`
+
 ## Density and Noisemaps Introduction
 
 ### What is Density?
@@ -40,7 +42,7 @@ The **CurveMapper** is a key part of terrain generation. It remaps an input valu
 
 The most common pairing is:
 
-- `BaseHeight` outputs a value based on world height (Y coordinate) -- `0` at the reference Y, positive above, negative below
+- `BaseHeight` crosses `0` at the named height reference and anchors the terrain vertically
 - `CurveMapper` remaps that value to shape terrain elevation (hills, cliffs, plateaus)
 
 ```nodegraph
@@ -60,7 +62,7 @@ The most common pairing is:
 
 > In the properties panel, set `CurveMapper`'s Curve type to **Manual** and draw your terrain profile. The x-axis of the curve is the input value from `BaseHeight`; the y-axis is the output density.
 
-> **Under the hood:** `BaseHeight` crosses zero at the configured Y level — it is **negative above** (air) and **positive below** (solid ground). You can replicate it manually with a `Sum` of `YValue` and `Constant { Value: -80 }` if you need precise control (e.g. `Value: -80` gives a surface at Y=80). See [Terrain Math Explained](./terrain/terrain-math-explained.md) for a full breakdown of how density maps to terrain.
+> **Under the hood:** In the audited source assets, `BaseHeight` is most often used as a named vertical anchor and then remapped through `CurveMapper`. When `Distance: true`, it outputs signed distance from that height. If you need a direct flat-plane teaching analog, `Sum` of `YValue` and `Constant { Value: -80 }` gives a surface at Y=80. See [Terrain Math Explained](./terrain/terrain-math-explained.md) for the full breakdown.
 
 ---
 

@@ -2,6 +2,10 @@
 
 Curves **remap** a value. They take an input in some range and produce an output: sharpening a transition, flipping a gradient, clamping noise, or scaling it to a new range. Some sections below are active `Curve:` asset types on this branch, while others are useful manual-curve archetypes you recreate with `Curve:Manual` or a density-side helper like `Pow`.
 
+> **Biome source assets:** `Examples/Example_Curve_Mapper.json`, `Examples/Example_Curve_Remapping.json`, `Basic.json`
+>
+> The curve usage patterns on this page are grounded in those shipped biome/example assets. Where a preview below is simplified for readability, it is still representing the same kind of remap those assets use.
+
 > **How to read the previews below:** The horizontal axis is the input value. The vertical axis is the output value. A flat line at the top means "always output 1". A diagonal line means "output equals input" (no remapping). The shape of the curve shows you how the remapping behaves.
 
 ---

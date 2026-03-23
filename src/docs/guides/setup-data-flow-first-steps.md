@@ -4,6 +4,8 @@
 
 This guide explains how data flows through a WorldGen V2 node graph and gives you a mental model for working in the TerraNova editor.
 
+> **Biome source assets:** `Basic.json`, `Examples/Example_Curve_Mapper.json`
+
 ## How Data Flows
 
 Every node in the graph takes some inputs, does something with them, and outputs a value. The world generator evaluates the entire graph at every (x, y, z) coordinate when it generates terrain.
@@ -77,7 +79,7 @@ This is why:
 
 The minimum valid terrain graph is just two nodes:
 
-1. **BaseHeight** (Terrain category) -- outputs 0 at Y=64, positive above, negative below.
+1. **BaseHeight** (Terrain category) -- crosses zero at a named height reference and acts as the terrain anchor.
 2. **Terrain Out** -- the required output node, already on canvas.
 
 Connect `BaseHeight -> Terrain Out` and click Generate to see a flat plane at Y=64. Then layer in noise and curve nodes from there.

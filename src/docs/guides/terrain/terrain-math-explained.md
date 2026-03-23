@@ -4,6 +4,10 @@
 
 This guide explains the actual math behind the nodes -- no prior knowledge required. By the end you will understand *why* certain combinations produce hills, caves, overhangs, and floating islands, and *how* to tune each parameter to get the result you want.
 
+> **Biome source assets:** `Basic.json`, `Examples/Example_CellNoise2D.json`, `Examples/Example_Curve_Mapper.json`, `Desert1/Desert1_Oasis.json`, `Plains1/Plains1_Mountains.json`, `Plains1/Plains1_River.json`
+>
+> The formulas below are compact explanations of patterns seen in those assets and the active editor node set. The skylands section later in this guide is a teaching reconstruction, not a 1:1 copy of one audited biome file.
+
 ---
 
 ## What is a density function?
@@ -344,7 +348,7 @@ These are two separate parameters people often confuse:
 
 ### Recipe: Skylands altitude band
 
-This is the real-world technique used in Hytale skylands mods. It creates terrain that exists only within a vertical Y range -- open air above and below, floating islands in the middle.
+This is a teaching reconstruction for altitude-band sky terrain. It creates terrain that exists only within a vertical Y range -- open air above and below, floating islands in the middle.
 
 ```
 density = Sum(
@@ -365,7 +369,7 @@ density = Sum(
 
 **The key step: `BaseHeight` with `Distance: true`**
 
-Normally, `BaseHeight` outputs a clamped density -- strongly positive below the surface, strongly negative above. This is fine for ground-based terrain but useless for altitude bands, because the density gradient already forces everything above the surface to be air.
+Normally, `BaseHeight` acts as a terrain anchor around the named height reference. That is ideal for ground-based terrain, but not enough on its own for altitude bands because you need the raw signed distance that a band curve can remap directly.
 
 With `Distance: true`, `BaseHeight` outputs the **raw Y coordinate minus the named height** -- a distance value, not a density. At `BaseHeightName: "Base"` (typically `Y: 0`), this simply outputs the world Y position.
 

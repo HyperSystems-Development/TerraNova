@@ -4,6 +4,8 @@
 
 **Difficulty:** Beginner
 
+> **Biome source assets:** `Basic.json`, `Examples/Example_Curve_Mapper.json`
+
 This walkthrough gives you a mental model for how WorldGen V2 node graphs work and gets you to a functioning terrain graph.
 
 ## How Data Flows
@@ -84,7 +86,7 @@ This is why:
 
 The minimum valid terrain graph is two nodes:
 
-1. Add **BaseHeight** (Terrain category) — outputs 0 at Y=64, positive above, negative below.
+1. Add **BaseHeight** (Terrain category) — it crosses zero at the named reference height and gives you the vertical terrain anchor.
 2. It connects to **Terrain Out** — already on the canvas by default.
 
 Connect `BaseHeight → Terrain Out` and click **Generate** to see a flat plane at Y=64.

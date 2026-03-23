@@ -4,6 +4,8 @@
 
 **Difficulty:** Beginner
 
+> **Biome source assets:** `Basic.json`, `Examples/Example_Curve_Mapper.json`, `Plains1/Plains1_Mountains.json`
+
 This walkthrough builds a complete terrain graph from scratch — flat ground, curved height profile, noise variation, caves, and performance wrapping — one step at a time.
 
 ## Density and What It Means
@@ -26,7 +28,7 @@ The key parameters on noise generators:
 
 ## CurveMapper and BaseHeight
 
-`BaseHeight` outputs a density based on world height — positive above the reference Y, negative below. On its own it makes a flat infinite plane.
+`BaseHeight` reads a named height reference and crosses zero at that Y. In the audited source assets it commonly feeds `CurveMapper` or `Sum`, making it the vertical anchor rather than a freehand height formula.
 
 `CurveMapper` remaps that value using a hand-drawn curve. This is how you shape cliff faces, plateaus, and gentle slopes — by drawing the profile you want.
 
@@ -54,7 +56,7 @@ Starter terrain profile - gentle slope into a firmer surface
     { "from": "cm",  "to": "out", "label": "density" }
   ],
   "steps": [
-    { "nodeId": "bh",  "text": "BaseHeight outputs 0 at Y=64, positive above, negative below. Connect it to CurveMapper to shape what those values mean for the terrain surface." },
+    { "nodeId": "bh",  "text": "BaseHeight marks the terrain anchor by crossing zero at the named height reference. Connect it to CurveMapper to decide how that anchor becomes a usable terrain profile." },
     { "nodeId": "cm",  "text": "Set CurveMapper's Curve type to Manual. The x-axis is the input from BaseHeight; the y-axis is the output density. A gentle S-curve gives natural slopes; a steep step gives cliffs." },
     { "nodeId": "out", "text": "Terrain Out receives the final density. Click Generate — you should see a flat plane at Y=64. The CurveMapper is not doing much yet; its effect becomes visible once you shape the curve." }
   ]
