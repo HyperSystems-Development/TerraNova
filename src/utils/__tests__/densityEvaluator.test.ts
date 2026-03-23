@@ -1753,3 +1753,128 @@ describe("CellWallDistance — exact d1/d2 propagation", () => {
     expect(values.size).toBeGreaterThan(1);
   });
 });
+
+/* ── PositionsCellNoise ReturnType delegation ────────────────────── */
+
+describe("PositionsCellNoise ReturnType delegation", () => {
+  it("applies ReturnCurve when ReturnType is Curve", () => {
+    // Power curve with exponent 2 squares the raw noise value
+    const nodes = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "curve-test", ReturnType: "Curve" }),
+      makeNode("curve", "Curve:Power", { Exponent: 2.0 }),
+    ];
+    const edges = [
+      makeEdge("curve", "pcn", "ReturnCurve"),
+    ];
+    const nodesPlain = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "curve-test", ReturnType: "Distance" }),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "pcn");
+    const ctxPlain = createEvaluationContext(nodesPlain, [], "pcn");
+    expect(ctx).not.toBeNull();
+    expect(ctxPlain).not.toBeNull();
+    // The curve-modified value should differ from the raw value
+    let differs = false;
+    for (let i = 0; i < 20; i++) {
+      const x = (i * 13) % 100 - 50;
+      const z = (i * 29) % 100 - 50;
+      const curved = ctx!.evaluate("pcn", x, Y_LEVEL, z);
+      const plain = ctxPlain!.evaluate("pcn", x, Y_LEVEL, z);
+      if (Math.abs(curved - plain) > 1e-9) differs = true;
+    }
+    expect(differs).toBe(true);
+  });
+
+  it("applies ReturnDensity when ReturnType is Density", () => {
+    // ReturnDensity multiplied by the raw noise value
+    const nodes = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "density-test", ReturnType: "Density" }),
+      makeNode("factor", "Constant", { Value: 3.0 }),
+    ];
+    const edges = [
+      makeEdge("factor", "pcn", "ReturnDensity"),
+    ];
+    const nodesPlain = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "density-test", ReturnType: "Distance" }),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "pcn");
+    const ctxPlain = createEvaluationContext(nodesPlain, [], "pcn");
+    expect(ctx).not.toBeNull();
+    expect(ctxPlain).not.toBeNull();
+    for (let i = 0; i < 10; i++) {
+      const x = (i * 13) % 100 - 50;
+      const z = (i * 29) % 100 - 50;
+      const densityVal = ctx!.evaluate("pcn", x, Y_LEVEL, z);
+      const plain = ctxPlain!.evaluate("pcn", x, Y_LEVEL, z);
+      // With factor=3, density result should be 3 * raw
+      if (Math.abs(plain) > 1e-9) {
+        expect(densityVal).toBeCloseTo(3.0 * plain, 5);
+      }
+    }
+  });
+
+  it("returns raw value when ReturnType is Distance (no delegation)", () => {
+    const nodes = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "no-delegate" }),
+    ];
+    const result = evalSingle(nodes, []);
+    const unique = new Set(result.values);
+    expect(unique.size).toBeGreaterThan(1);
+  });
+});
+
+/* ── Positions3D ReturnType delegation ───────────────────────────── */
+
+describe("Positions3D ReturnType delegation", () => {
+  it("applies ReturnCurve when ReturnType is Curve", () => {
+    const nodes = [
+      makeNode("p3d", "Positions3D", { Scale: 50, Seed: "curve-3d", ReturnType: "Curve" }),
+      makeNode("curve", "Curve:Power", { Exponent: 2.0 }),
+    ];
+    const edges = [
+      makeEdge("curve", "p3d", "ReturnCurve"),
+    ];
+    const nodesPlain = [
+      makeNode("p3d", "Positions3D", { Scale: 50, Seed: "curve-3d", ReturnType: "Distance" }),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "p3d");
+    const ctxPlain = createEvaluationContext(nodesPlain, [], "p3d");
+    expect(ctx).not.toBeNull();
+    expect(ctxPlain).not.toBeNull();
+    let differs = false;
+    for (let i = 0; i < 20; i++) {
+      const x = (i * 13) % 100 - 50;
+      const z = (i * 29) % 100 - 50;
+      const curved = ctx!.evaluate("p3d", x, Y_LEVEL, z);
+      const plain = ctxPlain!.evaluate("p3d", x, Y_LEVEL, z);
+      if (Math.abs(curved - plain) > 1e-9) differs = true;
+    }
+    expect(differs).toBe(true);
+  });
+
+  it("applies ReturnDensity when ReturnType is Density", () => {
+    const nodes = [
+      makeNode("p3d", "Positions3D", { Scale: 50, Seed: "density-3d", ReturnType: "Density" }),
+      makeNode("factor", "Constant", { Value: 5.0 }),
+    ];
+    const edges = [
+      makeEdge("factor", "p3d", "ReturnDensity"),
+    ];
+    const nodesPlain = [
+      makeNode("p3d", "Positions3D", { Scale: 50, Seed: "density-3d", ReturnType: "Distance" }),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "p3d");
+    const ctxPlain = createEvaluationContext(nodesPlain, [], "p3d");
+    expect(ctx).not.toBeNull();
+    expect(ctxPlain).not.toBeNull();
+    for (let i = 0; i < 10; i++) {
+      const x = (i * 13) % 100 - 50;
+      const z = (i * 29) % 100 - 50;
+      const densityVal = ctx!.evaluate("p3d", x, Y_LEVEL, z);
+      const plain = ctxPlain!.evaluate("p3d", x, Y_LEVEL, z);
+      if (Math.abs(plain) > 1e-9) {
+        expect(densityVal).toBeCloseTo(5.0 * plain, 5);
+      }
+    }
+  });
+});
