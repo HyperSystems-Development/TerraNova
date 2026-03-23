@@ -18,21 +18,21 @@ describe("legacy type corrections", () => {
     expect(isLegacyTypeKey("Tint:Exported")).toBe(true);
   });
 
-  it("deprecated scanner types are marked legacy", () => {
-    expect(isLegacyTypeKey("Scanner:ColumnLinear")).toBe(true);
-    expect(isLegacyTypeKey("Scanner:ColumnRandom")).toBe(true);
-    expect(isLegacyTypeKey("Scanner:Area")).toBe(true);
-    expect(isLegacyTypeKey("Scanner:Origin")).toBe(true);
+  it("scanner types are active V2 (not legacy)", () => {
+    expect(isLegacyTypeKey("Scanner:ColumnLinear")).toBe(false);
+    expect(isLegacyTypeKey("Scanner:ColumnRandom")).toBe(false);
+    expect(isLegacyTypeKey("Scanner:Area")).toBe(false);
+    expect(isLegacyTypeKey("Scanner:Origin")).toBe(false);
   });
 
-  it("deprecated position types are marked legacy", () => {
-    expect(isLegacyTypeKey("Position:Mesh2D")).toBe(true);
-    expect(isLegacyTypeKey("Position:Mesh3D")).toBe(true);
+  it("Position:Mesh2D and Mesh3D are active V2 (not legacy)", () => {
+    expect(isLegacyTypeKey("Position:Mesh2D")).toBe(false);
+    expect(isLegacyTypeKey("Position:Mesh3D")).toBe(false);
   });
 
-  it("deprecated prop types are marked legacy", () => {
-    expect(isLegacyTypeKey("Prop:Box")).toBe(true);
-    expect(isLegacyTypeKey("Prop:Column")).toBe(true);
-    expect(isLegacyTypeKey("Prop:Cluster")).toBe(true);
+  it("Prop:Box, Column, Cluster are active V2 (not legacy)", () => {
+    expect(isLegacyTypeKey("Prop:Box")).toBe(false);
+    expect(isLegacyTypeKey("Prop:Column")).toBe(false);
+    expect(isLegacyTypeKey("Prop:Cluster")).toBe(false);
   });
 });

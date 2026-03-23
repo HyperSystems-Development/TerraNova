@@ -3,33 +3,30 @@ import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
 import { densityOutput } from "@/nodes/shared/handles";
 import { safeDisplay } from "@/nodes/shared/displayUtils";
+import { SchemaFields } from "@/nodes/shared/SchemaFields";
 
 const OUTPUT_ONLY_HANDLES = [densityOutput()];
 
-/** Resolve internal field name with Hytale fallback for noise nodes */
-function resolveNoiseField(fields: Record<string, any>, name: string): unknown {
-  if (fields[name] != null) return fields[name];
-  // Fallback: handle Hytale field names that weren't translated
-  if (name === "Frequency" && fields.Scale != null) return 1 / (fields.Scale as number);
-  if (name === "Gain" && fields.Persistence != null) return fields.Persistence;
-  return undefined;
-}
-
-function NoiseNodeBody({ data, fields }: { data: { fields: Record<string, any> }; fields: string[] }) {
-  const labels: Record<string, string> = {
-    Frequency: "Freq",
-    Amplitude: "Amp",
-    Seed: "Seed",
-    Octaves: "Oct",
-    Lacunarity: "Lac",
-    Gain: "Gain",
-  };
+/**
+ * Fallback body for legacy noise types not in the bundle.
+ * Displays common noise fields from the node's data.
+ */
+function LegacyNoiseBody({ fields }: { fields: Record<string, unknown> }) {
+  const entries: Array<[string, string, unknown]> = [
+    ["Scale", "Scale", fields.Scale ?? fields.Frequency],
+    ["Octaves", "Oct", fields.Octaves],
+    ["Lacunarity", "Lac", fields.Lacunarity],
+    ["Persistence", "Pers", fields.Persistence ?? fields.Gain],
+    ["Seed", "Seed", fields.Seed],
+  ];
+  const visible = entries.filter(([, , v]) => v != null);
+  if (visible.length === 0) return null;
   return (
     <div className="space-y-1">
-      {fields.map((f) => (
-        <div key={f} className="flex justify-between">
-          <span className="text-tn-text-muted">{labels[f] ?? f}</span>
-          <span>{safeDisplay(resolveNoiseField(data.fields, f))}</span>
+      {visible.map(([key, label, value]) => (
+        <div key={key} className="flex justify-between">
+          <span className="text-tn-text-muted">{label}</span>
+          <span>{safeDisplay(value)}</span>
         </div>
       ))}
     </div>
@@ -40,7 +37,7 @@ export const SimplexNoise3DNode = memo(function SimplexNoise3DNode(props: TypedN
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
-      <NoiseNodeBody data={data} fields={["Frequency", "Amplitude", "Seed"]} />
+      <SchemaFields typeKey="SimplexNoise3D" fields={data.fields} />
     </BaseNode>
   );
 });
@@ -49,7 +46,7 @@ export const SimplexRidgeNoise2DNode = memo(function SimplexRidgeNoise2DNode(pro
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
-      <NoiseNodeBody data={data} fields={["Frequency", "Amplitude", "Seed"]} />
+      <LegacyNoiseBody fields={data.fields} />
     </BaseNode>
   );
 });
@@ -58,7 +55,7 @@ export const SimplexRidgeNoise3DNode = memo(function SimplexRidgeNoise3DNode(pro
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
-      <NoiseNodeBody data={data} fields={["Frequency", "Amplitude", "Seed"]} />
+      <LegacyNoiseBody fields={data.fields} />
     </BaseNode>
   );
 });
@@ -67,7 +64,7 @@ export const VoronoiNoise2DNode = memo(function VoronoiNoise2DNode(props: TypedN
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
-      <NoiseNodeBody data={data} fields={["Frequency", "Seed"]} />
+      <LegacyNoiseBody fields={data.fields} />
     </BaseNode>
   );
 });
@@ -76,7 +73,7 @@ export const VoronoiNoise3DNode = memo(function VoronoiNoise3DNode(props: TypedN
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
-      <NoiseNodeBody data={data} fields={["Frequency", "Seed"]} />
+      <LegacyNoiseBody fields={data.fields} />
     </BaseNode>
   );
 });

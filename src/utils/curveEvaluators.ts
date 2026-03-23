@@ -328,7 +328,7 @@ export function getCurveEvaluator(
     case "Not":
       return evalNot();
     case "Clamp":
-      return evalClamp(Number(fields.Min ?? 0), Number(fields.Max ?? 1));
+      return evalClamp(Number(fields.WallB ?? fields.Min ?? 0), Number(fields.WallA ?? fields.Max ?? 1));
     case "LinearRemap": {
       const src = fields.SourceRange as { Min?: number; Max?: number } | undefined;
       const tgt = fields.TargetRange as { Min?: number; Max?: number } | undefined;

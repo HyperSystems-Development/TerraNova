@@ -1,7 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import { applyNodeChanges, applyEdgeChanges, addEdge } from "@xyflow/react";
-import { MATERIAL_DEFAULTS } from "@/schema/defaults";
-import type { MaterialProviderType } from "@/schema/material";
+import { getDefaults } from "@/schema/defaults";
 import { alignNodes as alignNodesFn, distributeNodes as distributeNodesFn } from "@/utils/alignDistribute";
 import { NODE_WIDTH } from "@/constants";
 import { useSettingsStore } from "../settingsStore";
@@ -533,7 +532,7 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
         const nextIndex = existingLayerEdges.length;
 
         const layerNodeId = crypto.randomUUID();
-        const layerDefaults = MATERIAL_DEFAULTS[layerType as MaterialProviderType] ?? {};
+        const layerDefaults = getDefaults(`MaterialProvider:${layerType}`);
         const layerNode: Node = {
           id: layerNodeId,
           type: `Material:${layerType}`,
@@ -633,7 +632,7 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
         if (!layerEdge) return {};
 
         const newNodeId = crypto.randomUUID();
-        const layerDefaults = MATERIAL_DEFAULTS[newType as MaterialProviderType] ?? {};
+        const layerDefaults = getDefaults(`MaterialProvider:${newType}`);
         const newNode: Node = {
           id: newNodeId,
           type: `Material:${newType}`,

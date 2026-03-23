@@ -5,13 +5,57 @@
  * type renames, Inputs[]→named handles, field renames, $NodeId stripping, etc.
  */
 
-import {
-  HYTALE_TO_INTERNAL_TYPES,
-  HYTALE_ARRAY_TO_NAMED,
-  CLAMP_FIELD_REVERSE,
-  NORMALIZER_FIELDS_EXPORT,
-} from "./translationMaps";
 import { DEFAULT_WORLD_HEIGHT } from "@/constants";
+import { HYTALE_ARRAY_TO_NAMED } from "./translationMaps";
+
+// ---------------------------------------------------------------------------
+// Type name mapping (V2/Hytale → internal)
+// ---------------------------------------------------------------------------
+// Maps V2 (Hytale) type names to old internal names used by the editor.
+// Types that are the same in both formats pass through unchanged via the ?? fallback.
+const HYTALE_TO_INTERNAL_TYPES: Record<string, string> = {
+  Multiplier: "Product",
+  Inverter: "Negate",
+  CurveMapper: "CurveFunction",
+  Cache: "CacheOnce",
+  Imported: "ImportedValue",
+  Mix: "Blend",
+  Min: "MinFunction",
+  Max: "MaxFunction",
+  XValue: "CoordinateX",
+  YValue: "CoordinateY",
+  ZValue: "CoordinateZ",
+  CellNoise2D: "VoronoiNoise2D",
+  CellNoise3D: "VoronoiNoise3D",
+  Sqrt: "SquareRoot",
+  // FastGradientWarp is its own internal type (not collapsed to DomainWarp2D)
+  Scale: "ScaledPosition",
+  Slider: "TranslatedPosition",
+  Rotator: "RotatedPosition",
+  AmplitudeConstant: "LinearTransform",
+  MultiMix: "BlendCurve",
+  Pow: "Pow",
+  Cube: "CubeMath",
+};
+
+// ---------------------------------------------------------------------------
+// Clamp/SmoothClamp field renames (import direction only)
+// ---------------------------------------------------------------------------
+const CLAMP_FIELD_REVERSE: Record<string, string> = {
+  WallA: "Max",
+  WallB: "Min",
+};
+
+// ---------------------------------------------------------------------------
+// Normalizer field nesting (V2 flat fields ↔ internal nested SourceRange/TargetRange)
+// ---------------------------------------------------------------------------
+
+const NORMALIZER_FIELDS = {
+  nested: {
+    SourceRange: { Min: "FromMin", Max: "FromMax" },
+    TargetRange: { Min: "ToMin", Max: "ToMax" },
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -249,7 +293,7 @@ function reverseSmoothFields(
 
 function reverseNormalizerFields(asset: Record<string, unknown>): Record<string, unknown> {
   const result = { ...asset };
-  const { nested } = NORMALIZER_FIELDS_EXPORT;
+  const { nested } = NORMALIZER_FIELDS;
 
   // Rebuild nested objects from flat fields
   for (const [rangeKey, fieldMap] of Object.entries(nested)) {
@@ -336,12 +380,7 @@ function reverseAmplitudeConstantFields(asset: Record<string, unknown>): Record<
   return result;
 }
 
-function reversePowFields(asset: Record<string, unknown>): Record<string, unknown> {
-  const result = { ...asset };
-  // If Exponent === 2, this was Square
-  delete result.Exponent;
-  return result;
-}
+// reversePowFields removed: Pow maps to Pow (identity), Exponent passes through.
 
 function reverseColumnLinearFields(asset: Record<string, unknown>): Record<string, unknown> {
   const result = { ...asset };
@@ -1101,10 +1140,7 @@ function transformNodeToInternal(
     processedFields = reverseAmplitudeConstantFields(processedFields);
   }
 
-  // Pow → Square (if Exponent=2)
-  if (hytaleType === "Pow") {
-    processedFields = reversePowFields(processedFields);
-  }
+  // Pow maps to Pow (identity); Exponent passes through untouched.
 
   // YOverride / XOverride / ZOverride: Value → OverrideY / OverrideX / OverrideZ
   if (hytaleType === "YOverride" && "Value" in processedFields) {

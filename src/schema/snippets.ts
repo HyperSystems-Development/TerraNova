@@ -1,5 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
-import { DENSITY_DEFAULTS } from "./defaults";
+import { getDefaults } from "./defaults";
 
 // ---------------------------------------------------------------------------
 // Snippet data structures
@@ -42,7 +42,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
         localId: "noise",
         type: "SimplexNoise2D",
         displayType: "SimplexNoise2D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D },
+        fields: { ...getDefaults("SimplexNoise2D") },
         offsetX: 0,
         offsetY: 0,
       },
@@ -68,7 +68,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
         localId: "noise",
         type: "SimplexNoise3D",
         displayType: "SimplexNoise3D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise3D },
+        fields: { ...getDefaults("SimplexNoise3D") },
         offsetX: 0,
         offsetY: 0,
       },
@@ -102,7 +102,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
         localId: "normalizer",
         type: "Normalizer",
         displayType: "Normalizer",
-        fields: { ...DENSITY_DEFAULTS.Normalizer },
+        fields: { ...getDefaults("Normalizer") },
         offsetX: 300,
         offsetY: 0,
       },
@@ -120,7 +120,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
         localId: "amp",
         type: "AmplitudeConstant",
         displayType: "AmplitudeConstant",
-        fields: { ...DENSITY_DEFAULTS.AmplitudeConstant },
+        fields: { ...getDefaults("AmplitudeConstant") },
         offsetX: 0,
         offsetY: 0,
       },
@@ -155,7 +155,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
         localId: "noise",
         type: "SimplexNoise2D",
         displayType: "SimplexNoise2D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise2D, Octaves: 4 },
+        fields: { ...getDefaults("SimplexNoise2D"), Octaves: 4 },
         offsetX: 0,
         offsetY: 0,
       },
@@ -171,7 +171,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
         localId: "noise",
         type: "SimplexNoise3D",
         displayType: "SimplexNoise3D",
-        fields: { ...DENSITY_DEFAULTS.SimplexNoise3D, Octaves: 4 },
+        fields: { ...getDefaults("SimplexNoise3D"), Octaves: 4 },
         offsetX: 0,
         offsetY: 0,
       },

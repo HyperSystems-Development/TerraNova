@@ -2,6 +2,7 @@ import { memo } from "react";
 import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
 import { safeDisplay } from "@/nodes/shared/displayUtils";
+import { SchemaFields } from "@/nodes/shared/SchemaFields";
 import {
   environmentOutput,
   environmentInput,
@@ -44,10 +45,7 @@ export const BiomeEnvironmentNode = memo(function BiomeEnvironmentNode(props: Ty
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.EnvironmentProvider} handles={HANDLES_ENV_OUT}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Biome</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.BiomeId, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -56,10 +54,7 @@ export const ImportedEnvironmentNode = memo(function ImportedEnvironmentNode(pro
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.EnvironmentProvider} handles={HANDLES_ENV_OUT}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -72,10 +67,7 @@ export const ExportedEnvironmentNode = memo(function ExportedEnvironmentNode(pro
       category={AssetCategory.EnvironmentProvider}
       handles={HANDLES_ENV_IN_OUT}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -134,10 +126,7 @@ export const ImportedTintNode = memo(function ImportedTintNode(props: TypedNodeP
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.TintProvider} handles={HANDLES_TINT_OUT}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -150,10 +139,7 @@ export const ExportedTintNode = memo(function ExportedTintNode(props: TypedNodeP
       category={AssetCategory.TintProvider}
       handles={HANDLES_TINT_IN_OUT}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -180,24 +166,16 @@ export const SingleBlockMaskNode = memo(function SingleBlockMaskNode(props: Type
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.BlockMask} handles={HANDLES_BLOCKMASK_OUT}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Block</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.BlockType, "stone")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
 
 export const SetBlockMaskNode = memo(function SetBlockMaskNode(props: TypedNodeProps) {
   const data = props.data;
-  const types = data.fields.BlockTypes;
-  const count = Array.isArray(types) ? types.length : 0;
   return (
     <BaseNode {...props} category={AssetCategory.BlockMask} handles={HANDLES_BLOCKMASK_OUT}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Types</span>
-        <span>{count}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -206,23 +184,12 @@ export const ImportedBlockMaskNode = memo(function ImportedBlockMaskNode(props: 
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.BlockMask} handles={HANDLES_BLOCKMASK_OUT}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
 
 // ── Directionality ─────────────────────────────────────────────────────
-
-function formatVec3(v: unknown): string {
-  if (v && typeof v === "object" && "x" in (v as Record<string, unknown>)) {
-    const vec = v as { x: number; y: number; z: number };
-    return `(${vec.x}, ${vec.y}, ${vec.z})`;
-  }
-  return "—";
-}
 
 export const UniformDirectionalityNode = memo(function UniformDirectionalityNode(props: TypedNodeProps) {
   return (
@@ -236,10 +203,7 @@ export const DirectionalDirectionalityNode = memo(function DirectionalDirectiona
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Directionality} handles={HANDLES_DIR_OUT}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Dir</span>
-        <span>{formatVec3(data.fields.Direction)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -256,10 +220,7 @@ export const StaticDirectionalityNode = memo(function StaticDirectionalityNode(p
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Directionality} handles={HANDLES_DIR_PATTERN}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Rotation</span>
-        <span>{safeDisplay(data.fields.Rotation, 0)}°</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -268,10 +229,7 @@ export const ImportedDirectionalityNode = memo(function ImportedDirectionalityNo
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Directionality} handles={HANDLES_DIR_OUT}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -306,10 +264,7 @@ export const RandomDirectionalityNode = memo(function RandomDirectionalityNode(p
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Directionality} handles={HANDLES_DIR_OUT}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Seed</span>
-        <span>{safeDisplay(data.fields.Seed, "A")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -318,16 +273,7 @@ export const PatternDirectionalityNode = memo(function PatternDirectionalityNode
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Directionality} handles={HANDLES_DIR_PATTERN}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Direction</span>
-          <span>{safeDisplay(data.fields.InitialDirection, "NORTH")}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Seed</span>
-          <span>{safeDisplay(data.fields.Seed, "A")}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });

@@ -1,5 +1,6 @@
 import { isHytaleNativeFormat, hytaleToInternal, hytaleToInternalBiome, type ImportMetadata } from "@/utils/hytaleToInternal";
 import { internalToHytale, internalToHytaleBiome } from "@/utils/internalToHytale";
+import { hasOldTerraNovaNaming, migrateAssetTree } from "@/utils/migration";
 import type { Node } from "@xyflow/react";
 
 /**
@@ -121,7 +122,25 @@ function hasHytaleFieldNames(content: Record<string, unknown>): boolean {
 }
 
 /**
+ * Run old-TerraNova migration on content if needed.
+ * Logs a console warning listing every conversion that was applied.
+ */
+function applyMigrationIfNeeded(content: Record<string, unknown>): Record<string, unknown> {
+  if (!hasOldTerraNovaNaming(content)) return content;
+
+  const { result, conversions } = migrateAssetTree(content);
+  if (conversions.length > 0) {
+    console.warn(
+      `[TerraNova] Migrated old naming in imported file (${conversions.length} node(s)):\n` +
+        conversions.map((c) => `  • ${c}`).join("\n"),
+    );
+  }
+  return result;
+}
+
+/**
  * Auto-detect Hytale native format and convert to internal format if needed.
+ * Also migrates old TerraNova naming to V2 if detected.
  * Returns the content in TerraNova internal format ready for jsonToGraph.
  */
 export function normalizeImport(content: Record<string, unknown>): Record<string, unknown> {
@@ -133,11 +152,13 @@ export function normalizeImport(content: Record<string, unknown>): Record<string
     const { wrapper } = hytaleToInternalBiome(content);
     return wrapper;
   }
-  return content;
+  // Check for old TerraNova naming and migrate if needed
+  return applyMigrationIfNeeded(content);
 }
 
 /**
  * Like normalizeImport but also returns the import metadata (node positions, comments).
+ * Also migrates old TerraNova naming to V2 if detected.
  */
 export function normalizeImportWithMeta(content: Record<string, unknown>): {
   content: Record<string, unknown>;
@@ -151,7 +172,9 @@ export function normalizeImportWithMeta(content: Record<string, unknown>): {
     const { wrapper, metadata } = hytaleToInternalBiome(content);
     return { content: wrapper, metadata };
   }
-  return { content, metadata: null };
+  // Check for old TerraNova naming and migrate if needed
+  const migrated = applyMigrationIfNeeded(content);
+  return { content: migrated, metadata: null };
 }
 
 /**

@@ -2,7 +2,7 @@ import { memo } from "react";
 import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
 import { patternInput, patternOutput, densityInput } from "@/nodes/shared/handles";
-import { safeDisplay } from "@/nodes/shared/displayUtils";
+import { SchemaFields } from "@/nodes/shared/SchemaFields";
 import { useCompoundHandles } from "@/hooks/useCompoundHandles";
 
 // ── Hoisted handle arrays ───────────────────────────────────────────────
@@ -28,14 +28,6 @@ const BLEND_PATTERN_HANDLES = [
 ];
 const EXPORTED_PATTERN_HANDLES = [patternInput("Input", "Input"), patternOutput()];
 
-function formatVec3(v: unknown): string {
-  if (v && typeof v === "object" && "x" in (v as Record<string, unknown>)) {
-    const vec = v as { x: number; y: number; z: number };
-    return `(${vec.x}, ${vec.y}, ${vec.z})`;
-  }
-  return "—";
-}
-
 export const FloorPatternNode = memo(function FloorPatternNode(props: TypedNodeProps) {
   const data = props.data;
   return (
@@ -44,10 +36,7 @@ export const FloorPatternNode = memo(function FloorPatternNode(props: TypedNodeP
       category={AssetCategory.Pattern}
       handles={PATTERN_PASSTHROUGH_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Depth</span>
-        <span>{safeDisplay(data.fields.Depth, 1)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -60,10 +49,7 @@ export const CeilingPatternNode = memo(function CeilingPatternNode(props: TypedN
       category={AssetCategory.Pattern}
       handles={PATTERN_PASSTHROUGH_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Depth</span>
-        <span>{safeDisplay(data.fields.Depth, 1)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -96,10 +82,7 @@ export const BlockTypePatternNode = memo(function BlockTypePatternNode(props: Ty
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Pattern} handles={PATTERN_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Material</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Material, "stone")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -121,16 +104,7 @@ export const CuboidPatternNode = memo(function CuboidPatternNode(props: TypedNod
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Pattern} handles={PATTERN_OUTPUT_HANDLES}>
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Min</span>
-          <span>{formatVec3(data.fields.Min)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Max</span>
-          <span>{formatVec3(data.fields.Max)}</span>
-        </div>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -143,10 +117,7 @@ export const OffsetPatternNode = memo(function OffsetPatternNode(props: TypedNod
       category={AssetCategory.Pattern}
       handles={PATTERN_PASSTHROUGH_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Offset</span>
-        <span>{formatVec3(data.fields.Offset)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -159,10 +130,7 @@ export const ConditionalPatternNode = memo(function ConditionalPatternNode(props
       category={AssetCategory.Pattern}
       handles={CONDITIONAL_PATTERN_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Threshold</span>
-        <span>{safeDisplay(data.fields.Threshold, 0.5)}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -209,10 +177,7 @@ export const ImportedPatternNode = memo(function ImportedPatternNode(props: Type
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Pattern} handles={PATTERN_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -225,10 +190,7 @@ export const ExportedPatternNode = memo(function ExportedPatternNode(props: Type
       category={AssetCategory.Pattern}
       handles={EXPORTED_PATTERN_HANDLES}
     >
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Name</span>
-        <span className="truncate max-w-[120px]">{safeDisplay(data.fields.Name, "")}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -237,10 +199,7 @@ export const ConstantPatternNode = memo(function ConstantPatternNode(props: Type
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Pattern} handles={PATTERN_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Value</span>
-        <span>{data.fields.Value === false ? "false" : "true"}</span>
-      </div>
+      <SchemaFields typeKey={data.type} fields={data.fields} />
     </BaseNode>
   );
 });

@@ -5,12 +5,13 @@
  * hidden from the Quick Add palette and display an amber LEGACY badge.
  */
 export const LEGACY_TYPE_KEYS: ReadonlySet<string> = new Set([
-  // Density (39 legacy)
+  // Density (43 legacy — all removed from the registry)
   "SimplexRidgeNoise2D", "SimplexRidgeNoise3D",
   "FractalNoise2D", "FractalNoise3D",
-  "SumSelf", "WeightedSum", "CubeRoot", "CubeMath",
+  "VoronoiNoise2D", "VoronoiNoise3D",
+  "SumSelf", "WeightedSum", "Square", "CubeRoot", "CubeMath",
   "Inverse", "Modulo", "ClampToIndex", "DoubleNormalizer",
-  "Interpolate", "DistanceFromOrigin", "DistanceFromAxis",
+  "RangeChoice", "Interpolate", "DistanceFromOrigin", "DistanceFromAxis",
   "DistanceFromPoint", "AngleFromOrigin", "AngleFromPoint",
   "HeightAboveSurface", "MirroredPosition", "QuantizedPosition",
   "Conditional", "AverageFunction",
@@ -29,17 +30,11 @@ export const LEGACY_TYPE_KEYS: ReadonlySet<string> = new Set([
   // Patterns (5)
   "Pattern:Exported", "Pattern:Conditional", "Pattern:Blend",
   "Pattern:Union", "Pattern:Intersection",
-  // Positions (4 + 2 deprecated 2026.03.05)
+  // Positions (4)
   "Position:SurfaceProjection", "Position:Exported",
   "Position:Conditional", "Position:DensityBased",
-  // Positions (deprecated 2026.03.05 — replaced by SquareGrid2d + Scaler + Jitter chain)
-  "Position:Mesh2D", "Position:Mesh3D",
-  // Props (4 + 3 deprecated 2026.03.05)
+  // Props (4)
   "Prop:Surface", "Prop:Cave", "Prop:Conditional", "Prop:Exported",
-  // Props (deprecated 2026.03.05 — replaced by Cuboid + Locator + Mask wrappers)
-  "Prop:Box", "Prop:Column", "Prop:Cluster",
-  // Scanners (deprecated 2026.03.05 — replaced by Linear, Random, Radial, Queue, Direct)
-  "Scanner:ColumnLinear", "Scanner:ColumnRandom", "Scanner:Area", "Scanner:Origin",
   // Environment (1 — Environment:Imported is an active V2 type)
   "Environment:Exported",
   // Tint (1 — Tint:Imported is an active V2 type)
@@ -83,6 +78,8 @@ export const LEGACY_TYPE_REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   ["Zero",                "Constant"],
   ["One",                 "Constant"],
   ["Amplitude",           "AmplitudeConstant"],
+  ["VoronoiNoise2D",     "CellNoise2D"],
+  ["VoronoiNoise3D",     "CellNoise3D"],
   // Curves — direct functional equivalents
   ["Curve:Blend",         "Curve:Sum"],
   ["Curve:Cache",         "Curve:Manual"],
