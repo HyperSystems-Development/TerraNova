@@ -58,7 +58,7 @@ export function CanvasContextMenu({ x, y, onClose, onQuickAdd }: CanvasContextMe
               id,
               type: "frame",
               position: flowPos,
-              data: { type: "frame", name: "", width: 400, height: 300 },
+              data: { type: "frame", name: "", width: 300, height: 200 },
               draggable: true,
               selectable: true,
               zIndex: -1,
@@ -93,7 +93,10 @@ export function CanvasContextMenu({ x, y, onClose, onQuickAdd }: CanvasContextMe
         label="Fit View"
         shortcut="Ctrl+1"
         onClick={() => {
-          reactFlow.fitView({ padding: 0.1, duration: 300 });
+          const graphNodes = useEditorStore.getState().nodes.filter(
+            (n) => n.type !== "comment" && n.type !== "frame",
+          );
+          reactFlow.fitView({ nodes: graphNodes, padding: 0.1, duration: 300 });
           onClose();
         }}
       />

@@ -58,8 +58,8 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
     [id],
   );
 
-  const width = nodeData.width ?? 400;
-  const height = nodeData.height ?? 300;
+  const width = nodeData.width ?? 300;
+  const height = nodeData.height ?? 200;
 
   return (
     <>
