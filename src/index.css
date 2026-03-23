@@ -469,6 +469,34 @@ body,
   }
 }
 
+/* DocNodeGraph: dark-theme controls override */
+.react-flow__controls {
+  box-shadow: none !important;
+}
+
+.react-flow__controls-button {
+  background: #1c1a17 !important;
+  border-bottom: 1px solid #3a3428 !important;
+  color: #a09070 !important;
+  fill: #a09070 !important;
+}
+
+.react-flow__controls-button:hover {
+  background: #2a2720 !important;
+}
+
+.react-flow__controls-button svg {
+  fill: #a09070;
+  max-width: 12px;
+  max-height: 12px;
+}
+
+/* DocNodeGraph: dark-theme minimap override */
+.react-flow__minimap {
+  border-radius: 6px;
+  overflow: hidden;
+}
+
 /* Doc node graph: active edge flow animation */
 @keyframes edge-flow {
   to {

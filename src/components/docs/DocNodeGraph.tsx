@@ -1,11 +1,13 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback, type ReactNode } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
   Background,
   BackgroundVariant,
   BaseEdge,
+  Controls,
   EdgeLabelRenderer,
+  MiniMap,
   getSmoothStepPath,
   Handle,
   Position,
@@ -65,11 +67,14 @@ export interface DocNodeGraphProps {
   steps?: DocGraphStep[];
   clipboardData?: ClipboardData;
   outputNodeId?: string | null;
+  /** Optional extra content rendered on the right side of the graph header bar. */
+  headerAction?: ReactNode;
 }
 
-const NODE_W = 200;
-// Docs were authored with 160px-wide nodes. Scale x positions so wider nodes don't overlap.
-const X_SCALE = 1.6;
+const NODE_W = 160;
+// Authors write x coords with 160px nodes in mind. Keep scale at 1.0 now that
+// NODE_W matches, so graphs don't spread out horizontally.
+const X_SCALE = 1.25;
 
 function makeRFNode(n: DocGraphNode, focusedId: string | null, hasSteps: boolean): Node {
   const color = CATEGORY_COLORS[n.category ?? "default"] ?? CATEGORY_COLORS.default;
@@ -114,7 +119,7 @@ function DocEdge({
     sourcePosition, targetPosition,
   });
 
-  // Offset label toward the source end (30% along) to avoid landing on midpoint nodes
+  // Offset label toward the source end (55% along) to avoid landing on midpoint nodes
   const lx = sourceX + (labelX - sourceX) * 0.55;
   const ly = sourceY + (labelY - sourceY) * 0.55;
 
@@ -201,11 +206,13 @@ function DocFlowInner({
   rfEdges,
   focusedId,
   initialFocusId,
+  expanded,
 }: {
   rfNodes: Node[];
   rfEdges: Edge[];
   focusedId: string | null;
   initialFocusId: string | null;
+  expanded: boolean;
 }) {
   const { fitView } = useReactFlow();
 
@@ -218,6 +225,12 @@ function DocFlowInner({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally runs once on mount only
+
+  // Re-fit when expanding/collapsing
+  useEffect(() => {
+    fitView({ duration: 200, padding: 0.3, minZoom: 0.3, maxZoom: 1.2 });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded]);
 
   // Pan to focused node whenever the step changes
   useEffect(() => {
@@ -233,7 +246,7 @@ function DocFlowInner({
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       fitView
-      fitViewOptions={{ padding: 0.3, minZoom: 0.4, maxZoom: 1.5 }}
+      fitViewOptions={{ padding: 0.3, minZoom: 0.3, maxZoom: 1.5 }}
       nodesDraggable={false}
       nodesConnectable={false}
       elementsSelectable={false}
@@ -242,16 +255,43 @@ function DocFlowInner({
       style={{ background: "#1c1a17" }}
     >
       <Background color="#4a4438" gap={20} variant={BackgroundVariant.Dots} />
+      {expanded && (
+        <MiniMap
+          nodeColor={(n) => {
+            const color = (n.data as { color?: string }).color;
+            return color ?? "#4A90D9";
+          }}
+          maskColor="rgba(28,26,23,0.75)"
+          style={{ background: "#151310", border: "1px solid #3a3428" }}
+          nodeStrokeWidth={0}
+        />
+      )}
+      <Controls
+        showInteractive={false}
+        style={{
+          background: "#1c1a17",
+          border: "1px solid #3a3428",
+          borderRadius: 6,
+          gap: 0,
+        }}
+      />
     </ReactFlow>
   );
 }
 
-export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraphProps) {
+const COLLAPSED_HEIGHT = 260;
+const EXPANDED_HEIGHT = 520;
+
+export function DocNodeGraph({ nodes, edges, height, steps, headerAction }: DocNodeGraphProps) {
   const [stepIndex, setStepIndex] = useState(0);
+  const [expanded, setExpanded] = useState(false);
 
   const hasSteps = steps !== undefined && steps.length > 0;
-  const focusedId = hasSteps ? steps[stepIndex].nodeId : null;
+  const safeIndex = hasSteps ? Math.min(stepIndex, steps.length - 1) : 0;
+  const focusedId = hasSteps ? steps[safeIndex].nodeId : null;
   const initialFocusId = hasSteps ? steps[0].nodeId : null;
+
+  const graphHeight = height ?? (expanded ? EXPANDED_HEIGHT : COLLAPSED_HEIGHT);
 
   const rfNodes = useMemo(
     () => nodes.map((n) => makeRFNode(n, focusedId, hasSteps)),
@@ -262,15 +302,37 @@ export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraph
     [edges, focusedId, hasSteps],
   );
 
+  const handleExpandToggle = useCallback(() => setExpanded((v) => !v), []);
+
   return (
     <div className="my-4 rounded border border-tn-border overflow-hidden">
-      <div style={{ height }}>
+      {/* Header bar */}
+      <div className="flex items-center justify-between gap-2 border-b border-tn-border bg-tn-panel/70 px-3 py-1.5">
+        <span className="text-[10px] uppercase tracking-[0.08em] text-tn-text-muted">Node graph</span>
+        <div className="flex items-center gap-2">
+          {headerAction}
+          {/* Only show expand toggle when height is not overridden by the author */}
+          {height === undefined && (
+            <button
+              type="button"
+              onClick={handleExpandToggle}
+              className="text-[10px] text-tn-text-muted hover:text-tn-text transition-colors px-1.5 py-0.5 rounded hover:bg-tn-accent/10"
+              title={expanded ? "Collapse graph" : "Expand graph"}
+            >
+              {expanded ? "Collapse ↑" : "Expand ↓"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div style={{ height: graphHeight, transition: "height 0.2s ease" }}>
         <ReactFlowProvider>
           <DocFlowInner
             rfNodes={rfNodes}
             rfEdges={rfEdges}
             focusedId={focusedId}
             initialFocusId={initialFocusId}
+            expanded={expanded}
           />
         </ReactFlowProvider>
       </div>
@@ -290,35 +352,35 @@ export function DocNodeGraph({ nodes, edges, height = 260, steps }: DocNodeGraph
               <div
                 className="h-full rounded-full transition-all duration-300"
                 style={{
-                  width: `${((stepIndex + 1) / steps.length) * 100}%`,
+                  width: `${((safeIndex + 1) / steps.length) * 100}%`,
                   background: "var(--tn-accent, #b5924c)",
                 }}
               />
             </div>
             <span className="text-[11px] text-tn-text-muted shrink-0" aria-live="polite">
-              {stepIndex + 1} / {steps.length}
+              {safeIndex + 1} / {steps.length}
             </span>
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 className="px-2.5 py-0.5 text-xs rounded border border-tn-border text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text disabled:opacity-30 transition-colors"
-                disabled={stepIndex === 0}
-                onClick={() => setStepIndex((s) => s - 1)}
+                disabled={safeIndex === 0}
+                onClick={() => setStepIndex((s) => Math.max(0, s - 1))}
               >
                 ←
               </button>
               <button
                 type="button"
                 className="px-2.5 py-0.5 text-xs rounded border border-tn-border text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text disabled:opacity-30 transition-colors"
-                disabled={stepIndex === steps.length - 1}
-                onClick={() => setStepIndex((s) => s + 1)}
+                disabled={safeIndex === steps.length - 1}
+                onClick={() => setStepIndex((s) => Math.min(steps.length - 1, s + 1))}
               >
                 →
               </button>
             </div>
           </div>
           <p className="text-sm text-tn-text leading-relaxed whitespace-normal break-words">
-            {steps[stepIndex].text}
+            {steps[safeIndex].text}
           </p>
         </div>
       )}

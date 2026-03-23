@@ -1508,20 +1508,17 @@ export function DocsPanel() {
         const graph = parseNodeGraph(value);
         if (graph) {
           return (
-            <div className="docs-wide-block my-4 overflow-hidden rounded-xl border border-tn-border bg-tn-panel/55 shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
-              <div className="flex items-center justify-between gap-2 border-b border-tn-border bg-tn-panel px-3 py-2">
-                <div className="text-[10px] uppercase tracking-[0.08em] text-tn-text-muted">
-                  Node graph
-                </div>
-                <ActionPillButton
-                  label="Copy Nodegraph"
-                  onClick={() => { void handleCopyNodeGraphBlock(graph, "Node graph"); }}
-                  title={"clipboardData" in graph ? "Copy a docs nodegraph block that also pastes into the canvas" : "Copy a paste-ready nodegraph markdown block"}
-                />
-              </div>
-              <div className="px-3 py-3">
-                <DocNodeGraph {...graph} />
-              </div>
+            <div className="docs-wide-block my-4 overflow-hidden rounded-xl border border-tn-border shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
+              <DocNodeGraph
+                {...graph}
+                headerAction={
+                  <ActionPillButton
+                    label="Copy Nodegraph"
+                    onClick={() => { void handleCopyNodeGraphBlock(graph, "Node graph"); }}
+                    title={"clipboardData" in graph ? "Copy a docs nodegraph block that also pastes into the canvas" : "Copy a paste-ready nodegraph markdown block"}
+                  />
+                }
+              />
             </div>
           );
         }
@@ -1741,6 +1738,8 @@ export function DocsPanel() {
       </h3>
     ),
   }), [
+    docsCurveHeight,
+    docsCurveWidthClass,
     entriesBySlug,
     handleCopyNodeGraphBlock,
     handleCopySnippetGraph,
