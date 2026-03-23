@@ -38,6 +38,20 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { resolveBiomeAtmosphere } from "@/utils/resolveBiomeAtmosphere";
 
+// Max dimensions for annotation nodes (prevents Hytale editor's huge coordinate-space values
+// from creating DOM elements that dwarf the actual node graph).
+const MAX_COMMENT_W = 600;
+const MAX_COMMENT_H = 400;
+const MAX_FRAME_W = 1200;
+const MAX_FRAME_H = 800;
+
+function clampComment(w: number, h: number) {
+  return { width: Math.min(w, MAX_COMMENT_W), height: Math.min(h, MAX_COMMENT_H) };
+}
+function clampFrame(w: number, h: number) {
+  return { width: Math.min(w, MAX_FRAME_W), height: Math.min(h, MAX_FRAME_H) };
+}
+
 /**
  * Apply node positions from $NodeEditorMetadata.$Nodes to a set of React Flow nodes.
  * Nodes whose id matches a key in nodePositions get their position overridden.
@@ -67,7 +81,7 @@ function applyImportMetadata(
       id: `comment-import-${i}-${crypto.randomUUID()}`,
       type: "comment",
       position: { x: c.x, y: c.y },
-      data: { type: "comment", text: c.text, width: c.width, height: c.height },
+      data: { type: "comment", text: c.text, ...clampComment(c.width, c.height) },
       draggable: true,
       selectable: true,
     }));
@@ -80,7 +94,7 @@ function applyImportMetadata(
       id: `frame-import-${i}-${crypto.randomUUID()}`,
       type: "frame",
       position: { x: g.x, y: g.y },
-      data: { type: "frame", name: g.name, width: g.width, height: g.height },
+      data: { type: "frame", name: g.name, ...clampFrame(g.width, g.height) },
       draggable: true,
       selectable: true,
       zIndex: -1,
@@ -710,7 +724,7 @@ export function useTauriIO() {
                   id: `frame-import-${i}-${crypto.randomUUID()}`,
                   type: "frame",
                   position: { x: g.x, y: g.y },
-                  data: { type: "frame", name: g.name, width: g.width, height: g.height },
+                  data: { type: "frame", name: g.name, ...clampFrame(g.width, g.height) },
                   draggable: true,
                   selectable: true,
                   zIndex: -1,
@@ -724,7 +738,7 @@ export function useTauriIO() {
                   id: `comment-import-${i}-${crypto.randomUUID()}`,
                   type: "comment",
                   position: { x: c.x, y: c.y },
-                  data: { type: "comment", text: c.text, width: c.width, height: c.height },
+                  data: { type: "comment", text: c.text, ...clampComment(c.width, c.height) },
                   draggable: true,
                   selectable: true,
                 });
