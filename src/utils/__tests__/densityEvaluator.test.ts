@@ -2003,3 +2003,60 @@ describe("HeightAboveSurface proxy", () => {
     expect(getEvalStatus("HeightAboveSurface")).toBe(EvalStatus.Approximated);
   });
 });
+
+/* ── Shell zero-axis guard ───────────────────────────────────────── */
+
+describe("Shell curve-based — zero axis guard", () => {
+  it("returns 0 when Axis is zero vector", () => {
+    // Shell with Axis={0,0,0} should return 0 at any position
+    const nodes = [makeNode("s", "Shell", { Axis: { x: 0, y: 0, z: 0 } })];
+    expect(evalAt(nodes, [], 5, 0, 0)).toBe(0);
+    expect(evalAt(nodes, [], 0, 10, 0)).toBe(0);
+    expect(evalAt(nodes, [], 0, 0, 3)).toBe(0);
+    expect(evalAt(nodes, [], 1, 2, 3)).toBe(0);
+  });
+});
+
+/* ── MultiMix defensive key sorting ──────────────────────────────── */
+
+describe("MultiMix — unsorted keys", () => {
+  it("interpolates correctly with unsorted keys", () => {
+    // Keys [0.5, 0.0, 1.0] map to Densities [50, 0, 100]
+    // After sorting: keys [0.0, 0.5, 1.0] with original indices [1, 0, 2]
+    // Selector=0.25 should interpolate between key 0.0 (density 0) and key 0.5 (density 50)
+    // t = (0.25 - 0.0) / (0.5 - 0.0) = 0.5, result = 0 + (50 - 0) * 0.5 = 25
+    const nodes = [
+      makeNode("sel", "Constant", { Value: 0.25 }),
+      makeNode("d0", "Constant", { Value: 50 }),
+      makeNode("d1", "Constant", { Value: 0 }),
+      makeNode("d2", "Constant", { Value: 100 }),
+      makeNode("mm", "MultiMix", { Keys: [0.5, 0.0, 1.0] }),
+    ];
+    const edges = [
+      makeEdge("sel", "mm", "Selector"),
+      makeEdge("d0", "mm", "Densities[0]"),
+      makeEdge("d1", "mm", "Densities[1]"),
+      makeEdge("d2", "mm", "Densities[2]"),
+    ];
+    const val = evalAt(nodes, edges, 0, 0, 0, "mm");
+    expect(val).toBeCloseTo(25);
+  });
+
+  it("returns exact value when selector matches a key", () => {
+    const nodes = [
+      makeNode("sel", "Constant", { Value: 0.5 }),
+      makeNode("d0", "Constant", { Value: 50 }),
+      makeNode("d1", "Constant", { Value: 0 }),
+      makeNode("d2", "Constant", { Value: 100 }),
+      makeNode("mm", "MultiMix", { Keys: [0.5, 0.0, 1.0] }),
+    ];
+    const edges = [
+      makeEdge("sel", "mm", "Selector"),
+      makeEdge("d0", "mm", "Densities[0]"),
+      makeEdge("d1", "mm", "Densities[1]"),
+      makeEdge("d2", "mm", "Densities[2]"),
+    ];
+    const val = evalAt(nodes, edges, 0, 0, 0, "mm");
+    expect(val).toBeCloseTo(50);
+  });
+});

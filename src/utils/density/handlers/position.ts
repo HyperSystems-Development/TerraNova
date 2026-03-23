@@ -82,6 +82,9 @@ const handleGradientDensity: NodeHandler = (_ctx, fields, _inputs, _x, y) => {
   return range === 0 ? 0 : (y - fromY) / range;
 };
 
+// Known approximation: SampleRange is not adjusted for cumulative Scale
+// transforms. Under ScaledPosition ancestors, gradient magnitude may be
+// over- or under-estimated proportionally to the scale factor.
 const handleGradient: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   // Directional derivative via finite differences along Axis
   const axis = fields.Axis as { x: number; y: number; z: number } | undefined;
