@@ -1657,3 +1657,47 @@ describe("PositionsCellNoise with MaxDistance", () => {
     expect(differs).toBe(true);
   });
 });
+
+/* ── YSampled interpolation ──────────────────────────────────────── */
+
+describe("YSampled — floor-based interpolation", () => {
+  it("interpolates between grid points", () => {
+    // CoordinateY -> YSampled(SampleDistance=10) -> Root
+    // At y=25: y0=20, y1=30, ratio=0.5
+    // v0 = CoordinateY(y0=20) = 20, v1 = CoordinateY(y1=30) = 30
+    // result = 20 + (30-20)*0.5 = 25
+    const nodes = [
+      makeNode("coord", "CoordinateY"),
+      makeNode("ys", "YSampled", { SampleDistance: 10, SampleOffset: 0 }),
+    ];
+    const edges = [makeEdge("coord", "ys", "Input")];
+    const result = evalAt(nodes, edges, 0, 25, 0, "ys");
+    expect(result).toBeCloseTo(25, 5);
+  });
+
+  it("returns exact value at grid point", () => {
+    // At y=20: y0=20, y1=30, ratio=0
+    // result = v0 = 20
+    const nodes = [
+      makeNode("coord", "CoordinateY"),
+      makeNode("ys", "YSampled", { SampleDistance: 10, SampleOffset: 0 }),
+    ];
+    const edges = [makeEdge("coord", "ys", "Input")];
+    const result = evalAt(nodes, edges, 0, 20, 0, "ys");
+    expect(result).toBeCloseTo(20, 5);
+  });
+
+  it("respects SampleOffset", () => {
+    // With offset=5, sampleDist=10
+    // At y=12: y0=5, y1=15, ratio=0.7
+    // v0 = CoordinateY(5) = 5, v1 = CoordinateY(15) = 15
+    // result = 5 + (15-5)*0.7 = 12
+    const nodes = [
+      makeNode("coord", "CoordinateY"),
+      makeNode("ys", "YSampled", { SampleDistance: 10, SampleOffset: 5 }),
+    ];
+    const edges = [makeEdge("coord", "ys", "Input")];
+    const result = evalAt(nodes, edges, 0, 12, 0, "ys");
+    expect(result).toBeCloseTo(12, 5);
+  });
+});
