@@ -32,10 +32,10 @@ At each world position `(x, z)` this node outputs a smooth random-ish number. Th
 
 **The math:**
 ```text
-output = simplex(x * Scale, z * Scale)
+output = simplex(x / Scale, z / Scale)
 ```
 
-Scale acts as a frequency multiplier -- smaller values produce larger, slower-varying features; larger values produce finer detail.
+Scale is a spatial period — it sets roughly how many blocks one full noise cycle covers. Larger values produce broader, smoother features; smaller values produce finer detail.
 
 The output is in the range **[-1, +1]** (approximately -- Simplex can technically exceed this slightly, but treat it as [-1, 1]).
 
@@ -43,19 +43,19 @@ The output is in the range **[-1, +1]** (approximately -- Simplex can technicall
 
 | Scale | Effect |
 |-------|--------|
-| 0.001 | Very large features, ~1000-block hills |
-| 0.01  | Medium hills, ~100 blocks across |
-| 0.05  | Small rolling bumps, ~20 blocks |
-| 0.2   | Noisy texture, almost no large features |
+| 10    | Tiny bumps, ~10-block features |
+| 100   | Medium hills, ~100 blocks across |
+| 500   | Large terrain shapes, ~500 blocks |
+| 1000  | Continent-scale variation |
 
-Halving Scale doubles the size of features. Doubling Scale halves it.
+Doubling Scale doubles the size of features. Halving Scale halves it.
 
-A useful mental image: picture the noise as a photograph. Increasing Scale is like zooming in on the photo — the pattern gets smaller and more detailed relative to your world. Decreasing Scale zooms out — the same pattern now covers a larger area, and features become broad and gradual. The actual height range of the noise never changes, only the horizontal footprint of its features.
+A useful mental image: picture the noise as a photograph. Increasing Scale is like zooming out on the photo — the same pattern now covers a larger area and features become broad and gradual. Decreasing Scale zooms in — the pattern gets smaller and more detailed. The actual height range of the noise never changes, only the horizontal footprint of its features.
 
 The density output range is the same at any Scale — only feature frequency changes:
 
 ```bounds
-{"min": -1, "max": 1, "label": "SimplexNoise2D output range — same at Scale 0.001 or Scale 0.2"}
+{"min": -1, "max": 1, "label": "SimplexNoise2D output range — same whether Scale is 10 or 1000"}
 ```
 
 **Octaves, Persistence, Lacunarity** stack several layers of noise at different scales and mix them:
@@ -78,14 +78,10 @@ Higher Persistence = rougher, more fractal terrain. Lower Persistence = smoother
 > [!NOTE]
 > Adding more octaves does **not** simply add more detail indefinitely. Because each octave adds noise that can raise or lower values already modified by previous octaves, they tend to average out. Beyond about 3–4 octaves the effect becomes increasingly subtle — values homogenize toward a middle grey. The difference between 3 and 10 octaves is often smaller than the difference between 1 and 3. At small scales (Scale < 100), even 4+ octaves can produce a pixelated, overly grainy texture. At large scales (Scale > 500) you have more room before the effect deteriorates.
 
-As octaves stack, the effective output range narrows toward the center — extremes get averaged away. Compare the effective range at 1 octave vs. 6 octaves (Persistence 0.5):
+As octaves stack, the outputs statistically cluster toward the middle — each added octave is as likely to partially cancel the previous one as to reinforce it. The mathematical range does not shrink (the sum of amplitudes grows slightly with each octave), but extreme values become rarer and most outputs land near zero. A 1-octave noise has sharp, well-separated peaks and valleys; a 6-octave noise at the same settings tends to look more uniformly textured.
 
 ```bounds
-{"min": -1, "max": 1, "label": "1 octave — full range, sharp peaks and valleys"}
-```
-
-```bounds
-{"min": -0.5, "max": 0.5, "label": "6 octaves (Persistence 0.5) — effective range compressed ~50% toward center"}
+{"min": -1, "max": 1, "label": "Single noise value range — same whether 1 octave or 6"}
 ```
 
 ### Seed
@@ -323,18 +319,18 @@ Setting `ScaleY = 0.5` makes the world look twice as tall from the noise's persp
 
 Takes a 3D noise value and uses it to **offset the sampling coordinates**:
 ```
-x' = x + noise_x(x, y, z) × WarpStrength
-z' = z + noise_z(x, y, z) × WarpStrength
+x' = x + noise_x(x, y, z) × WarpFactor
+z' = z + noise_z(x, y, z) × WarpFactor
 ```
 
 Instead of smooth, aligned features, warped noise has twisted, organic-looking shapes. The original pattern is preserved but bent in space.
 
-| WarpStrength | Effect |
-|--------------|--------|
-| 0            | No warping, clean noise |
-| 5–10         | Gentle twist, natural-looking |
-| 30–60        | Strong distortion, chaotic folds |
-| 100+         | Extreme folding, hard to predict |
+| WarpFactor | Effect |
+|------------|--------|
+| 0          | No warping, clean noise |
+| 5–10       | Gentle twist, natural-looking |
+| 30–60      | Strong distortion, chaotic folds |
+| 100+       | Extreme folding, hard to predict |
 
 > [!TIP]
 > Double warp -- warping already-warped coordinates -- produces very organic cave structures and craggy cliffs. First warp with a large scale, then warp the result with a small scale.
@@ -403,10 +399,10 @@ The cave noise amplitude controls cave size. If the 3D noise multiplier is 0.1, 
   "height": 240,
   "nodes": [
     { "id": "bh",  "label": "BaseHeight",     "category": "terrain", "sub": "Y = 64",           "x": 0,   "y": 20  },
-    { "id": "sn2", "label": "SimplexNoise2D",  "category": "terrain", "sub": "Scale 0.01 Oct 4", "x": 0,   "y": 110 },
-    { "id": "c",   "label": "Constant",        "category": "math",    "sub": "Value 0.4",         "x": 0,   "y": 175 },
-    { "id": "mul", "label": "Multiplier",      "category": "math",    "sub": "noise × 0.4",       "x": 200, "y": 135 },
-    { "id": "sn3", "label": "SimplexNoise3D",  "category": "terrain", "sub": "ScaleXZ 0.03",      "x": 0,   "y": 245 },
+    { "id": "sn2", "label": "SimplexNoise2D",  "category": "terrain", "sub": "Scale 300 Oct 4", "x": 0,   "y": 110 },
+    { "id": "c",   "label": "Constant",        "category": "math",    "sub": "Value 0.4",        "x": 0,   "y": 175 },
+    { "id": "mul", "label": "Multiplier",      "category": "math",    "sub": "noise × 0.4",      "x": 200, "y": 135 },
+    { "id": "sn3", "label": "SimplexNoise3D",  "category": "terrain", "sub": "ScaleXZ 40",       "x": 0,   "y": 245 },
     { "id": "inv", "label": "Inverter",        "category": "math",    "sub": "× −1",              "x": 200, "y": 245 },
     { "id": "sum", "label": "Sum",             "category": "math",                                 "x": 400, "y": 120 },
     { "id": "out", "label": "Terrain Out",     "category": "output",                               "x": 600, "y": 120 }
@@ -422,7 +418,7 @@ The cave noise amplitude controls cave size. If the 3D noise multiplier is 0.1, 
   ],
   "steps": [
     { "nodeId": "bh",  "text": "BaseHeight anchors the terrain at Y=64. It outputs a strong positive density below that line (solid rock) and strong negative above it (air). The zero crossing is the ground plane. Every other input in this Sum either raises or lowers that plane locally." },
-    { "nodeId": "sn2", "text": "SimplexNoise2D varies smoothly across XZ. Each output sample is in [−1, +1]. At any given X/Z position, the value is constant for the entire vertical column — so this noise shifts the surface up or down but cannot create overhangs. Scale 0.01 means features repeat roughly every 100 blocks." },
+    { "nodeId": "sn2", "text": "SimplexNoise2D varies smoothly across XZ. Each output sample is in [−1, +1]. At any given X/Z position, the value is constant for the entire vertical column — so this noise shifts the surface up or down but cannot create overhangs. Scale 300 means one noise cycle spans roughly 300 blocks." },
     { "nodeId": "mul", "text": "Multiplier scales the noise amplitude: hills = noise × 0.4. At maximum noise (+1) this adds +0.4 to the density, raising terrain. At minimum (−1) it subtracts 0.4, lowering terrain. The Constant value directly controls hill height — double it to double the height variation." },
     { "nodeId": "sn3", "text": "SimplexNoise3D varies in all three dimensions — X, Y, and Z. Unlike the 2D noise, a vertical column does NOT stay constant. At some Y levels the noise is high, at others low. This is the prerequisite for caves: the density can dip below zero within a mostly-solid region." },
     { "nodeId": "inv", "text": "Inverter multiplies by −1. Positive 3D noise becomes negative. Adding this negative value to the Sum subtracts from the total density — carving holes. Where the 3D noise was +0.5, the inverted value is −0.5, and the sum loses 0.5 density at that point. If that dips the total below zero, a cave forms." },
@@ -562,7 +558,7 @@ Where `weight` crosses 0.5, the two terrains are equally mixed -- a gradual tran
   "nodes": [
     { "id": "ta",  "label": "Terrain A",       "category": "terrain", "sub": "e.g. desert plateaus", "x": 0,   "y": 20  },
     { "id": "tb",  "label": "Terrain B",       "category": "terrain", "sub": "e.g. forest hills",    "x": 0,   "y": 120 },
-    { "id": "bn",  "label": "SimplexNoise2D",  "category": "terrain", "sub": "Scale 0.002 biome",    "x": 0,   "y": 210 },
+    { "id": "bn",  "label": "SimplexNoise2D",  "category": "terrain", "sub": "Scale 600 biome",      "x": 0,   "y": 210 },
     { "id": "nm",  "label": "Normalizer",      "category": "filter",  "sub": "[-1,1] → [0,1]",       "x": 200, "y": 210 },
     { "id": "mix", "label": "Mix",             "category": "math",    "sub": "A×(1-w) + B×w",        "x": 400, "y": 110 },
     { "id": "out", "label": "Terrain Out",     "category": "output",                                  "x": 600, "y": 110 }
@@ -591,14 +587,14 @@ Where `weight` crosses 0.5, the two terrains are equally mixed -- a gradual tran
 
 | Parameter | Range | Small value | Large value |
 |-----------|-------|-------------|-------------|
-| SimplexNoise2D Scale | 0.001–0.2 | Huge flat plains | Tiny noisy bumps |
+| SimplexNoise2D Scale | 1–1000 | Tiny bumps | Wide rolling plains |
 | SimplexNoise2D Octaves | 1–8 | Smooth blobs | Rough fractal detail |
 | SimplexNoise2D Persistence | 0.1–0.9 | Smooth, gentle | Rough, sharp peaks |
-| SimplexNoise3D ScaleXZ | 0.005–0.1 | Wide cave rooms | Narrow passages |
-| SimplexNoise3D ScaleY | 0.005–0.1 | Tall shafts | Flat cave layers |
+| SimplexNoise3D ScaleXZ | 5–200 | Narrow passages | Wide cave rooms |
+| SimplexNoise3D ScaleY | 5–100 | Flat cave layers | Tall shafts |
 | Multiplier Constant | 0.05–2.0 | Short hills / small caves | Tall hills / giant caves |
 | YSampled SampleDistance | 2–64 | Subtle undercuts | Extreme overhangs |
-| GradientWarp WarpStrength | 0–100 | Clean shapes | Twisted organic forms |
+| GradientWarp WarpFactor | 0–100 | Clean shapes | Twisted organic forms |
 | SmoothMin Smoothness | 0–50 | Sharp intersection | Smooth blended union |
 | Mix weight | 0–1 | All shape A | All shape B |
 

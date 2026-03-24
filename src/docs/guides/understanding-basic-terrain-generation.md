@@ -46,7 +46,7 @@ For example, a 2D noise map can be thought of as a heightmap where:
 These values are then combined with other nodes to produce terrain.
 
 The key parameters on noise nodes are:
-- **`Scale`** — controls the frequency of features (lower = broader hills, higher = finer detail). Good starting values: `0.003–0.01` for large terrain features, `0.01–0.05` for smaller hills.
+- **`Scale`** — controls feature size. Higher values produce larger, smoother features; lower values create smaller, more detailed noise. A Scale of 100 means one full noise cycle spans roughly 100 blocks. Typical values: `200–1000` for broad terrain base shape, `20–100` for surface detail, `1–10` for fine grain texture.
 - **`Octaves`** — layers of noise stacked together; more octaves add fine detail at the cost of performance. 4–6 is typical for natural-looking terrain.
 - **`Persistence`** — how much each successive octave contributes (around `0.5` by default; higher values produce rougher, craggier terrain)
 - **`Lacunarity`** — how much the frequency increases per octave (around `2.0` by default)
@@ -155,7 +155,7 @@ Always route density through `Sum` into `Terrain Out` — even when you have a s
 {
   "height": 160,
   "nodes": [
-    { "id": "sn",  "label": "SimplexNoise2D", "category": "density", "sub": "Scale 0.01", "x": 0,   "y": 60 },
+    { "id": "sn",  "label": "SimplexNoise2D", "category": "density", "sub": "Scale 300", "x": 0,   "y": 60 },
     { "id": "sum", "label": "Sum",            "category": "math",                          "x": 220, "y": 60 },
     { "id": "out", "label": "Terrain Out",    "category": "output",                        "x": 420, "y": 60 }
   ],
@@ -182,7 +182,7 @@ To create varied terrain, combine the height-based curve with noise using a `Sum
   "nodes": [
     { "id": "bh",  "label": "BaseHeight",    "category": "position", "sub": "Y = 64",        "x": 0,   "y": 20 },
     { "id": "cm",  "label": "CurveMapper",   "category": "filter",   "sub": "height profile", "x": 200, "y": 20 },
-    { "id": "sn",  "label": "SimplexNoise2D","category": "generative","sub": "Scale 0.01",    "x": 0,   "y": 130 },
+    { "id": "sn",  "label": "SimplexNoise2D","category": "generative","sub": "Scale 300",     "x": 0,   "y": 130 },
     { "id": "sum", "label": "Sum",           "category": "math",                              "x": 400, "y": 75 },
     { "id": "out", "label": "Terrain Out",   "category": "output",                            "x": 580, "y": 75 }
   ],
@@ -219,7 +219,7 @@ To carve caves, evaluate a 3D noise field and use `Min` to keep only regions tha
   "height": 220,
   "nodes": [
     { "id": "terrain", "label": "Sum (terrain)", "category": "density", "sub": "from above",  "x": 0,   "y": 60 },
-    { "id": "sn3",     "label": "SimplexNoise3D","category": "density", "sub": "ScaleXZ 0.04", "x": 0,   "y": 155 },
+    { "id": "sn3",     "label": "SimplexNoise3D","category": "density", "sub": "ScaleXZ 40", "x": 0,   "y": 155 },
     { "id": "inv",     "label": "Inverter",      "category": "density", "sub": "flip caves",  "x": 200, "y": 155 },
     { "id": "min",     "label": "Min",           "category": "density", "sub": "carve",       "x": 370, "y": 100 },
     { "id": "out",     "label": "Terrain Out",   "category": "output",                        "x": 540, "y": 100 }
@@ -233,7 +233,7 @@ To carve caves, evaluate a 3D noise field and use `Min` to keep only regions tha
 }
 ```
 
-> `Inverter` flips the noise so that high-noise areas become negative (empty), carving caves out of otherwise solid terrain. A typical cave noise setup uses `Scale: 0.04` with `Octaves: 2–3` — too many octaves makes caves look noisy and thin; too few produces large featureless voids.
+> `Inverter` flips the noise so that high-noise areas become negative (empty), carving caves out of otherwise solid terrain. A typical cave noise setup uses `ScaleXZ: 30–60` (room width) and `ScaleY: 15–30` (room height) with `Octaves: 2–3` — too many octaves makes caves look noisy and thin; too few produces large featureless voids.
 
 ---
 
