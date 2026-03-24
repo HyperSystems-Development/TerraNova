@@ -66,13 +66,18 @@ The most common pairing is:
 {
   "height": 160,
   "nodes": [
-    { "id": "bh",  "label": "BaseHeight",  "category": "density", "sub": "Y = 64",        "x": 0,   "y": 60 },
-    { "id": "cm",  "label": "CurveMapper", "category": "density", "sub": "height profile", "x": 200, "y": 60 },
-    { "id": "out", "label": "Terrain Out", "category": "output",                           "x": 420, "y": 60 }
+    { "id": "bh",  "label": "BaseHeight",  "category": "position", "sub": "Y = 64",        "x": 0,   "y": 60 },
+    { "id": "cm",  "label": "CurveMapper", "category": "filter",   "sub": "height profile", "x": 200, "y": 60 },
+    { "id": "out", "label": "Terrain Out", "category": "output",                             "x": 420, "y": 60 }
   ],
   "edges": [
     { "from": "bh",  "to": "cm",  "label": "value" },
     { "from": "cm",  "to": "out", "label": "density" }
+  ],
+  "steps": [
+    { "nodeId": "bh",  "text": "BaseHeight anchors the terrain at a named height reference — in this example Y=64. It outputs a density that is strongly positive below that level (solid) and strongly negative above it (air). Think of it as telling the world 'ground starts here'." },
+    { "nodeId": "cm",  "text": "CurveMapper remaps the BaseHeight value through your hand-drawn curve. The shape of that curve directly controls the terrain profile — gentle slopes become rolling hills, sharp bends become cliffs. Set Curve type to Manual in the properties panel to draw your own." },
+    { "nodeId": "out", "text": "Terrain Out receives the final density. The surface of the world will appear wherever this density crosses zero. Everything above zero is solid; everything below is air." }
   ]
 }
 ```
@@ -175,17 +180,24 @@ To create varied terrain, combine the height-based curve with noise using a `Sum
 {
   "height": 200,
   "nodes": [
-    { "id": "bh",  "label": "BaseHeight",    "category": "density", "sub": "Y = 64",        "x": 0,   "y": 20 },
-    { "id": "cm",  "label": "CurveMapper",   "category": "density", "sub": "height profile", "x": 200, "y": 20 },
-    { "id": "sn",  "label": "SimplexNoise2D","category": "density", "sub": "Scale 0.01",     "x": 0,   "y": 130 },
-    { "id": "sum", "label": "Sum",           "category": "density",                          "x": 400, "y": 75 },
-    { "id": "out", "label": "Terrain Out",   "category": "output",                           "x": 580, "y": 75 }
+    { "id": "bh",  "label": "BaseHeight",    "category": "position", "sub": "Y = 64",        "x": 0,   "y": 20 },
+    { "id": "cm",  "label": "CurveMapper",   "category": "filter",   "sub": "height profile", "x": 200, "y": 20 },
+    { "id": "sn",  "label": "SimplexNoise2D","category": "generative","sub": "Scale 0.01",    "x": 0,   "y": 130 },
+    { "id": "sum", "label": "Sum",           "category": "math",                              "x": 400, "y": 75 },
+    { "id": "out", "label": "Terrain Out",   "category": "output",                            "x": 580, "y": 75 }
   ],
   "edges": [
     { "from": "bh",  "to": "cm"  },
-    { "from": "cm",  "to": "sum" },
-    { "from": "sn",  "to": "sum" },
+    { "from": "cm",  "to": "sum", "label": "shaped height" },
+    { "from": "sn",  "to": "sum", "label": "±1 noise" },
     { "from": "sum", "to": "out", "label": "density" }
+  ],
+  "steps": [
+    { "nodeId": "bh",  "text": "BaseHeight anchors the vertical zero point at Y=64. Below that level the output is strongly positive (solid rock); above it, strongly negative (air). This is the backbone all other signals modify." },
+    { "nodeId": "cm",  "text": "CurveMapper shapes the height profile. Your curve's control points define which Y heights the terrain reaches and how steeply they transition. Wide spacing in In values = tall terrain. Tight spacing = flat shelves." },
+    { "nodeId": "sn",  "text": "SimplexNoise2D produces horizontal variation across X and Z. The same column of terrain repeats at every Y — so this noise raises and lowers the surface across the world, but cannot create overhangs on its own." },
+    { "nodeId": "sum", "text": "Sum adds the shaped height profile and the noise together. The CurveMapper controls the overall shape; the noise adds local variation on top of it. Together they produce the surface the world will render." },
+    { "nodeId": "out", "text": "Terrain Out receives the final density. The terrain surface sits wherever this value equals zero. Tune CurveMapper for broad shape; tune noise Scale and amplitude for surface variety." }
   ]
 }
 ```

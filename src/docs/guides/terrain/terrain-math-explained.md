@@ -52,6 +52,12 @@ Halving Scale doubles the size of features. Doubling Scale halves it.
 
 A useful mental image: picture the noise as a photograph. Increasing Scale is like zooming in on the photo — the pattern gets smaller and more detailed relative to your world. Decreasing Scale zooms out — the same pattern now covers a larger area, and features become broad and gradual. The actual height range of the noise never changes, only the horizontal footprint of its features.
 
+The density output range is the same at any Scale — only feature frequency changes:
+
+```bounds
+{"min": -1, "max": 1, "label": "SimplexNoise2D output range — same at Scale 0.001 or Scale 0.2"}
+```
+
 **Octaves, Persistence, Lacunarity** stack several layers of noise at different scales and mix them:
 
 ```
@@ -71,6 +77,16 @@ Higher Persistence = rougher, more fractal terrain. Lower Persistence = smoother
 
 > [!NOTE]
 > Adding more octaves does **not** simply add more detail indefinitely. Because each octave adds noise that can raise or lower values already modified by previous octaves, they tend to average out. Beyond about 3–4 octaves the effect becomes increasingly subtle — values homogenize toward a middle grey. The difference between 3 and 10 octaves is often smaller than the difference between 1 and 3. At small scales (Scale < 100), even 4+ octaves can produce a pixelated, overly grainy texture. At large scales (Scale > 500) you have more room before the effect deteriorates.
+
+As octaves stack, the effective output range narrows toward the center — extremes get averaged away. Compare the effective range at 1 octave vs. 6 octaves (Persistence 0.5):
+
+```bounds
+{"min": -1, "max": 1, "label": "1 octave — full range, sharp peaks and valleys"}
+```
+
+```bounds
+{"min": -0.5, "max": 0.5, "label": "6 octaves (Persistence 0.5) — effective range compressed ~50% toward center"}
+```
 
 ### Seed
 
@@ -164,6 +180,34 @@ There is no dedicated subtraction node in Hytale WorldGen V2. To subtract B from
 
 ```
 output = A + (B × -1)  →  equivalent to A - B
+```
+
+```nodegraph
+{
+  "height": 180,
+  "nodes": [
+    { "id": "a",   "label": "Density A",   "category": "generative", "sub": "e.g. terrain",     "x": 0,   "y": 20  },
+    { "id": "b",   "label": "Density B",   "category": "generative", "sub": "e.g. cave noise",  "x": 0,   "y": 110 },
+    { "id": "neg", "label": "Constant",    "category": "math",       "sub": "Value −1",         "x": 0,   "y": 170 },
+    { "id": "mul", "label": "Multiplier",  "category": "math",       "sub": "B × −1",           "x": 200, "y": 135 },
+    { "id": "sum", "label": "Sum",         "category": "math",       "sub": "A + (−B)",         "x": 380, "y": 70  },
+    { "id": "out", "label": "Terrain Out", "category": "output",                                 "x": 560, "y": 70  }
+  ],
+  "edges": [
+    { "from": "a",   "to": "sum" },
+    { "from": "b",   "to": "mul" },
+    { "from": "neg", "to": "mul", "label": "−1" },
+    { "from": "mul", "to": "sum", "label": "−B" },
+    { "from": "sum", "to": "out", "label": "A − B" }
+  ],
+  "steps": [
+    { "nodeId": "a",   "text": "Density A is whatever you want to subtract from — typically a terrain surface or a solid region." },
+    { "nodeId": "b",   "text": "Density B is what you want to remove — a cave noise field, a shape, or any density you want to carve out." },
+    { "nodeId": "mul", "text": "Multiplier with Constant(−1) negates B. Positive values become negative, negative become positive. This flips what was additive into subtractive." },
+    { "nodeId": "sum", "text": "Sum adds A and the negated B together: A + (−B) = A − B. Where B was large and positive, the result loses density — creating voids, caves, or carved shapes in A." },
+    { "nodeId": "out", "text": "The subtracted result reaches Terrain Out. Any location where B was strong enough to pull the total below zero becomes air — the subtraction carved it out." }
+  ]
+}
 ```
 
 This pattern comes up frequently: subtracting a noise layer to carve terrain down, removing a shape from a solid region, or pulling a density field below zero to create air pockets. Any time you need to "remove" something from the density, this is how.
