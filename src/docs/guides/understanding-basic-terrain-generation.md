@@ -43,6 +43,10 @@ For example, a 2D noise map can be thought of as a heightmap where:
 - Peaks are close to `1`
 - Valleys are close to `-1`
 
+```bounds
+{"min": -1, "max": 1, "label": "SimplexNoise2D output — every coordinate produces a value in this range"}
+```
+
 These values are then combined with other nodes to produce terrain.
 
 The key parameters on noise nodes are:
@@ -207,6 +211,18 @@ To create varied terrain, combine the height-based curve with noise using a `Sum
 - Each node outputs a value between -1 and 1.
 - `Sum` of two inputs can range from -2 to 2 -- the world treats **any positive value** as solid.
 - The `CurveMapper` dominates the vertical shape; noise adds surface variation on top.
+
+```bounds
+{"min": -1, "max": 1, "label": "CurveMapper output — [-1, 1]"}
+```
+
+```bounds
+{"min": -1, "max": 1, "label": "SimplexNoise2D — [-1, 1]"}
+```
+
+```bounds
+{"min": -2, "max": 2, "label": "Sum — can reach [-2, 2]. Positive = solid, negative = air."}
+```
 
 ---
 

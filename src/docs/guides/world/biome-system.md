@@ -64,6 +64,22 @@ At every (x, z) coordinate, the world evaluates a **biome selector density** -- 
 - **`DefaultBiome`** is used if no range matches (e.g. exactly on a boundary edge case).
 - Ranges should cover the full -1 to 1 span with no gaps.
 
+The three biome windows from the example JSON partition the full [-1, 1] noise range with no overlap and no gap:
+
+```bounds
+{"min": -1, "max": -0.3, "label": "Plains — [-1.0, -0.3]"}
+```
+
+```bounds
+{"min": -0.3, "max": 0.3, "label": "Forest — [-0.3, 0.3]"}
+```
+
+```bounds
+{"min": 0.3, "max": 1, "label": "Mountains — [0.3, 1.0]"}
+```
+
+Each biome occupies roughly equal portions of the noise distribution. To make a biome more common, widen its range. To make it rare, narrow it.
+
 ```nodegraph
 {
   "height": 220,

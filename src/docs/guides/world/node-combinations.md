@@ -51,6 +51,14 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
 }
 ```
 
+```bounds
+{"min": -1, "max": 1, "label": "SimplexNoise2D — raw output [-1, 1]"}
+```
+
+```bounds
+{"min": 0, "max": 1, "label": "After Normalizer — remapped to [0, 1] for use as a blend weight"}
+```
+
 ---
 
 ## 2. Ridge Noise (Noise to Abs)
@@ -105,6 +113,14 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "nodeId": "out", "text": "The 0–1 height factor feeds any Mix, material condition, or Amplitude node. Snow cap? Mix at values above 0.75. Deep underground ore? Gate on values below 0.2. This two-node chain is the basis of nearly every altitude-aware effect." }
   ]
 }
+```
+
+```bounds
+{"min": 0, "max": 256, "label": "YValue — raw world Y coordinate [0, 256]"}
+```
+
+```bounds
+{"min": 0, "max": 1, "label": "After Normalizer — altitude as a clean [0, 1] factor"}
 ```
 
 ---
@@ -175,6 +191,18 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
     { "nodeId": "out", "text": "The scaled and offset density value. These two operations — scale and translate — are the most common density adjustments and cover almost every practical need without affecting feature shape or frequency." }
   ]
 }
+```
+
+```bounds
+{"min": -1, "max": 1, "label": "Source noise — [-1, 1]"}
+```
+
+```bounds
+{"min": -2, "max": 2, "label": "After × 2.0 — amplitude doubled to [-2, 2]"}
+```
+
+```bounds
+{"min": -1.5, "max": 2.5, "label": "After + 0.5 offset — range shifted to [-1.5, 2.5]"}
 ```
 
 ---
