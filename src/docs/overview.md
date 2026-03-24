@@ -37,11 +37,18 @@ A special and sincere thank you to **Nylaro**, whose public Hytale WorldGen V2 g
 
 The understanding of biome structure, density graphs, material providers, prop placement, and the overall WorldGen V2 architecture in these docs traces directly back to that work. It was an act of genuine generosity to the community, and it is deeply appreciated.
 
+## Thank You, Arisilde
+
+A second major thank you to **Arisilde**, whose *Hytale WorldGen V2 Notes* provided the beginner-accessible foundations for the noise parameter explanations, curve intuition, and troubleshooting content throughout these docs.
+
+Where Nylaro's guide covered the system's architecture, Arisilde's work filled in the "why does this feel confusing" layer — explaining coordinate conventions, the visual mental model of how noise becomes terrain, how curve In/Out values actually relate to world height, seed reuse pitfalls, and common troubleshooting patterns. That work made it significantly easier to write documentation that is actually approachable to visual learners. It is deeply appreciated.
+
 ---
 
 ## Contributors
 
-- **Nylaro** -- original WorldGen V2 guide
+- **Nylaro** -- original WorldGen V2 guide; biome structure, density, material providers, props, environment
+- **Arisilde** -- beginner terrain generation guide; noise parameters, curve intuition, seed behavior, troubleshooting
 - **TerraNova contributors** -- editor development, documentation expansion, and template work
 - **The Hytale community** -- questions, feedback, and testing that shaped what needed explaining
 

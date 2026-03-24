@@ -8,6 +8,21 @@ This guide explains the core concepts behind TerraNova / Hytale WorldGen V2 terr
 >
 > Terrain examples on this page are grounded in those Hytale `Examples/`, `Experimental/`, and `Generative/` assets. The graphs below are teaching reductions, not full biome copies.
 
+## World Coordinates
+
+Before anything else, it helps to have the right mental model for how coordinates work in Hytale.
+
+In most 2D math and graphing tools, **Y is up/down and X is left/right**. In 3D games, Y is still the vertical axis — but now **X and Z cover the two horizontal directions**, and Y measures height above the world floor.
+
+The other thing that trips people up: **in games, the sign of axes is often the reverse of what basic math classes teach**. Negative tends to go up and left; positive goes down and right. This is not something you will usually need to think about explicitly in TerraNova, but it is worth knowing if you look at raw density values and they seem backwards from what you expected.
+
+**Practical summary for worldgen:**
+- `X`, `Z` — horizontal position across the world
+- `Y` — vertical height (Y=0 is the world floor, Y=320 is the ceiling)
+- Block columns run from Y=0 to Y=320; every X,Z position has a full column of blocks beneath it
+
+---
+
 ## Density and Noisemaps Introduction
 
 ### What is Density?
@@ -65,6 +80,63 @@ The most common pairing is:
 > In the properties panel, set `CurveMapper`'s Curve type to **Manual** and draw your terrain profile. The x-axis of the curve is the input value from `BaseHeight`; the y-axis is the output density.
 
 > **Under the hood:** In the audited source assets, `BaseHeight` is most often used as a named vertical anchor and then remapped through `CurveMapper`. When `Distance: true`, it outputs signed distance from that height. If you need a direct flat-plane teaching analog, `Sum` of `YValue` and `Constant { Value: -80 }` gives a surface at Y=80. See [Terrain Math Explained](./terrain/terrain-math-explained.md) for the full breakdown.
+
+### How Curve Points Work: In and Out
+
+Curve control points have two values that are easy to mix up:
+
+- **`In`** — the **world height (Y block coordinate)** you want terrain to reach at this point. With a `BaseHeight` at Y=100, an `In` value of `30` means the terrain sits at Y=130 at that point. Negative `In` values go below the base height.
+- **`Out`** — the **noise value** (from -1 to 1) that should produce the `In` height. Confusingly, in Hytale's node editor the default sample biomes use `1.0 = lowest point` and `-1.0 = highest point` — the opposite of what you might expect. This is a quirk of how the math works. You can reverse your own points to a top-down order if that is easier to read.
+
+Put simply: *"When the noise reads this Out value, generate terrain at this In height."*
+
+The slope between two adjacent points determines how steeply terrain rises between them. Wide spacing in `In` values = tall feature. Tight spacing = flat shelf. Each point must have a unique `In` value — duplicate `In` values will cause a load error.
+
+Here is a 3-point curve example. The noise value (-1 to 1) is the horizontal axis; the output density that determines terrain height is the vertical axis. Where the curve is steep, terrain height changes quickly. Where it is shallow, terrain is flat:
+
+```curve
+Example: gentle hills — 3 control points spanning full noise range
+[[-1, 1], [0, 0.5], [1, -1]]
+```
+
+> [!NOTE]
+> Any noise value that falls **outside the range** of your curve's `Out` values will default to the nearest extreme. A noise value lower than your lowest `Out` causes terrain to extend to the maximum world height (Y=320). A noise value higher than your highest `Out` causes terrain to drop through the world floor. This is the most common cause of blocks filling to world height or holes punching through the bottom of the map.
+
+This curve only covers `-0.8` to `0.8`. Any noise value outside that range hits the default — blocks fill to world height on one end, fall through the floor on the other:
+
+```curve
+Dangerous: curve doesn't cover full noise range — gaps at both ends
+[[-0.8, 0.8], [0, 0], [0.8, -0.8]]
+```
+
+Fix: extend the `Out` range to `-1` and `1` so every possible noise value is covered:
+
+```curve
+Safe: full range covered — no runaway terrain
+[[-1, 1], [0, 0], [1, -1]]
+```
+
+### Curve point tips
+
+**Linear points between two others with the same slope are wasted.** If three points form a straight line, removing the middle one produces identical terrain — the slope between the remaining two is unchanged. Keep your point count to the minimum needed for your shape.
+
+**The 50/50 rule.** With a two-point curve spanning the full -1 to 1 noise range, exactly half your terrain falls in each point's region, because noise is distributed evenly across that range. More points don't change this split — what changes is the *slope* in each region, which controls how fast height changes there. A shallow slope over a wide range = flat ground. A steep slope over a narrow range = tall, compressed features.
+
+Shallow top half = wide flat valleys, pointy peaks (most terrain stays low):
+
+```curve
+Top-heavy: steep upper half, shallow lower — wide flat floors, tall pointy peaks
+[[-1, 1], [-0.1, 0.9], [0.1, 0.1], [1, -1]]
+```
+
+Shallow bottom half = wide flat hilltops, abrupt cliff walls descending (most terrain stays high):
+
+```curve
+Bottom-heavy: shallow upper half, steep lower — wide flat hilltops, sharp cliff walls
+[[-1, 1], [-0.1, 0.1], [0.1, -0.9], [1, -1]]
+```
+
+**Crossing or out-of-order `In` values produce strange results.** The curve math processes points by their `Out` value order, not visual order. If you mix up `In` values such that they don't increase monotonically (lowest to highest, or vice versa), the outputs will be processed in a different order than you intended, producing terrain that looks nothing like what you drew. Keep `In` values in a consistent ascending or descending sequence unless you are deliberately experimenting.
 
 ---
 

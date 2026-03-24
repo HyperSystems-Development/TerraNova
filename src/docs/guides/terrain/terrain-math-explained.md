@@ -50,6 +50,8 @@ The output is in the range **[-1, +1]** (approximately -- Simplex can technicall
 
 Halving Scale doubles the size of features. Doubling Scale halves it.
 
+A useful mental image: picture the noise as a photograph. Increasing Scale is like zooming in on the photo — the pattern gets smaller and more detailed relative to your world. Decreasing Scale zooms out — the same pattern now covers a larger area, and features become broad and gradual. The actual height range of the noise never changes, only the horizontal footprint of its features.
+
 **Octaves, Persistence, Lacunarity** stack several layers of noise at different scales and mix them:
 
 ```
@@ -59,13 +61,33 @@ output = noise(f) * 1
        + ...
 ```
 
-- **Lacunarity** -- how much smaller each octave's features are. 2.0 means each octave is twice as detailed.
-- **Persistence** -- how much quieter each octave is. 0.5 means each octave contributes half as much.
+- **Lacunarity** -- how much smaller each octave's features are. 2.0 means each octave is twice as detailed. Mathematically it increases the resolution of each successive layer — think of it like erosion that pits and builds up the surface with finer and finer detail. Higher lacunarity at small scales can produce a pixelated mess; at large scales it creates rich surface texture.
+- **Persistence** -- how much quieter each octave is. 0.5 means each octave contributes half as much. Think of it as reducing the Y-scale of each successive octave without changing its horizontal scale.
 
 Higher Persistence = rougher, more fractal terrain. Lower Persistence = smoother, dominated by the large base scale.
 
 > [!TIP]
 > Persistence 0.5 + Lacunarity 2.0 is the classic "fractal noise" setting. It gives natural-looking hills where large shapes are clear but have fine bumps on them.
+
+> [!NOTE]
+> Adding more octaves does **not** simply add more detail indefinitely. Because each octave adds noise that can raise or lower values already modified by previous octaves, they tend to average out. Beyond about 3–4 octaves the effect becomes increasingly subtle — values homogenize toward a middle grey. The difference between 3 and 10 octaves is often smaller than the difference between 1 and 3. At small scales (Scale < 100), even 4+ octaves can produce a pixelated, overly grainy texture. At large scales (Scale > 500) you have more room before the effect deteriorates.
+
+### Seed
+
+A seed is a text string that determines the pattern of a noise node. Any text can be used — the game converts it internally into a number and runs it through an algorithm to produce the pattern. You have no control over what a specific seed looks like; just experiment until you find one you like.
+
+**Key seed behaviors to know:**
+
+1. **Same seed = same pattern, always.** A given seed always produces the same noise, in any file, in any context. This means you can deliberately reuse a seed across two noise nodes to make their patterns align — useful when you want two effects to reinforce each other in the same locations (e.g. a rock scatter that lines up with high-density terrain).
+
+2. **Reusing seeds when layering noise stacks their effects.** If you layer multiple noise nodes with the same seed and similar scales, they all create the most extreme change in the same spots. The result looks artificial — over-amplified peaks and valleys in a suspiciously regular pattern. Unless you specifically want that, use a different seed for each noise node you add.
+
+3. **Too many different seeds at similar scales washes out texture.** Adding many noise patterns with different seeds but similar scales causes them to average each other out — everywhere gets modified by some noises up and others down, so the result trends toward a homogenized, flat-feeling surface. If layering noise is losing texture, try using significantly different scales between layers, not just different seeds.
+
+4. **Changing the seed is the safest large change you can make.** Unlike scale, octaves, or amplitude, swapping the seed doesn't require rebalancing other values — you just get a different instance of the same pattern distribution. It is a low-risk way to explore variety, and you can always go back to the original seed if you don't like the result.
+
+> [!TIP]
+> Save your work often, especially before experimenting with seeds. The node editor can crash and wipe undo history. Incremental file saves are the only way to recover a version you liked.
 
 ---
 
@@ -132,6 +154,19 @@ hills = SimplexNoise2D × Constant(0.3)
 A `Constant` of 0.3 makes hills 30% as tall as they would be at full amplitude.
 
 **Why not just lower Scale on the noise?** Scale changes feature size, not height. Multiplying by a constant changes height only, leaving feature size alone. They are independent controls.
+
+### Subtraction (no subtract node — use negation)
+
+There is no dedicated subtraction node in Hytale WorldGen V2. To subtract B from A:
+
+1. Multiply B by `-1` using a `Multiplier` node with a `Constant { Value: -1 }` input.
+2. Feed both A and the negated B into a `Sum` node.
+
+```
+output = A + (B × -1)  →  equivalent to A - B
+```
+
+This pattern comes up frequently: subtracting a noise layer to carve terrain down, removing a shape from a solid region, or pulling a density field below zero to create air pockets. Any time you need to "remove" something from the density, this is how.
 
 ---
 

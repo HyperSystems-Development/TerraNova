@@ -26,10 +26,51 @@ This page covers common issues and suggested solutions.
 
 - Increase `"DefaultTransitionDistance"` in `World.json` (try 48 or 64).
 
+## Terrain Fills to World Height or Has Holes Through the Floor
+
+Blocks filling all the way to Y=320, or holes punching through the world floor, almost always mean your density values are falling **outside the range your curve covers**.
+
+- If density goes **below** your curve's lowest `Out` value, terrain extends to the world ceiling (Y=320).
+- If density goes **above** your curve's highest `Out` value, terrain falls through the floor.
+
+**Fix:** Make sure your curve's `Out` range covers all possible results your density can produce. After a `Sum` of two noise nodes, the result can range from -2 to 2 — a curve with `Out` values only reaching -1 and 1 will miss the extremes. Extend your curve to match, or wrap the density in a `Clamp` node before the `CurveMapper`.
+
+## Terrain Looks Unnatural or Has Visible Banding
+
+**Symptom: Strange horizontal bands, seams, or flat lines visible on terrain slopes.**
+
+Most common cause: multiple noise layers are using the **same seed** at similar scales, causing them to stack their effects in the same locations. Change each noise layer to use a unique seed.
+
+A related cause: noise scales that are too regular (e.g. 40, 80, 160). The patterns align too predictably. Try less regular increments (e.g. 35, 90, 170) or deliberately different values.
+
+If the banding persists after changing seeds and scales, check your curve points. If two adjacent curves share a boundary point exactly (e.g. one curve ends at 40, the next starts at 40), that seam will be visible. Overlap the ranges slightly instead — end the lower curve at 50 and start the upper at 30, so they blend rather than butt up against each other.
+
+**Symptom: Terrain has a strangely regular, repeated pattern.**
+
+You may be layering noise at scales that are multiples of each other. Try using scales that have no simple ratio between them to reduce visible repetition.
+
+**Symptom: Adding more noise layers makes terrain look flatter, not more varied.**
+
+This is the homogenization effect. Each additional noise layer adds values that are statistically independent of the others, so extremes get averaged out. Rather than adding more layers, try using significantly different seeds and scales for the layers you already have. Fewer, well-chosen layers produce more interesting results than many layers washing each other out.
+
+## Terrain Has Sheer Vertical Faces or Missing Ground
+
+A visible vertical wall with a void beneath it usually means your curve's lowest possible output is too high — the terrain does not reach the floor of the space it is supposed to cover.
+
+**Example:** If your curve's lowest `In` value is 30 and you are using `BaseHeight` at Y=100, the terrain minimum is Y=130. Anything below that simply does not exist, leaving sheer walls and open floor.
+
+**Fixes:**
+- Lower the minimum `In` value in your curve to extend terrain downward.
+- Add a second noise density at a lower base height to fill the void.
+- Raise the minimum `In` values of a lower-level terrain so it fills the gap from below.
+
+A small remaining cliff face after the main void is fixed can usually be resolved by slightly adjusting both the maximum of the lower terrain and the minimum of the upper terrain until they overlap naturally.
+
 ## Nodes Produce Unexpected Values
 
 - Remember that `Sum` of two [-1, 1] values can range from -2 to 2. Use `Clamp` or `Normalizer` to bring values back into an expected range before feeding them to a `CurveMapper`.
 - Verify noise `Scale` values -- very large scales produce very fine, grainy noise; very small scales produce wide, smooth hills.
+- Double-check signs on `Constant` or `AmplitudeConstant` values — a misplaced minus sign on one input in a multi-layer graph can cause unexpected holes or spikes. Watch your signs carefully when working with negative offsets.
 
 ## Preview Doesn't Match In-Game Result
 
