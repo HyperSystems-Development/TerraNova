@@ -150,15 +150,15 @@ output = SimplexNoise2D + BaseHeight
 When you add two signals each in [-1, 1], the result can reach [-2, 2]:
 
 ```bounds
-{"min": -1, "max": 1, "label": "SimplexNoise2D — [-1, 1]"}
+{"min": -1, "max": 1, "context": [-2, 2], "label": "SimplexNoise2D — [-1, 1]"}
 ```
 
 ```bounds
-{"min": -1, "max": 1, "label": "BaseHeight signal — [-1, 1]"}
+{"min": -1, "max": 1, "context": [-2, 2], "label": "BaseHeight signal — [-1, 1]"}
 ```
 
 ```bounds
-{"min": -2, "max": 2, "label": "Sum output — can reach [-2, 2]"}
+{"min": -2, "max": 2, "context": [-2, 2], "label": "Sum output — can reach [-2, 2]"}
 ```
 
 The world treats **any positive value** as solid regardless of magnitude, so ±2 works fine for a simple terrain output. But if this Sum feeds a `CurveMapper` or a `Mix` weight, the expanded range can produce unexpected results — use `Clamp` or `Normalizer` to bring it back to [-1, 1] first.
@@ -182,15 +182,15 @@ hills = SimplexNoise2D × Constant(0.3)
 A `Constant` of 0.3 makes hills 30% as tall as they would be at full amplitude.
 
 ```bounds
-{"min": -1, "max": 1, "label": "SimplexNoise2D before Multiplier — [-1, 1]"}
+{"min": -1, "max": 1, "context": [-2, 2], "label": "SimplexNoise2D before Multiplier — [-1, 1]"}
 ```
 
 ```bounds
-{"min": -0.3, "max": 0.3, "label": "After × 0.3 — amplitude compressed to [-0.3, 0.3]"}
+{"min": -0.3, "max": 0.3, "context": [-2, 2], "label": "After × 0.3 — amplitude compressed to [-0.3, 0.3]"}
 ```
 
 ```bounds
-{"min": -2, "max": 2, "label": "After × 2.0 — amplitude expanded to [-2, 2]"}
+{"min": -2, "max": 2, "context": [-2, 2], "label": "After × 2.0 — amplitude expanded to [-2, 2]"}
 ```
 
 **Why not just lower Scale on the noise?** Scale changes feature size, not height. Multiplying by a constant changes height only, leaving feature size alone. They are independent controls.
@@ -529,19 +529,19 @@ The band curve alone produces a flat solid slab -- a perfect horizontal layer of
 `SimplexNoise3D` (±1) plus the band curve (±1) can sum to ±2. `Normalizer` maps `[-2, 2]` back to `[-1, 1]` so the outer `Sum` (which adds the second island layer) receives predictable inputs.
 
 ```bounds
-{"min": -1, "max": 1, "label": "Band curve output — [-1, 1]"}
+{"min": -1, "max": 1, "context": [-2, 2], "label": "Band curve output — [-1, 1]"}
 ```
 
 ```bounds
-{"min": -1, "max": 1, "label": "SimplexNoise3D output — [-1, 1]"}
+{"min": -1, "max": 1, "context": [-2, 2], "label": "SimplexNoise3D output — [-1, 1]"}
 ```
 
 ```bounds
-{"min": -2, "max": 2, "label": "After inner Sum — expands to [-2, 2]"}
+{"min": -2, "max": 2, "context": [-2, 2], "label": "After inner Sum — expands to [-2, 2]"}
 ```
 
 ```bounds
-{"min": -1, "max": 1, "label": "After Normalizer — remapped back to [-1, 1]"}
+{"min": -1, "max": 1, "context": [-2, 2], "label": "After Normalizer — remapped back to [-1, 1]"}
 ```
 
 **Adding more island layers:**

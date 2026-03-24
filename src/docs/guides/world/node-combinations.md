@@ -52,11 +52,11 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
 ```
 
 ```bounds
-{"min": -1, "max": 1, "label": "SimplexNoise2D — raw output [-1, 1]"}
+{"min": -1, "max": 1, "context": [-1, 1], "label": "SimplexNoise2D — raw output [-1, 1]"}
 ```
 
 ```bounds
-{"min": 0, "max": 1, "label": "After Normalizer — remapped to [0, 1] for use as a blend weight"}
+{"min": 0, "max": 1, "context": [-1, 1], "label": "After Normalizer — remapped to [0, 1] for use as a blend weight"}
 ```
 
 ---
@@ -116,11 +116,11 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
 ```
 
 ```bounds
-{"min": 0, "max": 256, "label": "YValue — raw world Y coordinate [0, 256]"}
+{"min": 0, "max": 256, "context": [0, 256], "label": "YValue — raw world Y coordinate [0, 256]"}
 ```
 
 ```bounds
-{"min": 0, "max": 1, "label": "After Normalizer — altitude as a clean [0, 1] factor"}
+{"min": 0, "max": 1, "context": [0, 256], "label": "After Normalizer — altitude as a clean [0, 1] factor"}
 ```
 
 ---
@@ -194,15 +194,15 @@ Each section shows a common wiring pattern -- what nodes to connect and why. The
 ```
 
 ```bounds
-{"min": -1, "max": 1, "label": "Source noise — [-1, 1]"}
+{"min": -1, "max": 1, "context": [-2, 2.5], "label": "Source noise — [-1, 1]"}
 ```
 
 ```bounds
-{"min": -2, "max": 2, "label": "After × 2.0 — amplitude doubled to [-2, 2]"}
+{"min": -2, "max": 2, "context": [-2, 2.5], "label": "After × 2.0 — amplitude doubled to [-2, 2]"}
 ```
 
 ```bounds
-{"min": -1.5, "max": 2.5, "label": "After + 0.5 offset — range shifted to [-1.5, 2.5]"}
+{"min": -1.5, "max": 2.5, "context": [-2, 2.5], "label": "After + 0.5 offset — range shifted to [-1.5, 2.5]"}
 ```
 
 ---

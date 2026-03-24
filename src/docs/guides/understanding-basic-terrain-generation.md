@@ -105,6 +105,7 @@ Here is a 3-point curve example. The noise value (-1 to 1) is the horizontal axi
 
 ```curve
 Example: gentle hills — 3 control points spanning full noise range
+{"xLabel": "Out (noise value)", "yLabel": "In (height offset)"}
 [[-1, 1], [0, 0.5], [1, -1]]
 ```
 
@@ -115,6 +116,7 @@ This curve only covers `-0.8` to `0.8`. Any noise value outside that range hits 
 
 ```curve
 Dangerous: curve doesn't cover full noise range — gaps at both ends
+{"xLabel": "Out (noise value)", "yLabel": "In (height offset)"}
 [[-0.8, 0.8], [0, 0], [0.8, -0.8]]
 ```
 
@@ -122,6 +124,7 @@ Fix: extend the `Out` range to `-1` and `1` so every possible noise value is cov
 
 ```curve
 Safe: full range covered — no runaway terrain
+{"xLabel": "Out (noise value)", "yLabel": "In (height offset)"}
 [[-1, 1], [0, 0], [1, -1]]
 ```
 
@@ -135,6 +138,7 @@ Shallow top half = wide flat valleys, pointy peaks (most terrain stays low):
 
 ```curve
 Top-heavy: steep upper half, shallow lower — wide flat floors, tall pointy peaks
+{"xLabel": "Out (noise value)", "yLabel": "In (height offset)"}
 [[-1, 1], [-0.1, 0.9], [0.1, 0.1], [1, -1]]
 ```
 
@@ -142,6 +146,7 @@ Shallow bottom half = wide flat hilltops, abrupt cliff walls descending (most te
 
 ```curve
 Bottom-heavy: shallow upper half, steep lower — wide flat hilltops, sharp cliff walls
+{"xLabel": "Out (noise value)", "yLabel": "In (height offset)"}
 [[-1, 1], [-0.1, 0.1], [0.1, -0.9], [1, -1]]
 ```
 

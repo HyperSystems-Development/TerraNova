@@ -33,24 +33,24 @@ Blocks filling all the way to Y=320, or holes punching through the world floor, 
 - If density goes **below** your curve's lowest `Out` value, terrain extends to the world ceiling (Y=320).
 - If density goes **above** your curve's highest `Out` value, terrain falls through the floor.
 
-The diagram below shows a curve that only covers [-0.8, 0.8]. Noise values in the grey zones have no matching curve point — those regions default to world-ceiling or world-floor:
+The diagram below shows a curve that only covers [-0.8, 0.8] against the full [-1, 1] noise range. Values in the red zones have no matching curve point — they default to world-ceiling or world-floor:
 
 ```bounds
-{"min": -0.8, "max": 0.8, "label": "Curve coverage — [-0.8, 0.8] only"}
+{"min": -1, "max": 1, "context": [-1, 1], "label": "Actual noise range — all values possible"}
 ```
 
 ```bounds
-{"min": -1, "max": 1, "label": "Actual noise range — values outside ±0.8 go unhandled"}
+{"min": -0.8, "max": 0.8, "context": [-1, 1], "danger": [[-1, -0.8], [0.8, 1]], "label": "Curve covers only [-0.8, 0.8] — red zones are unhandled → runaway terrain"}
 ```
 
-After a `Sum` of two noise nodes the range expands further — a curve covering only [-1, 1] still misses the extremes:
+After a `Sum` of two noise nodes the range expands to [-2, 2]. A curve covering only [-1, 1] now misses the extremes:
 
 ```bounds
-{"min": -2, "max": 2, "label": "Sum of two noise nodes — can reach [-2, 2]"}
+{"min": -2, "max": 2, "context": [-2, 2], "label": "Sum of two noise nodes — can reach [-2, 2]"}
 ```
 
 ```bounds
-{"min": -1, "max": 1, "label": "Curve covers only [-1, 1] — gaps at both ends cause runaway terrain"}
+{"min": -1, "max": 1, "context": [-2, 2], "danger": [[-2, -1], [1, 2]], "label": "Curve covers only [-1, 1] — red zones outside cause world-ceiling / world-floor"}
 ```
 
 **Fix:** Make sure your curve's `Out` range covers all possible results your density can produce. Extend your curve to match the full input range, or wrap the density in a `Clamp` node before the `CurveMapper`.
@@ -91,11 +91,11 @@ A small remaining cliff face after the main void is fixed can usually be resolve
 - Remember that `Sum` of two [-1, 1] values can range from -2 to 2. Use `Clamp` or `Normalizer` to bring values back into an expected range before feeding them to a `CurveMapper`.
 
 ```bounds
-{"min": -2, "max": 2, "label": "Sum of two [-1,1] inputs — [-2, 2] before Clamp/Normalizer"}
+{"min": -2, "max": 2, "context": [-2, 2], "label": "Sum of two [-1,1] inputs — [-2, 2] before Clamp/Normalizer"}
 ```
 
 ```bounds
-{"min": -1, "max": 1, "label": "After Clamp or Normalizer — safe range for CurveMapper"}
+{"min": -1, "max": 1, "context": [-2, 2], "label": "After Clamp or Normalizer — trimmed back to [-1, 1]"}
 ```
 - Verify noise `Scale` values -- very large scales produce very fine, grainy noise; very small scales produce wide, smooth hills.
 - Double-check signs on `Constant` or `AmplitudeConstant` values — a misplaced minus sign on one input in a multi-layer graph can cause unexpected holes or spikes. Watch your signs carefully when working with negative offsets.

@@ -1609,9 +1609,27 @@ export function DocsPanel() {
         const lines = value.trim().split("\n");
         let label: string | undefined;
         let pointsJson = value.trim();
+        // First line may be a label (if it doesn't start JSON), optionally followed by
+        // a second metadata line: { "xLabel": "...", "yLabel": "..." }
+        let xLabel = "Input x";
+        let yLabel = "Output y";
         if (!lines[0].trim().startsWith("[") && !lines[0].trim().startsWith("{")) {
           label = lines[0].trim();
-          pointsJson = lines.slice(1).join("\n").trim();
+          // Check if second line is a metadata object (not the points array)
+          const remaining = lines.slice(1).join("\n").trim();
+          const secondLine = lines[1]?.trim();
+          if (secondLine?.startsWith("{") && !secondLine.startsWith("[")) {
+            try {
+              const meta = JSON.parse(secondLine) as { xLabel?: string; yLabel?: string };
+              if (meta.xLabel) xLabel = meta.xLabel;
+              if (meta.yLabel) yLabel = meta.yLabel;
+              pointsJson = lines.slice(2).join("\n").trim();
+            } catch {
+              pointsJson = remaining;
+            }
+          } else {
+            pointsJson = remaining;
+          }
         }
         try {
           const points = JSON.parse(pointsJson) as [number, number][];
@@ -1628,11 +1646,11 @@ export function DocsPanel() {
                 </span>
                 <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-tn-text-muted/75">
                   <span className="inline-flex items-center gap-1 rounded-full border border-tn-border/80 bg-tn-bg/70 px-2 py-0.5">
-                    <span className="font-semibold text-tn-text-muted/80">Input x</span>
+                    <span className="font-semibold text-tn-text-muted/80">{xLabel}</span>
                     <span className="font-mono text-tn-text-muted">{formatDocsCurveValue(xMin)} to {formatDocsCurveValue(xMax)}</span>
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full border border-tn-border/80 bg-tn-bg/70 px-2 py-0.5">
-                    <span className="font-semibold text-tn-text-muted/80">Output y</span>
+                    <span className="font-semibold text-tn-text-muted/80">{yLabel}</span>
                     <span className="font-mono text-tn-text-muted">{formatDocsCurveValue(yMin)} to {formatDocsCurveValue(yMax)}</span>
                   </span>
                 </div>
@@ -1671,15 +1689,34 @@ export function DocsPanel() {
           // Fall through to raw code block if JSON parse fails
         }
       }
-      // bounds: fence — renders a simple visual range bar with min/max labels
-      // Format: JSON { "min": number, "max": number, "label"?: string }
+      // bounds: fence — renders a visual range bar with min/max labels
+      // Format: JSON {
+      //   "min": number, "max": number,
+      //   "label"?: string,
+      //   "context"?: [number, number],  // shared axis [ctxMin, ctxMax] for spatial comparison across stacked bars
+      //   "danger"?: [number, number][]  // regions to highlight in warning color, e.g. [[-2,-1],[1,2]]
+      // }
       if (lang === "bounds") {
         try {
-          const parsed = JSON.parse(value) as { min: number; max: number; label?: string };
+          const parsed = JSON.parse(value) as {
+            min: number;
+            max: number;
+            label?: string;
+            context?: [number, number];
+            danger?: [number, number][];
+          };
           const { min, max, label } = parsed;
+          const ctxMin = parsed.context ? parsed.context[0] : min;
+          const ctxMax = parsed.context ? parsed.context[1] : max;
+          const ctxRange = ctxMax - ctxMin;
+          // Convert a value to a % position within the context axis
+          const toFrac = (v: number) =>
+            ctxRange === 0 ? 0 : Math.max(0, Math.min(1, (v - ctxMin) / ctxRange));
+          const fillLeft = toFrac(min);
+          const fillRight = 1 - toFrac(max);
+          const hasZeroCross = ctxMin < 0 && ctxMax > 0;
+          const zeroFrac = toFrac(0);
           const range = max - min;
-          const zeroFrac = range === 0 ? 0 : Math.max(0, Math.min(1, (0 - min) / range));
-          const hasZeroCross = min < 0 && max > 0;
           return (
             <div className="docs-wide-block my-4 overflow-hidden rounded-xl border border-tn-border bg-tn-panel shadow-[0_10px_24px_rgba(0,0,0,0.12)]">
               {label && (
@@ -1689,10 +1726,18 @@ export function DocsPanel() {
               )}
               <div className="px-4 py-3 flex flex-col gap-2">
                 <div className="relative h-5 rounded bg-tn-bg border border-tn-border overflow-hidden">
-                  {/* Fill bar from min to max */}
+                  {/* Danger zone regions (rendered first, behind the fill) */}
+                  {parsed.danger?.map(([dMin, dMax], i) => (
+                    <div
+                      key={i}
+                      className="absolute top-0 bottom-0 bg-red-500/20"
+                      style={{ left: `${toFrac(dMin) * 100}%`, right: `${(1 - toFrac(dMax)) * 100}%` }}
+                    />
+                  ))}
+                  {/* Fill bar showing the actual min–max range within context */}
                   <div
                     className="absolute top-0 bottom-0 bg-tn-accent/25 border-x border-tn-accent/40"
-                    style={{ left: 0, right: 0 }}
+                    style={{ left: `${fillLeft * 100}%`, right: `${fillRight * 100}%` }}
                   />
                   {/* Zero line */}
                   {hasZeroCross && (
@@ -1702,10 +1747,26 @@ export function DocsPanel() {
                     />
                   )}
                   {/* Min label */}
-                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-tn-accent font-mono">{min}</span>
+                  <span
+                    className="absolute top-1/2 -translate-y-1/2 text-[10px] text-tn-accent font-mono"
+                    style={{ left: `calc(${fillLeft * 100}% + 4px)` }}
+                  >{min}</span>
                   {/* Max label */}
-                  <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-tn-accent font-mono">{max}</span>
+                  <span
+                    className="absolute top-1/2 -translate-y-1/2 text-[10px] text-tn-accent font-mono"
+                    style={{ right: `calc(${fillRight * 100}% + 4px)` }}
+                  >{max}</span>
                 </div>
+                {/* Context axis tick labels */}
+                {parsed.context && (
+                  <div className="relative flex justify-between text-[9px] text-tn-text-muted/60 font-mono px-0">
+                    <span>{ctxMin}</span>
+                    {hasZeroCross && (
+                      <span className="absolute -translate-x-1/2" style={{ left: `${zeroFrac * 100}%` }}>0</span>
+                    )}
+                    <span>{ctxMax}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-[10px] text-tn-text-muted">
                   <span>Min: <span className="text-tn-text font-mono">{min}</span></span>
                   <span>Range: <span className="text-tn-text font-mono">{range.toFixed(3)}</span></span>
