@@ -102,6 +102,9 @@ describe("DocsPanel", () => {
   it("starts walkthrough mode at the first real step", async () => {
     render(<DocsPanel />);
 
+    // wait for the walkthrough doc to load so the "Start Walkthrough" action is rendered
+    await screen.findByText("Walkthrough: Building a Sky Islands Biome from Scratch");
+
     const startWalkthroughButton = await screen.findByRole("button", { name: "Start Walkthrough" });
     fireEvent.click(startWalkthroughButton);
 
