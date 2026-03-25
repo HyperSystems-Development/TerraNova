@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ChevronLeft, ChevronRight, ChevronDown, Folder, FileText, X,
   BookOpen, Map as MapIcon, Wrench, Library, ScrollText, GitPullRequest, Copy, Check,
-  Compass, GraduationCap, Hash, List, Settings,
+  Compass, GraduationCap, Hash, List, Settings, Search, Clock,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -1026,6 +1026,82 @@ function SettingsSelect<T extends string>({
   );
 }
 
+// ── Reading time ─────────────────────────────────────────────────────────────
+function estimateReadingTime(md: string): number {
+  const words = md.trim().split(/\s+/).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
+// ── DOM text highlighter ──────────────────────────────────────────────────────
+/**
+ * Wraps all occurrences of `term` inside text nodes within `root` with <mark>
+ * elements. Existing marks are cleared first. Returns the total match count.
+ */
+function applyTextHighlight(root: HTMLElement, term: string): number {
+  // Clear previous marks
+  root.querySelectorAll("mark.docs-highlight").forEach((m) => {
+    const parent = m.parentNode;
+    if (parent) {
+      parent.replaceChild(document.createTextNode(m.textContent ?? ""), m);
+      parent.normalize();
+    }
+  });
+
+  if (!term) return 0;
+
+  const lower = term.toLowerCase();
+  let count = 0;
+
+  const walk = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent ?? "";
+      const idx = text.toLowerCase().indexOf(lower);
+      if (idx === -1) return;
+      const before = document.createTextNode(text.slice(0, idx));
+      const mark = document.createElement("mark");
+      mark.className = "docs-highlight";
+      mark.textContent = text.slice(idx, idx + term.length);
+      const after = document.createTextNode(text.slice(idx + term.length));
+      const parent = node.parentNode!;
+      parent.insertBefore(before, node);
+      parent.insertBefore(mark, node);
+      parent.insertBefore(after, node);
+      parent.removeChild(node);
+      count++;
+      // Continue searching `after` for multiple matches on same text node
+      walk(after);
+    } else if (
+      node.nodeType === Node.ELEMENT_NODE &&
+      !["SCRIPT", "STYLE", "CODE", "PRE", "MARK"].includes((node as Element).tagName)
+    ) {
+      Array.from(node.childNodes).forEach(walk);
+    }
+  };
+
+  walk(root);
+  return count;
+}
+
+// ── Walkthrough progress persistence ─────────────────────────────────────────
+const WT_PROGRESS_KEY = "tn-docs-wt-progress";
+
+function loadWalkthroughProgress(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(WT_PROGRESS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveWalkthroughProgress(slug: string, step: number) {
+  try {
+    const current = loadWalkthroughProgress();
+    current[slug] = step;
+    localStorage.setItem(WT_PROGRESS_KEY, JSON.stringify(current));
+  } catch { /* ignore */ }
+}
+
 export function DocsPanel() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [rawMd, setRawMd] = useState<string>("");
@@ -1065,6 +1141,14 @@ export function DocsPanel() {
   });
   const [settings, setSettings] = useState<DocsSettings>(() => loadSettings() ?? DEFAULT_SETTINGS);
   const [showSettings, setShowSettings] = useState(false);
+  // In-doc find bar
+  const [findQuery, setFindQuery] = useState("");
+  const [findActive, setFindActive] = useState(false);
+  const [findMatchCount, setFindMatchCount] = useState(0);
+  const [findMatchIndex, setFindMatchIndex] = useState(0);
+  const findInputRef = useRef<HTMLInputElement | null>(null);
+  // Search-to-doc highlight: term that should be highlighted after a search-driven nav
+  const pendingHighlightRef = useRef<string>("");
   // Per-doc scroll position memory: slug → scrollTop
   const scrollMemoryRef = useRef<Record<string, number>>({});
   const prevSlugRef = useRef<string | null>(null);
@@ -1160,7 +1244,7 @@ export function DocsPanel() {
   }, []);
 
   const loadDoc = useCallback(
-    async (slug: string, anchor?: string, pushHistory = true) => {
+    async (slug: string, anchor?: string, pushHistory = true, fromSearch?: string) => {
       const entry = entriesBySlug.get(slug);
       if (!entry) return;
       let text: string;
@@ -1204,11 +1288,22 @@ export function DocsPanel() {
 
       const steps = extractWalkthroughSteps(text);
       setWalkthroughSteps(steps);
-      setWalkthroughStep(0);
-      setWalkthroughShowFull(false);
-      if (steps.length === 0) {
+      if (steps.length > 0) {
+        const savedStep = loadWalkthroughProgress()[slug] ?? 0;
+        setWalkthroughStep(Math.min(savedStep, steps.length - 1));
+      } else {
+        setWalkthroughStep(0);
         setWalkthroughActive(false);
       }
+      setWalkthroughShowFull(false);
+
+      // Store search term to highlight after render
+      pendingHighlightRef.current = fromSearch ?? "";
+      // Reset find bar
+      setFindActive(false);
+      setFindQuery("");
+      setFindMatchCount(0);
+      setFindMatchIndex(0);
 
       if (anchor) {
         scrollToAnchor(anchor);
@@ -1504,9 +1599,76 @@ export function DocsPanel() {
   useEffect(() => {
     if (!normalizedFilter || !settings.autoOpenFirstSearchResult) return;
     const firstSlug = findFirstFileSlug(filteredTree);
-    if (firstSlug && firstSlug !== selectedSlug) loadDoc(firstSlug);
+    if (firstSlug && firstSlug !== selectedSlug) loadDoc(firstSlug, undefined, true, normalizedFilter);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredTree, normalizedFilter, selectedSlug, settings.autoOpenFirstSearchResult]);
+
+  // Apply search-driven highlight to rendered doc after content changes
+  useEffect(() => {
+    const term = pendingHighlightRef.current;
+    if (!term || !contentRef.current) return;
+    // Small delay so ReactMarkdown has finished painting
+    const id = setTimeout(() => {
+      if (contentRef.current) applyTextHighlight(contentRef.current, term);
+    }, 80);
+    return () => clearTimeout(id);
+  }, [rawMd]);
+
+  // Apply/update find-bar highlights whenever findQuery or doc content changes
+  useEffect(() => {
+    if (!contentRef.current) return;
+    if (!findActive || !findQuery) {
+      applyTextHighlight(contentRef.current, "");
+      setFindMatchCount(0);
+      setFindMatchIndex(0);
+      return;
+    }
+    const count = applyTextHighlight(contentRef.current, findQuery);
+    setFindMatchCount(count);
+    setFindMatchIndex(count > 0 ? 0 : -1);
+    // Scroll first match into view
+    const first = contentRef.current.querySelector("mark.docs-highlight");
+    if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [findQuery, findActive, rawMd]);
+
+  // Persist walkthrough step progress whenever it changes
+  useEffect(() => {
+    if (!selectedSlug || walkthroughSteps.length === 0) return;
+    saveWalkthroughProgress(selectedSlug, walkthroughStep);
+  }, [selectedSlug, walkthroughStep, walkthroughSteps.length]);
+
+  // Ctrl+F to open find bar when reading area is focused
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+        const active = document.activeElement;
+        // Only intercept when focus is inside the docs panel content area
+        if (contentRef.current?.contains(active as Node) || active === document.body) {
+          e.preventDefault();
+          setFindActive(true);
+          requestAnimationFrame(() => findInputRef.current?.focus());
+        }
+      }
+      if (e.key === "Escape" && findActive) {
+        setFindActive(false);
+        setFindQuery("");
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [findActive]);
+
+  const navigateFindMatch = useCallback((direction: 1 | -1) => {
+    if (!contentRef.current || findMatchCount === 0) return;
+    const marks = Array.from(contentRef.current.querySelectorAll<HTMLElement>("mark.docs-highlight"));
+    if (marks.length === 0) return;
+    const next = ((findMatchIndex + direction) + marks.length) % marks.length;
+    setFindMatchIndex(next);
+    marks.forEach((m, i) => {
+      m.classList.toggle("docs-highlight-active", i === next);
+    });
+    marks[next]?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [findMatchCount, findMatchIndex]);
 
   const handleLinkClick = useCallback(
     (href: string) => {
@@ -1931,6 +2093,7 @@ export function DocsPanel() {
     snippetDisplayMode,
   ]);
   const selectedEntry = selectedSlug ? entriesBySlug.get(selectedSlug) ?? null : null;
+  const readingTimeMin = rawMd ? estimateReadingTime(rawMd) : null;
 
   return (
     <div
@@ -2197,7 +2360,7 @@ export function DocsPanel() {
                         type="button"
                         ref={isSelected ? (el) => { (activeItemRef as React.MutableRefObject<HTMLButtonElement | null>).current = el; } : undefined}
                         className={`flex w-full flex-col gap-0.5 border-b border-tn-border/40 px-3 py-2 text-left transition-colors hover:bg-tn-accent/8 ${isSelected ? "bg-tn-accent/12" : ""}`}
-                        onClick={() => { loadDoc(entry.slug); }}
+                        onClick={() => { loadDoc(entry.slug, undefined, true, normalizedFilter); }}
                       >
                         <span className={`text-[12px] font-semibold ${isSelected ? "text-tn-accent" : "text-tn-text"}`}>{entry.title}</span>
                         {snippet && (
@@ -2235,6 +2398,39 @@ export function DocsPanel() {
               className="h-full bg-tn-accent transition-[width] duration-75"
               style={{ width: `${scrollProgress * 100}%` }}
             />
+          </div>
+        )}
+
+        {/* In-doc find bar */}
+        {findActive && (
+          <div className="flex items-center gap-1.5 border-b border-tn-border bg-tn-panel/90 px-3 py-1.5 shrink-0">
+            <Search className="h-3.5 w-3.5 shrink-0 text-tn-text-muted" />
+            <input
+              ref={findInputRef}
+              type="text"
+              value={findQuery}
+              onChange={(e) => setFindQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); navigateFindMatch(e.shiftKey ? -1 : 1); }
+                if (e.key === "Escape") { setFindActive(false); setFindQuery(""); }
+              }}
+              placeholder="Find in page…"
+              className="flex-1 bg-transparent text-sm text-tn-text outline-none placeholder:text-tn-text-muted/50"
+            />
+            {findQuery && (
+              <span className="shrink-0 text-[11px] text-tn-text-muted tabular-nums">
+                {findMatchCount === 0 ? "No results" : `${findMatchIndex + 1} / ${findMatchCount}`}
+              </span>
+            )}
+            <button type="button" title="Previous match (Shift+Enter)" onClick={() => navigateFindMatch(-1)} disabled={findMatchCount === 0} className="flex h-5 w-5 items-center justify-center rounded text-tn-text-muted hover:text-tn-text disabled:opacity-30">
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" title="Next match (Enter)" onClick={() => navigateFindMatch(1)} disabled={findMatchCount === 0} className="flex h-5 w-5 items-center justify-center rounded text-tn-text-muted hover:text-tn-text disabled:opacity-30">
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+            <button type="button" title="Close (Esc)" onClick={() => { setFindActive(false); setFindQuery(""); }} className="flex h-5 w-5 items-center justify-center rounded text-tn-text-muted hover:text-tn-text">
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         )}
 
@@ -2307,10 +2503,26 @@ export function DocsPanel() {
               <div className="flex items-center gap-3 shrink-0">
                 {selectedEntry && (
                   <div className="hidden text-right md:block">
-                    <div className="text-[10px] uppercase tracking-[0.08em] text-tn-text-muted/70">Reading</div>
+                    <div className="flex items-center justify-end gap-2">
+                      <div className="text-[10px] uppercase tracking-[0.08em] text-tn-text-muted/70">Reading</div>
+                      {readingTimeMin !== null && (
+                        <div className="flex items-center gap-1 rounded-full border border-tn-border/60 bg-tn-bg/60 px-1.5 py-px text-[10px] text-tn-text-muted/80">
+                          <Clock className="h-2.5 w-2.5 shrink-0" />
+                          <span>{readingTimeMin} min</span>
+                        </div>
+                      )}
+                    </div>
                     <div className="max-w-[220px] truncate text-sm font-medium text-tn-text">{selectedEntry.title}</div>
                   </div>
                 )}
+                <button
+                  type="button"
+                  title="Find in page (Ctrl+F)"
+                  onClick={() => { setFindActive((v) => !v); requestAnimationFrame(() => findInputRef.current?.focus()); }}
+                  className={`flex items-center justify-center w-6 h-6 rounded border transition-colors ${findActive ? "border-tn-accent/60 bg-tn-accent/15 text-tn-accent" : "border-tn-border text-tn-text-muted hover:bg-tn-accent/10 hover:text-tn-text"}`}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </button>
                 {walkthroughSteps.length > 0 && (
                   <button
                     className="rounded border border-tn-border bg-tn-panel px-3 py-1 text-sm text-tn-text hover:bg-tn-panel/80"
@@ -2322,7 +2534,6 @@ export function DocsPanel() {
                         }
                         return !v;
                       });
-                      setWalkthroughStep(0);
                     }}
                   >
                     {walkthroughActive ? "Exit Walkthrough" : "Start Walkthrough"}
@@ -2401,8 +2612,27 @@ export function DocsPanel() {
                 )}
 
                 {!walkthroughShowFull && (
-                  <div className="text-xs text-tn-text-muted" aria-live="polite">
-                    Step {walkthroughStep + 1} of {walkthroughSteps.length}
+                  <div className="flex items-center gap-3" aria-live="polite">
+                    <span className="text-xs text-tn-text-muted">
+                      Step {walkthroughStep + 1} of {walkthroughSteps.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {walkthroughSteps.map((_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          title={walkthroughSteps[i].title}
+                          onClick={() => setWalkthroughStep(i)}
+                          className={`rounded-full transition-all ${
+                            i === walkthroughStep
+                              ? "h-2 w-4 bg-tn-accent"
+                              : i < walkthroughStep
+                                ? "h-1.5 w-1.5 bg-tn-accent/50"
+                                : "h-1.5 w-1.5 bg-tn-border hover:bg-tn-text-muted"
+                          }`}
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

@@ -40,12 +40,7 @@ export function PreviewPanel() {
         e.preventDefault();
         setShowWireframe(!usePreviewStore.getState().showVoxelWireframe);
       }
-      // Screenshot
-      if (e.key === "s" && e.altKey) {
-        e.preventDefault();
-        // TODO: trigger screenshot logic
-      }
-    }
+}
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [setLegendVisible, setShowWireframe]);
