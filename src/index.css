@@ -257,7 +257,7 @@ body,
 .docs-content td,
 .docs-content th {
   overflow-wrap: anywhere;
-  word-break: break-word;
+  word-break: normal;
 }
 
 .docs-content a {
@@ -271,7 +271,7 @@ body,
   padding: 1rem;
   overflow-x: hidden;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
   margin: 1em 0;
 }
 
@@ -288,7 +288,6 @@ body,
   padding: 0.2em 0.35em;
   border-radius: 4px;
   overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
 .docs-content blockquote {

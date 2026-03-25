@@ -558,7 +558,7 @@ export function EnvironmentEditorView() {
     if (!projectPath) return false;
     const norm = resolvedPath.replace(/\\/g, "/").toLowerCase();
     const projNorm = projectPath.replace(/\\/g, "/").toLowerCase();
-    return !norm.startsWith(projNorm);
+    return !norm.startsWith(`${projNorm}/`);
   }, [projectPath]);
 
   // Weather IDs in the file that only resolve to Hytale asset paths (not in project).

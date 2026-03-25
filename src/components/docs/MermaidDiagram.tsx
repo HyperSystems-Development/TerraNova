@@ -21,9 +21,11 @@ export function MermaidDiagram({ code }: { code: string }) {
         container.innerHTML = result.svg;
       })
       .catch((err) => {
-        container.innerHTML = `<pre style="color: #f00; font-size: 11px;">Mermaid render error: ${String(
-          err,
-        )}</pre>`;
+        if (cancelled) return;
+        const pre = document.createElement("pre");
+        pre.style.cssText = "color:#f00;font-size:11px";
+        pre.textContent = `Mermaid render error: ${String(err)}`;
+        container.replaceChildren(pre);
       });
 
     return () => {

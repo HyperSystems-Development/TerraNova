@@ -1587,10 +1587,9 @@ export function DocsPanel() {
     }
   }, [selectedSlug]);
 
-  // Auto-expand all sidebar folders when a search is active; reset cursor
+  // Reset search cursor when filter changes
   useEffect(() => {
     if (normalizedFilter) {
-      setCollapsedFolders({});
       searchCursorRef.current = -1;
     }
   }, [normalizedFilter]);
@@ -1599,7 +1598,7 @@ export function DocsPanel() {
   useEffect(() => {
     if (!normalizedFilter || !settings.autoOpenFirstSearchResult) return;
     const firstSlug = findFirstFileSlug(filteredTree);
-    if (firstSlug && firstSlug !== selectedSlug) loadDoc(firstSlug, undefined, true, normalizedFilter);
+    if (firstSlug && firstSlug !== selectedSlug) loadDoc(firstSlug, undefined, false, normalizedFilter);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredTree, normalizedFilter, selectedSlug, settings.autoOpenFirstSearchResult]);
 
@@ -2099,8 +2098,15 @@ export function DocsPanel() {
     <div
       className="flex h-full"
       onKeyDown={(e) => {
-        if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); navBack(); }
-        if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); navForward(); }
+        if (!e.altKey) return;
+        const target = e.target as HTMLElement | null;
+        const isEditable = !!target && (
+          target.tagName === "INPUT" || target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" || target.isContentEditable
+        );
+        if (isEditable) return;
+        if (e.key === "ArrowLeft") { e.preventDefault(); navBack(); }
+        if (e.key === "ArrowRight") { e.preventDefault(); navForward(); }
       }}
     >
       <div
@@ -2128,11 +2134,11 @@ export function DocsPanel() {
                   if (e.key === "ArrowDown") {
                     e.preventDefault();
                     searchCursorRef.current = Math.min(searchCursorRef.current + 1, filtered.length - 1);
-                    if (filtered[searchCursorRef.current]) loadDoc(filtered[searchCursorRef.current].slug);
+                    if (filtered[searchCursorRef.current]) loadDoc(filtered[searchCursorRef.current].slug, undefined, false);
                   } else if (e.key === "ArrowUp") {
                     e.preventDefault();
                     searchCursorRef.current = Math.max(searchCursorRef.current - 1, 0);
-                    if (filtered[searchCursorRef.current]) loadDoc(filtered[searchCursorRef.current].slug);
+                    if (filtered[searchCursorRef.current]) loadDoc(filtered[searchCursorRef.current].slug, undefined, false);
                   } else if (e.key === "Enter") {
                     e.preventDefault();
                     const idx = searchCursorRef.current >= 0 ? searchCursorRef.current : 0;

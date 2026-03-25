@@ -33,7 +33,8 @@ export function getDefaultDocSlug(folderSlug: string, slugs: string[]): string |
   const index = slugs.find((slug) => slug.toLowerCase() === `${folderSlug}/index`.toLowerCase());
   if (index) return index;
 
-  return slugs.find((slug) => slug.startsWith(`${folderSlug}/`)) ?? null;
+  const folderPrefix = `${folderSlug.toLowerCase()}/`;
+  return slugs.find((slug) => slug.toLowerCase().startsWith(folderPrefix)) ?? null;
 }
 
 export interface DocSnippetGraphData {
