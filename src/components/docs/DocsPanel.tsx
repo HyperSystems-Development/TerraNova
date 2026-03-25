@@ -607,7 +607,13 @@ const DocTreeNodeItem = memo(function DocTreeNodeItem({
         style={{ paddingLeft: `${indent + basePadding}px` }}
         onClick={() => {
           onToggleCollapse(node.slug);
-          if (defaultFolderSlug) onSelect(defaultFolderSlug);
+          if (defaultFolderSlug) {
+            onSelect(defaultFolderSlug);
+          } else {
+            // No README/index — expand and select the first child file
+            const firstChild = node.children.find((c): c is FileNode => c.type === "file");
+            if (firstChild) onSelect(firstChild.slug);
+          }
         }}
         aria-expanded={!isCollapsed}
       >
@@ -1102,6 +1108,32 @@ function saveWalkthroughProgress(slug: string, step: number) {
   } catch { /* ignore */ }
 }
 
+// ── Recently opened docs persistence ─────────────────────────────────────────
+const RECENT_DOCS_KEY = "tn-docs-recent";
+const RECENT_DOCS_MAX = 8;
+
+function loadRecentDocs(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_DOCS_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentDocs(slugs: string[]) {
+  try {
+    localStorage.setItem(RECENT_DOCS_KEY, JSON.stringify(slugs));
+  } catch { /* ignore */ }
+}
+
+function pushRecentDoc(slug: string): string[] {
+  const prev = loadRecentDocs().filter((s) => s !== slug);
+  const next = [slug, ...prev].slice(0, RECENT_DOCS_MAX);
+  saveRecentDocs(next);
+  return next;
+}
+
 export function DocsPanel() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [rawMd, setRawMd] = useState<string>("");
@@ -1141,6 +1173,8 @@ export function DocsPanel() {
   });
   const [settings, setSettings] = useState<DocsSettings>(() => loadSettings() ?? DEFAULT_SETTINGS);
   const [showSettings, setShowSettings] = useState(false);
+  const [recentDocs, setRecentDocs] = useState<string[]>(() => loadRecentDocs());
+  const [recentCollapsed, setRecentCollapsed] = useState(false);
   // In-doc find bar
   const [findQuery, setFindQuery] = useState("");
   const [findActive, setFindActive] = useState(false);
@@ -1271,6 +1305,11 @@ export function DocsPanel() {
 
       // Persist last-read slug
       try { localStorage.setItem("tn-docs-last-slug", slug); } catch { /* ignore */ }
+
+      // Update recently-opened list on intentional navigation
+      if (pushHistory) {
+        setRecentDocs(pushRecentDoc(slug));
+      }
 
       // Push to nav history (truncate forward stack)
       if (pushHistory) {
@@ -1636,7 +1675,7 @@ export function DocsPanel() {
     saveWalkthroughProgress(selectedSlug, walkthroughStep);
   }, [selectedSlug, walkthroughStep, walkthroughSteps.length]);
 
-  // Ctrl+F to open find bar when reading area is focused
+  // Ctrl+F / Ctrl+K keyboard shortcuts
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === "f") {
@@ -1648,6 +1687,15 @@ export function DocsPanel() {
           requestAnimationFrame(() => findInputRef.current?.focus());
         }
       }
+      // Ctrl+K focuses the sidebar doc search from anywhere inside the panel
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        if (!sidebarCollapsed && searchInputRef.current) {
+          e.preventDefault();
+          setShowSettings(false);
+          searchInputRef.current.focus();
+          searchInputRef.current.select();
+        }
+      }
       if (e.key === "Escape" && findActive) {
         setFindActive(false);
         setFindQuery("");
@@ -1655,7 +1703,7 @@ export function DocsPanel() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [findActive]);
+  }, [findActive, sidebarCollapsed]);
 
   const navigateFindMatch = useCallback((direction: 1 | -1) => {
     if (!contentRef.current || findMatchCount === 0) return;
@@ -2121,6 +2169,7 @@ export function DocsPanel() {
                 ref={searchInputRef}
                 className="w-full rounded border border-tn-border bg-tn-bg px-2 py-1 pr-6 text-sm text-tn-text focus:outline-none focus:border-tn-accent"
                 placeholder="Search docs…"
+                title="Search docs (Ctrl+K)"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
                 onKeyDown={(e) => {
@@ -2378,19 +2427,61 @@ export function DocsPanel() {
                 )}
               </>
             ) : (
-              filteredTree.map((node) => (
-                <DocTreeNodeItem
-                  key={`${node.type}-${node.slug}`}
-                  node={node}
-                  selectedSlug={selectedSlug}
-                  onSelect={loadDoc}
-                  onResolveFolderSlug={resolveFolderSlug}
-                  collapsed={collapsedFolders}
-                  onToggleCollapse={toggleFolderCollapsed}
-                  activeItemRef={activeItemRef}
-                  settings={settings}
-                />
-              ))
+              <>
+                {recentDocs.length > 0 && (
+                  <div className="border-b border-tn-border/60">
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted hover:text-tn-text focus:outline-none"
+                      onClick={() => setRecentCollapsed((v) => !v)}
+                    >
+                      <span className="flex-1 text-left">Recent</span>
+                      {recentCollapsed
+                        ? <ChevronRight className="h-3 w-3 shrink-0" />
+                        : <ChevronDown className="h-3 w-3 shrink-0" />
+                      }
+                    </button>
+                    {!recentCollapsed && (
+                      <div className="pb-1">
+                        {recentDocs
+                          .filter((slug) => entriesBySlug.has(slug))
+                          .map((slug) => {
+                            const entry = entriesBySlug.get(slug)!;
+                            const isSelected = selectedSlug === slug;
+                            return (
+                              <button
+                                key={slug}
+                                type="button"
+                                className={`flex w-full items-center gap-2 px-3 py-1 text-left text-[12px] transition-colors border-l-2 ${
+                                  isSelected
+                                    ? "border-tn-accent bg-tn-accent/12 text-tn-text"
+                                    : "border-transparent text-tn-text-muted hover:bg-tn-accent/8 hover:text-tn-text"
+                                }`}
+                                onClick={() => loadDoc(slug)}
+                              >
+                                <FileText className="h-3 w-3 shrink-0 opacity-60" />
+                                <span className="truncate">{entry.title}</span>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {filteredTree.map((node) => (
+                  <DocTreeNodeItem
+                    key={`${node.type}-${node.slug}`}
+                    node={node}
+                    selectedSlug={selectedSlug}
+                    onSelect={loadDoc}
+                    onResolveFolderSlug={resolveFolderSlug}
+                    collapsed={collapsedFolders}
+                    onToggleCollapse={toggleFolderCollapsed}
+                    activeItemRef={activeItemRef}
+                    settings={settings}
+                  />
+                ))}
+              </>
             )}
           </div>
         )}
@@ -2563,30 +2654,53 @@ export function DocsPanel() {
                 }}
                 tabIndex={0}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-semibold text-tn-text">
-                    {walkthroughShowFull ? "Full document" : walkthroughSteps[walkthroughStep].title}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-tn-text truncate">
+                      {walkthroughShowFull ? "Full document" : walkthroughSteps[walkthroughStep].title}
+                    </div>
+                    {!walkthroughShowFull && (
+                      <div className="mt-0.5 text-[11px] text-tn-text-muted">
+                        Step {walkthroughStep + 1} of {walkthroughSteps.length}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     {!walkthroughShowFull && (
                       <>
                         <button
+                          type="button"
                           className="rounded border border-tn-border bg-tn-panel px-2 py-1 text-xs text-tn-text hover:bg-tn-panel/80 disabled:opacity-50"
                           disabled={walkthroughStep === 0}
                           onClick={() => setWalkthroughStep((s) => Math.max(0, s - 1))}
                         >
-                          ← Previous
+                          ← Prev
                         </button>
-                        <button
-                          className="rounded border border-tn-border bg-tn-panel px-2 py-1 text-xs text-tn-text hover:bg-tn-panel/80 disabled:opacity-50"
-                          disabled={walkthroughStep >= walkthroughSteps.length - 1}
-                          onClick={() => setWalkthroughStep((s) => Math.min(walkthroughSteps.length - 1, s + 1))}
-                        >
-                          Next →
-                        </button>
+                        {walkthroughStep < walkthroughSteps.length - 1 ? (
+                          <button
+                            type="button"
+                            className="rounded border border-tn-border bg-tn-panel px-2 py-1 text-xs text-tn-text hover:bg-tn-panel/80"
+                            onClick={() => setWalkthroughStep((s) => s + 1)}
+                          >
+                            Next →
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="rounded border border-green-500/50 bg-green-500/10 px-2 py-1 text-xs text-green-400 hover:bg-green-500/20"
+                            onClick={() => {
+                              if (selectedSlug) saveWalkthroughProgress(selectedSlug, 0);
+                              setWalkthroughStep(0);
+                            }}
+                            title="Reset to step 1"
+                          >
+                            ✓ Restart
+                          </button>
+                        )}
                       </>
                     )}
                     <button
+                      type="button"
                       className={`rounded border px-2 py-1 text-xs transition-colors ${walkthroughShowFull ? "border-tn-accent/60 bg-tn-accent/15 text-tn-accent" : "border-tn-border bg-tn-panel text-tn-text-muted hover:text-tn-text hover:bg-tn-panel/80"}`}
                       onClick={() => setWalkthroughShowFull((v) => !v)}
                       title={walkthroughShowFull ? "Back to step view" : "View the full document"}
@@ -2618,27 +2732,22 @@ export function DocsPanel() {
                 )}
 
                 {!walkthroughShowFull && (
-                  <div className="flex items-center gap-3" aria-live="polite">
-                    <span className="text-xs text-tn-text-muted">
-                      Step {walkthroughStep + 1} of {walkthroughSteps.length}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      {walkthroughSteps.map((_, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          title={walkthroughSteps[i].title}
-                          onClick={() => setWalkthroughStep(i)}
-                          className={`rounded-full transition-all ${
-                            i === walkthroughStep
-                              ? "h-2 w-4 bg-tn-accent"
-                              : i < walkthroughStep
-                                ? "h-1.5 w-1.5 bg-tn-accent/50"
-                                : "h-1.5 w-1.5 bg-tn-border hover:bg-tn-text-muted"
-                          }`}
-                        />
-                      ))}
-                    </div>
+                  <div className="flex items-center gap-1.5" aria-live="polite">
+                    {walkthroughSteps.map((step, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        title={`Step ${i + 1}: ${step.title}`}
+                        onClick={() => setWalkthroughStep(i)}
+                        className={`rounded-full transition-all ${
+                          i === walkthroughStep
+                            ? "h-2 w-4 bg-tn-accent"
+                            : i < walkthroughStep
+                              ? "h-1.5 w-1.5 bg-tn-accent/50 hover:bg-tn-accent/70"
+                              : "h-1.5 w-1.5 bg-tn-border hover:bg-tn-text-muted"
+                        }`}
+                      />
+                    ))}
                   </div>
                 )}
               </div>
