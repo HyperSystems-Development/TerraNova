@@ -173,7 +173,7 @@ export function useKnifeTool({ containerRef }: UseKnifeToolOptions) {
         pointerIdRef.current = null;
       }
     },
-    [containerRef, testIntersections],
+    [containerRef],
   );
 
   return {

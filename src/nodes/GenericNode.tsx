@@ -13,7 +13,6 @@ import { useSettingsStore } from "@/stores/settingsStore";
 export const GenericNode = memo(function GenericNode({ selected, id, ...props }: TypedNodeProps) {
   const data = props.data;
   const typeName = data.type ?? "Unknown";
-  const fields = data.fields ?? {};
   const flowDirection = useSettingsStore((s) => s.flowDirection);
   const inPos = inputPosition(flowDirection);
   const outPos = outputPosition(flowDirection);
@@ -24,10 +23,10 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
 
   // Only show scalar fields in the body (not nested objects/arrays)
   const scalarFields = useMemo(
-    () => Object.entries(fields).filter(
+    () => Object.entries(data.fields ?? {}).filter(
       ([, v]) => typeof v === "string" || typeof v === "number" || typeof v === "boolean",
     ),
-    [fields],
+    [data.fields],
   );
 
   // Filter s.edges for handles targeting this node; custom equality prevents re-renders when handles are unchanged

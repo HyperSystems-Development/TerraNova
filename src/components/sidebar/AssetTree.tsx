@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Leaf, Mountain, Layers, Globe, Cloud, Settings, FileText, FileJson,
+  Image, Database, File,
+} from "lucide-react";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useProjectStore, type DirectoryEntry } from "@/stores/projectStore";
 import { useTauriIO } from "@/hooks/useTauriIO";
@@ -65,44 +69,27 @@ function FolderIcon({ open }: { open: boolean }) {
 }
 
 function FileIcon({ name }: { name: string }) {
-  const color = getFileColor(name);
-  return (
-    <svg className="h-4 w-4 shrink-0" viewBox="0 0 16 16" fill="none">
-      <path
-        d="M4 1.5h5.5L13 5v9a1 1 0 01-1 1H4a1 1 0 01-1-1V2.5a1 1 0 011-1z"
-        fill={color}
-        opacity="0.6"
-        stroke={color}
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9.5 1.5V5H13"
-        stroke={color}
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function getFileColor(name: string): string {
   const lower = name.toLowerCase();
-  if (lower.includes("biome")) return "#4E9E8F";
-  if (lower.includes("density") || lower.includes("terrain")) return "#5B8DBF";
-  if (lower.includes("material")) return "#C87D3A";
-  if (lower.includes("worldstructure") || lower.includes("world_structure")) return "#9B7FBF";
-  if (lower.includes("structure")) return "#9B7FBF";
-  if (lower.includes("assignment")) return "#7BAA7B";
-  if (lower.includes("environment") || lower.includes("environ")) return "#7DB08C";
-  if (lower.includes("weather")) return "#5B9EC9";
-  if (lower.includes("prefab")) return "#A09B74";
-  if (lower.includes("instance")) return "#A0825A";
-  if (lower.includes("settings") || lower.includes("config")) return "#B5A88C";
-  if (lower.includes("world")) return "#7B8FBF";
-  if (lower === "manifest.json") return "#B5A88C";
-  return "#D4C9B5";
+  const ext = lower.includes(".") ? lower.slice(lower.lastIndexOf(".")) : "";
+
+  if (ext === ".png" || ext === ".jpg" || ext === ".jpeg" || ext === ".dds") {
+    return <Image className="h-4 w-4 shrink-0 text-purple-400" />;
+  }
+  if (ext === ".bson") {
+    return <Database className="h-4 w-4 shrink-0 text-slate-400" />;
+  }
+  if (ext === ".json") {
+    if (lower.includes("biome") || lower.includes("assignment")) return <Leaf className="h-4 w-4 shrink-0 text-emerald-400" />;
+    if (lower.includes("density") || lower.includes("terrain")) return <Mountain className="h-4 w-4 shrink-0 text-sky-400" />;
+    if (lower.includes("material")) return <Layers className="h-4 w-4 shrink-0 text-orange-400" />;
+    if (lower.includes("worldstructure") || lower.includes("world_structure") || lower.includes("structure")) return <Globe className="h-4 w-4 shrink-0 text-violet-400" />;
+    if (lower.includes("environment") || lower.includes("environ") || lower.includes("weather")) return <Cloud className="h-4 w-4 shrink-0 text-cyan-400" />;
+    if (lower.includes("settings") || lower.includes("config") || lower === "manifest.json") return <Settings className="h-4 w-4 shrink-0 text-tn-text-muted" />;
+    if (lower.includes("world")) return <Globe className="h-4 w-4 shrink-0 text-indigo-400" />;
+    if (lower.includes("prefab") || lower.includes("instance")) return <FileText className="h-4 w-4 shrink-0 text-amber-400" />;
+    return <FileJson className="h-4 w-4 shrink-0 text-tn-text-muted" />;
+  }
+  return <File className="h-4 w-4 shrink-0 text-tn-text-muted" />;
 }
 
 interface ContextMenuState {

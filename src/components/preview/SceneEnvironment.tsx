@@ -41,6 +41,7 @@ export function HytaleSky() {
         side: BackSide,
         depthWrite: false,
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: create once, uniforms updated via useEffect below
     [],
   );
 

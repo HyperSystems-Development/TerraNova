@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useEditorStore } from "@/stores/editorStore";
 import type { MaterialLayer } from "@/utils/biomeSectionUtils";
 import type { ConditionType } from "@/schema/material";
@@ -33,15 +33,19 @@ export function V2LayerEditor(props: { sadNodeId: string; layers: MaterialLayer[
 
   const v2Layers = layers.filter((l) => l.layerIndex != null);
 
-  const layerNodeIds = new Map<number, string>();
-  if (section) {
-    for (const e of section.edges) {
-      if (e.target === sadNodeId && /^Layers\[\d+\]$/.test(e.targetHandle ?? "")) {
-        const idx = parseInt(/\[(\d+)\]/.exec(e.targetHandle!)![1]);
-        layerNodeIds.set(idx, e.source);
+  const layerNodeIds = useMemo(() => {
+    const map = new Map<number, string>();
+    if (section) {
+      for (const e of section.edges) {
+        const handle = e.targetHandle ?? "";
+        if (e.target === sadNodeId && /^Layers\[\d+\]$/.test(handle)) {
+          const match = /\[(\d+)\]/.exec(handle);
+          if (match) map.set(parseInt(match[1]), e.source);
+        }
       }
     }
-  }
+    return map;
+  }, [section, sadNodeId]);
 
   const handleAddLayer = useCallback(() => {
     addMaterialLayer(sadNodeId, "ConstantThickness");

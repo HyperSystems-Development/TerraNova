@@ -452,7 +452,7 @@ export function AtmosphereTab({
     return () => {
       if (animIntervalRef.current) clearInterval(animIntervalRef.current);
     };
-  }, [animating, animSpeed]);
+  }, [animating, animSpeed, resolveAssetWeather, setAtmosphereSettings]);
 
   function syncStore(next: AtmosphereState) {
     setAtmosphereSettings({
@@ -741,7 +741,7 @@ export function AtmosphereTab({
   // Sync tint to previewStore whenever biomeConfig changes
   useEffect(() => {
     setTintColors({ color1: tintColor1, color2: tintColor2, color3: tintColor3 });
-  }, [tintColor1, tintColor2, tintColor3]);
+  }, [tintColor1, tintColor2, tintColor3, setTintColors]);
 
   function handleTintChange(field: "color1" | "color2" | "color3" | "constant", value: string) {
     // Map color1/2/3 to Delimiters array index

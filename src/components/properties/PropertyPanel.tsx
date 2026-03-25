@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, type ReactNode } from "react";
+import { CheckCircle2, Package, AlertTriangle, Lock, LockOpen, HelpCircle } from "lucide-react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore, type DirectoryEntry } from "@/stores/projectStore";
 import { useUIStore } from "@/stores/uiStore";
@@ -1270,13 +1271,9 @@ export function PropertyPanel() {
                     <div key={entry.key} className="rounded border border-tn-border/60 bg-tn-bg/60 p-3">
                       <div className={compactAssetInspector ? "flex flex-col gap-2" : "flex items-start gap-3"}>
                         <div className="flex min-w-0 items-start gap-3">
-                          <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
-                            entry.status === "in-pack"
-                              ? "bg-emerald-400"
-                              : entry.status === "built-in"
-                                ? "bg-sky-400"
-                                : "bg-amber-400"
-                          }`} />
+                          {entry.status === "in-pack" && <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />}
+                          {entry.status === "built-in" && <Package className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-400" />}
+                          {entry.status === "missing" && <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />}
 
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
@@ -1454,24 +1451,24 @@ export function PropertyPanel() {
                 setDirty(true);
               }}
               title={isLocked ? "Unlock node" : "Lock node position"}
-              className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[10px] border transition-colors ${
+              className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full border transition-colors ${
                 isLocked
                   ? "bg-amber-500/20 border-amber-500/60 text-amber-400"
                   : "border-tn-border text-tn-text-muted hover:border-tn-border/80 hover:text-tn-text"
               }`}
             >
-              {isLocked ? "●" : "○"}
+              {isLocked ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}
             </button>
             <button
               onClick={toggleHelpMode}
               title={helpMode ? "Exit help mode (?)" : "Toggle help mode (?)"}
-              className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full text-[10px] font-bold border transition-colors ${
+              className={`w-5 h-5 shrink-0 flex items-center justify-center rounded-full border transition-colors ${
                 helpMode
                   ? "bg-tn-accent/20 border-tn-accent/60 text-tn-accent"
                   : "border-tn-border text-tn-text-muted hover:border-tn-accent/50 hover:text-tn-accent"
               }`}
             >
-              ?
+              <HelpCircle className="h-3 w-3" />
             </button>
           </div>
         </div>
