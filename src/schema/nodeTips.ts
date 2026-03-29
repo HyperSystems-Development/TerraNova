@@ -716,11 +716,9 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   // ═══════════════════════════════════════════════════════════════════════════
   // CURVES
   // ═══════════════════════════════════════════════════════════════════════════
-  // Note: Curve types share names with density types (Constant, Sum, Clamp, etc.)
-  // but are differentiated by category in the node graph. These tips apply when
-  // the node is a Curve category node. Since NODE_TIPS is keyed by type name only,
-  // shared names (Constant, Sum, Clamp, Blend) use the density-category tip.
-  // Curve-specific types get their own entries below.
+  // Note: Curve types that share names with density types (Multiplier, Inverter)
+  // must be prefixed with "Curve:" so the rfType-based lookup resolves the
+  // correct tip. Unique curve types can use bare names.
   Manual: [
     {
       message:
@@ -742,14 +740,14 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
       severity: "info",
     },
   ],
-  Multiplier: [
+  "Curve:Multiplier": [
     {
       message:
         "Multiplies all connected curve inputs together. If any input is 0, the output is 0.",
       severity: "info",
     },
   ],
-  Inverter: [
+  "Curve:Inverter": [
     {
       message:
         "Inverts the curve: output = 1 - input. A value of 0 becomes 1, and 1 becomes 0.",
