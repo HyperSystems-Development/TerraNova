@@ -167,10 +167,10 @@ jobs:
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root "$APPIMAGE"
 
           # Re-sign the repackaged AppImage for the Tauri updater.
-          # tauri-cli is already installed by the build step; the signer reads
-          # TAURI_SIGNING_PRIVATE_KEY from the environment automatically.
+          # tauri-action installs the CLI via npm (@tauri-apps/cli), not cargo.
+          # The signer reads TAURI_SIGNING_PRIVATE_KEY from the environment.
           if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            cargo tauri signer sign \
+            pnpm tauri signer sign \
               --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" \
               --file "$APPIMAGE"
             echo "Re-signed: ${APPIMAGE}.sig"
