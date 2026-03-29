@@ -153,10 +153,11 @@ jobs:
           done
           cd ..
 
-          # Download appimagetool and repackage
+          # Download appimagetool and repackage (use --appimage-extract-and-run
+          # in case the CI runner lacks libfuse2)
           wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
-          ARCH=x86_64 ./appimagetool squashfs-root "$APPIMAGE"
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root "$APPIMAGE"
 
           # Re-sign the AppImage for the Tauri updater
           SIGFILE="${APPIMAGE}.sig"
