@@ -115,6 +115,70 @@ jobs:
           prerelease: true
           args: ${{ matrix.rust_target != '' && format('--target {0}', matrix.rust_target) || '' }}
 
+      - name: Fix AppImage symlinks and repackage
+        if: matrix.platform == 'ubuntu-22.04'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          APPIMAGE=$(find src-tauri/target -name '*.AppImage' ! -name '*.sig' | head -1)
+          if [ -z "$APPIMAGE" ]; then
+            echo "No AppImage found, skipping"
+            exit 0
+          fi
+          echo "Found AppImage: $APPIMAGE"
+
+          # Extract
+          chmod +x "$APPIMAGE"
+          "$APPIMAGE" --appimage-extract
+
+          # Fix broken absolute symlinks in AppDir root
+          cd squashfs-root
+          for link in *.desktop *.png .DirIcon; do
+            if [ -L "$link" ] && [ ! -e "$link" ]; then
+              TARGET=$(readlink "$link")
+              echo "Fixing broken symlink: $link -> $TARGET"
+              rm "$link"
+              # Find the actual file inside usr/ and create a relative symlink
+              BASENAME=$(basename "$TARGET")
+              REAL=$(find usr -name "$BASENAME" -type f | head -1)
+              if [ -n "$REAL" ]; then
+                ln -s "$REAL" "$link"
+                echo "  -> $REAL"
+              else
+                echo "  WARNING: could not find $BASENAME in usr/"
+              fi
+            fi
+          done
+          cd ..
+
+          # Download appimagetool and repackage
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+          ARCH=x86_64 ./appimagetool squashfs-root "$APPIMAGE"
+
+          # Re-sign the AppImage for the Tauri updater
+          SIGFILE="${APPIMAGE}.sig"
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            cargo install tauri-cli --locked 2>/dev/null || true
+            cargo tauri signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" "$APPIMAGE"
+            echo "Re-signed: $SIGFILE"
+          fi
+
+          # Replace the release asset with the fixed AppImage
+          APPIMAGE_NAME=$(basename "$APPIMAGE")
+          SIGFILE_NAME="${APPIMAGE_NAME}.sig"
+          echo "Replacing release asset: $APPIMAGE_NAME"
+          gh release delete-asset "${{ env.RELEASE_TAG }}" "$APPIMAGE_NAME" --yes || true
+          gh release upload "${{ env.RELEASE_TAG }}" "$APPIMAGE"
+          if [ -f "${APPIMAGE}.sig" ]; then
+            gh release delete-asset "${{ env.RELEASE_TAG }}" "$SIGFILE_NAME" --yes || true
+            gh release upload "${{ env.RELEASE_TAG }}" "${APPIMAGE}.sig"
+          fi
+
+          rm -rf squashfs-root appimagetool
+
       - name: Verify macOS code signature
         if: runner.os == 'macOS'
         run: |
