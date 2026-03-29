@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to build (e.g. v0.1.7)'
+        required: true
+        type: string
 
 jobs:
   build:
@@ -25,9 +31,14 @@ jobs:
     permissions:
       contents: write
 
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -56,7 +67,7 @@ jobs:
 
       - name: Sync version from git tag
         env:
-          TAG_NAME: ${{ github.ref_name }}
+          TAG_NAME: ${{ env.RELEASE_TAG }}
         run: |
           VERSION="${TAG_NAME#v}"
           echo "Updating version to $VERSION"
@@ -90,8 +101,8 @@ jobs:
         with:
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
-          tagName: ${{ github.ref_name }}
-          releaseName: 'TerraNova ${{ github.ref_name }}'
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: 'TerraNova ${{ env.RELEASE_TAG }}'
           releaseDraft: true
           prerelease: true
           args: ${{ matrix.rust_target != '' && format('--target {0}', matrix.rust_target) || '' }}
