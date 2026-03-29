@@ -171,8 +171,9 @@ jobs:
           # The signer reads TAURI_SIGNING_PRIVATE_KEY from the environment.
           if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
             pnpm tauri signer sign \
+              --private-key "$TAURI_SIGNING_PRIVATE_KEY" \
               --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" \
-              --file "$APPIMAGE"
+              "$APPIMAGE"
             echo "Re-signed: ${APPIMAGE}.sig"
           fi
 
