@@ -162,7 +162,7 @@ jobs:
 
           # Repackage with pinned appimagetool (--appimage-extract-and-run
           # avoids libfuse2 dependency on the CI runner)
-          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous-2024-12-13/appimagetool-x86_64.AppImage -O appimagetool
+          wget -q https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root "$APPIMAGE"
 
