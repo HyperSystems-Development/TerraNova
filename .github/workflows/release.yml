@@ -89,6 +89,14 @@ jobs:
           "
         shell: bash
 
+      - name: Pin linuxdeploy to fix AppImage EGL rendering
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          TAURI_TOOLS="${XDG_CACHE_HOME:-$HOME/.cache}/tauri"
+          mkdir -p "$TAURI_TOOLS"
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20250213-2/linuxdeploy-x86_64.AppImage -O "$TAURI_TOOLS/linuxdeploy-x86_64.AppImage"
+          chmod +x "$TAURI_TOOLS/linuxdeploy-x86_64.AppImage"
+
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
