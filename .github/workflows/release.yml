@@ -136,7 +136,7 @@ jobs:
 
           # Fix any broken absolute symlinks in AppDir root
           cd squashfs-root
-          find . -maxdepth 1 -type l | while read -r link; do
+          while read -r link; do
             if [ ! -e "$link" ]; then
               TARGET=$(readlink "$link")
               echo "Fixing broken symlink: $link -> $TARGET"
@@ -150,7 +150,7 @@ jobs:
                 echo "  WARNING: could not find $BASENAME in usr/"
               fi
             fi
-          done
+          done < <(find . -maxdepth 1 -type l)
           cd ..
 
           # Repackage with pinned appimagetool (--appimage-extract-and-run
@@ -160,16 +160,16 @@ jobs:
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root "$APPIMAGE"
 
           # Re-sign the repackaged AppImage for the Tauri updater.
-          # tauri-cli is already installed by the build step.
+          # tauri-cli is already installed by the build step; the signer reads
+          # TAURI_SIGNING_PRIVATE_KEY from the environment automatically.
           if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            cargo tauri signer sign --private-key "$TAURI_SIGNING_PRIVATE_KEY" \
+            cargo tauri signer sign \
               --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" \
               --file "$APPIMAGE"
             echo "Re-signed: ${APPIMAGE}.sig"
           fi
 
           # Replace the release assets with the fixed AppImage + signature
-          APPIMAGE_NAME=$(basename "$APPIMAGE")
           gh release upload "${{ env.RELEASE_TAG }}" "$APPIMAGE" --clobber
           if [ -f "${APPIMAGE}.sig" ]; then
             gh release upload "${{ env.RELEASE_TAG }}" "${APPIMAGE}.sig" --clobber
