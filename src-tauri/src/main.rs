@@ -13,12 +13,22 @@ pub static NvOptimusEnablement: u32 = 0x00000001;
 pub static AmdPowerXpressRequestHighPerformance: u32 = 0x00000001;
 
 fn main() {
-    // Work around WebKitGTK protocol error on Wayland with NVIDIA proprietary
-    // drivers (GH-9). The DMA-BUF renderer triggers "Error 71 (Protocol error)
-    // dispatching to Wayland display" and an instant crash on affected systems.
+    // Work around WebKitGTK rendering issues on Linux (GH-9, GH-36).
+    //
+    // WEBKIT_DISABLE_DMABUF_RENDERER  – prevents "Error 71 (Protocol error)
+    //   dispatching to Wayland display" crash with NVIDIA proprietary drivers.
+    //
+    // WEBKIT_DISABLE_COMPOSITING_MODE – prevents "Could not create default EGL
+    //   display: EGL_BAD_PARAMETER" on Intel integrated GPUs (e.g. Iris Xe)
+    //   where EGL initialization fails outright, producing a blank window.
     #[cfg(target_os = "linux")]
-    if std::env::var("WEBKIT_DISABLE_DMABUF_RENDERER").is_err() {
-        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    {
+        if std::env::var("WEBKIT_DISABLE_DMABUF_RENDERER").is_err() {
+            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        }
+        if std::env::var("WEBKIT_DISABLE_COMPOSITING_MODE").is_err() {
+            std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+        }
     }
 
     terranova_lib::run()
