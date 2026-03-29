@@ -1,9 +1,9 @@
 import type { NodeHandler } from "../evalContext";
 import { DEFAULT_WORLD_HEIGHT } from "@/constants";
 
-const handleCoordinateX: NodeHandler = (_ctx, _fields, _inputs, x) => x;
-const handleCoordinateY: NodeHandler = (_ctx, _fields, _inputs, _x, y) => y;
-const handleCoordinateZ: NodeHandler = (_ctx, _fields, _inputs, _x, _y, z) => z;
+const handleXValue: NodeHandler = (_ctx, _fields, _inputs, x) => x;
+const handleYValue: NodeHandler = (_ctx, _fields, _inputs, _x, y) => y;
+const handleZValue: NodeHandler = (_ctx, _fields, _inputs, _x, _y, z) => z;
 
 const handleDistanceFromOrigin: NodeHandler = (_ctx, _fields, _inputs, x, y, z) => {
   return Math.sqrt(x * x + y * y + z * z);
@@ -120,9 +120,12 @@ const handleHeightAboveSurface: NodeHandler = (ctx, _fields, _inputs, _x, y, _z)
 
 export function buildPositionHandlers(): Map<string, NodeHandler> {
   return new Map<string, NodeHandler>([
-    ["CoordinateX", handleCoordinateX],
-    ["CoordinateY", handleCoordinateY],
-    ["CoordinateZ", handleCoordinateZ],
+    ["XValue", handleXValue],
+    ["CoordinateX", handleXValue],
+    ["YValue", handleYValue],
+    ["CoordinateY", handleYValue],
+    ["ZValue", handleZValue],
+    ["CoordinateZ", handleZValue],
     ["DistanceFromOrigin", handleDistanceFromOrigin],
     ["DistanceFromAxis", handleDistanceFromAxis],
     ["DistanceFromPoint", handleDistanceFromPoint],

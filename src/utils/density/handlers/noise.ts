@@ -65,7 +65,7 @@ const handleSimplexRidgeNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) =
   return ridgeFbm3D(noise, x, y, z, scaleXZ, scaleY, octaves, lacunarity, persistence, seed);
 };
 
-const handleVoronoiNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+const handleCellNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const scale = resolveScale(fields);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const cellType = (fields.CellType as string) ?? "Euclidean";
@@ -89,7 +89,7 @@ const handleVoronoiNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   return raw;
 };
 
-const handleVoronoiNoise3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+const handleCellNoise3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const scale = resolveScale(fields);
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const cellType = (fields.CellType as string) ?? "Euclidean";
@@ -141,8 +141,10 @@ export function buildNoiseHandlers(): Map<string, NodeHandler> {
     ["SimplexNoise3D", handleSimplexNoise3D],
     ["SimplexRidgeNoise2D", handleSimplexRidgeNoise2D],
     ["SimplexRidgeNoise3D", handleSimplexRidgeNoise3D],
-    ["VoronoiNoise2D", handleVoronoiNoise2D],
-    ["VoronoiNoise3D", handleVoronoiNoise3D],
+    ["CellNoise2D", handleCellNoise2D],
+    ["VoronoiNoise2D", handleCellNoise2D],
+    ["CellNoise3D", handleCellNoise3D],
+    ["VoronoiNoise3D", handleCellNoise3D],
     ["FractalNoise2D", handleFractalNoise2D],
     ["FractalNoise3D", handleFractalNoise3D],
   ]);

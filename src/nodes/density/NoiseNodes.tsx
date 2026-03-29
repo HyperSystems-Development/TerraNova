@@ -60,7 +60,7 @@ export const SimplexRidgeNoise3DNode = memo(function SimplexRidgeNoise3DNode(pro
   );
 });
 
-export const VoronoiNoise2DNode = memo(function VoronoiNoise2DNode(props: TypedNodeProps) {
+export const CellNoise2DNode = memo(function CellNoise2DNode(props: TypedNodeProps) {
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
@@ -69,7 +69,7 @@ export const VoronoiNoise2DNode = memo(function VoronoiNoise2DNode(props: TypedN
   );
 });
 
-export const VoronoiNoise3DNode = memo(function VoronoiNoise3DNode(props: TypedNodeProps) {
+export const CellNoise3DNode = memo(function CellNoise3DNode(props: TypedNodeProps) {
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>

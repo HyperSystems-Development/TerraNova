@@ -11,25 +11,33 @@ import { hytaleToInternal } from "@/utils/hytaleToInternal";
 describe("getLanguageHelpers", () => {
   const h = getLanguageHelpers();
 
-  it("returns Hytale display names for mapped types", () => {
-    expect(h.getTypeDisplayName("Product")).toBe("Multiplier");
-    expect(h.getTypeDisplayName("Negate")).toBe("Inverter");
-    expect(h.getTypeDisplayName("CurveFunction")).toBe("CurveMapper");
-    expect(h.getTypeDisplayName("CacheOnce")).toBe("Cache");
-    expect(h.getTypeDisplayName("ImportedValue")).toBe("Imported");
-    expect(h.getTypeDisplayName("Blend")).toBe("Mix");
-    expect(h.getTypeDisplayName("MinFunction")).toBe("Min");
-    expect(h.getTypeDisplayName("MaxFunction")).toBe("Max");
-    expect(h.getTypeDisplayName("VoronoiNoise2D")).toBe("CellNoise2D");
-    expect(h.getTypeDisplayName("VoronoiNoise3D")).toBe("CellNoise3D");
-    expect(h.getTypeDisplayName("SquareRoot")).toBe("Sqrt");
-    expect(h.getTypeDisplayName("DomainWarp2D")).toBe("FastGradientWarp");
-    expect(h.getTypeDisplayName("ScaledPosition")).toBe("Scale");
-    expect(h.getTypeDisplayName("TranslatedPosition")).toBe("Slider");
-    expect(h.getTypeDisplayName("RotatedPosition")).toBe("Rotator");
-    expect(h.getTypeDisplayName("LinearTransform")).toBe("AmplitudeConstant");
-    expect(h.getTypeDisplayName("BlendCurve")).toBe("MultiMix");
-    expect(h.getTypeDisplayName("Square")).toBe("Pow");
+  it("returns V2 type names as-is (no display override needed)", () => {
+    // Internal names now match V2, so display names are identity
+    expect(h.getTypeDisplayName("Multiplier")).toBe("Multiplier");
+    expect(h.getTypeDisplayName("Inverter")).toBe("Inverter");
+    expect(h.getTypeDisplayName("CurveMapper")).toBe("CurveMapper");
+    expect(h.getTypeDisplayName("Cache")).toBe("Cache");
+    expect(h.getTypeDisplayName("Imported")).toBe("Imported");
+    expect(h.getTypeDisplayName("Mix")).toBe("Mix");
+    expect(h.getTypeDisplayName("Min")).toBe("Min");
+    expect(h.getTypeDisplayName("Max")).toBe("Max");
+    expect(h.getTypeDisplayName("XValue")).toBe("XValue");
+    expect(h.getTypeDisplayName("YValue")).toBe("YValue");
+    expect(h.getTypeDisplayName("ZValue")).toBe("ZValue");
+    expect(h.getTypeDisplayName("CellNoise2D")).toBe("CellNoise2D");
+    expect(h.getTypeDisplayName("CellNoise3D")).toBe("CellNoise3D");
+    expect(h.getTypeDisplayName("Sqrt")).toBe("Sqrt");
+    expect(h.getTypeDisplayName("Scale")).toBe("Scale");
+    expect(h.getTypeDisplayName("Slider")).toBe("Slider");
+    expect(h.getTypeDisplayName("Rotator")).toBe("Rotator");
+    expect(h.getTypeDisplayName("AmplitudeConstant")).toBe("AmplitudeConstant");
+    expect(h.getTypeDisplayName("MultiMix")).toBe("MultiMix");
+    expect(h.getTypeDisplayName("Pow")).toBe("Pow");
+    expect(h.getTypeDisplayName("Cube")).toBe("Cube");
+  });
+
+  it("returns special display name for Vector:Constant", () => {
+    expect(h.getTypeDisplayName("Vector:Constant")).toBe("Point3D");
   });
 
   it("falls back to internal name for unmapped types", () => {
@@ -39,8 +47,7 @@ describe("getLanguageHelpers", () => {
   });
 
   it("returns Hytale field display names where overridden", () => {
-    // Only RotatedPosition.AngleDegrees has a display override now
-    expect(h.getFieldDisplayName("RotatedPosition", "AngleDegrees")).toBe("SpinAngle");
+    expect(h.getFieldDisplayName("Rotator", "AngleDegrees")).toBe("SpinAngle");
   });
 
   it("returns V2 field names as-is (no transform needed)", () => {
@@ -78,7 +85,7 @@ describe("getLanguageHelpers", () => {
     expect(h.isTypeVisible("SimplexNoise2D")).toBe(true);
     expect(h.isTypeVisible("Clamp")).toBe(true);
     expect(h.isTypeVisible("Constant")).toBe(true);
-    expect(h.isTypeVisible("Product")).toBe(true);
+    expect(h.isTypeVisible("Multiplier")).toBe(true);
   });
 });
 
@@ -89,46 +96,36 @@ describe("getLanguageHelpers", () => {
 describe("matchesSearch", () => {
   const h = getLanguageHelpers();
 
-  it("matches by internal name", () => {
-    expect(h.matchesSearch("Product", "product")).toBe(true);
-    expect(h.matchesSearch("Product", "Prod")).toBe(true);
-  });
-
-  it("matches by display name", () => {
-    expect(h.matchesSearch("Product", "Multiplier")).toBe(true);
-    expect(h.matchesSearch("Product", "multi")).toBe(true);
+  it("matches by V2 type name", () => {
+    expect(h.matchesSearch("Multiplier", "multiplier")).toBe(true);
+    expect(h.matchesSearch("Multiplier", "Multi")).toBe(true);
   });
 
   it("matches partial queries", () => {
-    expect(h.matchesSearch("VoronoiNoise2D", "cell")).toBe(true);
-    expect(h.matchesSearch("VoronoiNoise2D", "voronoi")).toBe(true);
-    expect(h.matchesSearch("CurveFunction", "mapper")).toBe(true);
-    expect(h.matchesSearch("CurveFunction", "curve")).toBe(true);
+    expect(h.matchesSearch("CellNoise2D", "cell")).toBe(true);
+    expect(h.matchesSearch("CellNoise2D", "noise")).toBe(true);
+    expect(h.matchesSearch("CurveMapper", "mapper")).toBe(true);
+    expect(h.matchesSearch("CurveMapper", "curve")).toBe(true);
   });
 
   it("returns false for non-matching queries", () => {
-    expect(h.matchesSearch("Product", "clamp")).toBe(false);
+    expect(h.matchesSearch("Multiplier", "clamp")).toBe(false);
     expect(h.matchesSearch("Constant", "noise")).toBe(false);
   });
 
   it("is case-insensitive", () => {
-    expect(h.matchesSearch("Product", "MULTIPLIER")).toBe(true);
-    expect(h.matchesSearch("Product", "mUlTiPlIeR")).toBe(true);
+    expect(h.matchesSearch("Multiplier", "MULTIPLIER")).toBe(true);
+    expect(h.matchesSearch("Multiplier", "mUlTiPlIeR")).toBe(true);
   });
 });
 
 // ---------------------------------------------------------------------------
-// End-to-end: export pipeline still works with V1 internal names
-// (The import pipeline converts V2->V1 for backward compat;
-//  the export pipeline converts V1->V2 for Hytale JSON output.)
+// End-to-end: V2 internal → export → import round-trip
 // ---------------------------------------------------------------------------
 
-describe("end-to-end: V1 internal → export → import round-trip", () => {
-  it("Product: type display name does not affect exported Type field", () => {
-    const h = getLanguageHelpers();
-    expect(h.getTypeDisplayName("Product")).toBe("Multiplier");
-
-    const internalAsset = { Type: "Product", Inputs: [] };
+describe("end-to-end: V2 internal → export → import round-trip", () => {
+  it("Multiplier round-trips correctly", () => {
+    const internalAsset = { Type: "Multiplier", Inputs: [] };
     const exported = internalToHytale(internalAsset);
     expect(exported.Type).toBe("Multiplier");
 
@@ -136,14 +133,20 @@ describe("end-to-end: V1 internal → export → import round-trip", () => {
       $NodeId: "MultiplierDensityNode-test",
       ...exported,
     });
-    expect(reimported.Type).toBe("Product");
+    expect(reimported.Type).toBe("Multiplier");
   });
 
-  it("RotatedPosition: AngleDegrees → SpinAngle field rename round-trip", () => {
-    const h = getLanguageHelpers();
-    expect(h.getFieldDisplayName("RotatedPosition", "AngleDegrees")).toBe("SpinAngle");
+  it("legacy Product exports as Multiplier", () => {
+    const internalAsset = { Type: "Product", Inputs: [] };
+    const exported = internalToHytale(internalAsset);
+    expect(exported.Type).toBe("Multiplier");
+  });
 
-    const internalAsset = { Type: "RotatedPosition", AngleDegrees: 45 };
+  it("Rotator: AngleDegrees → SpinAngle field rename round-trip", () => {
+    const h = getLanguageHelpers();
+    expect(h.getFieldDisplayName("Rotator", "AngleDegrees")).toBe("SpinAngle");
+
+    const internalAsset = { Type: "Rotator", AngleDegrees: 45 };
     const exported = internalToHytale(internalAsset);
 
     expect(exported.Type).toBe("Rotator");
@@ -153,37 +156,25 @@ describe("end-to-end: V1 internal → export → import round-trip", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Verify language display names match export type mapping
+// Verify language display names
 // ---------------------------------------------------------------------------
 
 describe("language system consistency", () => {
-  it("Hytale type display names include key type renames", () => {
-    // Verify that the Hytale language has display name overrides for renamed types
-    const expectedRenames: Record<string, string> = {
-      Product: "Multiplier",
-      Negate: "Inverter",
-      CurveFunction: "CurveMapper",
-      CacheOnce: "Cache",
-      ImportedValue: "Imported",
-      Blend: "Mix",
-      MinFunction: "Min",
-      MaxFunction: "Max",
-      CoordinateX: "XValue",
-      CoordinateY: "YValue",
-      CoordinateZ: "ZValue",
-      VoronoiNoise2D: "CellNoise2D",
-      VoronoiNoise3D: "CellNoise3D",
-      SquareRoot: "Sqrt",
-      ScaledPosition: "Scale",
-      TranslatedPosition: "Slider",
-      RotatedPosition: "Rotator",
-      LinearTransform: "AmplitudeConstant",
-      BlendCurve: "MultiMix",
-      Square: "Pow",
-      CubeMath: "Cube",
-    };
-    for (const [internal, hytale] of Object.entries(expectedRenames)) {
-      expect(hytaleLanguage.typeDisplayNames[internal]).toBe(hytale);
+  it("Vector:Constant has Point3D display name", () => {
+    expect(hytaleLanguage.typeDisplayNames["Vector:Constant"]).toBe("Point3D");
+  });
+
+  it("no old-name display overrides remain", () => {
+    // These old internal names should NOT have display name entries
+    const oldNames = [
+      "Product", "Negate", "CurveFunction", "CacheOnce", "ImportedValue",
+      "Blend", "MinFunction", "MaxFunction", "CoordinateX", "CoordinateY",
+      "CoordinateZ", "VoronoiNoise2D", "VoronoiNoise3D", "SquareRoot",
+      "ScaledPosition", "TranslatedPosition", "RotatedPosition",
+      "LinearTransform", "BlendCurve", "Square", "CubeMath",
+    ];
+    for (const name of oldNames) {
+      expect(hytaleLanguage.typeDisplayNames[name]).toBeUndefined();
     }
   });
 });

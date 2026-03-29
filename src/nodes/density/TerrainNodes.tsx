@@ -144,30 +144,6 @@ export const FractalNoise3DNode = memo(function FractalNoise3DNode(props: TypedN
   );
 });
 
-export const DomainWarp2DNode = memo(function DomainWarp2DNode(props: TypedNodeProps) {
-  const data = props.data;
-  return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">WarpFactor</span>
-        <span>{safeDisplay(data.fields.WarpFactor ?? data.fields.Amplitude, 1)}</span>
-      </div>
-    </BaseNode>
-  );
-});
-
-export const DomainWarp3DNode = memo(function DomainWarp3DNode(props: TypedNodeProps) {
-  const data = props.data;
-  return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">WarpFactor</span>
-        <span>{safeDisplay(data.fields.WarpFactor ?? data.fields.Amplitude, 1)}</span>
-      </div>
-    </BaseNode>
-  );
-});
-
 export const AnchorNode = memo(function AnchorNode(props: TypedNodeProps) {
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>

@@ -45,14 +45,14 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
       severity: "info",
     },
   ],
-  VoronoiNoise2D: [
+  CellNoise2D: [
     {
       message:
         "Voronoi/Cell noise outputs values in the range [0, ~1] by default. The exact range depends on the ReturnType. Use a Normalizer to remap if needed.",
       severity: "info",
     },
   ],
-  VoronoiNoise3D: [
+  CellNoise3D: [
     {
       message:
         "Voronoi/Cell noise outputs values in the range [0, ~1] by default. The exact range depends on the ReturnType. Use a Normalizer to remap if needed.",
@@ -73,17 +73,10 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
       severity: "info",
     },
   ],
-  DomainWarp2D: [
+  FastGradientWarp: [
     {
       message:
-        "Distorts the input coordinate space before sampling. Higher Amplitude values produce more dramatic warping. Useful for organic terrain variation.",
-      severity: "info",
-    },
-  ],
-  DomainWarp3D: [
-    {
-      message:
-        "Distorts the 3D input coordinate space before sampling. Higher Amplitude values produce more dramatic warping effects.",
+        "Distorts the input coordinate space using internal simplex noise before sampling. Higher WarpFactor values produce more dramatic warping. Useful for organic terrain variation.",
       severity: "info",
     },
   ],
@@ -112,14 +105,14 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
       severity: "info",
     },
   ],
-  Product: [
+  Multiplier: [
     {
       message:
         "Multiplies all connected inputs together. If any input is 0, the output is 0. Useful for masking one density by another.",
       severity: "info",
     },
   ],
-  Negate: [
+  Inverter: [
     {
       message:
         "Flips the sign of the input: positive becomes negative and vice versa. Useful for inverting terrain shapes.",
@@ -133,7 +126,7 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
       severity: "info",
     },
   ],
-  SquareRoot: [
+  Sqrt: [
     {
       message:
         "Returns the square root of the input. Negative inputs will produce NaN — ensure the input is non-negative or use Abs first.",
@@ -376,7 +369,7 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
       severity: "info",
     },
   ],
-  ImportedValue: [
+  Imported: [
     {
       message:
         "References a named value exported from another asset file. The Name must exactly match an ExportAs name in the source file.",
@@ -422,13 +415,6 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
       severity: "info",
     },
   ],
-  LinearTransform: [
-    {
-      message:
-        "Applies a linear function: output = (input * Scale) + Offset. Use Scale to amplify/shrink and Offset to shift up/down.",
-      severity: "info",
-    },
-  ],
   Interpolate: [
     {
       message:
@@ -440,21 +426,21 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   // ═══════════════════════════════════════════════════════════════════════════
   // DENSITY — Position-Based
   // ═══════════════════════════════════════════════════════════════════════════
-  CoordinateX: [
+  XValue: [
     {
       message:
         "Outputs the world X coordinate of the sample position. Produces a gradient that increases along the X axis.",
       severity: "info",
     },
   ],
-  CoordinateY: [
+  YValue: [
     {
       message:
         "Outputs the world Y coordinate (height). Produces a vertical gradient — useful as a base for terrain height functions.",
       severity: "info",
     },
   ],
-  CoordinateZ: [
+  ZValue: [
     {
       message:
         "Outputs the world Z coordinate of the sample position. Produces a gradient that increases along the Z axis.",
@@ -507,7 +493,7 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   // ═══════════════════════════════════════════════════════════════════════════
   // DENSITY — Curves & Splines
   // ═══════════════════════════════════════════════════════════════════════════
-  CurveFunction: [
+  CurveMapper: [
     {
       message:
         "Remaps the input through a curve. Connect a Curve node to define the remapping shape (e.g. ease-in, ease-out, custom).",
@@ -546,28 +532,28 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
       severity: "info",
     },
   ],
-  Blend: [
+  Mix: [
     {
       message:
         "Smoothly interpolates between Input A and Input B using the Factor input (0 = A, 1 = B).",
       severity: "info",
     },
   ],
-  BlendCurve: [
+  MultiMix: [
     {
       message:
         "Blends between two inputs using a curve-shaped factor. The curve controls how the blend transitions between A and B.",
       severity: "info",
     },
   ],
-  MinFunction: [
+  Min: [
     {
       message:
         "Outputs the minimum of all connected inputs. Useful for carving operations — the lower value 'wins' and creates subtractive shapes.",
       severity: "info",
     },
   ],
-  MaxFunction: [
+  Max: [
     {
       message:
         "Outputs the maximum of all connected inputs. Useful for union operations — the higher value 'wins' and creates additive shapes.",
@@ -585,7 +571,7 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   // ═══════════════════════════════════════════════════════════════════════════
   // DENSITY — Sampling / Transforms
   // ═══════════════════════════════════════════════════════════════════════════
-  CacheOnce: [
+  Cache: [
     {
       message:
         "Caches the input value at the first sample point and reuses it for all subsequent evaluations. Prevents redundant computation.",
@@ -599,21 +585,21 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
       severity: "info",
     },
   ],
-  TranslatedPosition: [
+  Slider: [
     {
       message:
         "Shifts the sample position by the Translation vector before evaluating the child. Use to offset noise patterns or terrain features.",
       severity: "info",
     },
   ],
-  ScaledPosition: [
+  Scale: [
     {
       message:
         "Multiplies the sample position by the Scale vector before evaluating the child. Larger scale values compress features, smaller values stretch them.",
       severity: "warning",
     },
   ],
-  RotatedPosition: [
+  Rotator: [
     {
       message:
         "Rotates the sample position around the Y axis by AngleDegrees before evaluating the child. Useful for rotating terrain features.",
@@ -791,13 +777,6 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
       severity: "info",
     },
   ],
-  Cache: [
-    {
-      message:
-        "Caches the curve evaluation result to avoid recomputing. Use when the same curve is referenced multiple times.",
-      severity: "info",
-    },
-  ],
   StepFunction: [
     {
       message:
@@ -823,13 +802,6 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
     {
       message:
         "Raises the input to the given Exponent. Exponent > 1 creates a steeper curve; Exponent < 1 creates a flatter curve.",
-      severity: "info",
-    },
-  ],
-  Imported: [
-    {
-      message:
-        "References a named value exported from another asset file. The Name must exactly match an ExportAs name in the source file.",
       severity: "info",
     },
   ],

@@ -28,9 +28,11 @@ import { DEFAULT_WORLD_HEIGHT } from "@/constants";
 // ---------------------------------------------------------------------------
 // Type name mapping (internal → V2/Hytale)
 // ---------------------------------------------------------------------------
-// Maps old TerraNova internal type names to V2 (Hytale) names.
-// Types already using V2 names pass through unchanged via the ?? fallback.
+// The node registry now uses V2 names exclusively. Standard types pass through
+// unchanged via the ?? fallback. These remaining entries handle legacy nodes
+// loaded from older save files that still carry pre-V2 type names.
 const INTERNAL_TO_HYTALE_TYPES: Record<string, string> = {
+  // Legacy density names → V2 export names (backward compat for old save files)
   Product: "Multiplier",
   Negate: "Inverter",
   CurveFunction: "CurveMapper",
@@ -1356,9 +1358,9 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     };
   }
 
-  // LinearTransform with non-zero Offset → Sum(AmplitudeConstant(Scale, Input), Constant(Offset))
+  // AmplitudeConstant/LinearTransform with non-zero Offset → Sum(AmplitudeConstant(Scale, Input), Constant(Offset))
   // Hytale's AmplitudeConstant has no Offset field, so we decompose into Sum
-  if (internalType === "LinearTransform" && asset.Offset !== undefined && asset.Offset !== 0) {
+  if ((internalType === "AmplitudeConstant" || internalType === "LinearTransform") && asset.Offset !== undefined && asset.Offset !== 0) {
     return transformLinearTransformWithOffset(asset, ctx);
   }
 
@@ -1456,18 +1458,18 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     transformedFields = transformNormalizerFields(transformedFields);
   }
 
-  // Scale (ScaledPosition)
-  if (internalType === "ScaledPosition") {
+  // Scale (V2) / ScaledPosition (legacy)
+  if (internalType === "Scale" || internalType === "ScaledPosition") {
     transformedFields = transformScaledPositionFields(transformedFields);
   }
 
-  // Slider (TranslatedPosition)
-  if (internalType === "TranslatedPosition") {
+  // Slider (V2) / TranslatedPosition (legacy)
+  if (internalType === "Slider" || internalType === "TranslatedPosition") {
     transformedFields = transformTranslatedPositionFields(transformedFields);
   }
 
-  // Rotator (RotatedPosition)
-  if (internalType === "RotatedPosition") {
+  // Rotator (V2) / RotatedPosition (legacy)
+  if (internalType === "Rotator" || internalType === "RotatedPosition") {
     transformedFields = transformRotatedPositionFields(transformedFields);
   }
 
@@ -1496,12 +1498,12 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     }
   }
 
-  // AmplitudeConstant (LinearTransform)
-  if (internalType === "LinearTransform") {
+  // AmplitudeConstant (V2) / LinearTransform (legacy)
+  if (internalType === "AmplitudeConstant" || internalType === "LinearTransform") {
     transformedFields = transformLinearTransformFields(transformedFields);
   }
 
-  // Pow (Square)
+  // Square (legacy) → Pow with Exponent=2. V2 Pow already has Exponent set.
   if (internalType === "Square") {
     transformedFields = transformSquareFields(transformedFields);
   }

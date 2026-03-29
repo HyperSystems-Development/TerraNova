@@ -1,6 +1,6 @@
 import type { NodeHandler } from "../evalContext";
 
-const handleTranslatedPosition: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+const handleSlider: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const tr = fields.Translation as { x?: number; y?: number; z?: number } | undefined;
   const dx = Number(tr?.x ?? 0);
   const dy = Number(tr?.y ?? 0);
@@ -8,7 +8,7 @@ const handleTranslatedPosition: NodeHandler = (ctx, fields, inputs, x, y, z) => 
   return ctx.getInput(inputs, "Input", x - dx, y - dy, z - dz);
 };
 
-const handleScaledPosition: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+const handleScale: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const sc = fields.Scale as { x?: number; y?: number; z?: number } | undefined;
   const sx = Number(sc?.x ?? 1) || 1;
   const sy = Number(sc?.y ?? 1) || 1;
@@ -16,7 +16,7 @@ const handleScaledPosition: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   return ctx.getInput(inputs, "Input", x / sx, y / sy, z / sz);
 };
 
-const handleRotatedPosition: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+const handleRotator: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const angleDeg = Number(fields.AngleDegrees ?? 0);
   const rad = (angleDeg * Math.PI) / 180;
   const cos = Math.cos(rad);
@@ -41,9 +41,12 @@ const handleQuantizedPosition: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 
 export function buildTransformHandlers(): Map<string, NodeHandler> {
   return new Map<string, NodeHandler>([
-    ["TranslatedPosition", handleTranslatedPosition],
-    ["ScaledPosition", handleScaledPosition],
-    ["RotatedPosition", handleRotatedPosition],
+    ["Slider", handleSlider],
+    ["TranslatedPosition", handleSlider],
+    ["Scale", handleScale],
+    ["ScaledPosition", handleScale],
+    ["Rotator", handleRotator],
+    ["RotatedPosition", handleRotator],
     ["MirroredPosition", handleMirroredPosition],
     ["QuantizedPosition", handleQuantizedPosition],
   ]);

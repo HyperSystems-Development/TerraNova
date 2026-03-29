@@ -125,28 +125,6 @@ export const RangeChoiceNode = memo(function RangeChoiceNode(props: TypedNodePro
   );
 });
 
-export const LinearTransformNode = memo(function LinearTransformNode(props: TypedNodeProps) {
-  const data = props.data;
-  return (
-    <BaseNode
-      {...props}
-      category={AssetCategory.Density}
-      handles={INPUT_OUTPUT_HANDLES}
-    >
-      <div className="space-y-1">
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Scale</span>
-          <span>{safeDisplay(data.fields.Scale, 1)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-tn-text-muted">Offset</span>
-          <span>{safeDisplay(data.fields.Offset, 0)}</span>
-        </div>
-      </div>
-    </BaseNode>
-  );
-});
-
 export const InterpolateNode = memo(function InterpolateNode(props: TypedNodeProps) {
   return (
     <BaseNode

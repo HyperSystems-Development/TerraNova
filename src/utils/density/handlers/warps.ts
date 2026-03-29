@@ -126,6 +126,8 @@ const handleDomainWarp3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 };
 
 export function buildWarpHandlers(): Map<string, NodeHandler> {
+  // DomainWarp2D/3D kept as aliases for backward compatibility;
+  // FastGradientWarp is the canonical V2 name.
   return new Map<string, NodeHandler>([
     ["PositionsPinch", handlePositionsPinch],
     ["PositionsTwist", handlePositionsTwist],
