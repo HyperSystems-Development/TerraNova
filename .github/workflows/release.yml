@@ -122,7 +122,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
-          APPIMAGE=$(find src-tauri/target -name '*.AppImage' ! -name '*.sig' | head -1)
+          # Find the AppImage from the current build (narrow path to avoid stale cache)
+          APPIMAGE=$(find src-tauri/target -type f -path '*/bundle/appimage/*.AppImage' \
+            ! -name '*.sig' -printf '%T@ %p\n' | sort -nr | head -1 | cut -d' ' -f2-)
           if [ -z "$APPIMAGE" ]; then
             echo "No AppImage found, skipping"
             exit 0
@@ -134,20 +136,23 @@ jobs:
           chmod +x "$APPIMAGE"
           "$APPIMAGE" --appimage-extract
 
-          # Fix any broken absolute symlinks in AppDir root
+          # Fix symlinks that use absolute CI paths or are broken.
+          # On the runner, absolute paths like /home/runner/work/... still resolve,
+          # so we must also check for absolute targets, not just broken links.
           cd squashfs-root
-          while read -r link; do
-            if [ ! -e "$link" ]; then
-              TARGET=$(readlink "$link")
-              echo "Fixing broken symlink: $link -> $TARGET"
-              rm "$link"
+          while IFS= read -r link; do
+            TARGET=$(readlink "$link" || true)
+            [ -z "$TARGET" ] && continue
+            if [[ "$TARGET" = /* ]] || [ ! -e "$link" ]; then
               BASENAME=$(basename "$TARGET")
-              REAL=$(find usr -name "$BASENAME" -type f | head -1)
+              REAL=$(find usr -type f -name "$BASENAME" | head -1)
               if [ -n "$REAL" ]; then
+                echo "Fixing symlink: $link -> $TARGET"
+                rm "$link"
                 ln -s "$REAL" "$link"
                 echo "  -> $REAL"
               else
-                echo "  WARNING: could not find $BASENAME in usr/"
+                echo "  WARNING: could not find replacement for $link ($BASENAME)"
               fi
             fi
           done < <(find . -maxdepth 1 -type l)
@@ -169,10 +174,34 @@ jobs:
             echo "Re-signed: ${APPIMAGE}.sig"
           fi
 
-          # Replace the release assets with the fixed AppImage + signature
+          # Replace release assets with the fixed AppImage + signature
           gh release upload "${{ env.RELEASE_TAG }}" "$APPIMAGE" --clobber
           if [ -f "${APPIMAGE}.sig" ]; then
             gh release upload "${{ env.RELEASE_TAG }}" "${APPIMAGE}.sig" --clobber
+          fi
+
+          # Update latest.json with the new signature so the Tauri updater
+          # validates against the repackaged AppImage, not the original.
+          if [ -f "${APPIMAGE}.sig" ]; then
+            LATEST_JSON=$(mktemp)
+            gh release download "${{ env.RELEASE_TAG }}" -p 'latest.json' -D "$(dirname "$LATEST_JSON")" -O "$LATEST_JSON" || true
+            if [ -f "$LATEST_JSON" ] && [ -s "$LATEST_JSON" ]; then
+              NEW_SIG=$(cat "${APPIMAGE}.sig")
+              node -e "
+                const fs = require('fs');
+                const latest = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+                const sig = process.argv[2];
+                for (const [key, val] of Object.entries(latest.platforms || {})) {
+                  if (val.url && val.url.includes('.AppImage')) {
+                    val.signature = sig;
+                  }
+                }
+                fs.writeFileSync(process.argv[1], JSON.stringify(latest, null, 2) + '\n');
+              " "$LATEST_JSON" "$NEW_SIG"
+              gh release upload "${{ env.RELEASE_TAG }}" "$LATEST_JSON#latest.json" --clobber
+              echo "Updated latest.json with new AppImage signature"
+            fi
+            rm -f "$LATEST_JSON"
           fi
 
           rm -rf squashfs-root appimagetool
