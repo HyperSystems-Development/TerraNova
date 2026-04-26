@@ -5,7 +5,7 @@ Curves **remap** a value. They take an input in some range and produce an output
 > **Biome source assets:** `Examples/Example_Curve_Mapper.json`, `Examples/Example_Curve_Remapping.json`, `Experimental/Mountains.json`, `Experimental/Plateaus.json`, `Generative/Generative_Pillars_Marble_Large.json`
 >
 > The curve usage patterns on this page are grounded in those shipped terrain assets from Hytale's `Examples/`, `Experimental/`, and `Generative/` biome folders. Where a preview below is simplified for readability, it is still representing the same kind of remap those assets use.
-
+>
 > **How to read the previews below:** The horizontal axis is the input value. The vertical axis is the output value. A flat line at the top means "always output 1". A diagonal line means "output equals input" (no remapping). The shape of the curve shows you how the remapping behaves.
 
 ---
@@ -183,21 +183,21 @@ DistanceExponential — Exponent: 0.5, Range 0→1 (sqrt falloff — slow drop)
 
 ## Clamp
 
-Restricts the output to a fixed `[Min, Max]` window. Values below `Min` become `Min`; values above `Max` become `Max`. The region between Min and Max passes through unchanged.
+Restricts the output to a fixed `[WallA, WallB]` window. Values below `WallB` become `WallB`; values above `WallA` become `WallA`. The region between WallB and WallA passes through unchanged.
 
-### What Min and Max do
+### What WallA and WallB do
 
 ```bounds
 {"min": 0.2, "max": 0.8, "label": "Clamp: anything outside this window is cut off"}
 ```
 
 ```curve
-Clamp — Min: 0.2, Max: 0.8
+Clamp — WallA: 0.8, WallB: 0.2
 [[0,0.2],[0.2,0.2],[0.5,0.5],[0.8,0.8],[1,0.8]]
 ```
 
 ```curve
-Clamp — Min: 0.0, Max: 0.5 (cut off upper half)
+Clamp — WallA: 0.5, WallB: 0.0 (cut off upper half)
 [[0,0],[0.25,0.25],[0.5,0.5],[0.75,0.5],[1,0.5]]
 ```
 
@@ -290,7 +290,7 @@ Heightmap → `Curve:Manual` (staircase profile) → `Sum` with terrain density 
 ## Curve cheat sheet
 
 | Curve | One-line use |
-|---|---|
+| :--- | :--- |
 | **Manual** | Any custom shape |
 | **Constant** | Fixed numeric value |
 | **Power-like manual curve** | Ease in/out, sharpen falloffs |
