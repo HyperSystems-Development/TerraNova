@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -25,6 +25,8 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   loading = false,
 }: ConfirmDialogProps) {
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!open || loading) return;
@@ -44,15 +46,22 @@ export function ConfirmDialog({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  // Focus management
+  useEffect(() => {
+    if (open) {
+      confirmButtonRef.current?.focus();
+    }
+  }, [open]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="dialog-title">
       <div
         className="bg-tn-panel border border-tn-border rounded-lg shadow-xl w-[440px] p-5 flex flex-col gap-3"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-sm font-semibold">{title}</h2>
+        <h2 id="dialog-title" className="text-sm font-semibold">{title}</h2>
         <p className="text-[13px] text-tn-text-muted leading-relaxed">{message}</p>
 
         <div className="flex justify-end items-center gap-2 pt-3 border-t border-tn-border">
@@ -73,6 +82,7 @@ export function ConfirmDialog({
             </button>
           )}
           <button
+            ref={confirmButtonRef}
             onClick={onConfirm}
             disabled={loading}
             className="px-3 py-1.5 text-xs rounded bg-tn-accent text-tn-bg font-medium disabled:opacity-50 hover:opacity-90 whitespace-nowrap"

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { KEYBINDINGS, resolveKeybinding, type KeybindingDef } from "@/config/keybindings";
 
@@ -105,16 +105,24 @@ export function KeyboardShortcutsPanel() {
 }
 
 export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDialogProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      closeButtonRef.current?.focus();
+    }
+  }, [open]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="shortcuts-dialog-title">
       <div
         className="bg-tn-panel border border-tn-border rounded-lg shadow-xl w-[480px] max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-5 pt-5 pb-3 border-b border-tn-border">
-          <h2 className="text-base font-semibold">Keyboard Shortcuts</h2>
+          <h2 id="shortcuts-dialog-title" className="text-base font-semibold">Keyboard Shortcuts</h2>
         </div>
 
         <div className="flex-1 min-h-0 px-5 py-4">
@@ -123,6 +131,7 @@ export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDial
 
         <div className="flex justify-end px-5 py-3 border-t border-tn-border">
           <button
+            ref={closeButtonRef}
             onClick={onClose}
             className="px-4 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface"
           >
@@ -150,6 +159,7 @@ function ShortcutRow({ def, resolved, isOverridden, isCapturing, onStartCapture,
       <div className="flex items-center gap-2">
         <button
           onClick={onStartCapture}
+          aria-label={`Change keybinding for ${def.label}. Current: ${resolved}`}
           className={`px-2.5 py-1 text-[11px] font-mono rounded border min-w-[90px] text-center transition-colors ${
             isCapturing
               ? "border-tn-accent bg-tn-accent/20 text-tn-accent animate-pulse"
@@ -163,6 +173,7 @@ function ShortcutRow({ def, resolved, isOverridden, isCapturing, onStartCapture,
         {isOverridden && (
           <button
             onClick={onReset}
+            aria-label={`Reset ${def.label} to default keybinding (${def.defaultKey})`}
             className="text-[11px] text-tn-text-muted hover:text-tn-text"
             title={`Reset to ${def.defaultKey}`}
           >

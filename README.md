@@ -79,6 +79,17 @@ Then launch normally.
 
 </details>
 
+## Accessibility
+
+TerraNova includes accessibility features to support users with different needs:
+
+- **Keyboard Navigation** — All interactive elements are keyboard accessible. Use Tab to navigate, Enter/Space to activate, and Escape to close dialogs.
+- **Screen Reader Support** — Buttons and interactive elements include ARIA labels for screen reader compatibility.
+- **Focus Management** — Modals automatically focus the primary action button when opened.
+- **Color Contrast** — Interface elements meet WCAG AA standards for color contrast (4.5:1 for normal text).
+- **Status Indicators** — Dynamic content uses aria-live regions for screen reader announcements.
+- **Customizable Shortcuts** — Keyboard shortcuts can be remapped via the Keyboard Shortcuts dialog (Ctrl+K).
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action |
