@@ -11,11 +11,11 @@ function getStoredBool(key: string, fallback: boolean): boolean {
   }
 }
 
-function getStoredString(key: string, fallback: string): string {
+function getStoredString<T extends string>(key: string, fallback: T, allowed: readonly T[]): T {
   try {
     const v = localStorage.getItem(key);
     if (v === null) return fallback;
-    return v;
+    return allowed.includes(v as T) ? v as T : fallback;
   } catch {
     return fallback;
   }
@@ -168,7 +168,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   rightPanelVisible: getStoredBool("tn-rightPanel", true),
   compactAssetInspector: getStoredBool("tn-compactAssetInspector", false),
   helpMode: false,
-  rightPanelMode: getStoredString("tn-rightPanelMode", "properties") as RightPanelMode,
+  rightPanelMode: getStoredString("tn-rightPanelMode", "properties", ["properties", "docs"]),
   suppressPropDeleteConfirm: getStoredBool("tn-suppressPropDeleteConfirm", false),
   useAccordionSidebar: getStoredBool("tn-accordionSidebar", false),
   sidebarSectionOrder: getStoredJson<SidebarSectionId[]>("tn-sidebar-order", DEFAULT_SECTION_ORDER),

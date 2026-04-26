@@ -31,6 +31,15 @@ function cachedClone<T>(value: T): T {
   return clone;
 }
 
+// Helper function to truncate history to max entries
+function truncateHistory<T>(history: T[], maxEntries: number): T[] {
+  if (maxEntries <= 0) return [];
+  if (history.length > maxEntries) {
+    return history.slice(history.length - maxEntries);
+  }
+  return history;
+}
+
 function historyStorageKey(): string {
   const { projectPath, currentFile } = useProjectStore.getState();
   if (!projectPath || !currentFile) return "";
@@ -198,7 +207,7 @@ export const createHistorySlice: SliceCreator<HistorySliceState> = (set, get) =>
       } else {
         newHistory.push(fullEntry);
       }
-      { const _histMax = useConfigStore.getState().maxHistoryEntries; if (newHistory.length > _histMax) newHistory = newHistory.slice(newHistory.length - _histMax); }
+      newHistory = truncateHistory(newHistory, useConfigStore.getState().maxHistoryEntries);
       return {
         ...updates,
         nodes: newNodes,

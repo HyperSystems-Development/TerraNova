@@ -907,8 +907,11 @@ function DocToc({ entries, contentRef, defaultOpen = true }: { entries: TocEntry
     const contentEl = contentRef.current;
     if (!contentEl) return;
     const headingEls = entries
-      .map(({ id }) => contentEl.querySelector(`#${CSS.escape(id)}`) as HTMLElement | null)
-      .filter(Boolean) as HTMLElement[];
+      .map(({ id }) => {
+        const el = contentEl.querySelector(`#${CSS.escape(id)}`);
+        return el instanceof HTMLElement ? el : null;
+      })
+      .filter((el): el is HTMLElement => el !== null);
 
     const observer = new IntersectionObserver(
       (obs) => {
@@ -1284,7 +1287,8 @@ export function DocsPanel() {
       let text: string;
       try {
         text = await entry.loader();
-      } catch {
+      } catch (err) {
+        console.error(`Failed to load doc ${slug}:`, err);
         setRawMd(`> **Error:** Could not load \`${slug}\`. The file may be missing or unreadable.`);
         selectedSlugRef.current = slug;
         setSelectedSlug(slug);
@@ -1304,7 +1308,7 @@ export function DocsPanel() {
       prevSlugRef.current = slug;
 
       // Persist last-read slug
-      try { localStorage.setItem("tn-docs-last-slug", slug); } catch { /* ignore */ }
+      try { localStorage.setItem("tn-docs-last-slug", slug); } catch (err) { console.error("Failed to persist last-read slug:", err); }
 
       // Update recently-opened list on intentional navigation
       if (pushHistory) {
@@ -1583,7 +1587,7 @@ export function DocsPanel() {
 
   // Persist docs settings
   useEffect(() => {
-    try { localStorage.setItem("tn-docs-settings", JSON.stringify(settings)); } catch { /* ignore */ }
+    try { localStorage.setItem("tn-docs-settings", JSON.stringify(settings)); } catch (err) { console.error("Failed to persist docs settings:", err); }
   }, [settings]);
 
   // Press / to focus search (when sidebar is visible and not already typing)
@@ -1591,7 +1595,12 @@ export function DocsPanel() {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== "/" || sidebarCollapsed || showSettings) return;
       const active = document.activeElement;
-      if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || (active as HTMLElement).isContentEditable)) return;
+      const isEditable = active && (
+        active.tagName === "INPUT" ||
+        active.tagName === "TEXTAREA" ||
+        (active instanceof HTMLElement && active.isContentEditable)
+      );
+      if (isEditable) return;
       e.preventDefault();
       searchInputRef.current?.focus();
     }
@@ -2147,8 +2156,8 @@ export function DocsPanel() {
       className="flex h-full"
       onKeyDown={(e) => {
         if (!e.altKey) return;
-        const target = e.target as HTMLElement | null;
-        const isEditable = !!target && (
+        const target = e.target;
+        const isEditable = target instanceof HTMLElement && (
           target.tagName === "INPUT" || target.tagName === "TEXTAREA" ||
           target.tagName === "SELECT" || target.isContentEditable
         );
