@@ -44,3 +44,6 @@ templates/hytale-pre-release/
 .claude/
 docs/plans/
 docs/audit/
+
+# Instructions
+instructions.md
