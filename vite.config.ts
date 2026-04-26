@@ -19,6 +19,8 @@ export default defineConfig({
           three: ["three", "@react-three/fiber", "@react-three/drei", "@react-three/postprocessing", "postprocessing"],
           xyflow: ["@xyflow/react"],
           mermaid: ["mermaid"],
+          codemirror: ["codemirror", "@codemirror/view", "@codemirror/state", "@codemirror/lang-json", "@codemirror/lint", "@codemirror/theme-one-dark"],
+          markdown: ["react-markdown", "remark-gfm", "rehype-slug", "rehype-highlight", "highlight.js"],
         },
       },
     },
