@@ -31,6 +31,9 @@ src-tauri/gen/
 # Hytale asset cache (synced locally per-machine, not committed)
 hytale-assets/
 
+# Hytale pre-release template (license restrictions, not committed)
+templates/hytale-pre-release/
+
 # AI agent workspace
 .serena/
 
