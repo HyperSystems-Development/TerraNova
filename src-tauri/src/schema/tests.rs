@@ -63,10 +63,10 @@ mod tests {
             serde_json::from_str(json).expect("deserialize WorldStructureAsset");
 
         assert_eq!(asset.structure_type, "NoiseRange");
-        assert_eq!(asset.default_biome, "void_biome");
+        assert_eq!(asset.default_biome, "VoidBiome");
         assert_eq!(asset.default_transition_distance, 16);
         assert_eq!(asset.biomes.len(), 1);
-        assert_eq!(asset.biomes[0].biome, "void_biome");
+        assert_eq!(asset.biomes[0].biome, "VoidBiome");
         assert_eq!(asset.biomes[0].min, -1.0);
         assert_eq!(asset.biomes[0].max, 1.0);
 
@@ -74,7 +74,7 @@ mod tests {
         let reserialized = serde_json::to_value(&asset).expect("reserialize");
         let obj = reserialized.as_object().unwrap();
         assert_eq!(obj["Type"], "NoiseRange");
-        assert_eq!(obj["DefaultBiome"], "void_biome");
+        assert_eq!(obj["DefaultBiome"], "VoidBiome");
     }
 
     // ── Biome ─────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 {
   "name": "terranova",
-  "version": "0.1.7-pre.2",
+  "version": "0.1.7-pre.3",
   "description": "Offline design studio for Hytale World Generation V2",
   "private": true,
   "packageManager": "pnpm@10.28.2",

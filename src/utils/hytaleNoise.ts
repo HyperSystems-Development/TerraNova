@@ -148,7 +148,6 @@ export function createHytaleNoise2D(seed: number): (x: number, y: number) => num
     return 70.0 * (n0 + n1 + n2);
   };
 }
-
 /* â”€â”€ 3D Simplex Noise â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export function createHytaleNoise3D(seed: number): (x: number, y: number, z: number) => number {
@@ -320,7 +319,6 @@ export function createHytaleNoise2DWithGradient(seed: number): (x: number, y: nu
     };
   };
 }
-
 /* â”€â”€ 3D Simplex Noise with analytic gradient â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export function createHytaleNoise3DWithGradient(seed: number): (x: number, y: number, z: number) => { value: number; dx: number; dy: number; dz: number } {
@@ -403,5 +401,3 @@ export function createHytaleNoise3DWithGradient(seed: number): (x: number, y: nu
     };
   };
 }
-
-

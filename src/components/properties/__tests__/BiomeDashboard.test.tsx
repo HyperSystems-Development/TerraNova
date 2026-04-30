@@ -113,7 +113,6 @@ describe("BiomeDashboard", () => {
     render(
       <BiomeDashboard
         onBiomeConfigChange={(f, v) => { lastField = f; lastValue = v; }}
-       
         onBlur={noop}
       />,
     );

@@ -720,4 +720,3 @@ These force a specific coordinate value regardless of world position -- useful f
 | `ZOverride` | Forces Z to a constant |
 
 **Practical use:** `YOverride(64)` on a noise field samples all density at Y=64 regardless of actual height. Feed this into a `Mix` weight to create a material or density pattern that is the same at every altitude -- only varying by X and Z.
-

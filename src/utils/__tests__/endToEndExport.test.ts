@@ -611,4 +611,3 @@ describe("validateExport", () => {
     expect(warnings.some((w) => w.includes("DefaultBiome"))).toBe(true);
   });
 });
-

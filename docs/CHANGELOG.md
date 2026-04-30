@@ -2,22 +2,28 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystems-Development/TerraNova) are documented in this file.
 
-## [0.1.7-pre.3] — 2026-04-26 — Worldgen Docs Alignment
+## [0.1.7-pre.3] — 2026-04-26 — Docs Panel and Worldgen Alignment
 
 ### Documentation
 
-- **Hytale V2 field name alignment** — Updated Clamp node documentation to use native Hytale V2 field names (`WallA`, `WallB`) instead of generic names (`Min`, `Max`) for 1:1 alignment with Hytale prerelease specifications
-- **Docs panel improvements** — All planned docs panel improvements already implemented: keyboard shortcuts (Ctrl+K for search, Alt+←/→ for navigation), breadcrumb navigation, back/forward history, and "Try in Editor" button for snippets
-- **Translation maps refactoring** — Streamlined translation maps for improved maintainability; verified safe via round-trip tests (40/40 passing)
-- **Type safety improvements** — Added validation for localStorage type casting in `uiStore.ts` to prevent runtime errors
-- **History management** — Extracted history truncation logic into dedicated `truncateHistory` helper function for improved clarity
-- **Code splitting** — Added `codemirror` and `markdown` dependencies to Vite `manualChunks` for better bundle optimization
-- **Dependency updates** — Added `@types/node` to devDependencies for Node.js type definitions
+- **Documentation panel workflow** — Added in-app documentation navigation with full-text search, breadcrumbs, back/forward history, recent documents, reading progress, scroll restoration, and keyboard shortcuts (`Ctrl+K`, `Alt+Left`, `Alt+Right`)
+- **Try in Editor snippets** — Docs snippets can now be copied as JSON, copied as TerraNova graph clipboard data, or opened directly in the editor when the current context supports it
+- **Richer docs rendering** — Added syntax highlighting, Mermaid diagrams, node-graph documentation blocks, in-doc find, walkthrough progress, experimental callouts, and configurable reading width/font/code wrapping
+- **Hytale V2 field name alignment** — Updated Clamp node documentation to use native Hytale V2 field names (`WallA`, `WallB`) instead of generic names (`Min`, `Max`) for closer alignment with Hytale prerelease specifications
+- **Docs integrity coverage** — Added tests and utilities for documentation integrity, doc graph parsing, generated tables of contents, related-doc backlinks, and snippet graph conversion
+
+### Changed
+
+- **Translation maps refactoring** — Streamlined translation maps for maintainability and verified them with round-trip coverage
+- **Code splitting** — Added `codemirror` and markdown-related dependencies to Vite `manualChunks` for better bundle isolation
+- **Release metadata** — Synced app, Tauri, and Cargo package versions to `0.1.7-pre.3`
+- **Dependency updates** — Added `@types/node` as a direct dev dependency for Node.js type definitions
 
 ### Bug Fixes
 
 - Fixed localStorage type casting without validation in `uiStore.ts`
-- Fixed unclear history truncation logic by extracting to helper function
+- Fixed unclear history truncation logic by extracting it into a dedicated `truncateHistory` helper
+- Fixed markdown, test, and Hytale noise files that had whitespace issues caught by `git diff --check`
 
 ## [0.1.7-pre.2] — 2026-03-20 — QOL, Docs, and Properties Pass
 
