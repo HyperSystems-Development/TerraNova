@@ -26,6 +26,7 @@ export function ConfirmDialog({
   loading = false,
 }: ConfirmDialogProps) {
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -34,8 +35,11 @@ export function ConfirmDialog({
         e.preventDefault();
         onClose();
       } else if (e.key === "Enter") {
-        e.preventDefault();
-        onConfirm();
+        // Let focused buttons handle Enter naturally, only intercept if dialog wrapper is focused
+        if (e.target === e.currentTarget) {
+          e.preventDefault();
+          onConfirm();
+        }
       }
     },
     [open, loading, onClose, onConfirm],
@@ -46,18 +50,27 @@ export function ConfirmDialog({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  // Focus management
+  // Focus management - save previously focused element and restore on close
   useEffect(() => {
     if (open) {
+      previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
       confirmButtonRef.current?.focus();
     }
+    return () => {
+      if (!open && previouslyFocusedRef.current) {
+        previouslyFocusedRef.current.focus();
+      }
+    };
   }, [open]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dialog-title"
         className="bg-tn-panel border border-tn-border rounded-lg shadow-xl w-[440px] p-5 flex flex-col gap-3"
         onClick={(e) => e.stopPropagation()}
       >

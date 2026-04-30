@@ -134,7 +134,7 @@ describe("StatusBar", () => {
     const gridButton = screen.getByRole("button", { name: /toggle grid on/i });
     expect(gridButton).toHaveAttribute("aria-pressed", "true");
     
-    const snapButton = screen.getByRole("button", { name: /toggle snap off/i });
+    const snapButton = screen.getByRole("button", { name: /toggle snap to grid off/i });
     expect(snapButton).toHaveAttribute("aria-pressed", "false");
   });
 });

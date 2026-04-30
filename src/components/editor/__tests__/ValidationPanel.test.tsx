@@ -8,7 +8,16 @@ import { useEditorStore } from "@/stores/editorStore";
 // Mock the stores
 vi.mock("@/stores/diagnosticsStore");
 vi.mock("@/stores/editorStore");
-vi.mock("@/hooks/useTauriIO");
+vi.mock("@/hooks/useTauriIO", () => ({
+  useTauriIO: () => ({
+    openFile: vi.fn(),
+  }),
+}));
+vi.mock("@xyflow/react", () => ({
+  useReactFlow: () => ({
+    fitView: vi.fn(),
+  }),
+}));
 
 describe("ValidationPanel", () => {
   beforeEach(() => {
@@ -79,7 +88,7 @@ describe("ValidationPanel", () => {
 
     render(<ValidationPanel />);
     expect(screen.getByText("Test error message")).toBeInTheDocument();
-    expect(screen.getByText("1 error")).toBeInTheDocument();
+    expect(screen.getAllByText("1 error")).toHaveLength(2);
   });
 
   it("has aria-live region for dynamic content", () => {

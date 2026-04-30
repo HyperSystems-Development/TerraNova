@@ -34,7 +34,12 @@ export function StatusBar() {
   // App version
   const [appVersion, setAppVersion] = useState<string>("");
   useEffect(() => {
-    getVersion().then(setAppVersion);
+    void getVersion()
+      .then(setAppVersion)
+      .catch((e) => {
+        console.warn("Failed to get app version:", e);
+        setAppVersion("");
+      });
   }, []);
 
   // Update state
