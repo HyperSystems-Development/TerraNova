@@ -1,5 +1,5 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useEffect, useState, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useRef, type ReactNode } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useTauriIO } from "@/hooks/useTauriIO";
 import { useEditorStore } from "@/stores/editorStore";
@@ -9,7 +9,7 @@ import { useUIStore } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { resolveKeybinding } from "@/config/keybindings";
 import { exportAssetPack, exportCurrentJson } from "@/utils/exportAssetPack";
-import { isMac } from "@/utils/platform";
+import { isMac, isTauriRuntime } from "@/utils/platform";
 import { ChevronRight } from "lucide-react";
 import { openUrl } from "@/utils/ipc";
 
@@ -124,7 +124,11 @@ export function ProjectTitleBar({
   onExportSvg,
 }: ProjectTitleBarProps) {
   const [isMaximized, setIsMaximized] = useState(false);
-  const appWindow = getCurrentWindow();
+  const appWindow = useMemo(
+    () => (isTauriRuntime() ? getCurrentWindow() : null),
+    [],
+  );
+  const showWindowControls = !isMac && appWindow !== null;
 
   const { openAssetPack, saveFile, saveFileAs, newBiome, newInstance } = useTauriIO();
   const undo = useEditorStore((s) => s.undo);
@@ -163,7 +167,7 @@ export function ProjectTitleBar({
   }
 
   useEffect(() => {
-    if (isMac) return;
+    if (isMac || !appWindow) return;
 
     appWindow.isMaximized().then(setIsMaximized);
 
@@ -177,20 +181,20 @@ export function ProjectTitleBar({
   }, [appWindow]);
 
   const handleMinimize = () => {
-    appWindow.minimize();
+    void appWindow?.minimize();
   };
 
   const handleMaximize = () => {
-    appWindow.toggleMaximize();
+    void appWindow?.toggleMaximize();
   };
 
   const handleClose = () => {
-    appWindow.close();
+    void appWindow?.close();
   };
 
   return (
     <div
-      {...(!isMac ? { "data-tauri-drag-region": true } : {})}
+      {...(showWindowControls ? { "data-tauri-drag-region": true } : {})}
       className="h-8 bg-tn-panel border-b border-tn-border flex items-center justify-between select-none shrink-0"
     >
       <div className="flex items-center">
@@ -378,7 +382,7 @@ export function ProjectTitleBar({
         </MenuDropdown>
       </div>
 
-      {!isMac && (
+      {showWindowControls && (
         <div className="flex items-center gap-0">
           <button
             onClick={handleMinimize}

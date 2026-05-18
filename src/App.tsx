@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { ReactFlowProvider } from "@xyflow/react";
@@ -23,7 +23,7 @@ import { SettingsDialog, type SettingsTab } from "@/components/dialogs/SettingsD
 import type { SystemTab } from "@/components/dialogs/ConfigurationDialog";
 import { ExportSvgDialog } from "@/components/dialogs/ExportSvgDialog";
 import { saveRef } from "@/utils/saveRef";
-import { isMac } from "@/utils/platform";
+import { isMac, isTauriRuntime } from "@/utils/platform";
 import { checkForUpdates } from "@/utils/updater";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useToastStore } from "@/stores/toastStore";
@@ -61,6 +61,10 @@ export default function App() {
 
   // Bypass flag: when true the onCloseRequested handler lets the close through.
   const forceCloseRef = useRef(false);
+  const appWindow = useMemo(
+    () => (isTauriRuntime() ? getCurrentWindow() : null),
+    [],
+  );
 
   // Tracks whether the dialog is visible. Updated SYNCHRONOUSLY (not via
   // useEffect) so the onCloseRequested handler always reads a fresh value —
@@ -83,10 +87,10 @@ export default function App() {
 
   // ---- Disable native decorations on non-macOS (macOS keeps native traffic lights) ----
   useEffect(() => {
-    if (!isMac) {
-      getCurrentWindow().setDecorations(false);
+    if (!isMac && appWindow) {
+      void appWindow.setDecorations(false);
     }
-  }, []);
+  }, [appWindow]);
 
   // ---- Post-update verification + auto-check for updates ----
   useEffect(() => {
@@ -113,7 +117,9 @@ export default function App() {
 
   // ---- Intercept OS window close (X button / Cmd+W native) ----
   useEffect(() => {
-    const unlisten = getCurrentWindow().onCloseRequested((event) => {
+    if (!appWindow) return;
+
+    const unlisten = appWindow.onCloseRequested((event) => {
       // If we set the force-close flag, allow the window to close.
       if (forceCloseRef.current) return;
 
@@ -132,7 +138,7 @@ export default function App() {
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [openDialog]);
+  }, [appWindow, openDialog]);
 
   // ---- Support opening files from the OS (drag/drop + Open With) ----
   useEffect(() => {
@@ -192,7 +198,7 @@ export default function App() {
 
     if (pendingRef.current === "window-close") {
       forceCloseRef.current = true;
-      getCurrentWindow().close();
+      void appWindow?.close();
     } else {
       useProjectStore.getState().closeProject();
     }
