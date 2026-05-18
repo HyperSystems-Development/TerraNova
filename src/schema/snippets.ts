@@ -76,7 +76,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     description: "World height mapped to 0–1 — use as a mask for surface fades or layer blending",
     category: "Density",
     nodes: [
-      { localId: "coordY", type: "CoordinateY", displayType: "CoordinateY",
+      { localId: "coordY", type: "YValue", displayType: "YValue",
         fields: {}, offsetX: 0, offsetY: 0 },
       { localId: "normalizer", type: "Normalizer", displayType: "Normalizer",
         fields: { ...getDefaults("Normalizer") }, offsetX: 300, offsetY: 0 },
@@ -157,7 +157,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
         fields: { ...getDefaults("SimplexNoise2D"), Seed: "B", Scale: 25 }, offsetX: 0, offsetY: 150 },
       { localId: "factor", type: "SimplexNoise2D", displayType: "SimplexNoise2D",
         fields: { ...getDefaults("SimplexNoise2D"), Seed: "C", Scale: 100 }, offsetX: 0, offsetY: 300 },
-      { localId: "blend", type: "Blend", displayType: "Blend",
+      { localId: "blend", type: "Mix", displayType: "Mix",
         fields: {}, offsetX: 350, offsetY: 100 },
     ],
     edges: [
@@ -175,11 +175,11 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     description: "Height × depth product — a low solid ramp that thickens toward one side",
     category: "Terrain",
     nodes: [
-      { localId: "coordY", type: "CoordinateY", displayType: "CoordinateY",
+      { localId: "coordY", type: "YValue", displayType: "YValue",
         fields: {}, offsetX: 0, offsetY: 0 },
-      { localId: "coordZ", type: "CoordinateZ", displayType: "CoordinateZ",
+      { localId: "coordZ", type: "ZValue", displayType: "ZValue",
         fields: {}, offsetX: 0, offsetY: 150 },
-      { localId: "product", type: "Product", displayType: "Product",
+      { localId: "product", type: "Multiplier", displayType: "Multiplier",
         fields: {}, offsetX: 300, offsetY: 50 },
       { localId: "normalizer", type: "Normalizer", displayType: "Normalizer",
         fields: { ...getDefaults("Normalizer") }, offsetX: 600, offsetY: 50 },
@@ -197,11 +197,11 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     description: "Ramp shape with noise added — rough, eroded edge instead of a clean slope",
     category: "Terrain",
     nodes: [
-      { localId: "coordY", type: "CoordinateY", displayType: "CoordinateY",
+      { localId: "coordY", type: "YValue", displayType: "YValue",
         fields: {}, offsetX: 0, offsetY: 0 },
-      { localId: "coordZ", type: "CoordinateZ", displayType: "CoordinateZ",
+      { localId: "coordZ", type: "ZValue", displayType: "ZValue",
         fields: {}, offsetX: 0, offsetY: 150 },
-      { localId: "product", type: "Product", displayType: "Product",
+      { localId: "product", type: "Multiplier", displayType: "Multiplier",
         fields: {}, offsetX: 300, offsetY: 50 },
       { localId: "noise", type: "SimplexNoise2D", displayType: "SimplexNoise2D",
         fields: { ...getDefaults("SimplexNoise2D"), Scale: 25 }, offsetX: 300, offsetY: 220 },
@@ -225,15 +225,15 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     description: "Ramp with a hollow carved from the center — like a collapsed arch or eroded lip",
     category: "Terrain",
     nodes: [
-      { localId: "coordY",  type: "CoordinateY", displayType: "CoordinateY",
+      { localId: "coordY",  type: "YValue", displayType: "YValue",
         fields: {}, offsetX: 0, offsetY: 0 },
-      { localId: "coordZ",  type: "CoordinateZ", displayType: "CoordinateZ",
+      { localId: "coordZ",  type: "ZValue", displayType: "ZValue",
         fields: {}, offsetX: 0, offsetY: 150 },
-      { localId: "wedge",   type: "Product", displayType: "Product",
+      { localId: "wedge",   type: "Multiplier", displayType: "Multiplier",
         fields: {}, offsetX: 300, offsetY: 50 },
-      { localId: "coordX",  type: "CoordinateX", displayType: "CoordinateX",
+      { localId: "coordX",  type: "XValue", displayType: "XValue",
         fields: {}, offsetX: 300, offsetY: 250 },
-      { localId: "scoop",   type: "Product", displayType: "Product",
+      { localId: "scoop",   type: "Multiplier", displayType: "Multiplier",
         fields: {}, offsetX: 600, offsetY: 180 },
       { localId: "smoothmin", type: "SmoothMin", displayType: "SmoothMin",
         fields: { ...getDefaults("SmoothMin") }, offsetX: 900, offsetY: 100 },
@@ -257,7 +257,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     description: "Height field with noise added — a gently sloped hillside with natural variation",
     category: "Terrain",
     nodes: [
-      { localId: "coordY",  type: "CoordinateY", displayType: "CoordinateY",
+      { localId: "coordY",  type: "YValue", displayType: "YValue",
         fields: {}, offsetX: 0, offsetY: 0 },
       { localId: "noise",   type: "SimplexNoise2D", displayType: "SimplexNoise2D",
         fields: { ...getDefaults("SimplexNoise2D"), Scale: 50 }, offsetX: 0, offsetY: 150 },
@@ -298,21 +298,21 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     description: "Wide low shape with a shallow center carved out — broad funnel lip or collapsed crater rim",
     category: "Terrain",
     nodes: [
-      // Outer branch: BaseHeight → CurveFunction (taper) → Cuboid (broad low wedge)
+      // Outer branch: BaseHeight -> CurveMapper (taper) -> Cuboid (broad low wedge)
       { localId: "outerHeight",  type: "BaseHeight",    displayType: "BaseHeight",
         fields: { ...getDefaults("BaseHeight"), Distance: true }, offsetX: 0, offsetY: 0 },
       { localId: "outerManual",  type: "Curve:Manual",  displayType: "Curve:Manual",
         fields: { Points: [[0, 0], [0.5, 1], [1, 0]] }, offsetX: 300, offsetY: -120 },
-      { localId: "outerCurve",   type: "CurveFunction", displayType: "CurveFunction",
+      { localId: "outerCurve",   type: "CurveMapper", displayType: "CurveMapper",
         fields: {}, offsetX: 300, offsetY: 0 },
       { localId: "outerCuboid",  type: "Cuboid",        displayType: "Cuboid",
         fields: { ...getDefaults("Cuboid"), Scale: { x: 1.8, y: 0.48, z: 1.2 } }, offsetX: 600, offsetY: 0 },
-      // Inner branch: BaseHeight → CurveFunction (shallower scoop) → Cuboid (narrower)
+      // Inner branch: BaseHeight -> CurveMapper (shallower scoop) -> Cuboid (narrower)
       { localId: "innerHeight",  type: "BaseHeight",    displayType: "BaseHeight",
         fields: { ...getDefaults("BaseHeight"), Distance: true }, offsetX: 0, offsetY: 300 },
       { localId: "innerManual",  type: "Curve:Manual",  displayType: "Curve:Manual",
         fields: { Points: [[0, 0], [0.5, 0.7], [1, 0]] }, offsetX: 300, offsetY: 180 },
-      { localId: "innerCurve",   type: "CurveFunction", displayType: "CurveFunction",
+      { localId: "innerCurve",   type: "CurveMapper", displayType: "CurveMapper",
         fields: {}, offsetX: 300, offsetY: 300 },
       { localId: "innerCuboid",  type: "Cuboid",        displayType: "Cuboid",
         fields: { ...getDefaults("Cuboid"), Scale: { x: 0.9, y: 0.28, z: 0.7 } }, offsetX: 600, offsetY: 300 },
@@ -321,11 +321,11 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
         fields: { ...getDefaults("SmoothMin") }, offsetX: 950, offsetY: 130 },
     ],
     edges: [
-      // Outer taper: BaseHeight → CurveFunction (shaped by Manual curve) → Cuboid
+      // Outer taper: BaseHeight -> CurveMapper (shaped by Manual curve) -> Cuboid
       { sourceLocal: "outerHeight", targetLocal: "outerCurve",  targetHandle: "Input" },
       { sourceLocal: "outerManual", targetLocal: "outerCurve",  targetHandle: "Curve" },
       { sourceLocal: "outerCurve",  targetLocal: "outerCuboid", targetHandle: "Curve" },
-      // Inner scoop: BaseHeight → CurveFunction (shallower) → smaller Cuboid
+      // Inner scoop: BaseHeight -> CurveMapper (shallower) -> smaller Cuboid
       { sourceLocal: "innerHeight", targetLocal: "innerCurve",  targetHandle: "Input" },
       { sourceLocal: "innerManual", targetLocal: "innerCurve",  targetHandle: "Curve" },
       { sourceLocal: "innerCurve",  targetLocal: "innerCuboid", targetHandle: "Curve" },
@@ -343,11 +343,11 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     nodes: [
       { localId: "noise",    type: "SimplexNoise3D",  displayType: "SimplexNoise3D",
         fields: { ...getDefaults("SimplexNoise3D"), Scale: 33 }, offsetX: 0, offsetY: 0 },
-      { localId: "rotate",   type: "RotatedPosition", displayType: "RotatedPosition",
-        fields: { ...getDefaults("RotatedPosition"), AngleDegrees: 45 }, offsetX: 300, offsetY: 0 },
+      { localId: "rotate",   type: "Rotator", displayType: "Rotator",
+        fields: { ...getDefaults("Rotator"), SpinAngle: 45 }, offsetX: 300, offsetY: 0 },
       { localId: "ceiling",  type: "Ceiling",         displayType: "Ceiling",
         fields: { Ceiling: 0.6 }, offsetX: 600, offsetY: 0 },
-      { localId: "negate",   type: "Negate",          displayType: "Negate",
+      { localId: "negate",   type: "Inverter",        displayType: "Inverter",
         fields: {}, offsetX: 900, offsetY: 0 },
     ],
     edges: [
@@ -363,7 +363,7 @@ export const SNIPPET_CATALOG: SnippetDefinition[] = [
     description: "Height mask blended with 3D noise — smooth cave openings that feel naturally eroded",
     category: "Terrain",
     nodes: [
-      { localId: "height",  type: "CoordinateY", displayType: "CoordinateY",
+      { localId: "height",  type: "YValue", displayType: "YValue",
         fields: {}, offsetX: 0, offsetY: 0 },
       { localId: "hNorm",   type: "Normalizer", displayType: "Normalizer",
         fields: { ...getDefaults("Normalizer") }, offsetX: 300, offsetY: 0 },

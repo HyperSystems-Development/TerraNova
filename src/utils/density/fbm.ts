@@ -48,20 +48,21 @@ export function fbm2D(
 }
 
 /**
- * 3D FBM with separate ScaleXZ and ScaleY, matching V2's
- * SimplexNoise3DDensityAsset which uses .withScale(scaleXZ, scaleY, scaleXZ, scaleXZ).
+ * 3D FBM with separate horizontal and vertical scales. Legacy callers pass
+ * ScaleXZ/ScaleY; CellNoise3D can additionally pass ScaleZ when present.
  */
 export function fbm3D(
   noise: (x: number, y: number, z: number) => number,
   x: number, y: number, z: number,
-  scaleXZ: number, scaleY: number,
+  scaleX: number, scaleY: number,
   octaves: number, lacunarity: number, gain: number,
   seed?: number,
+  scaleZ = scaleX,
 ): number {
   const offsets = seed !== undefined ? generateOffsets(seed, octaves, 3) : null;
-  const sx = scaleXZ !== 0 ? x / scaleXZ : x;
+  const sx = scaleX !== 0 ? x / scaleX : x;
   const sy = scaleY !== 0 ? y / scaleY : y;
-  const sz = scaleXZ !== 0 ? z / scaleXZ : z;
+  const sz = scaleZ !== 0 ? z / scaleZ : z;
   let sum = 0;
   let amp = 1;
   let ampSum = 0;

@@ -2,6 +2,7 @@ import { memo, useState, useCallback, useRef } from "react";
 import type { NodeProps, ResizeDragEvent, ResizeParams } from "@xyflow/react";
 import { NodeResizer } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
+import { useProjectStore } from "@/stores/projectStore";
 
 export interface FrameNodeData {
   type: "frame";
@@ -35,23 +36,27 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
       return;
     }
     setIsEditing(false);
-    const { nodes, setNodes } = useEditorStore.getState();
+    const { nodes, setNodes, commitState } = useEditorStore.getState();
     setNodes(nodes.map((node) => (
       node.id !== id ? node : { ...node, data: { ...node.data as object, name: editName } }
     )));
+    commitState("Rename frame");
+    useProjectStore.getState().setDirty(true);
   }, [id, editName]);
 
   const handleResizeEnd = useCallback((_event: ResizeDragEvent, params: ResizeParams) => {
-    const { nodes, setNodes } = useEditorStore.getState();
+    const { nodes, setNodes, commitState } = useEditorStore.getState();
     setNodes(nodes.map((node) => (
       node.id !== id
         ? node
         : { ...node, data: { ...node.data as object, width: params.width, height: params.height } }
     )));
+    commitState("Resize frame");
+    useProjectStore.getState().setDirty(true);
   }, [id]);
 
-  const width = nodeData.width ?? 480;
-  const height = nodeData.height ?? 320;
+  const width = nodeData.width ?? 300;
+  const height = nodeData.height ?? 200;
 
   return (
     <>
@@ -111,6 +116,7 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleCommit();
                   if (e.key === "Escape") {
+                    cancelEditRef.current = true;
                     setIsEditing(false);
                     setEditName(nodeData.name ?? "");
                   }

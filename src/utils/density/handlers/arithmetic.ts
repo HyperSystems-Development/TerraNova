@@ -1,6 +1,6 @@
 import type { NodeHandler } from "../evalContext";
 
-const handleNegate: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleInverter: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   return -ctx.getInput(inputs, "Input", x, y, z);
 };
 
@@ -8,7 +8,7 @@ const handleAbs: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   return Math.abs(ctx.getInput(inputs, "Input", x, y, z));
 };
 
-const handleSquareRoot: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleSqrt: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   return Math.sqrt(Math.abs(ctx.getInput(inputs, "Input", x, y, z)));
 };
 
@@ -48,12 +48,6 @@ const handleOffsetConstant: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   return v + offset;
 };
 
-const handleAmplitudeConstant: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const v = ctx.getInput(inputs, "Input", x, y, z);
-  const amp = Number(fields.Value ?? 1);
-  return v * amp;
-};
-
 const handlePow: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const v = ctx.getInput(inputs, "Input", x, y, z);
   const exp = Number(fields.Exponent ?? 2);
@@ -77,19 +71,24 @@ const handleWeightedSum: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   return wsum;
 };
 
-const handleProduct: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleMultiplier: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   let prod = 1;
   for (let i = 0; inputs.has(`Inputs[${i}]`); i++) {
     prod *= ctx.getInput(inputs, `Inputs[${i}]`, x, y, z);
+  }
+  if (inputs.has("InputA") || inputs.has("InputB")) {
+    return ctx.getInput(inputs, "InputA", x, y, z) * ctx.getInput(inputs, "InputB", x, y, z);
   }
   return prod;
 };
 
 export function buildArithmeticHandlers(): Map<string, NodeHandler> {
   return new Map<string, NodeHandler>([
-    ["Negate", handleNegate],
+    ["Inverter", handleInverter],
+    ["Negate", handleInverter],
     ["Abs", handleAbs],
-    ["SquareRoot", handleSquareRoot],
+    ["Sqrt", handleSqrt],
+    ["SquareRoot", handleSqrt],
     ["CubeRoot", handleCubeRoot],
     ["Square", handleSquare],
     ["CubeMath", handleCubeMath],
@@ -97,10 +96,10 @@ export function buildArithmeticHandlers(): Map<string, NodeHandler> {
     ["SumSelf", handleSumSelf],
     ["Modulo", handleModulo],
     ["OffsetConstant", handleOffsetConstant],
-    ["AmplitudeConstant", handleAmplitudeConstant],
     ["Pow", handlePow],
     ["Sum", handleSum],
     ["WeightedSum", handleWeightedSum],
-    ["Product", handleProduct],
+    ["Multiplier", handleMultiplier],
+    ["Product", handleMultiplier],
   ]);
 }

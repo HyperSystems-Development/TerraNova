@@ -1,11 +1,11 @@
 {
   "Type": "NoiseRange",
-  "DefaultBiome": "ForestHillsBiome",
+  "DefaultBiome": "forest_hills",
   "DefaultTransitionDistance": 16,
   "MaxBiomeEdgeDistance": 32,
   "Biomes": [
     {
-      "Biome": "ForestHillsBiome",
+      "Biome": "forest_hills",
       "Min": -1.0,
       "Max": 1.0
     }

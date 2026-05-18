@@ -8,6 +8,10 @@ import { usePreviewStore } from "@/stores/previewStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useSettingsStore } from "@/stores/settingsStore";
 
+vi.mock("@tauri-apps/api/app", () => ({
+  getVersion: vi.fn(() => new Promise<string>(() => undefined)),
+}));
+
 // Mock the stores
 vi.mock("@/stores/projectStore");
 vi.mock("@/stores/bridgeStore");

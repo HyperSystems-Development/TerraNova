@@ -1,9 +1,9 @@
 import type { NodeHandler } from "../evalContext";
 import { DEFAULT_WORLD_HEIGHT } from "@/constants";
 
-const handleCoordinateX: NodeHandler = (_ctx, _fields, _inputs, x) => x;
-const handleCoordinateY: NodeHandler = (_ctx, _fields, _inputs, _x, y) => y;
-const handleCoordinateZ: NodeHandler = (_ctx, _fields, _inputs, _x, _y, z) => z;
+const handleXValue: NodeHandler = (_ctx, _fields, _inputs, x) => x;
+const handleYValue: NodeHandler = (_ctx, _fields, _inputs, _x, y) => y;
+const handleZValue: NodeHandler = (_ctx, _fields, _inputs, _x, _y, z) => z;
 
 const handleDistanceFromOrigin: NodeHandler = (_ctx, _fields, _inputs, x, y, z) => {
   return Math.sqrt(x * x + y * y + z * z);
@@ -82,7 +82,14 @@ const handleGradientDensity: NodeHandler = (_ctx, fields, _inputs, _x, y) => {
   return range === 0 ? 0 : (y - fromY) / range;
 };
 
+// Known approximation: SampleRange is not adjusted for cumulative Scale
+// transforms. Under ScaledPosition ancestors, gradient magnitude may be
+// over- or under-estimated proportionally to the scale factor.
 const handleGradient: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+  if (!inputs.has("Input") && (fields.FromY != null || fields.ToY != null)) {
+    return handleGradientDensity(ctx, fields, inputs, x, y, z);
+  }
+
   // Directional derivative via finite differences along Axis
   const axis = fields.Axis as { x: number; y: number; z: number } | undefined;
   const ax = Number(axis?.x ?? 0);
@@ -103,11 +110,24 @@ const handleBaseHeight: NodeHandler = (ctx, fields, _inputs, _x, y) => {
   return distance ? (y - baseY) : baseY;
 };
 
+const handleTerrain: NodeHandler = (ctx, _fields, _inputs, _x, y) => {
+  const baseY = Number(ctx.contentFields["BaseHeight"] ?? ctx.contentFields["Base"] ?? 100);
+  return baseY - y;
+};
+
+const handleHeightAboveSurface: NodeHandler = (ctx, _fields, _inputs, _x, y) => {
+  const baseY = Number(ctx.contentFields["BaseHeight"] ?? ctx.contentFields["Base"] ?? 100);
+  return y - baseY;
+};
+
 export function buildPositionHandlers(): Map<string, NodeHandler> {
   return new Map<string, NodeHandler>([
-    ["CoordinateX", handleCoordinateX],
-    ["CoordinateY", handleCoordinateY],
-    ["CoordinateZ", handleCoordinateZ],
+    ["XValue", handleXValue],
+    ["CoordinateX", handleXValue],
+    ["YValue", handleYValue],
+    ["CoordinateY", handleYValue],
+    ["ZValue", handleZValue],
+    ["CoordinateZ", handleZValue],
     ["DistanceFromOrigin", handleDistanceFromOrigin],
     ["DistanceFromAxis", handleDistanceFromAxis],
     ["DistanceFromPoint", handleDistanceFromPoint],
@@ -118,5 +138,7 @@ export function buildPositionHandlers(): Map<string, NodeHandler> {
     ["GradientDensity", handleGradientDensity],
     ["Gradient", handleGradient],
     ["BaseHeight", handleBaseHeight],
+    ["Terrain", handleTerrain],
+    ["HeightAboveSurface", handleHeightAboveSurface],
   ]);
 }

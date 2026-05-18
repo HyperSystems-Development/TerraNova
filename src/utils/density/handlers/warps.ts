@@ -21,7 +21,7 @@ const handlePositionsTwist: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 const handleGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const warpFactor = Number(fields.WarpFactor ?? 1.0);
   const slopeRange = Number(fields.SlopeRange ?? fields.SampleRange ?? 1.0);
-  const is2D = fields.Is2D === true;
+  const is2D = fields.Is2D === true || fields["2D"] === true;
 
   // V2: central finite differences — sample at ± slopeRange from origin.
   // gradient ≈ (f(x+e) - f(x-e)) / (2e) for each axis.

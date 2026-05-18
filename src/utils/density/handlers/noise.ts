@@ -16,6 +16,10 @@ function resolveScale(fields: Record<string, unknown>, fallback = 1.0): number {
   return fallback;
 }
 
+function resolveAxisScale(fields: Record<string, unknown>, axisField: string): number {
+  return Number(fields[axisField] ?? fields.Scale ?? resolveScale(fields));
+}
+
 /** Resolve Persistence, with fallback to legacy Gain field. */
 function resolvePersistence(fields: Record<string, unknown>, fallback = 1.0): number {
   return Number(fields.Persistence ?? fields.Gain ?? fallback);
@@ -65,8 +69,9 @@ const handleSimplexRidgeNoise3D: NodeHandler = (ctx, fields, _inputs, x, y, z) =
   return ridgeFbm3D(noise, x, y, z, scaleXZ, scaleY, octaves, lacunarity, persistence, seed);
 };
 
-const handleVoronoiNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const scale = resolveScale(fields);
+const handleCellNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+  const scaleX = resolveAxisScale(fields, "ScaleX");
+  const scaleZ = resolveAxisScale(fields, "ScaleZ");
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const cellType = (fields.CellType as string) ?? "Euclidean";
   const jitter = Number(fields.Jitter ?? 0.5);
@@ -76,10 +81,10 @@ const handleVoronoiNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const returnType = (fields.ReturnType as string) ?? "Distance";
   const distFunc = (fields.DistanceFunction as string) ?? "Euclidean";
   const noise = ctx.getVoronoi2D(seed, cellType, jitter, returnType, distFunc);
-  const sx = scale !== 0 ? x / scale : x;
-  const sz = scale !== 0 ? z / scale : z;
+  const sx = scaleX !== 0 ? x / scaleX : x;
+  const sz = scaleZ !== 0 ? z / scaleZ : z;
   let raw = octaves > 1
-    ? fbm2D(noise, x, z, scale, scale, octaves, lacunarity, persistence, seed)
+    ? fbm2D(noise, x, z, scaleX, scaleZ, octaves, lacunarity, persistence, seed)
     : noise(sx, sz);
   if (returnType === "Curve") {
     raw = ctx.applyCurve("ReturnCurve", raw, inputs);
@@ -89,8 +94,10 @@ const handleVoronoiNoise2D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   return raw;
 };
 
-const handleVoronoiNoise3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const scale = resolveScale(fields);
+const handleCellNoise3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+  const scaleX = resolveAxisScale(fields, "ScaleX");
+  const scaleY = resolveAxisScale(fields, "ScaleY");
+  const scaleZ = resolveAxisScale(fields, "ScaleZ");
   const seed = ctx.hashSeed(fields.Seed as string | number | undefined);
   const cellType = (fields.CellType as string) ?? "Euclidean";
   const jitter = Number(fields.Jitter ?? 0.5);
@@ -100,11 +107,11 @@ const handleVoronoiNoise3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const returnType = (fields.ReturnType as string) ?? "Distance";
   const distFunc = (fields.DistanceFunction as string) ?? "Euclidean";
   const noise = ctx.getVoronoi3D(seed, cellType, jitter, returnType, distFunc);
-  const sx = scale !== 0 ? x / scale : x;
-  const sy = scale !== 0 ? y / scale : y;
-  const sz = scale !== 0 ? z / scale : z;
+  const sx = scaleX !== 0 ? x / scaleX : x;
+  const sy = scaleY !== 0 ? y / scaleY : y;
+  const sz = scaleZ !== 0 ? z / scaleZ : z;
   let raw = octaves > 1
-    ? fbm3D(noise, x, y, z, scale, scale, octaves, lacunarity, persistence, seed)
+    ? fbm3D(noise, x, y, z, scaleX, scaleY, octaves, lacunarity, persistence, seed, scaleZ)
     : noise(sx, sy, sz);
   if (returnType === "Curve") {
     raw = ctx.applyCurve("ReturnCurve", raw, inputs);
@@ -141,8 +148,10 @@ export function buildNoiseHandlers(): Map<string, NodeHandler> {
     ["SimplexNoise3D", handleSimplexNoise3D],
     ["SimplexRidgeNoise2D", handleSimplexRidgeNoise2D],
     ["SimplexRidgeNoise3D", handleSimplexRidgeNoise3D],
-    ["VoronoiNoise2D", handleVoronoiNoise2D],
-    ["VoronoiNoise3D", handleVoronoiNoise3D],
+    ["CellNoise2D", handleCellNoise2D],
+    ["VoronoiNoise2D", handleCellNoise2D],
+    ["CellNoise3D", handleCellNoise3D],
+    ["VoronoiNoise3D", handleCellNoise3D],
     ["FractalNoise2D", handleFractalNoise2D],
     ["FractalNoise3D", handleFractalNoise3D],
   ]);

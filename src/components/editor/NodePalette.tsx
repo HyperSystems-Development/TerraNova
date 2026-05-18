@@ -15,6 +15,7 @@ import {
 } from "@/schema/densitySubcategories";
 import type { DensityType } from "@/schema/density";
 import { isBridgeNode } from "@/data/bridgeRegistry";
+import { isPaletteTypeKeyVisible } from "@/nodes/shared/legacyTypes";
 
 const SNIPPET_COLOR = "#a78bfa";
 const ROOT_PALETTE_COLOR = "#8B4450";
@@ -155,7 +156,9 @@ export function NodePalette() {
   const didDragRef = useRef(false);
   const clickStaggerRef = useRef(0);
 
-  const visibleDefaults = ALL_DEFAULTS.filter((e) => isTypeVisible(e.type));
+  const visibleDefaults = ALL_DEFAULTS.filter((e) =>
+    isTypeVisible(e.type) && isPaletteTypeKeyVisible(resolveNodeTypeKey(e))
+  );
   const grouped = groupByCategory(visibleDefaults);
   const hasSearch = search.trim().length > 0;
 

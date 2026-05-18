@@ -69,4 +69,11 @@ describe("FBm 3D anisotropic scaling", () => {
     expect(resultIso).toBeCloseTo(3.0, 10);
     expect(resultAniso).toBeCloseTo(4.0, 10);
   });
+
+  it("supports separate ScaleZ when V2 cell noise provides one", () => {
+    const noise3D = (x: number, y: number, z: number) => x + y + z;
+    const result = fbm3D(noise3D, 100, 100, 100, 100, 100, 1, 1, 1, undefined, 50);
+    // ScaleZ=50 should evaluate z at 2 while x/y remain 1.
+    expect(result).toBeCloseTo(4.0, 10);
+  });
 });

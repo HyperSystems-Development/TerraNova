@@ -8,10 +8,10 @@ const handleZero: NodeHandler = () => 0;
 
 const handleOne: NodeHandler = () => 1;
 
-const handleCacheOnce: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleCache: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   // Use source node ID as proxy for the original nodeId-based cache key.
   // The original used `${nodeId}:${x}:${y}:${z}` — we use the Input source ID
-  // which is unique per CacheOnce node (each has a different input connection).
+  // which is unique per Cache node (each has a different input connection).
   const src = inputs.get("Input");
   if (!src) return 0;
   const cacheKey = `${src}:co:${x}:${y}:${z}`;
@@ -38,7 +38,7 @@ const handleDebug: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   return ctx.getInput(inputs, "Input", x, y, z);
 };
 
-const handleCurveFunction: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleCurveMapper: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   const inputVal = ctx.getInput(inputs, "Input", x, y, z);
   return ctx.applyCurve("Curve", inputVal, inputs);
 };
@@ -53,13 +53,15 @@ export function buildSimpleHandlers(): Map<string, NodeHandler> {
     ["Constant", handleConstant],
     ["Zero", handleZero],
     ["One", handleOne],
-    ["CacheOnce", handleCacheOnce],
+    ["Cache", handleCache],
+    ["CacheOnce", handleCache],
     ["FlatCache", handleFlatCache],
     ["Cache2D", handleFlatCache],
     ["Wrap", handleWrap],
     ["Passthrough", handlePassthrough],
     ["Debug", handleDebug],
-    ["CurveFunction", handleCurveFunction],
+    ["CurveMapper", handleCurveMapper],
+    ["CurveFunction", handleCurveMapper],
     ["SplineFunction", handleSplineFunction],
   ]);
 }

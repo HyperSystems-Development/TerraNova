@@ -59,8 +59,9 @@ mod tests {
 
     #[test]
     fn world_structure_round_trip() {
-        let json =
-            include_str!("../../../templates/void/HytaleGenerator/WorldStructures/MainWorld.json");
+        let json = include_str!(
+            "../../../templates/void/Server/HytaleGenerator/WorldStructures/MainWorld.json"
+        );
         // WorldStructureAsset doesn't use tagged enum, just deserialize and check key fields
         let asset: WorldStructureAsset =
             serde_json::from_str(json).expect("deserialize WorldStructureAsset");
@@ -84,7 +85,8 @@ mod tests {
 
     #[test]
     fn biome_round_trip() {
-        let json = include_str!("../../../templates/void/HytaleGenerator/Biomes/VoidBiome.json");
+        let json =
+            include_str!("../../../templates/void/Server/HytaleGenerator/Biomes/VoidBiome.json");
         let asset: BiomeAsset = serde_json::from_str(json).expect("deserialize BiomeAsset");
 
         assert_eq!(asset.name, "void_biome");

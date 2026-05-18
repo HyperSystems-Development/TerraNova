@@ -1,11 +1,11 @@
 {
   "Type": "NoiseRange",
-  "DefaultBiome": "TropicalPirateIslandsBiome",
+  "DefaultBiome": "Hills",
   "DefaultTransitionDistance": 24,
   "MaxBiomeEdgeDistance": 48,
   "Biomes": [
     {
-      "Biome": "TropicalPirateIslandsBiome",
+      "Biome": "Hills",
       "Min": -1,
       "Max": 1
     }

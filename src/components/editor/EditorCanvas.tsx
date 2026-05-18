@@ -453,8 +453,8 @@ export function EditorCanvas({
   const handleConnectStart = useCallback((_event: unknown, params: unknown) => {
     connectionMadeRef.current = false;
     const typedParams = params as { handleType?: string; nodeId?: string; handleId?: string };
-    const handleType = (typedParams.handleType === "source" || typedParams.handleType === "target") 
-      ? typedParams.handleType 
+    const handleType = (typedParams.handleType === "source" || typedParams.handleType === "target")
+      ? typedParams.handleType
       : "source";
     pendingHandleRef.current = {
       nodeId: typedParams.nodeId ?? "",

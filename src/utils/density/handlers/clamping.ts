@@ -57,9 +57,9 @@ const handleDoubleNormalizer: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   }
 };
 
-const handleLinearTransform: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+const handleAmplitudeConstant: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const v = ctx.getInput(inputs, "Input", x, y, z);
-  const scale = Number(fields.Scale ?? 1);
+  const scale = Number(fields.Scale ?? fields.Value ?? 1);
   const offset = Number(fields.Offset ?? 0);
   return v * scale + offset;
 };
@@ -85,7 +85,8 @@ export function buildClampingHandlers(): Map<string, NodeHandler> {
     ["ClampToIndex", handleClampToIndex],
     ["Normalizer", handleNormalizer],
     ["DoubleNormalizer", handleDoubleNormalizer],
-    ["LinearTransform", handleLinearTransform],
+    ["AmplitudeConstant", handleAmplitudeConstant],
+    ["LinearTransform", handleAmplitudeConstant],
     ["RangeChoice", handleRangeChoice],
     ["Interpolate", handleInterpolate],
   ]);
