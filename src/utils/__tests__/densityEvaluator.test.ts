@@ -1158,11 +1158,11 @@ describe("getEvalStatus", () => {
     expect(getEvalStatus("VectorWarp")).toBe(EvalStatus.Approximated);
     expect(getEvalStatus("PositionsCellNoise")).toBe(EvalStatus.Approximated);
     expect(getEvalStatus("Shell")).toBe(EvalStatus.Approximated);
+    expect(getEvalStatus("Terrain")).toBe(EvalStatus.Approximated);
+    expect(getEvalStatus("HeightAboveSurface")).toBe(EvalStatus.Approximated);
   });
 
   it("returns Unsupported for context-dependent types", () => {
-    expect(getEvalStatus("HeightAboveSurface")).toBe(EvalStatus.Unsupported);
-    expect(getEvalStatus("Terrain")).toBe(EvalStatus.Unsupported);
     expect(getEvalStatus("Pipeline")).toBe(EvalStatus.Unsupported);
     expect(getEvalStatus("SurfaceDensity")).toBe(EvalStatus.Unsupported);
   });
@@ -1430,6 +1430,26 @@ describe("GradientWarp", () => {
       expect(result.values[i]).toBe(5);
     }
   });
+
+  it("uses forward differences with correct magnitude", () => {
+    // CoordinateX -> GradientWarp (both WarpSource and Input) -> root
+    // f(x) = x, so base = x, fwdX = x + slopeRange
+    // deltaX = (x + slopeRange) - x = slopeRange
+    // gradient_x = slopeRange / slopeRange = 1.0
+    // warped_x = x + warpFactor * 1.0 = x + warpFactor
+    // Output = CoordinateX at warped position = x + warpFactor
+    // At x=5 with warpFactor=1, slopeRange=1: result should be 6
+    const nodes = [
+      makeNode("cx", "CoordinateX"),
+      makeNode("gw", "GradientWarp", { WarpFactor: 1, SlopeRange: 1, Is2D: true }),
+    ];
+    const edges = [
+      makeEdge("cx", "gw", "Input"),
+      makeEdge("cx", "gw", "WarpSource"),
+    ];
+    const val = evalAt(nodes, edges, 5, 0, 0, "gw");
+    expect(val).toBeCloseTo(6, 5);
+  });
 });
 
 /* ── SwitchState ─────────────────────────────────────────────────── */
@@ -1635,5 +1655,408 @@ describe("PositionsCellNoise with MaxDistance", () => {
       if (rE.values[i] !== rD.values[i]) { differs = true; break; }
     }
     expect(differs).toBe(true);
+  });
+});
+
+/* ── YSampled interpolation ──────────────────────────────────────── */
+
+describe("YSampled — floor-based interpolation", () => {
+  it("interpolates between grid points", () => {
+    // CoordinateY -> YSampled(SampleDistance=10) -> Root
+    // At y=25: y0=20, y1=30, ratio=0.5
+    // v0 = CoordinateY(y0=20) = 20, v1 = CoordinateY(y1=30) = 30
+    // result = 20 + (30-20)*0.5 = 25
+    const nodes = [
+      makeNode("coord", "CoordinateY"),
+      makeNode("ys", "YSampled", { SampleDistance: 10, SampleOffset: 0 }),
+    ];
+    const edges = [makeEdge("coord", "ys", "Input")];
+    const result = evalAt(nodes, edges, 0, 25, 0, "ys");
+    expect(result).toBeCloseTo(25, 5);
+  });
+
+  it("returns exact value at grid point", () => {
+    // At y=20: y0=20, y1=30, ratio=0
+    // result = v0 = 20
+    const nodes = [
+      makeNode("coord", "CoordinateY"),
+      makeNode("ys", "YSampled", { SampleDistance: 10, SampleOffset: 0 }),
+    ];
+    const edges = [makeEdge("coord", "ys", "Input")];
+    const result = evalAt(nodes, edges, 0, 20, 0, "ys");
+    expect(result).toBeCloseTo(20, 5);
+  });
+
+  it("respects SampleOffset", () => {
+    // With offset=5, sampleDist=10
+    // At y=12: y0=5, y1=15, ratio=0.7
+    // v0 = CoordinateY(5) = 5, v1 = CoordinateY(15) = 15
+    // result = 5 + (15-5)*0.7 = 12
+    const nodes = [
+      makeNode("coord", "CoordinateY"),
+      makeNode("ys", "YSampled", { SampleDistance: 10, SampleOffset: 5 }),
+    ];
+    const edges = [makeEdge("coord", "ys", "Input")];
+    const result = evalAt(nodes, edges, 0, 12, 0, "ys");
+    expect(result).toBeCloseTo(12, 5);
+  });
+});
+
+/* ── CellWallDistance exact propagation via d1/d2 ────────────────── */
+
+describe("CellWallDistance — exact d1/d2 propagation", () => {
+  it("returns non-negative values", () => {
+    // PositionsCellNoise → Sum ← CellWallDistance
+    // Evaluating Sum forces both to be evaluated; CellWallDistance reads ctx.cellWallDist
+    const nodes = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "wall-test" }),
+      makeNode("cwd", "CellWallDistance"),
+      makeNode("sum", "Sum"),
+    ];
+    const edges = [
+      makeEdge("pcn", "sum", "Inputs[0]"),
+      makeEdge("cwd", "sum", "Inputs[1]"),
+    ];
+    // Evaluate at several positions and check CellWallDistance contribution
+    const ctx = createEvaluationContext(nodes, edges, "sum");
+    expect(ctx).not.toBeNull();
+    for (let i = 0; i < 20; i++) {
+      const x = (i * 17) % 100 - 50;
+      const z = (i * 31) % 100 - 50;
+      // Evaluate the cell noise node to set cellWallDist, then read CellWallDistance
+      ctx!.evaluate("pcn", x, Y_LEVEL, z);
+      const wallDist = ctx!.evaluate("cwd", x, Y_LEVEL, z);
+      expect(wallDist).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("varies spatially (not constant)", () => {
+    const nodes = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "wall-vary" }),
+      makeNode("cwd", "CellWallDistance"),
+      makeNode("sum", "Sum"),
+    ];
+    const edges = [
+      makeEdge("pcn", "sum", "Inputs[0]"),
+      makeEdge("cwd", "sum", "Inputs[1]"),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "sum");
+    expect(ctx).not.toBeNull();
+    const values = new Set<number>();
+    for (let i = 0; i < 20; i++) {
+      const x = (i * 17) % 100 - 50;
+      const z = (i * 31) % 100 - 50;
+      ctx!.evaluate("pcn", x, Y_LEVEL, z);
+      values.add(ctx!.evaluate("cwd", x, Y_LEVEL, z));
+    }
+    // Should have more than 1 unique value across 20 sample points
+    expect(values.size).toBeGreaterThan(1);
+  });
+});
+
+/* ── PositionsCellNoise ReturnType delegation ────────────────────── */
+
+describe("PositionsCellNoise ReturnType delegation", () => {
+  it("applies ReturnCurve when ReturnType is Curve", () => {
+    // Power curve with exponent 2 squares the raw noise value
+    const nodes = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "curve-test", ReturnType: "Curve" }),
+      makeNode("curve", "Curve:Power", { Exponent: 2.0 }),
+    ];
+    const edges = [
+      makeEdge("curve", "pcn", "ReturnCurve"),
+    ];
+    const nodesPlain = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "curve-test", ReturnType: "Distance" }),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "pcn");
+    const ctxPlain = createEvaluationContext(nodesPlain, [], "pcn");
+    expect(ctx).not.toBeNull();
+    expect(ctxPlain).not.toBeNull();
+    // The curve-modified value should differ from the raw value
+    let differs = false;
+    for (let i = 0; i < 20; i++) {
+      const x = (i * 13) % 100 - 50;
+      const z = (i * 29) % 100 - 50;
+      const curved = ctx!.evaluate("pcn", x, Y_LEVEL, z);
+      const plain = ctxPlain!.evaluate("pcn", x, Y_LEVEL, z);
+      if (Math.abs(curved - plain) > 1e-9) differs = true;
+    }
+    expect(differs).toBe(true);
+  });
+
+  it("applies ReturnDensity when ReturnType is Density", () => {
+    // ReturnDensity multiplied by the raw noise value
+    const nodes = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "density-test", ReturnType: "Density" }),
+      makeNode("factor", "Constant", { Value: 3.0 }),
+    ];
+    const edges = [
+      makeEdge("factor", "pcn", "ReturnDensity"),
+    ];
+    const nodesPlain = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "density-test", ReturnType: "Distance" }),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "pcn");
+    const ctxPlain = createEvaluationContext(nodesPlain, [], "pcn");
+    expect(ctx).not.toBeNull();
+    expect(ctxPlain).not.toBeNull();
+    for (let i = 0; i < 10; i++) {
+      const x = (i * 13) % 100 - 50;
+      const z = (i * 29) % 100 - 50;
+      const densityVal = ctx!.evaluate("pcn", x, Y_LEVEL, z);
+      const plain = ctxPlain!.evaluate("pcn", x, Y_LEVEL, z);
+      // With factor=3, density result should be 3 * raw
+      if (Math.abs(plain) > 1e-9) {
+        expect(densityVal).toBeCloseTo(3.0 * plain, 5);
+      }
+    }
+  });
+
+  it("returns raw value when ReturnType is Distance (no delegation)", () => {
+    const nodes = [
+      makeNode("pcn", "PositionsCellNoise", { Scale: 50, Seed: "no-delegate" }),
+    ];
+    const result = evalSingle(nodes, []);
+    const unique = new Set(result.values);
+    expect(unique.size).toBeGreaterThan(1);
+  });
+});
+
+/* ── Positions3D ReturnType delegation ───────────────────────────── */
+
+describe("Positions3D ReturnType delegation", () => {
+  it("applies ReturnCurve when ReturnType is Curve", () => {
+    const nodes = [
+      makeNode("p3d", "Positions3D", { Scale: 50, Seed: "curve-3d", ReturnType: "Curve" }),
+      makeNode("curve", "Curve:Power", { Exponent: 2.0 }),
+    ];
+    const edges = [
+      makeEdge("curve", "p3d", "ReturnCurve"),
+    ];
+    const nodesPlain = [
+      makeNode("p3d", "Positions3D", { Scale: 50, Seed: "curve-3d", ReturnType: "Distance" }),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "p3d");
+    const ctxPlain = createEvaluationContext(nodesPlain, [], "p3d");
+    expect(ctx).not.toBeNull();
+    expect(ctxPlain).not.toBeNull();
+    let differs = false;
+    for (let i = 0; i < 20; i++) {
+      const x = (i * 13) % 100 - 50;
+      const z = (i * 29) % 100 - 50;
+      const curved = ctx!.evaluate("p3d", x, Y_LEVEL, z);
+      const plain = ctxPlain!.evaluate("p3d", x, Y_LEVEL, z);
+      if (Math.abs(curved - plain) > 1e-9) differs = true;
+    }
+    expect(differs).toBe(true);
+  });
+
+  it("applies ReturnDensity when ReturnType is Density", () => {
+    const nodes = [
+      makeNode("p3d", "Positions3D", { Scale: 50, Seed: "density-3d", ReturnType: "Density" }),
+      makeNode("factor", "Constant", { Value: 5.0 }),
+    ];
+    const edges = [
+      makeEdge("factor", "p3d", "ReturnDensity"),
+    ];
+    const nodesPlain = [
+      makeNode("p3d", "Positions3D", { Scale: 50, Seed: "density-3d", ReturnType: "Distance" }),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "p3d");
+    const ctxPlain = createEvaluationContext(nodesPlain, [], "p3d");
+    expect(ctx).not.toBeNull();
+    expect(ctxPlain).not.toBeNull();
+    for (let i = 0; i < 10; i++) {
+      const x = (i * 13) % 100 - 50;
+      const z = (i * 29) % 100 - 50;
+      const densityVal = ctx!.evaluate("p3d", x, Y_LEVEL, z);
+      const plain = ctxPlain!.evaluate("p3d", x, Y_LEVEL, z);
+      if (Math.abs(plain) > 1e-9) {
+        expect(densityVal).toBeCloseTo(5.0 * plain, 5);
+      }
+    }
+  });
+});
+
+/* ── Switch/SwitchState default verification ─────────────────────── */
+
+describe("Switch/SwitchState", () => {
+  it("default switchState is 0", () => {
+    // Build a Switch node with no SwitchState ancestor — the default state should be 0.
+    // Switch with SwitchStates uses hashSeed comparison against ctx.switchState.
+    // Without a SwitchState override, ctx.switchState defaults to 0.
+    // A Switch with a simple Selector field uses that index directly.
+    const nodes = [
+      makeNode("sw", "Switch", { Selector: 0 }),
+      makeNode("a", "Constant", { Value: 10 }),
+      makeNode("b", "Constant", { Value: 20 }),
+    ];
+    const edges = [
+      makeEdge("a", "sw", "Inputs[0]"),
+      makeEdge("b", "sw", "Inputs[1]"),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "sw");
+    expect(ctx).not.toBeNull();
+    // Default selector 0 should pick Inputs[0] → 10
+    const val = ctx!.evaluate("sw", 0, 0, 0);
+    expect(val).toBe(10);
+  });
+
+  it("SwitchState defaults to 0 matching V2 behavior", () => {
+    // Verify that the evaluation context initializes switchState to 0.
+    // When no SwitchState node overrides it, a Switch with SwitchStates
+    // should match against state 0.
+    const nodes = [
+      makeNode("sw", "Switch", { SwitchStates: [0] }),
+      makeNode("a", "Constant", { Value: 42 }),
+    ];
+    const edges = [
+      makeEdge("a", "sw", "Inputs[0]"),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "sw");
+    expect(ctx).not.toBeNull();
+    // hashSeed(0) should equal ctx.switchState (which is 0 by default)
+    const val = ctx!.evaluate("sw", 0, 0, 0);
+    expect(val).toBe(42);
+  });
+});
+
+/* ── Terrain proxy ───────────────────────────────────────────────── */
+
+describe("Terrain proxy", () => {
+  it("returns baseHeight - y", () => {
+    const nodes = [makeNode("t", "Terrain", {})];
+    const ctx = createEvaluationContext(nodes, [], "t", { contentFields: { BaseHeight: 100 } });
+    expect(ctx).not.toBeNull();
+    // At y=80: below surface → positive (100 - 80 = 20)
+    expect(ctx!.evaluate("t", 0, 80, 0)).toBe(20);
+    // At y=120: above surface → negative (100 - 120 = -20)
+    expect(ctx!.evaluate("t", 0, 120, 0)).toBe(-20);
+    // At y=100: exactly at surface → 0
+    expect(ctx!.evaluate("t", 0, 100, 0)).toBe(0);
+  });
+
+  it("falls back to Base contentField", () => {
+    const nodes = [makeNode("t", "Terrain", {})];
+    const ctx = createEvaluationContext(nodes, [], "t", { contentFields: { Base: 64 } });
+    expect(ctx).not.toBeNull();
+    expect(ctx!.evaluate("t", 0, 50, 0)).toBe(14);
+  });
+
+  it("defaults to 100 when no contentFields provided", () => {
+    const nodes = [makeNode("t", "Terrain", {})];
+    const ctx = createEvaluationContext(nodes, [], "t");
+    expect(ctx).not.toBeNull();
+    expect(ctx!.evaluate("t", 0, 60, 0)).toBe(40);
+  });
+
+  it("is marked as approximated", () => {
+    expect(getEvalStatus("Terrain")).toBe(EvalStatus.Approximated);
+  });
+});
+
+/* ── HeightAboveSurface proxy ────────────────────────────────────── */
+
+describe("HeightAboveSurface proxy", () => {
+  it("returns y - baseHeight", () => {
+    const nodes = [makeNode("h", "HeightAboveSurface", {})];
+    const ctx = createEvaluationContext(nodes, [], "h", { contentFields: { BaseHeight: 100 } });
+    expect(ctx).not.toBeNull();
+    // At y=120: above surface → positive (120 - 100 = 20)
+    expect(ctx!.evaluate("h", 0, 120, 0)).toBe(20);
+    // At y=80: below surface → negative (80 - 100 = -20)
+    expect(ctx!.evaluate("h", 0, 80, 0)).toBe(-20);
+    // At y=100: exactly at surface → 0
+    expect(ctx!.evaluate("h", 0, 100, 0)).toBe(0);
+  });
+
+  it("falls back to Base contentField", () => {
+    const nodes = [makeNode("h", "HeightAboveSurface", {})];
+    const ctx = createEvaluationContext(nodes, [], "h", { contentFields: { Base: 64 } });
+    expect(ctx).not.toBeNull();
+    expect(ctx!.evaluate("h", 0, 80, 0)).toBe(16);
+  });
+
+  it("defaults to 100 when no contentFields provided", () => {
+    const nodes = [makeNode("h", "HeightAboveSurface", {})];
+    const ctx = createEvaluationContext(nodes, [], "h");
+    expect(ctx).not.toBeNull();
+    expect(ctx!.evaluate("h", 0, 140, 0)).toBe(40);
+  });
+
+  it("is inverse of Terrain proxy", () => {
+    const nodesT = [makeNode("t", "Terrain", {})];
+    const nodesH = [makeNode("h", "HeightAboveSurface", {})];
+    const ctxT = createEvaluationContext(nodesT, [], "t", { contentFields: { BaseHeight: 100 } });
+    const ctxH = createEvaluationContext(nodesH, [], "h", { contentFields: { BaseHeight: 100 } });
+    expect(ctxT).not.toBeNull();
+    expect(ctxH).not.toBeNull();
+    for (const y of [0, 50, 100, 150, 200]) {
+      const tVal = ctxT!.evaluate("t", 0, y, 0);
+      const hVal = ctxH!.evaluate("h", 0, y, 0);
+      expect(tVal + hVal).toBe(0);
+    }
+  });
+
+  it("is marked as approximated", () => {
+    expect(getEvalStatus("HeightAboveSurface")).toBe(EvalStatus.Approximated);
+  });
+});
+
+/* ── Shell zero-axis guard ───────────────────────────────────────── */
+
+describe("Shell curve-based — zero axis guard", () => {
+  it("returns 0 when Axis is zero vector", () => {
+    // Shell with Axis={0,0,0} should return 0 at any position
+    const nodes = [makeNode("s", "Shell", { Axis: { x: 0, y: 0, z: 0 } })];
+    expect(evalAt(nodes, [], 5, 0, 0)).toBe(0);
+    expect(evalAt(nodes, [], 0, 10, 0)).toBe(0);
+    expect(evalAt(nodes, [], 0, 0, 3)).toBe(0);
+    expect(evalAt(nodes, [], 1, 2, 3)).toBe(0);
+  });
+});
+
+/* ── MultiMix defensive key sorting ──────────────────────────────── */
+
+describe("MultiMix — unsorted keys", () => {
+  it("interpolates correctly with unsorted keys", () => {
+    // Keys [0.5, 0.0, 1.0] map to Densities [50, 0, 100]
+    // After sorting: keys [0.0, 0.5, 1.0] with original indices [1, 0, 2]
+    // Selector=0.25 should interpolate between key 0.0 (density 0) and key 0.5 (density 50)
+    // t = (0.25 - 0.0) / (0.5 - 0.0) = 0.5, result = 0 + (50 - 0) * 0.5 = 25
+    const nodes = [
+      makeNode("sel", "Constant", { Value: 0.25 }),
+      makeNode("d0", "Constant", { Value: 50 }),
+      makeNode("d1", "Constant", { Value: 0 }),
+      makeNode("d2", "Constant", { Value: 100 }),
+      makeNode("mm", "MultiMix", { Keys: [0.5, 0.0, 1.0] }),
+    ];
+    const edges = [
+      makeEdge("sel", "mm", "Selector"),
+      makeEdge("d0", "mm", "Densities[0]"),
+      makeEdge("d1", "mm", "Densities[1]"),
+      makeEdge("d2", "mm", "Densities[2]"),
+    ];
+    const val = evalAt(nodes, edges, 0, 0, 0, "mm");
+    expect(val).toBeCloseTo(25);
+  });
+
+  it("returns exact value when selector matches a key", () => {
+    const nodes = [
+      makeNode("sel", "Constant", { Value: 0.5 }),
+      makeNode("d0", "Constant", { Value: 50 }),
+      makeNode("d1", "Constant", { Value: 0 }),
+      makeNode("d2", "Constant", { Value: 100 }),
+      makeNode("mm", "MultiMix", { Keys: [0.5, 0.0, 1.0] }),
+    ];
+    const edges = [
+      makeEdge("sel", "mm", "Selector"),
+      makeEdge("d0", "mm", "Densities[0]"),
+      makeEdge("d1", "mm", "Densities[1]"),
+      makeEdge("d2", "mm", "Densities[2]"),
+    ];
+    const val = evalAt(nodes, edges, 0, 0, 0, "mm");
+    expect(val).toBeCloseTo(50);
   });
 });

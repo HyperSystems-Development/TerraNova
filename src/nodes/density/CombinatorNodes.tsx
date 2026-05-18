@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
-import { densityInput, densityOutput, curveInput } from "@/nodes/shared/handles";
+import { densityInput, densityOutput } from "@/nodes/shared/handles";
 import { safeDisplay } from "@/nodes/shared/displayUtils";
 import { useCompoundHandles } from "@/hooks/useCompoundHandles";
 
@@ -17,14 +17,6 @@ const BLEND_HANDLES = [
   densityInput("Factor", "Factor"),
   densityOutput(),
 ];
-const BLEND_CURVE_HANDLES = [
-  densityInput("InputA", "Input A"),
-  densityInput("InputB", "Input B"),
-  densityInput("Factor", "Factor"),
-  curveInput("Curve", "Curve"),
-  densityOutput(),
-];
-
 export const ConditionalNode = memo(function ConditionalNode(props: TypedNodeProps) {
   const data = props.data;
   return (
@@ -54,7 +46,7 @@ export const SwitchNode = memo(function SwitchNode(props: TypedNodeProps) {
   );
 });
 
-export const BlendNode = memo(function BlendNode(props: TypedNodeProps) {
+export const MixNode = memo(function MixNode(props: TypedNodeProps) {
   return (
     <BaseNode
       {...props}
@@ -66,20 +58,8 @@ export const BlendNode = memo(function BlendNode(props: TypedNodeProps) {
   );
 });
 
-export const BlendCurveNode = memo(function BlendCurveNode(props: TypedNodeProps) {
-  return (
-    <BaseNode
-      {...props}
-      category={AssetCategory.Density}
-      handles={BLEND_CURVE_HANDLES}
-    >
-      <div className="text-tn-text-muted text-center py-1">Blend via curve</div>
-    </BaseNode>
-  );
-});
-
-export const MinFunctionNode = memo(function MinFunctionNode(props: TypedNodeProps) {
-  const handles = useCompoundHandles(props.id, "MinFunction");
+export const MinNode = memo(function MinNode(props: TypedNodeProps) {
+  const handles = useCompoundHandles(props.id, "Min");
   return (
     <BaseNode
       {...props}
@@ -91,8 +71,8 @@ export const MinFunctionNode = memo(function MinFunctionNode(props: TypedNodePro
   );
 });
 
-export const MaxFunctionNode = memo(function MaxFunctionNode(props: TypedNodeProps) {
-  const handles = useCompoundHandles(props.id, "MaxFunction");
+export const MaxNode = memo(function MaxNode(props: TypedNodeProps) {
+  const handles = useCompoundHandles(props.id, "Max");
   return (
     <BaseNode
       {...props}

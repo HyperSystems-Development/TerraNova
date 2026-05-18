@@ -4,19 +4,17 @@ import type { ComponentType } from "react";
 import {
   SimplexNoise2DNode, ConstantNode, SumNode, ClampNode,
   SimplexNoise3DNode,
-  VoronoiNoise2DNode, VoronoiNoise3DNode,
-  ProductNode, NegateNode, AbsNode,
-  SquareRootNode, ImportedValueNode, OffsetConstantNode,
+  CellNoise2DNode, CellNoise3DNode,
+  MultiplierNode, InverterNode, AbsNode,
+  SqrtNode, ImportedNode, OffsetConstantNode,
   NormalizerNode,
-  LinearTransformNode,
-  CoordinateXNode, CoordinateYNode, CoordinateZNode,
+  XValueNode, YValueNode, ZValueNode,
   AngleNode,
-  CurveFunctionNode,
-  SwitchNode, BlendNode, BlendCurveNode,
-  MinFunctionNode, MaxFunctionNode, MultiMixNode,
-  CacheOnceNode, TranslatedPositionNode, ScaledPositionNode,
-  RotatedPositionNode,
-  DomainWarp2DNode, DomainWarp3DNode,
+  CurveMapperNode,
+  SwitchNode, MixNode,
+  MinNode, MaxNode, MultiMixNode,
+  CacheNode, SliderNode, ScaleNode,
+  RotatorNode,
   ExportedDensityNode,
   AmplitudeConstantNode, PowNode, SmoothClampNode, FloorDensityNode,
   CeilingDensityNode, SmoothFloorNode, SmoothMinNode, SmoothMaxNode,
@@ -143,54 +141,35 @@ import { GenericNode } from "./GenericNode";
  * (e.g., "Curve:Constant" vs density "Constant").
  */
 export const nodeTypes: Record<string, ComponentType<any>> = {
-  // ── Density (V2 active types) ────────────────────────────────────────
+  // ── Density (V2 names only) ──────────────────────────────────────────
   SimplexNoise2D: SimplexNoise2DNode,
   SimplexNoise3D: SimplexNoise3DNode,
-  CellNoise2D: VoronoiNoise2DNode,        // V2 name for VoronoiNoise2D
-  CellNoise3D: VoronoiNoise3DNode,        // V2 name for VoronoiNoise3D
+  CellNoise2D: CellNoise2DNode,
+  CellNoise3D: CellNoise3DNode,
   Sum: SumNode,
-  Product: ProductNode,
-  Multiplier: ProductNode,                 // V2 name for Product
-  Negate: NegateNode,
-  Inverter: NegateNode,                    // V2 name for Negate
+  Multiplier: MultiplierNode,
+  Inverter: InverterNode,
   Abs: AbsNode,
-  SquareRoot: SquareRootNode,
-  Sqrt: SquareRootNode,                    // V2 name for SquareRoot
+  Sqrt: SqrtNode,
   Constant: ConstantNode,
-  ImportedValue: ImportedValueNode,
-  Imported: ImportedValueNode,             // V2 name for ImportedValue
+  Imported: ImportedNode,
   Clamp: ClampNode,
   Normalizer: NormalizerNode,
-  LinearTransform: LinearTransformNode,
-  AmplitudeConstant: AmplitudeConstantNode, // V2 name for LinearTransform
-  CoordinateX: CoordinateXNode,
-  CoordinateY: CoordinateYNode,
-  CoordinateZ: CoordinateZNode,
-  XValue: CoordinateXNode,                 // V2 name for CoordinateX
-  YValue: CoordinateYNode,                 // V2 name for CoordinateY
-  ZValue: CoordinateZNode,                 // V2 name for CoordinateZ
-  CurveFunction: CurveFunctionNode,
-  CurveMapper: CurveFunctionNode,          // V2 name for CurveFunction
+  AmplitudeConstant: AmplitudeConstantNode,
+  XValue: XValueNode,
+  YValue: YValueNode,
+  ZValue: ZValueNode,
+  CurveMapper: CurveMapperNode,
   Switch: SwitchNode,
-  Blend: BlendNode,
-  Mix: BlendNode,                          // V2 name for Blend
-  BlendCurve: BlendCurveNode,
-  MultiMix: MultiMixNode,                  // V2 name for BlendCurve
-  MinFunction: MinFunctionNode,
-  Min: MinFunctionNode,                    // V2 name for MinFunction
-  MaxFunction: MaxFunctionNode,
-  Max: MaxFunctionNode,                    // V2 name for MaxFunction
-  CacheOnce: CacheOnceNode,
-  Cache: CacheOnceNode,                    // V2 name for CacheOnce
-  TranslatedPosition: TranslatedPositionNode,
-  Slider: TranslatedPositionNode,          // V2 name for TranslatedPosition
-  ScaledPosition: ScaledPositionNode,
-  Scale: ScaledPositionNode,               // V2 name for ScaledPosition
-  RotatedPosition: RotatedPositionNode,
-  Rotator: RotatedPositionNode,            // V2 name for RotatedPosition
-  DomainWarp2D: DomainWarp2DNode,
-  DomainWarp3D: DomainWarp3DNode,
-  FastGradientWarp: FastGradientWarpNode,  // V2 name for DomainWarp2D/3D
+  Mix: MixNode,
+  MultiMix: MultiMixNode,
+  Min: MinNode,
+  Max: MaxNode,
+  Cache: CacheNode,
+  Slider: SliderNode,
+  Scale: ScaleNode,
+  Rotator: RotatorNode,
+  FastGradientWarp: FastGradientWarpNode,
   Pow: PowNode,
   SmoothClamp: SmoothClampNode,
   Floor: FloorDensityNode,

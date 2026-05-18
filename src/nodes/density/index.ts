@@ -9,24 +9,24 @@ export {
   SimplexNoise3DNode,
   SimplexRidgeNoise2DNode,
   SimplexRidgeNoise3DNode,
-  VoronoiNoise2DNode,
-  VoronoiNoise3DNode,
+  CellNoise2DNode,
+  CellNoise3DNode,
 } from "./NoiseNodes";
 
 // Arithmetic nodes
 export {
   SumSelfNode,
   WeightedSumNode,
-  ProductNode,
-  NegateNode,
+  MultiplierNode,
+  InverterNode,
   AbsNode,
-  SquareRootNode,
+  SqrtNode,
   CubeRootNode,
   SquareNode,
   CubeMathNode,
   InverseNode,
   ModuloNode,
-  ImportedValueNode,
+  ImportedNode,
   AmplitudeConstantNode,
   PowNode,
   AmplitudeNode,
@@ -40,7 +40,6 @@ export {
   NormalizerNode,
   DoubleNormalizerNode,
   RangeChoiceNode,
-  LinearTransformNode,
   InterpolateNode,
   SmoothClampNode,
   FloorDensityNode,
@@ -53,9 +52,9 @@ export {
 
 // Position-based nodes
 export {
-  CoordinateXNode,
-  CoordinateYNode,
-  CoordinateZNode,
+  XValueNode,
+  YValueNode,
+  ZValueNode,
   DistanceFromOriginNode,
   DistanceFromAxisNode,
   DistanceFromPointNode,
@@ -67,7 +66,7 @@ export {
 
 // Curve-related density nodes
 export {
-  CurveFunctionNode,
+  CurveMapperNode,
   SplineFunctionNode,
   FlatCacheNode,
 } from "./CurveNodes";
@@ -76,21 +75,20 @@ export {
 export {
   ConditionalNode,
   SwitchNode,
-  BlendNode,
-  BlendCurveNode,
-  MinFunctionNode,
-  MaxFunctionNode,
+  MixNode,
+  MinNode,
+  MaxNode,
   AverageFunctionNode,
   MultiMixNode,
 } from "./CombinatorNodes";
 
 // Transform nodes
 export {
-  CacheOnceNode,
+  CacheNode,
   WrapNode,
-  TranslatedPositionNode,
-  ScaledPositionNode,
-  RotatedPositionNode,
+  SliderNode,
+  ScaleNode,
+  RotatorNode,
   MirroredPositionNode,
   QuantizedPositionNode,
 } from "./TransformNodes";
@@ -106,8 +104,6 @@ export {
   CaveDensityNode,
   FractalNoise2DNode,
   FractalNoise3DNode,
-  DomainWarp2DNode,
-  DomainWarp3DNode,
   AnchorNode,
   YOverrideNode,
   XOverrideNode,

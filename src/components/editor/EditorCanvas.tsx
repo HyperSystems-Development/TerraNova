@@ -208,7 +208,10 @@ export function EditorCanvas({
   useEffect(() => {
     if (activeBiomeSection == null) return;
     const timer = setTimeout(() => {
-      reactFlowInstance.fitView();
+      const graphNodes = useEditorStore.getState().nodes.filter(
+        (n) => n.type !== "comment" && n.type !== "frame",
+      );
+      reactFlowInstance.fitView({ nodes: graphNodes });
     }, 50);
     return () => clearTimeout(timer);
   }, [activeBiomeSection, reactFlowInstance]);
@@ -233,7 +236,10 @@ export function EditorCanvas({
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             updateNodeInternals(layouted.map((n) => n.id));
-            reactFlowInstance.fitView({ padding: 0.1, duration: 300 });
+            const graphNodes = useEditorStore.getState().nodes.filter(
+              (n) => n.type !== "comment" && n.type !== "frame",
+            );
+            reactFlowInstance.fitView({ nodes: graphNodes, padding: 0.1, duration: 300 });
           });
         });
       } catch (err) {
@@ -602,6 +608,7 @@ export function EditorCanvas({
         onConnectStart={inspectMode ? undefined : handleConnectStart}
         onConnectEnd={inspectMode ? undefined : handleConnectEnd}
         fitView
+        fitViewOptions={{ nodes: resolvedNodes.filter((n) => n.type !== "comment" && n.type !== "frame") }}
         deleteKeyCode={inspectMode ? null : ["Backspace", "Delete"]}
         multiSelectionKeyCode="Shift"
         nodesDraggable={!inspectMode}

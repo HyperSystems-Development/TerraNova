@@ -79,11 +79,11 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     Seed: "Random seed for noise generation. Different seeds produce different 3D ridge patterns.",
     Octaves: "Number of noise layers. More octaves add finer ridge detail.",
   },
-  VoronoiNoise2D: {
+  CellNoise2D: {
     Scale: "Controls cell size. Higher values create larger cells; lower values create smaller, more numerous cells.",
     Seed: "Random seed for cell point generation. Different seeds rearrange the cell pattern.",
   },
-  VoronoiNoise3D: {
+  CellNoise3D: {
     Scale: "Controls cell size in 3D. Higher values create larger cells; lower values create smaller, more numerous cells.",
     Seed: "Random seed for cell point generation. Different seeds rearrange the 3D cell pattern.",
   },
@@ -99,11 +99,14 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     Lacunarity: "Frequency multiplier between octaves. Default 2.0 doubles frequency each octave.",
     Persistence: "Amplitude multiplier between octaves. Default 0.5 halves amplitude each octave for natural falloff.",
   },
-  DomainWarp2D: {
-    WarpFactor: "How far sample positions are displaced. Higher values create more dramatic coordinate distortion.",
-  },
-  DomainWarp3D: {
-    WarpFactor: "How far sample positions are displaced in 3D. Higher values create more dramatic coordinate distortion.",
+  FastGradientWarp: {
+    WarpFactor: "Displacement magnitude multiplier. Higher values create stronger warping distortion.",
+    WarpScale: "Base frequency of the internal warp noise. Lower values produce larger, smoother distortion patterns.",
+    WarpOctaves: "Number of noise octaves for the warp. More octaves add finer detail to the distortion pattern.",
+    WarpLacunarity: "Frequency multiplier between warp octaves. Default 2.0 doubles frequency per octave.",
+    WarpPersistence: "Amplitude decay per warp octave. Default 0.5 halves amplitude each octave for natural falloff.",
+    WarpSeed: "Seed for the internal warp noise. Different seeds produce different distortion patterns.",
+    Is2D: "When true, warping is computed in 2D (XZ plane only), ignoring the Y coordinate.",
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -122,14 +125,13 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   Constant: {
     Value: "The fixed value output everywhere. Use 0 for empty/air, positive values for solid density, negative for below-surface.",
   },
-  ImportedValue: {
+  Imported: {
     Name: "References a named value exported from another asset file. Must exactly match an ExportAs name in the source file.",
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // DENSITY — Additional Math
   // ═══════════════════════════════════════════════════════════════════════════
-  AmplitudeConstant: {},
   Pow: {
     Exponent: "Power to raise the input to. Sign is preserved: output = sign(x) * |x|^Exponent. Values > 1 steepen, values < 1 flatten.",
   },
@@ -205,15 +207,6 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     "2D": "Whether to restrict warping to the XZ plane.",
     YFor2D: "Fixed Y level for 2D gradient sampling.",
   },
-  FastGradientWarp: {
-    WarpFactor: "Displacement magnitude multiplier. Higher values create stronger warping distortion.",
-    WarpScale: "Base frequency of the internal warp noise. Lower values produce larger, smoother distortion patterns.",
-    WarpOctaves: "Number of noise octaves for the warp. More octaves add finer detail to the distortion pattern.",
-    WarpLacunarity: "Frequency multiplier between warp octaves. Default 2.0 doubles frequency per octave.",
-    WarpPersistence: "Amplitude decay per warp octave. Default 0.5 halves amplitude each octave for natural falloff.",
-    WarpSeed: "Seed for the internal warp noise. Different seeds produce different distortion patterns.",
-    Is2D: "When true, warping is computed in 2D (XZ plane only), ignoring the Y coordinate.",
-  },
   CellWallDistance: {
     Scale: "Controls the cell size. Higher values create larger cells with more distant walls.",
     Seed: "Random seed for cell generation. Different seeds produce different cell layouts.",
@@ -243,7 +236,7 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   RangeChoice: {
     Threshold: "The boundary value. When the condition exceeds this, one input is selected; otherwise the other.",
   },
-  LinearTransform: {
+  AmplitudeConstant: {
     Scale: "Multiplier applied to the input. Values > 1 amplify, values < 1 attenuate, negative values invert.",
     Offset: "Constant added after scaling. Shifts the entire output range up (positive) or down (negative).",
   },
@@ -278,13 +271,13 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   // ═══════════════════════════════════════════════════════════════════════════
   // DENSITY — Sampling / Transforms
   // ═══════════════════════════════════════════════════════════════════════════
-  TranslatedPosition: {
+  Slider: {
     Translation: "Offset vector {x, y, z} to shift the sample position. Positive X moves noise east, positive Y moves noise up, positive Z moves noise south.",
   },
-  ScaledPosition: {
+  Scale: {
     Scale: "Scale vector {x, y, z} to multiply the sample position. Values < 1 stretch features larger; values > 1 compress features smaller.",
   },
-  RotatedPosition: {
+  Rotator: {
     AngleDegrees: "Rotation angle around the Y axis in degrees. 90 rotates features a quarter turn.",
   },
   MirroredPosition: {
@@ -354,9 +347,6 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
   },
   Power: {
     Exponent: "Power to raise the input to. Values > 1 steepen the curve (push midtones darker); values < 1 flatten it (push midtones lighter).",
-  },
-  Imported: {
-    Name: "References a named value exported from another asset file. Must exactly match an ExportAs name in the source file.",
   },
   Exported: {
     Name: "The name to export this node's output as. Other files can import this value by referencing this name.",

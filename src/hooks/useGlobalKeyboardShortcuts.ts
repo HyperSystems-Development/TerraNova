@@ -284,10 +284,13 @@ export function useGlobalKeyboardShortcuts({
         return;
       }
 
-      // Fit view
+      // Fit view (exclude annotation nodes so they don't distort the viewport)
       if (matchesKeybinding("fitView", e)) {
         e.preventDefault();
-        reactFlow.fitView({ padding: 0.1, duration: 300 });
+        const graphNodes = useEditorStore.getState().nodes.filter(
+          (n) => n.type !== "comment" && n.type !== "frame",
+        );
+        reactFlow.fitView({ nodes: graphNodes, padding: 0.1, duration: 300 });
         return;
       }
 

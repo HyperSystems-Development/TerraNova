@@ -234,32 +234,33 @@ describe("YSampled", () => {
   });
 
   it("respects SampleDistance field", () => {
-    // Without YProvider, YSampled snaps Y to the nearest multiple of SampleDistance.
-    // CoordinateY returns the snapped Y value, so we can observe the snapping.
-    // With SampleDistance=8 at y=5: round(5/8)*8 = round(0.625)*8 = 1*8 = 8
+    // Without YProvider, YSampled interpolates between adjacent grid points.
+    // With SampleDistance=8 at y=5: y0=0, y1=8, ratio=5/8=0.625
+    // v0=CoordinateY(0)=0, v1=CoordinateY(8)=8. Result = 0 + (8-0)*0.625 = 5.0
     const nodes = [
       makeNode("cy", "CoordinateY"),
       makeNode("ys", "YSampled", { SampleDistance: 8.0 }),
     ];
     const edges = [makeEdge("cy", "ys", "Input")];
     const result = evalAt(nodes, edges, 0, 5, 0, "ys");
-    expect(result).toBeCloseTo(8, 5);
+    expect(result).toBeCloseTo(5, 5);
   });
 
   it("uses default SampleDistance=4 when not specified", () => {
-    // With default SampleDistance=4 at y=5: round(5/4)*4 = round(1.25)*4 = 1*4 = 4
+    // With default SampleDistance=4 at y=5: y0=4, y1=8, ratio=1/4=0.25
+    // v0=CoordinateY(4)=4, v1=CoordinateY(8)=8. Result = 4 + (8-4)*0.25 = 5.0
     const nodes = [
       makeNode("cy", "CoordinateY"),
       makeNode("ys", "YSampled"),
     ];
     const edges = [makeEdge("cy", "ys", "Input")];
     const result = evalAt(nodes, edges, 0, 5, 0, "ys");
-    expect(result).toBeCloseTo(4, 5);
+    expect(result).toBeCloseTo(5, 5);
   });
 
-  it("different SampleDistance values produce different snapping", () => {
-    // At y=5, SampleDistance=8 snaps to 8, SampleDistance=4 snaps to 4.
-    // This confirms SampleDistance is read from fields, not hardcoded.
+  it("different SampleDistance values produce different interpolation grids", () => {
+    // With a linear input (CoordinateY), interpolation is exact regardless of grid size.
+    // Both return 5.0 for y=5, confirming correct interpolation.
     const nodes8 = [
       makeNode("cy", "CoordinateY"),
       makeNode("ys", "YSampled", { SampleDistance: 8.0 }),
@@ -271,9 +272,20 @@ describe("YSampled", () => {
     const edges = [makeEdge("cy", "ys", "Input")];
     const result8 = evalAt(nodes8, edges, 0, 5, 0, "ys");
     const result4 = evalAt(nodes4, edges, 0, 5, 0, "ys");
-    expect(result8).toBeCloseTo(8, 5);
-    expect(result4).toBeCloseTo(4, 5);
-    expect(result8).not.toBeCloseTo(result4, 5);
+    expect(result8).toBeCloseTo(5, 5);
+    expect(result4).toBeCloseTo(5, 5);
+  });
+
+  it("snaps to nearer grid point when IsInterpolated is false", () => {
+    // SampleDistance=8 at y=5: y0=0, y1=8, ratio=5/8=0.625 (>=0.5 → snap to y1)
+    // CoordinateY at y1=8 → 8
+    const nodes = [
+      makeNode("cy", "CoordinateY"),
+      makeNode("ys", "YSampled", { SampleDistance: 8.0, IsInterpolated: false }),
+    ];
+    const edges = [makeEdge("cy", "ys", "Input")];
+    const result = evalAt(nodes, edges, 0, 5, 0, "ys");
+    expect(result).toBeCloseTo(8, 5);
   });
 });
 
@@ -440,7 +452,14 @@ describe("VectorWarp", () => {
  * ══════════════════════════════════════════════════════════════════════════ */
 
 describe("Context-dependent types", () => {
-  it.each(["Terrain", "CellWallDistance", "DistanceToBiomeEdge", "Pipeline"])(
+  it("'Terrain' returns baseHeight - y", () => {
+    // Default baseHeight=100, Y_LEVEL=64 → 100 - 64 = 36
+    const nodes = [makeNode("n", "Terrain")];
+    const result = evalSingle(nodes, []);
+    expectAll(result, 36);
+  });
+
+  it.each(["CellWallDistance", "DistanceToBiomeEdge", "Pipeline"])(
     "'%s' returns 0 (unsupported fallback)",
     (type) => {
       const nodes = [makeNode("n", type)];

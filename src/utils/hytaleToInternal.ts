@@ -11,40 +11,17 @@ import { HYTALE_ARRAY_TO_NAMED } from "./translationMaps";
 // ---------------------------------------------------------------------------
 // Type name mapping (V2/Hytale → internal)
 // ---------------------------------------------------------------------------
-// Maps V2 (Hytale) type names to old internal names used by the editor.
-// Types that are the same in both formats pass through unchanged via the ?? fallback.
-const HYTALE_TO_INTERNAL_TYPES: Record<string, string> = {
-  Multiplier: "Product",
-  Inverter: "Negate",
-  CurveMapper: "CurveFunction",
-  Cache: "CacheOnce",
-  Imported: "ImportedValue",
-  Mix: "Blend",
-  Min: "MinFunction",
-  Max: "MaxFunction",
-  XValue: "CoordinateX",
-  YValue: "CoordinateY",
-  ZValue: "CoordinateZ",
-  CellNoise2D: "VoronoiNoise2D",
-  CellNoise3D: "VoronoiNoise3D",
-  Sqrt: "SquareRoot",
-  // FastGradientWarp is its own internal type (not collapsed to DomainWarp2D)
-  Scale: "ScaledPosition",
-  Slider: "TranslatedPosition",
-  Rotator: "RotatedPosition",
-  AmplitudeConstant: "LinearTransform",
-  MultiMix: "BlendCurve",
-  Pow: "Pow",
-  Cube: "CubeMath",
-};
+// Internal type names now match V2 names, so V2 types from Hytale JSON pass
+// through unchanged via the ?? fallback. This map is empty — no reverse
+// mapping is needed.
+const HYTALE_TO_INTERNAL_TYPES: Record<string, string> = {};
 
 // ---------------------------------------------------------------------------
 // Clamp/SmoothClamp field renames (import direction only)
 // ---------------------------------------------------------------------------
-const CLAMP_FIELD_REVERSE: Record<string, string> = {
-  WallA: "Max",
-  WallB: "Min",
-};
+// Internal now uses V2 field names (WallA/WallB) directly, so no reverse
+// mapping is needed. The map is kept empty for backward compatibility paths.
+const CLAMP_FIELD_REVERSE: Record<string, string> = {};
 
 // ---------------------------------------------------------------------------
 // Normalizer field nesting (V2 flat fields ↔ internal nested SourceRange/TargetRange)
@@ -356,18 +333,9 @@ function reverseRotatorFields(asset: Record<string, unknown>): Record<string, un
 }
 
 function reverseFastGradientWarpFields(asset: Record<string, unknown>): Record<string, unknown> {
-  const result = { ...asset };
-  // Hytale uses "Seed", internal uses "WarpSeed"
-  if ("Seed" in result) {
-    result.WarpSeed = result.Seed;
-    delete result.Seed;
-  }
-  // Hytale uses "2D", internal uses "Is2D"
-  if ("2D" in result) {
-    result.Is2D = result["2D"];
-    delete result["2D"];
-  }
-  return result;
+  // Internal now uses V2 field names (Seed, 2D) directly, so no
+  // reverse mapping is needed. Pass through unchanged.
+  return { ...asset };
 }
 
 function reverseAmplitudeConstantFields(asset: Record<string, unknown>): Record<string, unknown> {
@@ -1042,9 +1010,10 @@ function transformNodeToInternal(
     }
   }
 
-  // Build output
+  // Build output -- preserve $NodeId so position metadata can be matched later
   const output: Record<string, unknown> = {
     Type: internalType,
+    ...(nodeId ? { __hytaleNodeId: nodeId } : {}),
   };
 
   // Switch → Conditional (density context only)

@@ -10,16 +10,16 @@ export type DensityType =
   | "SimplexNoise3D"
   | "SimplexRidgeNoise2D"
   | "SimplexRidgeNoise3D"
-  | "VoronoiNoise2D"
-  | "VoronoiNoise3D"
+  | "CellNoise2D"
+  | "CellNoise3D"
   // Arithmetic
   | "Sum"
   | "SumSelf"
   | "WeightedSum"
-  | "Product"
-  | "Negate"
+  | "Multiplier"
+  | "Inverter"
   | "Abs"
-  | "SquareRoot"
+  | "Sqrt"
   | "CubeRoot"
   | "Square"
   | "CubeMath"
@@ -27,19 +27,18 @@ export type DensityType =
   | "Modulo"
   // Constants & references
   | "Constant"
-  | "ImportedValue"
+  | "Imported"
   // Clamping & range
   | "Clamp"
   | "ClampToIndex"
   | "Normalizer"
   | "DoubleNormalizer"
   | "RangeChoice"
-  | "LinearTransform"
   | "Interpolate"
   // Position-based
-  | "CoordinateX"
-  | "CoordinateY"
-  | "CoordinateZ"
+  | "XValue"
+  | "YValue"
+  | "ZValue"
   | "DistanceFromOrigin"
   | "DistanceFromAxis"
   | "DistanceFromPoint"
@@ -47,23 +46,23 @@ export type DensityType =
   | "AngleFromPoint"
   | "HeightAboveSurface"
   // Curves & splines
-  | "CurveFunction"
+  | "CurveMapper"
   | "SplineFunction"
   | "FlatCache"
   // Combinators
   | "Conditional"
   | "Switch"
-  | "Blend"
-  | "BlendCurve"
-  | "MinFunction"
-  | "MaxFunction"
+  | "Mix"
+  | "MultiMix"
+  | "Min"
+  | "Max"
   | "AverageFunction"
   // Sampling / transforms
-  | "CacheOnce"
+  | "Cache"
   | "Wrap"
-  | "TranslatedPosition"
-  | "ScaledPosition"
-  | "RotatedPosition"
+  | "Slider"
+  | "Scale"
+  | "Rotator"
   | "MirroredPosition"
   | "QuantizedPosition"
   // Terrain-specific
@@ -76,8 +75,7 @@ export type DensityType =
   | "CaveDensity"
   | "FractalNoise2D"
   | "FractalNoise3D"
-  | "DomainWarp2D"
-  | "DomainWarp3D"
+  | "FastGradientWarp"
   // Smooth operations
   | "SmoothClamp"
   | "SmoothFloor"
@@ -103,13 +101,11 @@ export type DensityType =
   | "Amplitude"
   | "YSampled"
   | "SwitchState"
-  | "MultiMix"
   | "Positions3D"
   | "PositionsPinch"
   | "PositionsTwist"
   // Warp types
   | "GradientWarp"
-  | "FastGradientWarp"
   | "VectorWarp"
   // Context-dependent
   | "Terrain"
@@ -190,9 +186,9 @@ export interface NormalizerDensity extends DensityFields {
   TargetRange?: RangeDouble;
 }
 
-/** Linear transform: value * scale + offset */
-export interface LinearTransformDensity extends DensityFields {
-  Type: "LinearTransform";
+/** AmplitudeConstant: value * scale + offset */
+export interface AmplitudeConstantDensity extends DensityFields {
+  Type: "AmplitudeConstant";
   Input?: DensityFields;
   Scale?: number;
   Offset?: number;
@@ -207,15 +203,15 @@ export interface ConditionalDensity extends DensityFields {
   FalseInput?: DensityFields;
 }
 
-/** Product of multiple inputs */
-export interface ProductDensity extends DensityFields {
-  Type: "Product";
+/** Multiplier: product of multiple inputs */
+export interface MultiplierDensity extends DensityFields {
+  Type: "Multiplier";
   Inputs?: DensityFields[];
 }
 
-/** Negate input */
-export interface NegateDensity extends DensityFields {
-  Type: "Negate";
+/** Inverter: negate input */
+export interface InverterDensity extends DensityFields {
+  Type: "Inverter";
   Input?: DensityFields;
 }
 
@@ -234,9 +230,9 @@ export interface YGradientDensity extends DensityFields {
   ToY?: number;
 }
 
-/** Curve function: applies a curve to an input */
-export interface CurveFunctionDensity extends DensityFields {
-  Type: "CurveFunction";
+/** CurveMapper: applies a curve to an input */
+export interface CurveMapperDensity extends DensityFields {
+  Type: "CurveMapper";
   Input?: DensityFields;
   Curve?: unknown;
 }
@@ -249,11 +245,11 @@ export type AnyDensity =
   | WeightedSumDensity
   | ClampDensity
   | NormalizerDensity
-  | LinearTransformDensity
+  | AmplitudeConstantDensity
   | ConditionalDensity
-  | ProductDensity
-  | NegateDensity
+  | MultiplierDensity
+  | InverterDensity
   | InterpolateDensity
   | YGradientDensity
-  | CurveFunctionDensity
+  | CurveMapperDensity
   | DensityFields;

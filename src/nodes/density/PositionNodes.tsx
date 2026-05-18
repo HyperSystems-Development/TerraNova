@@ -15,7 +15,7 @@ function formatVec3(v: unknown): string {
   return "—";
 }
 
-export const CoordinateXNode = memo(function CoordinateXNode(props: TypedNodeProps) {
+export const XValueNode = memo(function XValueNode(props: TypedNodeProps) {
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
       <div className="text-tn-text-muted text-center py-1">X coordinate</div>
@@ -23,7 +23,7 @@ export const CoordinateXNode = memo(function CoordinateXNode(props: TypedNodePro
   );
 });
 
-export const CoordinateYNode = memo(function CoordinateYNode(props: TypedNodeProps) {
+export const YValueNode = memo(function YValueNode(props: TypedNodeProps) {
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
       <div className="text-tn-text-muted text-center py-1">Y coordinate</div>
@@ -31,7 +31,7 @@ export const CoordinateYNode = memo(function CoordinateYNode(props: TypedNodePro
   );
 });
 
-export const CoordinateZNode = memo(function CoordinateZNode(props: TypedNodeProps) {
+export const ZValueNode = memo(function ZValueNode(props: TypedNodeProps) {
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>
       <div className="text-tn-text-muted text-center py-1">Z coordinate</div>
