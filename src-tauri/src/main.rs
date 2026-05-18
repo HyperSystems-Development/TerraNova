@@ -29,9 +29,7 @@ fn main() {
         if std::env::var("WEBKIT_DISABLE_COMPOSITING_MODE").is_err() {
             std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
         }
-        if std::path::Path::new("/dev/dri").exists()
-            && std::env::var("WAYLAND_DISPLAY").is_err()
-        {
+        if std::path::Path::new("/dev/dri").exists() && std::env::var("WAYLAND_DISPLAY").is_err() {
             if std::env::var("WEBKIT_DISABLE_DMABUF_RENDERER").is_err() {
                 std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
             }
