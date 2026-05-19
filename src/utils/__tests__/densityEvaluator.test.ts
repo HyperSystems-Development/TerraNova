@@ -1499,6 +1499,8 @@ describe("DENSITY_NAMED_TO_ARRAY completeness", () => {
     ["Amplitude", ["Input", "Amplitude"]],
     ["YSampled", ["Input", "YProvider"]],
     ["WeightedSum", ["Inputs[0]", "Inputs[1]"]],
+    ["Mix", ["InputA", "InputB", "Factor"]],
+    ["MultiMix", ["InputA", "InputB", "Factor"]],
     ["Blend", ["InputA", "InputB", "Factor"]],
     ["Conditional", ["Condition", "TrueInput", "FalseInput"]],
   ];

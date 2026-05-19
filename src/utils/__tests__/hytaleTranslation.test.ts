@@ -286,6 +286,27 @@ describe("named inputs ↔ Inputs[] array", () => {
     expect(inputs[0].Value).toBe(0);
     expect(inputs[1].Value).toBe(1);
     expect(inputs[2].Value).toBe(0.5);
+    expect(result.InputA).toBeUndefined();
+    expect(result.InputB).toBeUndefined();
+    expect(result.Factor).toBeUndefined();
+  });
+
+  it("converts current Mix InputA/InputB/Factor to Hytale Inputs[0,1,2] on export", () => {
+    const result = internalToHytale({
+      Type: "Mix",
+      InputA: { Type: "Constant", Value: 0 },
+      InputB: { Type: "Constant", Value: 1 },
+      Factor: { Type: "Constant", Value: 0.5 },
+    });
+    expect(result.Type).toBe("Mix");
+    const inputs = result.Inputs as Record<string, unknown>[];
+    expect(inputs).toHaveLength(3);
+    expect(inputs[0].Value).toBe(0);
+    expect(inputs[1].Value).toBe(1);
+    expect(inputs[2].Value).toBe(0.5);
+    expect(result.InputA).toBeUndefined();
+    expect(result.InputB).toBeUndefined();
+    expect(result.Factor).toBeUndefined();
   });
 
   it("reverses Inputs[0] → Input for Inverter on import", () => {
@@ -1108,6 +1129,10 @@ describe("round-trip: internal → hytale → internal", () => {
     };
     const exported = internalToHytale(original);
     expect(exported.Type).toBe("Mix");
+    expect(exported.Inputs).toHaveLength(3);
+    expect(exported.InputA).toBeUndefined();
+    expect(exported.InputB).toBeUndefined();
+    expect(exported.Factor).toBeUndefined();
     const { asset: imported } = hytaleToInternal(exported);
     expect(imported.Type).toBe("Mix");
     expect((imported.InputA as Record<string, unknown>).Value).toBe(0);

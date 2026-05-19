@@ -87,6 +87,23 @@ function collectTypes(value: unknown, found = new Set<string>()): Set<string> {
   return found;
 }
 
+function collectNodesByType(
+  value: unknown,
+  type: string,
+  found: Record<string, unknown>[] = [],
+): Record<string, unknown>[] {
+  if (Array.isArray(value)) {
+    for (const item of value) collectNodesByType(item, type, found);
+    return found;
+  }
+  if (!value || typeof value !== "object") return found;
+
+  const record = value as Record<string, unknown>;
+  if (record.Type === type) found.push(record);
+  for (const child of Object.values(record)) collectNodesByType(child, type, found);
+  return found;
+}
+
 describe("bundled template Hytale fidelity", () => {
   it("bundled templates use the real Server/HytaleGenerator asset-pack layout", () => {
     for (const generatorRoot of findHytaleGeneratorRoots()) {
@@ -286,6 +303,152 @@ describe("bundled template Hytale fidelity", () => {
       contentFields: { Base: 0 },
     });
 
+    expect(result.values.every(Number.isFinite)).toBe(true);
+    expect(result.maxValue - result.minValue).toBeGreaterThan(0.01);
+  });
+
+  it("creates, exports, re-imports, and previews a Fullmetal-style biome", () => {
+    const biomeName = "Codex_Lab_Test_Biome";
+    const internalBiome = {
+      Name: biomeName,
+      Terrain: {
+        Type: "DAOTerrain",
+        Density: {
+          Type: "Min",
+          Inputs: [
+            {
+              Type: "Mix",
+              InputA: {
+                Type: "Max",
+                Inputs: [
+                  {
+                    Type: "Sum",
+                    Inputs: [
+                      {
+                        Type: "Inverter",
+                        Input: {
+                          Type: "SimplexNoise2D",
+                          Lacunarity: 2,
+                          Persistence: 0.55,
+                          Octaves: 3,
+                          Scale: 120,
+                          Seed: "7",
+                        },
+                      },
+                      {
+                        Type: "CurveMapper",
+                        Curve: {
+                          Type: "Manual",
+                          Points: [
+                            { x: 40, y: 1 },
+                            { x: 80, y: -1 },
+                          ],
+                        },
+                        Input: {
+                          Type: "BaseHeight",
+                          BaseHeightName: "Base",
+                          Distance: true,
+                        },
+                      },
+                    ],
+                  },
+                  { Type: "Constant", Value: -0.25 },
+                ],
+              },
+              InputB: { Type: "Constant", Value: 1 },
+              Factor: {
+                Type: "Pow",
+                Exponent: 3,
+                Input: {
+                  Type: "Normalizer",
+                  SourceRange: { Min: 0, Max: 1 },
+                  TargetRange: { Min: 0.3, Max: 1 },
+                  Input: {
+                    Type: "Abs",
+                    Input: {
+                      Type: "SimplexNoise2D",
+                      Lacunarity: 1.5,
+                      Persistence: 0.7,
+                      Octaves: 3,
+                      Scale: 55,
+                      Seed: "77",
+                    },
+                  },
+                },
+              },
+            },
+            { Type: "Constant", Value: 0.8 },
+          ],
+        },
+      },
+      MaterialProvider: {
+        Type: "Constant",
+        Material: "stone",
+      },
+      Props: [],
+      EnvironmentProvider: {
+        Type: "Constant",
+        Environment: "default",
+      },
+      TintProvider: {
+        Type: "Constant",
+        Color: "#ffffff",
+      },
+    };
+
+    const exported = internalToHytaleBiome(internalBiome);
+    const exportedTerrain = exported.Terrain as { Type?: unknown; Density?: Record<string, unknown> };
+
+    expect(exported.Name).toBe(biomeName);
+    expect(exportedTerrain.Type).toBe("DAOTerrain");
+    expect(exportedTerrain.Density).toBeDefined();
+    expect(exported.Props).toEqual([]);
+    expect(exported.MaterialProvider).toMatchObject({ Type: "Solidity" });
+    expect(exported.EnvironmentProvider).toMatchObject({ Type: "Constant" });
+    expect(exported.TintProvider).toMatchObject({ Type: "Constant" });
+
+    const leakedTypes = [...collectTypes(exported)].filter((type) => internalOnlyTypes.has(type));
+    expect(leakedTypes).toEqual([]);
+
+    const mixNodes = collectNodesByType(exportedTerrain.Density, "Mix");
+    expect(mixNodes.length).toBeGreaterThan(0);
+    for (const mixNode of mixNodes) {
+      expect(Array.isArray(mixNode.Inputs), "Mix should export Hytale Inputs[]").toBe(true);
+      expect(mixNode.Inputs).toHaveLength(3);
+      expect(mixNode.InputA).toBeUndefined();
+      expect(mixNode.InputB).toBeUndefined();
+      expect(mixNode.Factor).toBeUndefined();
+    }
+    expect(collectNodesByType(exportedTerrain.Density, "Pow")).toHaveLength(1);
+    expect(collectNodesByType(exportedTerrain.Density, "Abs")).toHaveLength(1);
+
+    const worldStructure = {
+      Type: "NoiseRange",
+      Biomes: [{ Biome: biomeName, Min: -1, Max: 1 }],
+      DefaultBiome: biomeName,
+      DefaultTransitionDistance: 32,
+      MaxBiomeEdgeDistance: 5,
+      Density: { Type: "Imported", Name: "Biome-Map" },
+      ContentFields: [{ Type: "BaseHeight", Name: "Base", Y: 0 }],
+    };
+    const biomeRefs = [
+      worldStructure.DefaultBiome,
+      ...worldStructure.Biomes.map((range) => range.Biome),
+    ];
+    expect(biomeRefs.every((ref) => ref === exported.Name)).toBe(true);
+
+    const imported = normalizeImport(exported);
+    const importedTerrain = imported.Terrain as { Density?: Record<string, unknown> } | undefined;
+    expect(importedTerrain?.Density).toBeDefined();
+
+    const { nodes, edges } = jsonToGraph(importedTerrain!.Density!, 0, 0, "fullmetal-created");
+    expect(nodes.some((node) => (node.data as Record<string, unknown>).type === "Mix")).toBe(true);
+
+    const result = evaluateDensityGrid(nodes, edges, 24, -128, 128, 64, undefined, {
+      contentFields: { Base: 0 },
+    });
+
+    expect(result.values).toHaveLength(24 * 24);
     expect(result.values.every(Number.isFinite)).toBe(true);
     expect(result.maxValue - result.minValue).toBeGreaterThan(0.01);
   });
