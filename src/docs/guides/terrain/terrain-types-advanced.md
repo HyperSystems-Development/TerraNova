@@ -2,6 +2,8 @@
 
 **Difficulty:** Advanced
 
+> **Source status:** Recipes are teaching reductions cross-checked against TerraNova's current preview evaluator and the Hytale source asset folders cited in the foundational terrain guides.
+
 This guide covers terrain types that require nodes or patterns not covered in [Terrain Types and Node Recipes](./terrain-types.md). Each section tackles a specific complex outcome and explains what makes it harder — and why the recipe works.
 
 Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNoise2D/3D`, `Min`/`Max`, and `YSampled`. If any of those are unfamiliar, start with the [basic terrain guide](../understanding-basic-terrain-generation.md) first.
@@ -14,7 +16,7 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
 
 **Why it's complex:** A single `GradientWarp` warps positions in one direction. Chaining a second warp *on top of the already-warped position* multiplies the distortion — the second warp bends features that are already bent. The cost compounds too.
 
-> **Preview gap — critical:** `GradientWarp` returns `0.0` in TerraNova's preview, so double-warp terrain is completely absent in the editor. Use `FastGradientWarp` for this recipe (which does preview, though with reduced octave detail) and tune the child terrain without warping first.
+> **Preview note:** `GradientWarp` now previews through finite-difference sampling, but stacked warps are still approximate and expensive. This recipe uses `FastGradientWarp` because it is the practical choice for nested warps while tuning.
 
 **The recipe:** Two `FastGradientWarp` nodes nested. The outer warp distorts at a broad scale; the inner warp adds tight, fine distortion on top.
 
@@ -185,7 +187,7 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
 - `CellWallDistance` → `CurveMapper`: the curve maps wall-proximity to a carve depth; near zero (at the wall) maps to a large negative density (deep valley); further from the wall maps to 0 (no carve)
 - `SmoothMin` radius: `0.2` — smooths the valley walls so they blend into surrounding terrain rather than cutting sharply
 
-**Critical ordering note:** `CellNoise2D` must be evaluated before `CellWallDistance` in the graph. If `CellWallDistance` is evaluated at a position where `CellNoise2D` has not yet run, it returns `Double.MAX_VALUE` and the valley carve fails silently. In TerraNova, ensure the `CellNoise2D` node is upstream of `CellWallDistance` in the evaluation order.
+**Critical ordering note:** `CellNoise2D` or `PositionsCellNoise` must be evaluated before `CellWallDistance` in the graph. If `CellWallDistance` is evaluated before a cell-noise node has populated the wall-distance side channel, TerraNova's preview falls back to `0`. Keep the cell-noise node upstream of `CellWallDistance` in the evaluation order.
 
 **Variations:**
 - Invert the valley curve to create ridges along cell walls instead of valleys (raised seams like cracked earth)
@@ -246,7 +248,7 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
 
 **The recipe:** `VectorWarp` with a constant direction vector and a noise magnitude density. The direction is fixed; the magnitude varies per-position.
 
-> **Preview gap — critical:** `VectorWarp` returns `0.0` in TerraNova's preview — directional distortion is completely invisible in the editor. Tune the base terrain without warping, then add `VectorWarp` and test in-game.
+> **Preview note:** `VectorWarp` previews as an approximation using the connected vector provider and magnitude density. Tune the base terrain first, then use the warped preview for direction and scale before validating in-game.
 
 ```nodegraph
 {
@@ -302,7 +304,7 @@ Prerequisites: comfortable with `BaseHeight`, `Sum`, `CurveMapper`, `SimplexNois
 
 **The recipe:** A `GradientWarp` with `2D: false` on the terrain noise, combined with a strong horizontal warp component. The warp displaces sampling positions horizontally, causing density from one column to "reach over" into adjacent columns.
 
-> **Preview gap — critical:** `GradientWarp` returns `0.0` in preview — overhangs are entirely invisible in the editor. Tune the base terrain (the `Sum` of `BaseHeight + SimplexNoise2D + SimplexNoise3D`) in preview until the underlying shape is correct, then add `GradientWarp` and test exclusively in-game.
+> **Preview note:** `GradientWarp` previews approximately. Tune the base terrain (`BaseHeight + SimplexNoise2D + SimplexNoise3D`) first, then add `GradientWarp` and validate overhangs in-game because strong 3D warps are more sensitive to runtime differences.
 
 ```nodegraph
 {

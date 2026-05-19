@@ -109,6 +109,7 @@ describe("DocsPanel", () => {
     fireEvent.click(startWalkthroughButton);
 
     await screen.findByText("Step 0 — Overview: What We're Building");
+    expect(screen.getByText("Source context")).toBeTruthy();
     expect(screen.queryByText(/^Table of Contents$/)).toBeNull();
   });
   it("renders docs curve previews with docs-compact affordances", async () => {
@@ -123,6 +124,8 @@ describe("DocsPanel", () => {
     expect(curveCanvases[0].getAttribute("data-docs-compact")).toBe("true");
     expect(screen.getAllByText(/Input x/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Output y/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("Source context")).toBeTruthy();
+    expect(screen.getAllByText("Examples/Example_Curve_Mapper.json").length).toBeGreaterThan(0);
   });
 
   it("applies docs settings presets to the fine-tune controls", async () => {

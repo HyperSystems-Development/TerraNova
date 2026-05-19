@@ -10,6 +10,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint src/",
+    "docs:check": "vitest run src/docs/__tests__/docsIntegrity.test.tsx src/components/docs/__tests__/docsPanelUtils.test.ts src/components/docs/__tests__/DocsPanel.test.tsx",
     "test": "vitest",
     "tauri": "tauri",
     "sync:hytale": "node scripts/sync-hytale-assets.mjs"

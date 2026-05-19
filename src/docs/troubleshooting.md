@@ -1,5 +1,7 @@
 # Troubleshooting
 
+> **Source status:** Troubleshooting entries are checked against TerraNova's current preview evaluator, graph diagnostics, export helpers, and the source-backed terrain guides linked from this page.
+
 This page covers common issues and suggested solutions.
 
 ## Performance Issues
@@ -102,16 +104,16 @@ A small remaining cliff face after the main void is fixed can usually be resolve
 
 ## Preview Doesn't Match In-Game Result
 
-Several nodes return `0.0` or a simplified value in TerraNova's preview evaluator. If your terrain looks flat, missing, or wrong in the editor but generates correctly in-game, check whether your graph contains any of these:
+Some nodes are exact in TerraNova's preview evaluator, some are approximated, and a smaller set is unsupported. If your terrain looks flat, missing, or wrong in the editor but generates correctly in-game, check whether your graph contains any of these:
 
 | Node | Preview behavior | Workaround |
 |------|-----------------|------------|
-| `GradientWarp` | Returns `0.0` -- warped terrain completely absent | Tune the child terrain without warping; test warp in-game only |
-| `VectorWarp` | Returns `0.0` -- directional distortion invisible | Same as above |
-| `BaseHeight` | Returns `0.0` -- terrain anchors at Y=0 | Temporarily replace with `Sum { Inputs: [YValue, Constant { Value: -64 }] }` while previewing |
-| `CellWallDistance` | Returns `0.0` -- Voronoi valley carving invisible | Use `CellNoise2D` distance output as a proxy during preview |
-| `Terrain` | Returns `0.0` -- terrain re-queries broken | Only usable in material providers; test slope-based materials in-game |
-| `Imported` | Returns `0.0` -- cross-asset references unresolved | Replace with inline copies during preview iteration |
+| `GradientWarp` | Evaluated with finite-difference gradient sampling | Use preview for direction and broad scale, then validate heavy warps in-game |
+| `VectorWarp` | Approximated through vector-provider direction plus connected magnitude | Check the base terrain without the warp if the vector provider is complex |
+| `BaseHeight` | Reads the named content field; with `Distance: true`, returns `Y - baseY` | Confirm the referenced content field exists and use `Distance: true` for altitude-band recipes |
+| `CellWallDistance` | Reads the distance side-channel populated by upstream `PositionsCellNoise` / `CellNoise` evaluation; falls back to `0` when no cell distance has been computed | Keep the cell-noise node upstream in the graph |
+| `Terrain` | Approximated as `baseHeight - Y` in preview | Treat it as a terrain-shape proxy, not a full runtime terrain-provider query |
+| `Imported` | Passes through a connected inline input; unresolved cross-asset references preview as `0` | Inline the referenced subgraph while previewing, then restore the import before export |
 
 > See [Expert Terrain Techniques -- Preview vs. Runtime](./guides/terrain/terrain-types-expert.md) for the full reference table including approximated nodes.
 

@@ -43,7 +43,7 @@ The simplest terrain: a flat surface at a fixed height. This is the starting poi
 
 > **Key insight:** Always route through `Sum` into `Terrain Out` — even when there is only one input. Every additional terrain layer (noise, caves, shapes) gets added into the same `Sum`, keeping the graph easy to extend.
 
-> **Preview gap:** `BaseHeight` returns `0.0` in TerraNova's preview — the plane will appear at Y=0 instead of Y=64. This is expected. The correct height is used when generating in-game.
+> **Preview note:** TerraNova's preview evaluator reads the named `BaseHeight` content field instead of returning a hardcoded `0.0`. If a flat plane appears at the wrong height, check the referenced content field first. For a fully explicit preview-only plane, use `Sum { Inputs: [Constant { Value: 64 }, Inverter { Input: YValue }] }`.
 
 ---
 

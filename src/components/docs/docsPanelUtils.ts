@@ -171,12 +171,54 @@ export interface WalkthroughStep {
   content: string;
 }
 
+export interface DocSourceContext {
+  sourceAssets: string[];
+  sourceStatus: string | null;
+  teachingStatus: string | null;
+}
+
 function isWalkthroughStepTitle(title: string): boolean {
   return /^Step\b/i.test(title);
 }
 
 export function stripDocComments(markdown: string): string {
   return markdown.replace(/<!--[\s\S]*?-->/g, "");
+}
+
+function cleanSourceText(value: string): string {
+  return value
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function extractDocSourceContext(markdown: string): DocSourceContext {
+  const context: DocSourceContext = {
+    sourceAssets: [],
+    sourceStatus: null,
+    teachingStatus: null,
+  };
+
+  for (const line of markdown.split(/\r?\n/)) {
+    const match = /^>\s*\*\*(Biome source assets|Source assets|Source status|Teaching status):\*\*\s*(.+)$/i.exec(line.trim());
+    if (!match) continue;
+
+    const label = match[1].toLowerCase();
+    const value = match[2].trim();
+    if (label === "biome source assets" || label === "source assets") {
+      const codeSpans = [...value.matchAll(/`([^`]+)`/g)].map((assetMatch) => assetMatch[1].trim());
+      context.sourceAssets = codeSpans.length > 0
+        ? codeSpans
+        : value.split(",").map(cleanSourceText).filter(Boolean);
+    } else if (label === "source status") {
+      context.sourceStatus = cleanSourceText(value);
+    } else if (label === "teaching status") {
+      context.teachingStatus = cleanSourceText(value);
+    }
+  }
+
+  return context;
 }
 
 export function extractWalkthroughSteps(markdown: string): WalkthroughStep[] {

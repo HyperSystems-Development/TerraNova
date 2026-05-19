@@ -3,6 +3,7 @@ import {
   buildDocNodeGraphMarkdownBlock,
   buildSnippetDocNodeGraph,
   buildSnippetGraphData,
+  extractDocSourceContext,
   extractWalkthroughSteps,
   filterDocTree,
   findFirstFileSlug,
@@ -22,6 +23,23 @@ describe("docsPanelUtils", () => {
     expect(parsed.label).toBe("Rolling Hills");
     expect(parsed.difficulty).toBe("Beginner");
     expect(parsed.snippetJson).toContain(`"Type": "Constant"`);
+  });
+
+  it("extracts source context from docs callouts", () => {
+    const context = extractDocSourceContext(`---
+# Terrain
+
+> **Biome source assets:** \`Examples/Example_Curve_Mapper.json\`, \`Experimental/Mountains.json\`
+> **Source status:** Teaching reduction verified against source assets and current evaluator behavior.
+> **Teaching status:** Simplified graph, not a direct file transcription.
+`);
+
+    expect(context.sourceAssets).toEqual([
+      "Examples/Example_Curve_Mapper.json",
+      "Experimental/Mountains.json",
+    ]);
+    expect(context.sourceStatus).toContain("current evaluator behavior");
+    expect(context.teachingStatus).toContain("Simplified graph");
   });
 
   it("resolves folder defaults via README, index, then first child", () => {

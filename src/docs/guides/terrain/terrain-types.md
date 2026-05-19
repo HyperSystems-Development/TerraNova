@@ -46,7 +46,7 @@ Beginner rule of thumb:
 
 **The recipe:** `BaseHeight` → `Sum` → `Terrain Out`, with a low-amplitude `SimplexNoise2D` adding minimal variation.
 
-> **Preview gap:** `BaseHeight` returns `0.0` in TerraNova's preview — terrain will appear anchored at Y=0 instead of your configured Y level. Workaround: temporarily replace `BaseHeight` with `Sum { Inputs: [YValue, Constant { Value: -64 }] }` while previewing, then restore `BaseHeight` before export.
+> **Preview note:** TerraNova's preview evaluator reads the named `BaseHeight` content field. If the anchor is wrong, check the referenced content field. For an explicit preview-only plane at Y=64, use `Sum { Inputs: [Constant { Value: 64 }, Inverter { Input: YValue }] }`.
 
 ```curve
 Flat plains profile - almost flat, with only a small noise bump
@@ -155,7 +155,7 @@ Rolling hills profile - gentle S curve with soft tops and valleys
 
 **The recipe:** Same structure as rolling hills, but with a much steeper CurveMapper, higher BaseHeight, and larger noise amplitude. Adding `Abs` on a second noise layer folds it into sharp ridges.
 
-> **Preview gap:** `BaseHeight` returns `0.0` in TerraNova's preview. Replace with `Sum { Inputs: [YValue, Constant { Value: -80 }] }` while tuning, then restore before export.
+> **Preview note:** `BaseHeight` is previewed from the named content field. If you need a fully explicit tuning proxy for Y=80, use `Sum { Inputs: [Constant { Value: 80 }, Inverter { Input: YValue }] }` while checking the profile.
 
 ```curve
 Mountain profile - steep middle, flatter base and summit
@@ -224,7 +224,7 @@ Mountain profile - steep middle, flatter base and summit
 
 **The recipe:** A `CurveMapper` with a flat segment at the top (clamped curve) controls the height profile. `SmoothClamp` on the final density keeps the top surface flat without a hard edge.
 
-> **Preview gap:** `BaseHeight` returns `0.0` in preview. Replace with `Sum { Inputs: [YValue, Constant { Value: -64 }] }` while tuning.
+> **Preview note:** If the `BaseHeight` anchor is not reading the expected content field, use an explicit `64 - YValue` proxy while tuning the mesa profile.
 
 ```curve
 Mesa profile - strong rise into a flat plateau top
@@ -539,7 +539,7 @@ The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the ra
 
 **The recipe:** Use `GradientWarp` to displace the evaluation coordinates of a noise field using a second noise field's gradient. The child noise is evaluated at a twisted position, making all features curve and fold.
 
-> **Preview gap — critical:** `GradientWarp` returns `0.0` in TerraNova's preview. The warped terrain shape is entirely absent in the editor. Build and tune the unwarped child terrain first, confirm it looks right in preview, then add `GradientWarp` and test exclusively in-game. See [Expert Terrain Techniques](./terrain-types-expert.md#6-preview-vs-runtime-what-youre-not-seeing) for the full list of affected nodes.
+> **Preview note:** `GradientWarp` is evaluated in TerraNova's preview with finite-difference gradient sampling. Use it to judge broad direction and scale, but still validate strong or chained warps in-game because the preview is an approximation of the runtime generator.
 
 ```nodegraph
 {
@@ -561,10 +561,10 @@ The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the ra
   ],
   "steps": [
     { "nodeId": "wn",  "text": "The warp source noise drives the displacement direction. Its value at each point [-1, +1] is multiplied by WarpFactor to produce an XZ offset in world units. Low Scale (0.003) gives sweeping, broad bends — high Scale gives tight curls and spirals." },
-    { "nodeId": "gw",  "text": "GradientWarp reads the warp source and **moves the sampling point** before evaluating its child. WarpFactor=8 means a noise value of +0.5 shifts the sample 4 blocks in one direction. The terrain downstream never sees the real world position — only the displaced one. **Important:** GradientWarp returns 0.0 in the editor preview — the warp effect only appears in-game." },
+    { "nodeId": "gw",  "text": "GradientWarp reads the warp source and **moves the sampling point** before evaluating its child. WarpFactor=8 means the sampled gradient can shift lookup positions several blocks from the original coordinate. The terrain downstream never sees the real world position — only the displaced one. TerraNova previews this with finite-difference sampling, so use the preview for broad tuning and validate final warps in-game." },
     { "nodeId": "bh",  "text": "BaseHeight provides the vertical anchor as usual, but is not warped — only the horizontal noise variation is displaced. This keeps the overall ground level stable while the surface texture twists." },
     { "nodeId": "sum", "text": "Sum combines the warped surface noise with the unwarped height anchor. The resulting density field has organic, flowing features because the noise contribution is evaluated at twisted coordinates." },
-    { "nodeId": "ys",  "text": "YSampled wraps the entire Sum including the GradientWarp path for performance. Tune the unwarped terrain to your desired shape in the preview, then add GradientWarp and test in-game only." },
+    { "nodeId": "ys",  "text": "YSampled wraps the entire Sum including the GradientWarp path for performance. Tune the unwarped terrain first, then use the warped preview for broad shape and confirm final values in-game." },
     { "nodeId": "out", "text": "Warped organic terrain. Ridges curve and fold; valley floors meander. The underlying density math is unchanged — only the sampling coordinates were twisted." }
   ]
 }
@@ -589,7 +589,7 @@ The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the ra
 
 **The recipe:** Take the simple cave setup, but wrap the cave noise in `GradientWarp` before clamping and inverting. Then use `SmoothMin` instead of hard `Min` to round the joint between cave walls and terrain.
 
-> **Preview gap — critical:** `GradientWarp` returns `0.0` in preview — the cave warp will be completely invisible. Tune cave shape and depth fade without warping, then add `GradientWarp` and validate in-game only.
+> **Preview note:** `GradientWarp` previews with an approximate finite-difference warp. Tune the unwarped cave shape first, then use the warped preview for broad tunnel flow and validate final cave behavior in-game.
 
 ```nodegraph
 {
@@ -616,7 +616,7 @@ The second CurveMapper (upper layer, Multiplier path) peaks at Y≈240 in the ra
   "steps": [
     { "nodeId": "wn",  "text": "The warp source is a 2D noise that drives the cave twist. Keep its Scale low (0.008) so the warp produces broad meanders rather than tight spirals. The warp only displaces the 3D cave noise — not the terrain." },
     { "nodeId": "sn3", "text": "SimplexNoise3D generates the raw cave shape in 3D. On its own it would produce straight-ish tunnels. GradientWarp will bend the coordinates it samples from, giving the tunnels organic curves." },
-    { "nodeId": "gw",  "text": "GradientWarp receives both the warp source (displacement direction) and the cave noise (what to evaluate). With 2D=false, it warps all three axes — so caves twist vertically as well as horizontally, producing organic overhangs and dead-end pockets. **Preview gap:** the warp is invisible in the editor." },
+    { "nodeId": "gw",  "text": "GradientWarp receives both the warp source (displacement direction) and the cave noise (what to evaluate). With 2D=false, it warps all three axes — so caves twist vertically as well as horizontally, producing organic overhangs and dead-end pockets. TerraNova previews this approximately, so use the result as a guide rather than a final runtime guarantee." },
     { "nodeId": "sc",  "text": "SmoothClamp shapes the warped cave noise into a defined tunnel cross-section. The flat zone at ±0.3 becomes the void volume after inversion. Narrow walls make thin passages; wide walls make broad chambers." },
     { "nodeId": "inv", "text": "Inverter flips the clamped noise: the flat void zone becomes strongly negative (empty). This is the final cave mask — a negative density field in the exact shape of the tunnels we want to carve." },
     { "nodeId": "ter", "text": "The existing terrain (YSampled surface) passes into SmoothMin unchanged. It provides the solid terrain density that the cave mask will carve into." },

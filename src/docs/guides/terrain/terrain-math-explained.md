@@ -210,8 +210,8 @@ output = A + (B × -1)  →  equivalent to A - B
 {
   "height": 180,
   "nodes": [
-    { "id": "a",   "label": "Density A",   "category": "generative", "sub": "e.g. terrain",     "x": 0,   "y": 20  },
-    { "id": "b",   "label": "Density B",   "category": "generative", "sub": "e.g. cave noise",  "x": 0,   "y": 110 },
+    { "id": "a",   "label": "BaseHeight",  "category": "terrain",    "sub": "terrain A",        "x": 0,   "y": 20  },
+    { "id": "b",   "label": "SimplexNoise3D","category": "generative","sub": "carve field B",    "x": 0,   "y": 110 },
     { "id": "neg", "label": "Constant",    "category": "math",       "sub": "Value −1",         "x": 0,   "y": 170 },
     { "id": "mul", "label": "Multiplier",  "category": "math",       "sub": "B × −1",           "x": 200, "y": 135 },
     { "id": "sum", "label": "Sum",         "category": "math",       "sub": "A + (−B)",         "x": 380, "y": 70  },
@@ -225,8 +225,8 @@ output = A + (B × -1)  →  equivalent to A - B
     { "from": "sum", "to": "out", "label": "A − B" }
   ],
   "steps": [
-    { "nodeId": "a",   "text": "Density A is whatever you want to subtract from — typically a terrain surface or a solid region." },
-    { "nodeId": "b",   "text": "Density B is what you want to remove — a cave noise field, a shape, or any density you want to carve out." },
+    { "nodeId": "a",   "text": "BaseHeight stands in for density A: the solid terrain reference you want to subtract from." },
+    { "nodeId": "b",   "text": "SimplexNoise3D stands in for density B: the cave or carve field you want to remove from the terrain." },
     { "nodeId": "mul", "text": "Multiplier with Constant(−1) negates B. Positive values become negative, negative become positive. This flips what was additive into subtractive." },
     { "nodeId": "sum", "text": "Sum adds A and the negated B together: A + (−B) = A − B. Where B was large and positive, the result loses density — creating voids, caves, or carved shapes in A." },
     { "nodeId": "out", "text": "The subtracted result reaches Terrain Out. Any location where B was strong enough to pull the total below zero becomes air — the subtraction carved it out." }
@@ -600,8 +600,8 @@ Where `weight` crosses 0.5, the two terrains are equally mixed -- a gradual tran
 {
   "height": 240,
   "nodes": [
-    { "id": "ta",  "label": "Terrain A",       "category": "terrain", "sub": "e.g. desert plateaus", "x": 0,   "y": 20  },
-    { "id": "tb",  "label": "Terrain B",       "category": "terrain", "sub": "e.g. forest hills",    "x": 0,   "y": 120 },
+    { "id": "ta",  "label": "Imported",        "category": "terrain", "sub": "desert_density",       "x": 0,   "y": 20  },
+    { "id": "tb",  "label": "Imported",        "category": "terrain", "sub": "forest_density",       "x": 0,   "y": 120 },
     { "id": "bn",  "label": "SimplexNoise2D",  "category": "terrain", "sub": "Scale 600 biome",      "x": 0,   "y": 210 },
     { "id": "nm",  "label": "Normalizer",      "category": "filter",  "sub": "[-1,1] → [0,1]",       "x": 200, "y": 210 },
     { "id": "mix", "label": "Mix",             "category": "math",    "sub": "A×(1-w) + B×w",        "x": 400, "y": 110 },
@@ -615,8 +615,8 @@ Where `weight` crosses 0.5, the two terrains are equally mixed -- a gradual tran
     { "from": "mix", "to": "out", "label": "density" }
   ],
   "steps": [
-    { "nodeId": "ta",  "text": "Terrain A is the full density graph for the first terrain type — for example, a desert plateau graph with BaseHeight → CurveMapper → Sum. This entire sub-graph feeds into Mix as a single density value at each point." },
-    { "nodeId": "tb",  "text": "Terrain B is the full density graph for the second terrain type — for example, a forest hills graph with noise and CurveMapper. Neither terrain graph knows about the other; they are computed independently and only combined at the Mix node." },
+    { "nodeId": "ta",  "text": "Imported brings in the first complete density field — for example, an exported desert plateau graph built from BaseHeight → CurveMapper → Sum. This density feeds into Mix as Terrain A." },
+    { "nodeId": "tb",  "text": "Imported brings in the second complete density field — for example, an exported forest hills graph with noise and CurveMapper. Neither terrain graph knows about the other; they are computed independently and only combined at the Mix node." },
     { "nodeId": "bn",  "text": "A dedicated biome blend noise — separate from any terrain noise. Large Scale (0.002 = ~500 blocks) creates wide biome regions. This noise MUST use a different Seed from all terrain noise. If you reuse terrain noise here, biome borders will always align with terrain features, which looks artificial." },
     { "nodeId": "nm",  "text": "Normalizer remaps the noise from [−1, +1] to [0, 1]. Mix requires its weight in [0, 1]. Without this step, negative noise values would produce weights below zero, which Mix does not handle correctly — terrain A would become over-represented." },
     { "nodeId": "mix", "text": "Mix computes: output = A × (1 − weight) + B × weight. At weight=0 the result is pure Terrain A. At weight=1 it is pure Terrain B. At weight=0.5 the densities are equally averaged — a smooth blended boundary where both terrain shapes coexist. The width of the transition zone in world space is determined by how fast the biome noise changes." },

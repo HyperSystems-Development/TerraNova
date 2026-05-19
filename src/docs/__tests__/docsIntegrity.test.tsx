@@ -3,10 +3,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
+import type { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
+import { extractDocSourceContext } from "@/components/docs/docsPanelUtils";
+import { DENSITY_TYPES, evaluateDensityGrid, findDensityRoot } from "@/utils/density";
 import { jsonToGraph } from "@/utils/jsonToGraph";
 import { isLegacyTypeKey } from "@/nodes/shared/legacyTypes";
 
@@ -43,6 +46,21 @@ type SnippetTypeIssue = {
   reason: "legacy" | "unregistered";
 };
 
+type NodegraphLabelIssue = {
+  file: string;
+  label: string;
+  nodeLabel: string;
+  category: string;
+  expected: string[];
+};
+
+type ConceptualNodegraphIssue = {
+  file: string;
+  label: string;
+  category: string;
+  nodeLabel: string;
+};
+
 type SourceContextIssue = {
   file: string;
   reason: "missing-source-context";
@@ -53,6 +71,25 @@ type TerrainSourcePoolIssue = {
   missing: Array<"Examples" | "Experimental" | "Generative">;
 };
 
+type TerrainExampleIssue = {
+  file: string;
+  label: string;
+  reason:
+    | "invalid-json"
+    | "terrain-out-missing-input"
+    | "terrain-out-has-no-density-ancestor"
+    | "snippet-has-no-density-root"
+    | "snippet-evaluates-non-finite"
+    | "snippet-evaluates-empty";
+  detail?: string;
+};
+
+type StalePreviewClaimIssue = {
+  file: string;
+  phrase: string;
+  current: string;
+};
+
 type ResolvedDocLink = {
   slug: string;
   anchor?: string;
@@ -60,6 +97,9 @@ type ResolvedDocLink = {
 
 const DOCS_ROOT = path.join(process.cwd(), "src", "docs");
 const NODES_INDEX = path.join(process.cwd(), "src", "nodes", "index.ts");
+const CUSTOM_FENCE_LANGS = ["nodegraph", "curve", "bounds", "snippet"] as const;
+type CustomFenceLang = (typeof CUSTOM_FENCE_LANGS)[number];
+
 const SOURCE_CONTEXT_DOCS = [
   "reference/README.md",
   "reference/node-effects.md",
@@ -71,11 +111,106 @@ const SOURCE_CONTEXT_DOCS = [
   "guides/world/biome-system.md",
   "guides/terrain/terrain-math-explained.md",
   "guides/terrain/terrain-types.md",
+  "guides/terrain/terrain-types-advanced.md",
+  "guides/terrain/terrain-types-expert.md",
+  "troubleshooting.md",
   "walkthroughs/data-flow-first-steps.md",
   "walkthroughs/basic-terrain-generation.md",
   "walkthroughs/terrain-and-caves.md",
   "walkthroughs/sky-islands.md",
 ] as const;
+
+const TERRAIN_EXAMPLE_DOCS = [
+  "reference/terrain-types.md",
+  "guides/understanding-basic-terrain-generation.md",
+  "guides/world/node-combinations.md",
+  "guides/terrain/terrain-math-explained.md",
+  "guides/terrain/terrain-types.md",
+  "guides/terrain/terrain-types-advanced.md",
+  "guides/terrain/terrain-types-expert.md",
+  "guides/terrain/terrain-experimental.md",
+  "walkthroughs/basic-terrain-generation.md",
+  "walkthroughs/terrain-and-caves.md",
+  "walkthroughs/sky-islands.md",
+] as const;
+
+const DENSITY_NODEGRAPH_CATEGORIES = new Set([
+  "density",
+  "terrain",
+  "generative",
+  "filter",
+  "math",
+  "position",
+  "shape",
+]);
+
+const NODEGRAPH_LABEL_CHECK_EXCLUDED_DOCS = new Set([
+  "contributing.md",
+  "templates/guide-template.md",
+  "templates/walkthrough-template.md",
+  "guides/setup-data-flow-first-steps.md",
+  "walkthroughs/data-flow-first-steps.md",
+]);
+
+const NODEGRAPH_OUTPUT_LABELS = new Set([
+  "Output",
+  "Terrain Out",
+]);
+
+const NODEGRAPH_CATEGORY_PREFIXES: Record<string, string[]> = {
+  assignment: ["Assignment"],
+  blockmask: ["BlockMask"],
+  curve: ["Curve"],
+  directionality: ["Directionality"],
+  environment: ["Environment"],
+  material: ["Material"],
+  pattern: ["Pattern"],
+  position: ["Position"],
+  prop: ["Prop"],
+  scanner: ["Scanner"],
+  tint: ["Tint"],
+  vector: ["Vector"],
+};
+
+const CONCEPTUAL_NODEGRAPH_CATEGORIES = new Set([
+  "biome",
+  "scanner",
+  "worldstruct",
+]);
+
+const PREVIEW_STALE_CLAIM_RULES: Array<{
+  pattern: RegExp;
+  current: string;
+}> = [
+  {
+    pattern: /`GradientWarp`[^.\n]*(?:returns\s+`?0(?:\.0)?`?|completely absent|only appears in-game|test exclusively in-game)/i,
+    current: "`GradientWarp` is approximated in preview through finite-difference gradient sampling.",
+  },
+  {
+    pattern: /`VectorWarp`[^.\n]*(?:returns\s+`?0(?:\.0)?`?|invisible)/i,
+    current: "`VectorWarp` is approximated in preview from the vector provider direction and connected magnitude.",
+  },
+  {
+    pattern: /`BaseHeight`[^.\n]*returns\s+`?0(?:\.0)?`?/i,
+    current: "`BaseHeight` reads the named content field in the preview evaluator.",
+  },
+  {
+    pattern: /`CellWallDistance`[^.\n]*(?:returns\s+`?0(?:\.0)?`?|Double\.MAX_VALUE)/i,
+    current: "`CellWallDistance` reads the side-channel populated by upstream cell-noise evaluation, with a zero fallback.",
+  },
+  {
+    pattern: /`Terrain`[^.\n]*(?:preview returns\s+`?0(?:\.0)?`?|returns\s+`?0(?:\.0)?`?)/i,
+    current: "`Terrain` is previewed as an approximation of base height minus Y.",
+  },
+  {
+    pattern: /`YSampled`[^.\n]*hardcoded\s*-?4/i,
+    current: "`YSampled` uses the configured sample distance.",
+  },
+  {
+    pattern: /`MultiMix`[^.\n]*(?:index overflow|>4 inputs[^.\n]*banding|breaks after four)/i,
+    current: "`MultiMix` sorts configured keys and is not limited to four density bands.",
+  },
+];
 
 const TERRAIN_SOURCE_POOL_DOCS = [
   "reference/README.md",
@@ -195,6 +330,63 @@ function collectActiveNodeTypes(): Set<string> {
   return types;
 }
 
+function parseFenceOpener(line: string): { marker: "`" | "~"; length: number; lang: string } | null {
+  const match = /^(?: {0,3}|\t?)(`{3,}|~{3,})(.*)$/.exec(line);
+  if (!match) return null;
+
+  const markerText = match[1];
+  const info = match[2].trim();
+  const marker = markerText[0] as "`" | "~";
+  return {
+    marker,
+    length: markerText.length,
+    lang: info.split(/\s+/, 1)[0] ?? "",
+  };
+}
+
+function isFenceCloser(line: string, marker: "`" | "~", minLength: number): boolean {
+  const trimmed = line.trim();
+  return trimmed.length >= minLength && [...trimmed].every((char) => char === marker);
+}
+
+function collectFenceBlocks(
+  doc: DocRecord,
+  lang: CustomFenceLang,
+): Array<{ label: string; jsonText: string; body: string }> {
+  const blocks: Array<{ label: string; jsonText: string; body: string }> = [];
+  const lines = doc.text.split(/\r?\n/);
+  let index = 0;
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const opener = parseFenceOpener(lines[lineIndex]);
+    if (!opener) continue;
+
+    const bodyLines: string[] = [];
+    let closeIndex = lineIndex + 1;
+    for (; closeIndex < lines.length; closeIndex += 1) {
+      if (isFenceCloser(lines[closeIndex], opener.marker, opener.length)) break;
+      bodyLines.push(lines[closeIndex]);
+    }
+
+    lineIndex = closeIndex;
+    if (opener.lang !== lang) continue;
+
+    index += 1;
+    const body = bodyLines.join("\n").trim();
+    const bodyTextLines = body.split(/\r?\n/);
+    const hasHeader =
+      lang === "snippet" &&
+      !!bodyTextLines[0] &&
+      !bodyTextLines[0].trim().startsWith("{") &&
+      !bodyTextLines[0].trim().startsWith("[");
+    const label = hasHeader ? bodyTextLines[0].trim() : `${lang} #${index}`;
+    const jsonText = hasHeader ? bodyTextLines.slice(1).join("\n").trim() : body;
+    blocks.push({ label, jsonText, body });
+  }
+
+  return blocks;
+}
+
 function collectInternalLinkIssues(docs: DocRecord[]): LinkIssue[] {
   const docsBySlug = new Map(docs.map((doc) => [doc.slug.toLowerCase(), doc]));
   const issues: LinkIssue[] = [];
@@ -255,10 +447,9 @@ function collectFenceIssues(docs: DocRecord[]): FenceIssue[] {
   const issues: FenceIssue[] = [];
 
   for (const doc of docs) {
-    for (const match of doc.text.matchAll(/```(nodegraph|curve|bounds|snippet)\n([\s\S]*?)\n```/g)) {
-      const lang = match[1];
-      const body = match[2].trim();
-
+    for (const lang of CUSTOM_FENCE_LANGS) {
+      for (const fence of collectFenceBlocks(doc, lang)) {
+        const body = fence.body;
       try {
         if (lang === "nodegraph") {
           const parsed = JSON.parse(body) as { nodes?: unknown; edges?: unknown };
@@ -278,10 +469,15 @@ function collectFenceIssues(docs: DocRecord[]): FenceIssue[] {
 
         if (lang === "curve") {
           const lines = body.split("\n");
-          const pointsJson =
-            lines[0] && !lines[0].trim().startsWith("[") && !lines[0].trim().startsWith("{")
-              ? lines.slice(1).join("\n").trim()
-              : body;
+          let pointsJson = body;
+          if (lines[0] && !lines[0].trim().startsWith("[") && !lines[0].trim().startsWith("{")) {
+            pointsJson = lines.slice(1).join("\n").trim();
+            const secondLine = lines[1]?.trim();
+            if (secondLine?.startsWith("{") && !secondLine.startsWith("[")) {
+              JSON.parse(secondLine) as { xLabel?: string; yLabel?: string };
+              pointsJson = lines.slice(2).join("\n").trim();
+            }
+          }
           const parsed = JSON.parse(pointsJson);
           if (!Array.isArray(parsed)) {
             throw new Error("curve fences must parse to an array");
@@ -305,6 +501,7 @@ function collectFenceIssues(docs: DocRecord[]): FenceIssue[] {
           message: error instanceof Error ? error.message : String(error),
         });
       }
+      }
     }
   }
 
@@ -319,26 +516,18 @@ function collectSnippetTypeIssues(docs: DocRecord[], activeNodeTypes: Set<string
   const issues: SnippetTypeIssue[] = [];
 
   for (const doc of docs) {
-    for (const match of doc.text.matchAll(/```snippet\r?\n([\s\S]*?)\r?\n```/g)) {
-      const body = match[1].trim();
-      const lines = body.split(/\r?\n/);
-      const hasHeader =
-        !!lines[0] &&
-        !lines[0].trim().startsWith("{") &&
-        !lines[0].trim().startsWith("[");
-      const label = hasHeader ? lines[0].trim() : doc.slug;
-      const snippetJson = hasHeader ? lines.slice(1).join("\n").trim() : body;
-      const parsed = JSON.parse(snippetJson) as Record<string, unknown>;
+    for (const fence of collectFenceBlocks(doc, "snippet")) {
+      const parsed = JSON.parse(fence.jsonText) as Record<string, unknown>;
       const { nodes } = jsonToGraph(parsed);
 
       for (const node of nodes) {
         const type = String(node.type ?? "");
         if (isLegacyTypeKey(type)) {
-          issues.push({ file: doc.relPath, label, type, reason: "legacy" });
+          issues.push({ file: doc.relPath, label: fence.label, type, reason: "legacy" });
           continue;
         }
         if (!activeNodeTypes.has(type)) {
-          issues.push({ file: doc.relPath, label, type, reason: "unregistered" });
+          issues.push({ file: doc.relPath, label: fence.label, type, reason: "unregistered" });
         }
       }
     }
@@ -363,7 +552,8 @@ function collectSourceContextIssues(docs: DocRecord[]): SourceContextIssue[] {
       continue;
     }
 
-    if (!doc.text.includes("Biome source assets:") && !doc.text.includes("Source status:")) {
+    const sourceContext = extractDocSourceContext(doc.text);
+    if (sourceContext.sourceAssets.length === 0 && !sourceContext.sourceStatus) {
       issues.push({ file: relPath, reason: "missing-source-context" });
     }
   }
@@ -385,10 +575,11 @@ function collectTerrainSourcePoolIssues(docs: DocRecord[]): TerrainSourcePoolIss
       continue;
     }
 
+    const sourceAssets = extractDocSourceContext(doc.text).sourceAssets.join(" ");
     const missing = [
-      !doc.text.includes("Examples/") ? "Examples" : null,
-      !doc.text.includes("Experimental/") ? "Experimental" : null,
-      !doc.text.includes("Generative/") ? "Generative" : null,
+      !sourceAssets.includes("Examples/") ? "Examples" : null,
+      !sourceAssets.includes("Experimental/") ? "Experimental" : null,
+      !sourceAssets.includes("Generative/") ? "Generative" : null,
     ].filter(Boolean) as Array<"Examples" | "Experimental" | "Generative">;
 
     if (missing.length > 0) {
@@ -397,6 +588,342 @@ function collectTerrainSourcePoolIssues(docs: DocRecord[]): TerrainSourcePoolIss
   }
 
   return issues.sort((a, b) => a.file.localeCompare(b.file));
+}
+
+function getDocNodeId(node: unknown): string | null {
+  if (!node || typeof node !== "object") return null;
+  const id = (node as { id?: unknown }).id;
+  return typeof id === "string" ? id : null;
+}
+
+function getDocNodeLabel(node: unknown): string {
+  if (!node || typeof node !== "object") return "";
+  const label = (node as { label?: unknown }).label;
+  return typeof label === "string" ? label.trim() : "";
+}
+
+function getDocNodeCategory(node: unknown): string {
+  if (!node || typeof node !== "object") return "";
+  const category = (node as { category?: unknown }).category;
+  return typeof category === "string" ? category.trim().toLowerCase() : "";
+}
+
+function getDocEdgeSource(edge: unknown): string | null {
+  if (!edge || typeof edge !== "object") return null;
+  const typed = edge as { from?: unknown; source?: unknown };
+  if (typeof typed.from === "string") return typed.from;
+  if (typeof typed.source === "string") return typed.source;
+  return null;
+}
+
+function getDocEdgeTarget(edge: unknown): string | null {
+  if (!edge || typeof edge !== "object") return null;
+  const typed = edge as { to?: unknown; target?: unknown };
+  if (typeof typed.to === "string") return typed.to;
+  if (typeof typed.target === "string") return typed.target;
+  return null;
+}
+
+function normalizeDocNodeLabel(label: string): string {
+  return label.replace(/\s*\([^)]*\)\s*$/, "").trim();
+}
+
+function collectNodeLabelCandidates(nodeLabel: string, category: string): string[] {
+  const baseLabel = normalizeDocNodeLabel(nodeLabel).replace(/\s+/g, " ");
+  const candidates = new Set<string>();
+  if (baseLabel) candidates.add(baseLabel);
+
+  const prefixes = NODEGRAPH_CATEGORY_PREFIXES[category] ?? [];
+  for (const prefix of prefixes) {
+    candidates.add(`${prefix}:${baseLabel}`);
+  }
+
+  return [...candidates];
+}
+
+function isConceptualNodegraph(parsed: unknown): boolean {
+  return !!parsed && typeof parsed === "object" && (parsed as { kind?: unknown }).kind === "conceptual";
+}
+
+function collectNodegraphLabelIssues(docs: DocRecord[], activeNodeTypes: Set<string>): NodegraphLabelIssue[] {
+  const issues: NodegraphLabelIssue[] = [];
+
+  for (const doc of docs) {
+    if (NODEGRAPH_LABEL_CHECK_EXCLUDED_DOCS.has(doc.relPath)) continue;
+    for (const fence of collectFenceBlocks(doc, "nodegraph")) {
+      const parsed = JSON.parse(fence.jsonText) as { nodes?: unknown };
+      if (isConceptualNodegraph(parsed)) continue;
+      const nodes = Array.isArray(parsed.nodes) ? parsed.nodes : [];
+
+      for (const node of nodes) {
+        const nodeLabel = getDocNodeLabel(node);
+        if (!nodeLabel) continue;
+
+        const category = getDocNodeCategory(node);
+        const normalizedLabel = normalizeDocNodeLabel(nodeLabel);
+        if (NODEGRAPH_OUTPUT_LABELS.has(normalizedLabel)) continue;
+
+        const candidates = collectNodeLabelCandidates(nodeLabel, category);
+        if (candidates.some((candidate) => activeNodeTypes.has(candidate))) continue;
+
+        issues.push({
+          file: doc.relPath,
+          label: fence.label,
+          nodeLabel,
+          category,
+          expected: candidates,
+        });
+      }
+    }
+  }
+
+  return issues.sort((a, b) =>
+    a.file.localeCompare(b.file) ||
+    a.label.localeCompare(b.label) ||
+    a.nodeLabel.localeCompare(b.nodeLabel) ||
+    a.category.localeCompare(b.category),
+  );
+}
+
+function collectConceptualNodegraphIssues(docs: DocRecord[]): ConceptualNodegraphIssue[] {
+  const issues: ConceptualNodegraphIssue[] = [];
+
+  for (const doc of docs) {
+    for (const fence of collectFenceBlocks(doc, "nodegraph")) {
+      const parsed = JSON.parse(fence.jsonText) as { nodes?: unknown };
+      if (isConceptualNodegraph(parsed)) continue;
+      const nodes = Array.isArray(parsed.nodes) ? parsed.nodes : [];
+
+      for (const node of nodes) {
+        const category = getDocNodeCategory(node);
+        if (!CONCEPTUAL_NODEGRAPH_CATEGORIES.has(category)) continue;
+
+        issues.push({
+          file: doc.relPath,
+          label: fence.label,
+          category,
+          nodeLabel: getDocNodeLabel(node),
+        });
+      }
+    }
+  }
+
+  return issues.sort((a, b) =>
+    a.file.localeCompare(b.file) ||
+    a.label.localeCompare(b.label) ||
+    a.category.localeCompare(b.category) ||
+    a.nodeLabel.localeCompare(b.nodeLabel),
+  );
+}
+
+function isTerrainOutNode(node: unknown): boolean {
+  return /^terrain\s*out$/i.test(getDocNodeLabel(node));
+}
+
+function isDensityLikeDocNode(node: unknown): boolean {
+  const label = normalizeDocNodeLabel(getDocNodeLabel(node));
+  const category = getDocNodeCategory(node);
+  return (
+    DENSITY_NODEGRAPH_CATEGORIES.has(category) ||
+    DENSITY_TYPES.has(label) ||
+    DENSITY_TYPES.has(label.replace(/Accessor$/i, "")) ||
+    /(?:Noise|BaseHeight|YSampled|CurveMapper|Constant|Sum|Multiplier|Min|Max)/.test(label)
+  );
+}
+
+function buildIncomingEdgeMap(edges: unknown[]): Map<string, string[]> {
+  const incoming = new Map<string, string[]>();
+  for (const edge of edges) {
+    const source = getDocEdgeSource(edge);
+    const target = getDocEdgeTarget(edge);
+    if (!source || !target) continue;
+    const sources = incoming.get(target) ?? [];
+    sources.push(source);
+    incoming.set(target, sources);
+  }
+  return incoming;
+}
+
+function hasDensityAncestor(targetId: string, nodesById: Map<string, unknown>, incoming: Map<string, string[]>): boolean {
+  const queue = [...(incoming.get(targetId) ?? [])];
+  const seen = new Set<string>();
+
+  while (queue.length > 0) {
+    const id = queue.shift();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+
+    const node = nodesById.get(id);
+    if (isDensityLikeDocNode(node)) return true;
+    queue.push(...(incoming.get(id) ?? []));
+  }
+
+  return false;
+}
+
+function collectTerrainNodegraphIssues(doc: DocRecord): TerrainExampleIssue[] {
+  const issues: TerrainExampleIssue[] = [];
+
+  for (const fence of collectFenceBlocks(doc, "nodegraph")) {
+    let parsed: { nodes?: unknown; edges?: unknown };
+    try {
+      parsed = JSON.parse(fence.jsonText) as { nodes?: unknown; edges?: unknown };
+    } catch (error) {
+      issues.push({
+        file: doc.relPath,
+        label: fence.label,
+        reason: "invalid-json",
+        detail: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
+
+    const nodes = Array.isArray(parsed.nodes) ? parsed.nodes : [];
+    const edges = Array.isArray(parsed.edges) ? parsed.edges : [];
+    const terrainOutNodes = nodes.filter(isTerrainOutNode);
+    if (terrainOutNodes.length === 0) continue;
+
+    const nodesById = new Map<string, unknown>();
+    for (const node of nodes) {
+      const id = getDocNodeId(node);
+      if (id) nodesById.set(id, node);
+    }
+    const incoming = buildIncomingEdgeMap(edges);
+
+    for (const outputNode of terrainOutNodes) {
+      const outputId = getDocNodeId(outputNode);
+      if (!outputId) continue;
+
+      if ((incoming.get(outputId) ?? []).length === 0) {
+        issues.push({
+          file: doc.relPath,
+          label: fence.label,
+          reason: "terrain-out-missing-input",
+          detail: outputId,
+        });
+        continue;
+      }
+
+      if (!hasDensityAncestor(outputId, nodesById, incoming)) {
+        issues.push({
+          file: doc.relPath,
+          label: fence.label,
+          reason: "terrain-out-has-no-density-ancestor",
+          detail: outputId,
+        });
+      }
+    }
+  }
+
+  return issues;
+}
+
+function collectTerrainSnippetIssues(doc: DocRecord): TerrainExampleIssue[] {
+  const issues: TerrainExampleIssue[] = [];
+
+  for (const fence of collectFenceBlocks(doc, "snippet")) {
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(fence.jsonText) as Record<string, unknown>;
+    } catch (error) {
+      issues.push({
+        file: doc.relPath,
+        label: fence.label,
+        reason: "invalid-json",
+        detail: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
+
+    const { nodes, edges } = jsonToGraph(parsed);
+    const root = findDensityRoot(nodes as Node[], edges as Edge[]);
+    if (!root) {
+      issues.push({
+        file: doc.relPath,
+        label: fence.label,
+        reason: "snippet-has-no-density-root",
+      });
+      continue;
+    }
+
+    const values: number[] = [];
+    for (const yLevel of [48, 64, 80]) {
+      const grid = evaluateDensityGrid(nodes as Node[], edges as Edge[], 5, -32, 32, yLevel, root.id, {
+        contentFields: {
+          Base: 64,
+          BaseHeight: 64,
+          Bedrock: 0,
+          Ceiling: 96,
+          Surface: 64,
+          Water: 48,
+        },
+      });
+      values.push(...Array.from(grid.values));
+    }
+
+    if (values.some((value) => !Number.isFinite(value))) {
+      issues.push({
+        file: doc.relPath,
+        label: fence.label,
+        reason: "snippet-evaluates-non-finite",
+      });
+      continue;
+    }
+
+    if (values.every((value) => Math.abs(value) <= 1e-6)) {
+      issues.push({
+        file: doc.relPath,
+        label: fence.label,
+        reason: "snippet-evaluates-empty",
+      });
+    }
+  }
+
+  return issues;
+}
+
+function collectTerrainExampleIssues(docs: DocRecord[]): TerrainExampleIssue[] {
+  const docsByRelPath = new Map(docs.map((doc) => [doc.relPath, doc]));
+  const issues: TerrainExampleIssue[] = [];
+
+  for (const relPath of TERRAIN_EXAMPLE_DOCS) {
+    const doc = docsByRelPath.get(relPath);
+    if (!doc) continue;
+    issues.push(...collectTerrainNodegraphIssues(doc));
+    issues.push(...collectTerrainSnippetIssues(doc));
+  }
+
+  return issues.sort((a, b) =>
+    a.file.localeCompare(b.file) ||
+    a.label.localeCompare(b.label) ||
+    a.reason.localeCompare(b.reason) ||
+    (a.detail ?? "").localeCompare(b.detail ?? ""),
+  );
+}
+
+function collectStalePreviewClaimIssues(docs: DocRecord[]): StalePreviewClaimIssue[] {
+  const issues: StalePreviewClaimIssue[] = [];
+
+  for (const doc of docs) {
+    const lines = doc.text.split(/\r?\n/);
+    for (const line of lines) {
+      for (const rule of PREVIEW_STALE_CLAIM_RULES) {
+        if (rule.pattern.test(line)) {
+          issues.push({
+            file: doc.relPath,
+            phrase: line.trim(),
+            current: rule.current,
+          });
+        }
+      }
+    }
+  }
+
+  return issues.sort((a, b) =>
+    a.file.localeCompare(b.file) ||
+    a.phrase.localeCompare(b.phrase) ||
+    a.current.localeCompare(b.current),
+  );
 }
 
 describe("docs content integrity", () => {
@@ -419,11 +946,27 @@ describe("docs content integrity", () => {
     expect(collectSnippetTypeIssues(docs, activeNodeTypes)).toEqual([]);
   });
 
+  it("keeps nodegraph diagram labels on real node types", () => {
+    expect(collectNodegraphLabelIssues(docs, activeNodeTypes)).toEqual([]);
+  });
+
+  it("marks conceptual nodegraph diagrams explicitly", () => {
+    expect(collectConceptualNodegraphIssues(docs)).toEqual([]);
+  });
+
   it("keeps audited worldgen docs tagged with source context", () => {
     expect(collectSourceContextIssues(docs)).toEqual([]);
   });
 
   it("keeps terrain docs sourced from Examples, Experimental, and Generative biome folders", () => {
     expect(collectTerrainSourcePoolIssues(docs)).toEqual([]);
+  });
+
+  it("keeps terrain docs examples connected to real terrain density outputs", () => {
+    expect(collectTerrainExampleIssues(docs)).toEqual([]);
+  });
+
+  it("keeps preview caveats aligned with current evaluator behavior", () => {
+    expect(collectStalePreviewClaimIssues(docs)).toEqual([]);
   });
 });

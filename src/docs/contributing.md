@@ -138,7 +138,7 @@ Use fenced code blocks with the language `nodegraph` for all node diagrams. The 
 
 **Minimal diagram:**
 
-```
+````
 ```nodegraph
 {
   "height": 140,
@@ -151,23 +151,28 @@ Use fenced code blocks with the language `nodegraph` for all node diagrams. The 
   ]
 }
 ```
-```
+````
 
 **With walkthrough steps** -- the first step is shown on load, zoomed in to its node:
 
-```
+````
 ```nodegraph
 {
   "height": 140,
-  "nodes": [...],
-  "edges": [...],
+  "nodes": [
+    { "id": "a",   "label": "BaseHeight",   "category": "terrain", "x": 0,   "y": 40 },
+    { "id": "out", "label": "Terrain Out",  "category": "output",  "x": 220, "y": 40 }
+  ],
+  "edges": [
+    { "from": "a", "to": "out", "label": "density" }
+  ],
   "steps": [
     { "nodeId": "a",   "text": "Explain this node." },
     { "nodeId": "out", "text": "Explain the output." }
   ]
 }
 ```
-```
+````
 
 **Node categories** (controls diagram color):
 
@@ -214,6 +219,7 @@ If a node only exists in the editor and not in the bundle, note it clearly as ed
 - Add a short note near the top of the page in this format: `**Biome source assets:** \`Examples/Example_Curve_Mapper.json\`, \`Experimental/Mountains.json\`, \`Generative/Generative_Arches.json\``
 - If a doc is a teaching reconstruction rather than a direct transcription, say so plainly.
 - If you cannot point to a matching biome asset with confidence, stop and ask before documenting it as a concrete example.
+- Run `pnpm docs:check` before merging doc changes. It verifies links, anchors, custom fences, nodegraph labels, source notes, terrain graph outputs, terrain snippets, and stale preview caveats.
 
 ---
 

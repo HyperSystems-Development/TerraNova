@@ -2,6 +2,8 @@
 
 **Difficulty:** Expert
 
+> **Source status:** Preview and evaluator notes are checked against TerraNova's current density evaluator tests and handlers. Hytale runtime guidance remains a teaching model and should be verified in-game for production packs.
+
 This guide covers the techniques that require understanding the density graph as a system — evaluation order, thread safety, preview accuracy limits, and node interactions that span the pipeline boundary. These are not just harder recipes; they require knowing *why* the system works the way it does.
 
 Prerequisites: everything in [Complex Terrain Techniques](./terrain-types-advanced.md). This guide assumes you are comfortable with domain warping, SDF shapes, the Export/Import pattern, and `Switch` branching.
@@ -14,7 +16,7 @@ Prerequisites: everything in [Complex Terrain Techniques](./terrain-types-advanc
 
 **Why it's expert:** `Mix` handles exactly two inputs. Chaining multiple `Mix` nodes for N-way blending creates a tree of `lerp` calls where each stage's transition zone narrows the further down the chain you go. `MultiMix` handles all N segments with consistent transition widths, using a single selector and piecewise linear keys.
 
-**The recipe:** `MultiMix` with a low-frequency `SimplexNoise2D` as the first input (selector), followed by N terrain subgraphs as segments. The `Keys` array defines the breakpoints where transitions happen.
+**The recipe:** `MultiMix` with a low-frequency `SimplexNoise2D` connected to the `Selector` input, followed by N terrain subgraphs connected to `Densities[0]`, `Densities[1]`, and so on. The `Keys` array defines the selector breakpoints where transitions happen.
 
 ```nodegraph
 {
@@ -45,12 +47,12 @@ Prerequisites: everything in [Complex Terrain Techniques](./terrain-types-advanc
 
 **Key parameters:**
 - Selector Scale`*`: `0.0008` — very low frequency so terrain type zones are continent-sized; `0.003` for smaller biome patches
-- All inputs (selector + segments) connect to the single `densities` port; `Keys` maps each input to a position in the blend space
+- The selector connects to `Selector`; terrain segments connect to `Densities[n]`; `Keys` maps each segment input to a position in the blend space
 - `Keys`\*: array of values, one per input: `[0.0, 0.25, 0.5, 0.75, 1.0]` — the selector density is compared against these; the output blends between the two bracketing inputs; adjust spacing to make some zones wider
 
 **How MultiMix transitions work:** Between key `i` and key `i+1`, the output is a `lerp` between segment input `i` and segment input `i+1`. At key values exactly, the output is purely the corresponding segment. A selector of `0.33` is pure hills. A selector of `0.165` (midpoint between 0 and 0.33) is a 50/50 blend of plains and hills.
 
-**Preview caveat:** `MultiMix` with more than 4 inputs has a known index overflow bug in TerraNova's previewer — you'll see banding artifacts at segment boundaries for 5+ inputs. The JSON export and in-game result will be correct. Limit preview testing to ≤4 segments, or use the 2D heatmap view where the artifacts are easier to distinguish from the intended output.
+**Preview note:** TerraNova sorts `Keys` before evaluating `MultiMix`, so unsorted key arrays preview predictably. If you see hard bands, check that the selector is normalized and that neighboring key values are not too close together.
 
 **Variations:**
 - Use unequal key spacing to make certain zones much wider than others: `[0.0, 0.1, 0.5, 1.0]` — plains occupy only 10%, everything else has mountains/alpine
@@ -100,7 +102,7 @@ Same structure, but replace `PositionsPinch` with `PositionsTwist`. `PositionsTw
 
 **Critical ordering note:** `PositionsCellNoise` must be evaluated before `PositionsPinch`/`PositionsTwist` in the graph — it's what populates `positionsAnchor`. The `Positions*` distortion nodes read that anchor and apply their transform. Evaluating them out of order produces undefined behavior (they'll use whatever anchor was last set, which could be from a completely different node).
 
-**Preview accuracy:** `PositionsPinch` and `PositionsTwist` are categorized as unsupported in TerraNova's evaluator — preview shows no distortion. The in-game result will be correct. Design the distortion radius and strength conservatively and test in-game early.
+**Preview accuracy:** `PositionsPinch` and `PositionsTwist` are approximated in TerraNova's evaluator. Use the preview for broad distortion direction, but treat the exact position-provider interaction as runtime-sensitive and test in-game early.
 
 ---
 
@@ -167,7 +169,7 @@ Inputs:
        ]}
 ```
 
-**Preview caveat:** `Imported` returns `0.0` in TerraNova's preview — the export registry is not wired up in the evaluator. When testing graphs that use Export/Import, replace `Imported` references with inline copies of the subgraph during preview iteration, then restore `Imported` before exporting.
+**Preview caveat:** `Imported` passes through a connected inline input in TerraNova's preview. A cross-asset `Imported` reference with no inline input still previews as `0`, because the preview evaluator does not resolve the export registry. When testing those graphs, replace external imports with inline copies during preview iteration, then restore `Imported` before exporting.
 
 ---
 
@@ -186,7 +188,7 @@ Inputs:
     { "id": "exp",  "label": "Exported (continent)", "category": "density", "sub": "SingleInstance",    "x": 0,   "y": 80 },
     { "id": "cache","label": "Cache",                "category": "density", "sub": "capacity 3",        "x": 200, "y": 80 },
     { "id": "terr", "label": "Sum (terrain use)",   "category": "density", "sub": "imports cache",     "x": 400, "y": 30 },
-    { "id": "mat",  "label": "MaterialProvider",    "category": "material","sub": "imports cache",     "x": 400, "y": 150 }
+    { "id": "mat",  "label": "TerrainDensity",      "category": "material","sub": "imports cache",     "x": 400, "y": 150 }
   ],
   "edges": [
     { "from": "exp",  "to": "cache" },
@@ -264,52 +266,52 @@ Inputs:
 
 This carves an ellipsoid void from terrain — but only where terrain is already solid. In pure air, `Terrain` returns a large negative value, so `Min` returns that (air stays air). Only where `Terrain` is positive does the ellipsoid carve matter.
 
-**Preview caveat:** `Terrain` returns `0.0` in TerraNova's preview (the provider isn't wired). In the previewer, `Gradient(Terrain)` will therefore return zero — the slope-based material won't appear in the Docs panel preview. Test these patterns in-game directly.
+**Preview caveat:** TerraNova approximates `Terrain` as `baseHeight - Y` in the preview evaluator. That is useful for broad terrain-shape checks, but it is not the full runtime terrain-provider query. Treat `Gradient(Terrain)` previews as a proxy and test slope-based material rules in-game.
 
 ---
 
 ## 6. Preview vs. Runtime: What You're Not Seeing
 
-**What this is:** A reference for which nodes preview accurately and which produce incorrect or zero output in TerraNova's density evaluator. Building complex graphs without knowing these limits leads to designing terrain around a preview that doesn't match what the game generates.
+**What this is:** A reference for which nodes preview accurately, which are approximated, and which are unsupported in TerraNova's density evaluator. Building complex graphs without knowing these limits leads to designing terrain around a preview that doesn't match what the game generates.
 
-**Completely absent in preview (returns 0.0):**
+**Unsupported or unresolved in preview:**
 
 | Node | Preview output | In-game | Impact |
 |------|---------------|---------|--------|
-| `GradientWarp` | `0.0` | Correct warp | **Critical** — any graph using this looks completely wrong in preview |
-| `VectorWarp` | `0.0` | Correct warp | Critical — directional distortion invisible |
-| `Terrain` | `0.0` | Reads terrain density | High — slope/terrain queries broken |
-| `BaseHeight` | `0.0` | Correct Y offset | High — vertical anchor appears at Y=0 |
-| `CellWallDistance` | `0.0` | Reads wall proximity | High — Voronoi valley carving invisible |
-| `Imported` | `0.0` | Resolves to export | Medium — all Export/Import chains show wrong output |
+| `Pipeline` | `0.0` fallback | Sequential registration / evaluation | Medium -- use it for export ordering, not preview shape |
+| `SurfaceDensity` / `TerrainBoolean` / `TerrainMask` | `0.0` fallback | Runtime terrain-specific logic | High -- preview cannot show these directly |
+| Cross-asset `Imported` with no inline input | `0.0` fallback | Resolves named export | Medium -- inline the referenced graph while previewing |
 
 **Approximated (visually different from in-game):**
 
 | Node | Difference | Severity |
 |------|-----------|----------|
-| `FastGradientWarp` | Single-octave only; in-game uses full fBm warp accumulation | High — warp appears smoother/weaker than final |
+| `GradientWarp` | Finite-difference gradient sampling in preview; strong chained warps may differ from runtime | High |
+| `VectorWarp` | Uses connected vector provider and magnitude as an approximation | Medium |
+| `FastGradientWarp` | Uses TerraNova's local fast-noise warp implementation; exact runtime seed positions may differ | Medium |
+| `Terrain` | Approximated as `baseHeight - Y`, not a full terrain-provider query | Medium |
+| `PositionsPinch` / `PositionsTwist` | Position-provider context is simplified | Medium |
 | `SmoothMin` / `SmoothMax` | Different polynomial; blending curve shape differs slightly | Low |
 | `SmoothClamp` | Compounds both SmoothMin + SmoothMax errors | Low |
 | `SmoothFloor` / `SmoothCeiling` | Transition band width differs ~10–15% at non-default smoothness | Low |
 | `SimplexNoise2D/3D` | Different permutation table → different feature positions per seed; 3D also has 12.5% amplitude error | Medium — design correct, but exact positions and 3D intensity shift |
 | `CellNoise2D/3D` | Different hash → cell boundaries in different XZ positions | Medium |
-| `CellNoise2D/3D` (Curve/Density ReturnType) | Raw `d1` returned instead of delegating to curve or child density | Medium — curve-mapped cell effects show raw distance instead |
+| `CellWallDistance` | Exact after upstream cell-noise evaluation; falls back to `0` if evaluated before cell distance is populated | Medium |
 | `Switch` / `SwitchState` | Simplified XOR position hash instead of Java's SeedBox.mix() | Medium — some positions select the wrong branch |
-| `MultiMix` (>4 inputs) | Index overflow → banding artifacts at transitions | Medium |
-| `YSampled` | `SampleDistance` hardcoded to 4 regardless of config | Medium if you set a non-default step |
+| `YSampled` | Honors `SampleDistance` and interpolation settings, but can smooth features thinner than the sample step | Medium if the feature is thin |
 | `Gradient` | Doesn't account for `Scale` node transforms | Medium if used inside a scaled context |
 | Shape SDFs with Rotation | `Cube`, `Ellipsoid`, `Cuboid`, `Cylinder` ignore their Rotation parameter | Medium — rotated shapes appear axis-aligned |
 | `Shell` | Inner radius and `Thickness` parameter ignored; renders as solid shape | High — hollow shells appear filled |
 
-**Practical workflow for nodes with critical preview gaps:**
+**Practical workflow for approximation-sensitive nodes:**
 
-1. **GradientWarp / VectorWarp:** Build and tune the child terrain first without warping. Once the unwarped shape looks right in preview, add the warp node and test exclusively in-game. Rely on the warp parameter descriptions in [Complex Terrain Techniques](./terrain-types-advanced.md) for factor guidance rather than preview iteration.
+1. **GradientWarp / VectorWarp:** Build and tune the child terrain first without warping. Once the unwarped shape looks right in preview, add the warp node and use preview for direction and scale. Validate final warp strength in-game.
 
-2. **BaseHeight:** Use the 2D heatmap preview and watch the density value readout at Y=64. If it reads near 0 when it should read your height offset, your BaseHeight node is hitting the preview gap. Work around it by temporarily replacing `BaseHeight` with `Sum { Inputs: [YValue, Constant { Value: -64 }] }` during preview, which is a faithful implementation.
+2. **BaseHeight:** Use the 2D heatmap preview and watch the density value readout at the target Y level. If the anchor is wrong, check that the referenced content field exists and that `Distance` is set correctly for the pattern.
 
 3. **Export/Import:** Replace `Imported` references with inline copies during preview-time iteration. Restore the `Imported` reference before JSON export.
 
-4. **CellWallDistance:** Use `CellNoise2D` (which previews correctly for distance values) as a visual proxy during preview, then switch to the `CellWallDistance` accessor for the final graph.
+4. **CellWallDistance:** Keep the upstream cell-noise node in the same evaluated path before `CellWallDistance`. If the wall signal reads as `0`, the side-channel likely has not been populated yet.
 
 ---
 
@@ -453,7 +455,7 @@ Wrong:     expensive → Cache(capacity=32)  ← large capacity = long scan per 
 
 **Use FastGradientWarp by default.** Only reach for `GradientWarp` if the visual character of FastGradientWarp is clearly insufficient after testing in-game.
 
-**Preview accuracy:** `FastGradientWarp` previews (unlike `GradientWarp` which returns 0), but uses single-octave warp instead of full fBm — the preview will look smoother and less warped than the in-game result.
+**Preview accuracy:** Both `FastGradientWarp` and `GradientWarp` preview in TerraNova, but they use local approximations. Expect strong warps to look directionally useful in the editor while still needing in-game validation for final shape.
 
 ---
 
@@ -522,8 +524,8 @@ Before exporting a complex graph, run through this list:
 | `PositionsPinch`/`Twist` | Bridge density and positions systems; must follow `PositionsCellNoise` in evaluation order; preview shows nothing |
 | `SingleInstance` export | Safe for stateless nodes (noise, constants, pure math); unsafe for anything with `rChildContext` (Scale, Warp, Positions*) |
 | `Cache` strategy | Only helps when the same position is queried multiple times by multiple consumers in the same pass; capacity ≤4 |
-| `Terrain` accessor | Safe in material providers (after terrain is finalized); circular if used inside the terrain graph itself; preview returns 0 |
-| Preview gaps | `GradientWarp`, `VectorWarp`, `BaseHeight`, `CellWallDistance`, `Terrain`, `Imported` return 0; `Shell`, SDF rotation, `Switch` hash, noise seed positions all differ |
+| `Terrain` accessor | Safe in material providers (after terrain is finalized); circular if used inside the terrain graph itself; preview is an approximation |
+| Preview gaps | `Pipeline`, terrain-specific boolean/mask nodes, and unresolved cross-asset imports fall back to 0; warp, terrain accessor, cell-wall, `Shell`, SDF rotation, `Switch` hash, and noise seed positions are approximation-sensitive |
 | Graph topology | Cost is per-block and multiplicative; `YSampled` wraps the expensive subgraph; `Cache` fixes DAG diamonds; avoid nested `Gradient` |
 | Optimization | `YSampled` (vertical amortization), `Cache` (DAG deduplication), `FastGradientWarp` > `GradientWarp`, octave budget, 2D over 3D, `SingleInstance` for shared statics |
 

@@ -6,6 +6,8 @@
 
 This guide documents techniques that push the WorldGen V2 density system beyond its intended use cases. These are not production recipes — they are proofs of concept, with known limitations, visual artifacts, or high performance costs. Use them to understand the system's boundaries and as starting points for your own experiments.
 
+> **Source status:** Experimental recipes are teaching reductions. Terrain-output diagrams are checked by the docs integrity tests, but runtime feedback behavior must still be validated in-game before production use.
+
 > [!WARNING]
 > Techniques in this guide may produce unexpected results in-game, are not guaranteed to be stable across Hytale updates, and in some cases exploit emergent behavior from node interactions that was not explicitly designed. Test thoroughly in isolated worlds before using in serious projects.
 
@@ -18,15 +20,15 @@ This guide documents techniques that push the WorldGen V2 density system beyond 
 **What it produces:** Terrain that "knows" its own slope in real-time during generation. High slopes modify their own density slightly. In practice this creates a very subtle self-smoothing effect on steep faces and can produce faint step artifacts at extreme values.
 
 > [!WARNING]
-> Circular graph evaluation is not supported. The `Terrain` accessor reads the density at a *different* position (offset from the current evaluation point), not at the current position — this is what prevents infinite recursion. However, if the offset is very small or zero, the accessor returns `0.0` (not the current density). Keep offsets at least 2–4 blocks.
+> Circular graph evaluation is not supported. The `Terrain` accessor reads the density at a *different* position (offset from the current evaluation point), not at the current position — this is what prevents infinite recursion. However, if the offset is very small or zero, the sample can collapse to an empty feedback read rather than the current density. Keep offsets at least 2–4 blocks.
 
 ```nodegraph
 {
   "height": 280,
   "nodes": [
     { "id": "base", "label": "Sum (terrain)",  "category": "density", "sub": "primary terrain",      "x": 0,   "y": 0   },
-    { "id": "ta",   "label": "TerrainAccessor","category": "density", "sub": "offset X+3",           "x": 0,   "y": 130 },
-    { "id": "tb",   "label": "TerrainAccessor","category": "density", "sub": "offset X−3",           "x": 0,   "y": 200 },
+    { "id": "ta",   "label": "Terrain",       "category": "density", "sub": "offset X+3",           "x": 0,   "y": 130 },
+    { "id": "tb",   "label": "Terrain",       "category": "density", "sub": "offset X−3",           "x": 0,   "y": 200 },
     { "id": "diff", "label": "Sum",            "category": "math",    "sub": "slope proxy A−B",      "x": 200, "y": 165 },
     { "id": "dcm",  "label": "CurveMapper",    "category": "filter",  "sub": "slope→modifier",       "x": 380, "y": 165 },
     { "id": "sc",   "label": "Constant",       "category": "math",    "sub": "Value 0.08",           "x": 380, "y": 235 },
@@ -54,7 +56,7 @@ This guide documents techniques that push the WorldGen V2 density system beyond 
 - `Multiplier`+`Constant` keeps the feedback amplitude small — large values cause feedback artifacts
 
 **Known artifacts:**
-- Chunk boundary seams: `TerrainAccessor` reads across chunk boundaries at generation time, but the neighboring chunk may not be generated yet. The accessor returns `0.0` for ungenerated positions, causing a thin line artifact at chunk borders
+- Chunk boundary seams: the `Terrain` accessor reads across chunk boundaries at generation time, but the neighboring chunk may not be generated yet. Ungenerated positions can produce empty feedback samples, causing a thin line artifact at chunk borders
 - Noise amplification: if the modifier amplitude (`sc Value`) exceeds `0.15`, the feedback can slightly amplify existing noise features, making ridges sharper than the base terrain predicts
 
 **Interesting outcomes:**

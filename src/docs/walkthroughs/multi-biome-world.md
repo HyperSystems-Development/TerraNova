@@ -12,6 +12,7 @@ The world evaluates a **biome selector** — a single noise value at every (X, Z
 
 ```nodegraph
 {
+  "kind": "conceptual",
   "height": 200,
   "nodes": [
     { "id": "sn",  "label": "SimplexNoise2D", "category": "terrain",     "sub": "Scale 0.001",    "x": 0,   "y": 80  },

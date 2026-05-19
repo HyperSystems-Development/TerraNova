@@ -11,6 +11,7 @@ import { ProjectTitleBar } from "@/components/layout/ProjectTitleBar";
 import { StatusBar } from "@/components/layout/StatusBar";
 import { PanelLayout } from "@/components/layout/PanelLayout";
 import { DragGhost } from "@/components/editor/DragGhost";
+import { DocsPanel } from "@/components/docs/DocsPanel";
 import { HomeScreen } from "@/components/home/HomeScreen";
 import { Toast } from "@/components/ui/Toast";
 import { LoadingDialog } from "@/components/ui/LoadingDialog";
@@ -240,6 +241,10 @@ export default function App() {
     />
   );
 
+  if (isDocsSmokeRoute()) {
+    return <DocsSmokeHarness />;
+  }
+
   if (projectPath === null) {
     return (
       <div className="flex flex-col h-screen bg-tn-bg text-tn-text">
@@ -274,6 +279,33 @@ export default function App() {
       <GlobalLoader />
       <SyncProgressModal />
     </ReactFlowProvider>
+  );
+}
+
+function isDocsSmokeRoute(): boolean {
+  if (!import.meta.env.DEV) return false;
+  try {
+    return new URLSearchParams(window.location.search).get("docs-smoke") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function DocsSmokeHarness() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("doc") ?? "walkthroughs/terrain-and-caves";
+    localStorage.setItem("tn-docs-last-slug", slug);
+  } catch {
+    // Ignore storage issues in smoke runs.
+  }
+
+  return (
+    <div className="h-screen bg-tn-bg text-tn-text">
+      <div className="mx-auto flex h-full max-w-6xl flex-col border-x border-tn-border bg-tn-surface">
+        <DocsPanel />
+      </div>
+    </div>
   );
 }
 

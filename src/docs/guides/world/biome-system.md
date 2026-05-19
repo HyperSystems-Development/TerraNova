@@ -25,6 +25,7 @@ Each system is **independent** -- you can share a material provider between two 
 
 ```nodegraph
 {
+  "kind": "conceptual",
   "height": 220,
   "nodes": [
     { "id": "td",  "label": "Terrain Density",    "category": "terrain",   "sub": "DensityAsset",           "x": 0,   "y": 0   },
@@ -82,6 +83,7 @@ Each biome occupies roughly equal portions of the noise distribution. To make a 
 
 ```nodegraph
 {
+  "kind": "conceptual",
   "height": 220,
   "nodes": [
     { "id": "sn",  "label": "SimplexNoise2D", "category": "terrain",     "sub": "Scale 0.001",   "x": 0,   "y": 80  },

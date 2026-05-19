@@ -38,6 +38,7 @@ templates/hytale-pre-release/
 
 # AI agent workspace
 .serena/
+.claw/
 
 # Logs
 *.log

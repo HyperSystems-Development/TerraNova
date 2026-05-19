@@ -16,6 +16,7 @@ import {
   buildDocNodeGraphMarkdownBlock,
   buildSnippetDocNodeGraph,
   buildSnippetGraphData,
+  extractDocSourceContext,
   extractWalkthroughSteps,
   filterDocTree,
   findFirstFileSlug,
@@ -23,6 +24,7 @@ import {
   parseSnippetFence,
   stripDocComments,
 } from "@/components/docs/docsPanelUtils";
+import type { DocSourceContext } from "@/components/docs/docsPanelUtils";
 import { CurveCanvas } from "@/components/properties/CurveCanvas";
 import { autoLayout } from "@/utils/autoLayout";
 import type { ClipboardData } from "@/utils/clipboard";
@@ -74,7 +76,7 @@ const NODE_DEFAULT_CATEGORY: Record<string, string> = {
   Scale: "position", Slider: "position", Rotator: "position", Anchor: "position",
   DistanceToBiomeEdge: "position",
   // Terrain
-  TerrainAccessor: "terrain", Terrain: "terrain",
+  Terrain: "terrain",
   Imported: "terrain", Exported: "terrain", SingleInstance: "terrain",
   // Shape SDF
   Ellipsoid: "shape", Plane: "shape", Cylinder: "shape",
@@ -781,6 +783,47 @@ function resolveLinkSlug(currentSlug: string, href: string): ResolvedLink {
   return { slug: resolved, anchor: anchorPart };
 }
 
+function DocSourceContextPanel({ context }: { context: DocSourceContext }) {
+  const hasSourceContext =
+    context.sourceAssets.length > 0 ||
+    Boolean(context.sourceStatus) ||
+    Boolean(context.teachingStatus);
+
+  if (!hasSourceContext) return null;
+
+  return (
+    <section className="mb-5 rounded-md border border-tn-border/80 bg-tn-bg/55 px-4 py-3 text-sm text-tn-text-muted">
+      <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-tn-text-muted/80">
+        <ScrollText className="h-3.5 w-3.5 text-tn-accent" />
+        <span>Source context</span>
+      </div>
+      {context.sourceStatus && (
+        <p className="m-0 text-tn-text-muted">{context.sourceStatus}</p>
+      )}
+      {context.teachingStatus && (
+        <p className="m-0 mt-1 text-tn-text-muted">{context.teachingStatus}</p>
+      )}
+      {context.sourceAssets.length > 0 && (
+        <div className="mt-3">
+          <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-tn-text-muted/70">
+            Source assets
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {context.sourceAssets.map((asset) => (
+              <code
+                key={asset}
+                className="rounded border border-tn-border/70 bg-tn-panel/75 px-1.5 py-0.5 text-[11px] text-tn-text"
+              >
+                {asset}
+              </code>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function RelatedDocs({
   selectedSlug,
   outboundLinks,
@@ -1239,6 +1282,7 @@ export function DocsPanel() {
 
   const docTree = useMemo(() => buildDocTree(entries), [entries]);
   const tocEntries = useMemo(() => parseToc(rawMd), [rawMd]);
+  const sourceContext = useMemo(() => extractDocSourceContext(rawMd), [rawMd]);
   const normalizedFilter = deferredFilter.trim();
 
   const toggleSidebarCollapsed = useCallback(
@@ -2719,6 +2763,7 @@ export function DocsPanel() {
                   </div>
                 </div>
 
+                <DocSourceContextPanel context={sourceContext} />
                 {walkthroughShowFull ? (
                   <>
                     <DocToc entries={tocEntries} contentRef={contentRef} defaultOpen={settings.showTocByDefault} />
@@ -2771,6 +2816,7 @@ export function DocsPanel() {
                     </div>
                   </div>
                 )}
+                <DocSourceContextPanel context={sourceContext} />
                 <DocToc entries={tocEntries} contentRef={contentRef} defaultOpen={settings.showTocByDefault} />
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
