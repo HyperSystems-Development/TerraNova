@@ -15,7 +15,6 @@ import type { Mesh } from "three";
 
 function Heightfield({ wireframe }: { wireframe: boolean }) {
   const values = usePreviewStore((s) => s.values);
-  const resolution = usePreviewStore((s) => s.resolution);
   const minValue = usePreviewStore((s) => s.minValue);
   const maxValue = usePreviewStore((s) => s.maxValue);
   const p02Value = usePreviewStore((s) => s.p02Value);
@@ -28,7 +27,7 @@ function Heightfield({ wireframe }: { wireframe: boolean }) {
     if (!values) return null;
 
     const cm = getColormap(colormap);
-    const n = resolution;
+    const n = Math.round(Math.sqrt(values.length));
     const positions = new Float32Array(n * n * 3);
     const colors = new Float32Array(n * n * 3);
     // Use percentile-based range for outlier resistance
@@ -67,7 +66,7 @@ function Heightfield({ wireframe }: { wireframe: boolean }) {
     }
 
     return { positions, colors, indices: new Uint32Array(indices) };
-  }, [values, resolution, minValue, maxValue, p02Value, p98Value, colormap, heightScale3D]);
+  }, [values, minValue, maxValue, p02Value, p98Value, colormap, heightScale3D]);
 
   useEffect(() => {
     if (!meshRef.current || !geometry) return;
@@ -157,10 +156,12 @@ export function Preview3D({ onCanvasRef }: { onCanvasRef?: (el: HTMLCanvasElemen
   const enableShadows = useConfigStore((s) => s.enableShadows);
   const shadowMapSize = useConfigStore((s) => s.shadowMapSize);
   const gpuPowerPreference = useConfigStore((s) => s.gpuPowerPreference);
+  const preferredGpuId = useConfigStore((s) => s.preferredGpuId);
 
   return (
     <div className="relative w-full h-full">
       <Canvas
+        key={`preview3d-${gpuPowerPreference}-${preferredGpuId || "auto"}`}
         camera={{ position: [30, 25, 30], fov: 50 }}
         gl={{ preserveDrawingBuffer: true, powerPreference: gpuPowerPreference }}
         shadows={enableShadows}

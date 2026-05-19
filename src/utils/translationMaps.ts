@@ -126,6 +126,8 @@ export const DENSITY_NAMED_TO_ARRAY: Record<string, string[]> = {
   YSampled: ["Input", "YProvider"],
   WeightedSum: ["Inputs[0]", "Inputs[1]"],
   // 3-input types
+  Mix: ["InputA", "InputB", "Factor"],
+  MultiMix: ["InputA", "InputB", "Factor"],
   Blend: ["InputA", "InputB", "Factor"],
   BlendCurve: ["InputA", "InputB", "Factor"],
   Interpolate: ["InputA", "InputB", "Factor"],

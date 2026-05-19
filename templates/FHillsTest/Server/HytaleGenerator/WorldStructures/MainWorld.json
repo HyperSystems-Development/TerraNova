@@ -1,22 +1,23 @@
 {
   "Type": "NoiseRange",
-  "DefaultBiome": "VoidBiome",
+  "DefaultBiome": "forest_hills",
   "DefaultTransitionDistance": 16,
   "MaxBiomeEdgeDistance": 32,
   "Biomes": [
     {
-      "Biome": "VoidBiome",
+      "Biome": "forest_hills",
       "Min": -1.0,
       "Max": 1.0
     }
   ],
   "Density": {
     "Type": "SimplexNoise2D",
+    "Frequency": 0.002,
+    "Amplitude": 1.0,
+    "Seed": 42,
+    "Octaves": 3,
     "Lacunarity": 2.0,
-    "Persistence": 0.5,
-    "Scale": 256.0,
-    "Octaves": 1,
-    "Seed": "main"
+    "Gain": 0.5
   },
   "Framework": {}
 }

@@ -331,10 +331,10 @@ describe("migrateToV2Names – invented type conversions", () => {
     expect(result!.Type).toBe("Mix");
   });
 
-  it("converts FlatCache → Cache2D", () => {
+  it("converts FlatCache -> Cache", () => {
     const result = migrateToV2Names({ Type: "FlatCache" });
     expect(result).not.toBeNull();
-    expect(result!.Type).toBe("Cache2D");
+    expect(result!.Type).toBe("Cache");
   });
 
   it("converts DistanceFromOrigin → Distance", () => {

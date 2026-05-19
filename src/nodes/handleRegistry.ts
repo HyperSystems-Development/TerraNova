@@ -22,6 +22,12 @@ import connectionsData from "@/data/connections.json";
 
 const connectionMatrix = connectionsData.connectionMatrix as Record<string, Record<string, number>>;
 
+/**
+ * Visual-only nodes that participate in layout or annotation but can never
+ * create graph connections.
+ */
+export const NON_CONNECTABLE_NODE_TYPES = new Set(["group", "comment", "frame"]);
+
 /* ── Compatibility overrides ─────────────────────────────────────────────
  * Handle definitions keyed by editor type key.  These override the schema
  * bundle because the bundle uses different handle IDs (casing, naming) or
@@ -441,6 +447,8 @@ const HANDLE_OVERRIDES: Record<string, HandleDef[]> = {
  * provides definitions for any new types, then fallback.
  */
 export function getHandles(nodeType: string): HandleDef[] {
+  if (NON_CONNECTABLE_NODE_TYPES.has(nodeType)) return [];
+
   // 1. Compatibility overrides (editor-only + ID-mismatched types)
   const override = HANDLE_OVERRIDES[nodeType];
   if (override) return override;

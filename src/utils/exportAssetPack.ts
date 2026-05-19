@@ -165,7 +165,12 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
       output.TintProvider = biomeConfig.TintProvider;
     }
 
-    return internalToHytaleBiome(output) as Record<string, unknown>;
+    return internalToHytaleBiome(
+      output,
+      Object.fromEntries(
+        Object.entries(updatedSections).map(([key, section]) => [key, section.nodes]),
+      ),
+    ) as Record<string, unknown>;
   }
 
   // Regular typed asset

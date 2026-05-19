@@ -3,7 +3,7 @@ import { ChangelogDialog } from "./ChangelogDialog";
 import { fetchReleases, getAppVersion, type ReleaseData, type ReleaseSection } from "@/utils/fetchReleases";
 
 const STORAGE_KEY = "terranova:whats-new-seen";
-const SUPPRESS_KEY = "terranova:whats-new-suppress";
+export const WHATS_NEW_SUPPRESS_KEY = "terranova:whats-new-suppress";
 
 export function useWhatsNew() {
   const [appVersion, setAppVersion] = useState<string | null>(null);
@@ -19,15 +19,15 @@ export function useWhatsNew() {
 
   const suppressed =
     typeof localStorage !== "undefined" &&
-    localStorage.getItem(SUPPRESS_KEY) === "true";
+    localStorage.getItem(WHATS_NEW_SUPPRESS_KEY) === "true";
 
   return {
     shouldShow: appVersion !== null && !seen && !suppressed,
     dismiss(suppress: boolean) {
       try {
         if (appVersion) localStorage.setItem(STORAGE_KEY, appVersion);
-        if (suppress) localStorage.setItem(SUPPRESS_KEY, "true");
-        else localStorage.removeItem(SUPPRESS_KEY);
+        if (suppress) localStorage.setItem(WHATS_NEW_SUPPRESS_KEY, "true");
+        else localStorage.removeItem(WHATS_NEW_SUPPRESS_KEY);
       } catch {}
     },
   };

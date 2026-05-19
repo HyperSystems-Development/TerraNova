@@ -971,7 +971,12 @@ export function useTauriIO() {
           output.TintProvider = biomeConfig.TintProvider;
         }
 
-        const hytaleOutput = internalToHytaleBiome(output);
+        const hytaleOutput = internalToHytaleBiome(
+          output,
+          Object.fromEntries(
+            Object.entries(updatedSections).map(([key, section]) => [key, section.nodes]),
+          ),
+        );
         await writeAssetFile(currentFile, hytaleOutput);
         setDirty(false);
         return;

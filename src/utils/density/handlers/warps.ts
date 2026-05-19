@@ -4,13 +4,15 @@ import { domainWarpProgressive2D, domainWarpProgressive3D } from "../fastNoiseLi
 const handlePositionsPinch: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const strength = Number(fields.Strength ?? 1.0);
   const dist = Math.sqrt(x * x + z * z);
-  const pinchFactor = dist > 0 ? Math.pow(dist, strength) / dist : 1;
+  const pinchDist = ctx.applyCurve("PinchCurve", dist, inputs);
+  const pinchFactor = dist > 0 ? Math.pow(pinchDist, strength) / dist : 1;
   return ctx.getInput(inputs, "Input", x * pinchFactor, y, z * pinchFactor);
 };
 
 const handlePositionsTwist: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const angle = Number(fields.Angle ?? 0);
-  const rad = (angle * Math.PI / 180) * y;
+  const twistY = ctx.applyCurve("TwistCurve", y, inputs);
+  const rad = (angle * Math.PI / 180) * twistY;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
   return ctx.getInput(inputs, "Input", x * cos - z * sin, y, x * sin + z * cos);
@@ -19,7 +21,7 @@ const handlePositionsTwist: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 const handleGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const warpFactor = Number(fields.WarpFactor ?? 1.0);
   const slopeRange = Number(fields.SlopeRange ?? fields.SampleRange ?? 1.0);
-  const is2D = fields.Is2D === true;
+  const is2D = fields.Is2D === true || fields["2D"] === true;
 
   if (slopeRange <= 0) return ctx.getInput(inputs, "Input", x, y, z);
 

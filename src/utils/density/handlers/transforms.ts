@@ -2,22 +2,22 @@ import type { NodeHandler } from "../evalContext";
 
 const handleSlider: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const tr = fields.Translation as { x?: number; y?: number; z?: number } | undefined;
-  const dx = Number(tr?.x ?? 0);
-  const dy = Number(tr?.y ?? 0);
-  const dz = Number(tr?.z ?? 0);
+  const dx = Number(fields.SlideX ?? tr?.x ?? 0);
+  const dy = Number(fields.SlideY ?? tr?.y ?? 0);
+  const dz = Number(fields.SlideZ ?? tr?.z ?? 0);
   return ctx.getInput(inputs, "Input", x - dx, y - dy, z - dz);
 };
 
 const handleScale: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const sc = fields.Scale as { x?: number; y?: number; z?: number } | undefined;
-  const sx = Number(sc?.x ?? 1) || 1;
-  const sy = Number(sc?.y ?? 1) || 1;
-  const sz = Number(sc?.z ?? 1) || 1;
+  const sx = Number(fields.ScaleX ?? sc?.x ?? 1) || 1;
+  const sy = Number(fields.ScaleY ?? sc?.y ?? 1) || 1;
+  const sz = Number(fields.ScaleZ ?? sc?.z ?? 1) || 1;
   return ctx.getInput(inputs, "Input", x / sx, y / sy, z / sz);
 };
 
 const handleRotator: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const angleDeg = Number(fields.AngleDegrees ?? 0);
+  const angleDeg = Number(fields.SpinAngle ?? fields.AngleDegrees ?? 0);
   const rad = (angleDeg * Math.PI) / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);

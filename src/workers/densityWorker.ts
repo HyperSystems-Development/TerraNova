@@ -1,8 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import { evaluateDensityGrid, type EvaluationOptions } from "../utils/densityEvaluator";
 
-console.log("[densityWorker] initialized");
-
 export interface DensityWorkerRequest {
   nodes: Node[];
   edges: Edge[];
@@ -29,7 +27,6 @@ export interface DensityWorkerError {
 self.onmessage = (e: MessageEvent<DensityWorkerRequest>) => {
   try {
     const { nodes, edges, resolution, rangeMin, rangeMax, yLevel, rootNodeId, options } = e.data;
-    console.log("[densityWorker] received message, nodes:", nodes.length, "resolution:", resolution);
     const result = evaluateDensityGrid(nodes, edges, resolution, rangeMin, rangeMax, yLevel, rootNodeId, options);
     // Transfer the Float32Array buffer for zero-copy
     (self as unknown as Worker).postMessage(

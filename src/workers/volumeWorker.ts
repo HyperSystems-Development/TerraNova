@@ -2,8 +2,6 @@ import type { Node, Edge } from "@xyflow/react";
 import { evaluateDensityVolume } from "../utils/volumeEvaluator";
 import type { EvaluationOptions } from "../utils/densityEvaluator";
 
-console.log("[volumeWorker] initialized");
-
 export interface VolumeWorkerRequest {
   nodes: Node[];
   edges: Edge[];
@@ -32,7 +30,6 @@ export interface VolumeWorkerError {
 self.onmessage = (e: MessageEvent<VolumeWorkerRequest>) => {
   try {
     const { nodes, edges, resolution, rangeMin, rangeMax, yMin, yMax, ySlices, rootNodeId, options } = e.data;
-    console.log("[volumeWorker] received message, nodes:", nodes.length, "resolution:", resolution, "ySlices:", ySlices);
     const result = evaluateDensityVolume(nodes, edges, resolution, rangeMin, rangeMax, yMin, yMax, ySlices, rootNodeId, options);
     // Transfer the Float32Array buffer for zero-copy
     (self as unknown as Worker).postMessage(

@@ -24,10 +24,26 @@ export default function SyncProgressModal() {
       try {
         const ev = await import("@tauri-apps/api/event");
 
+        interface SyncEventPayload {
+          totalFiles?: number;
+          total_files?: number;
+          filesWritten?: number;
+          files_written?: number;
+          files?: number;
+          currentFile?: string;
+          current_file?: string;
+          percent?: number;
+        }
+
+        interface SyncEvent {
+          payload?: SyncEventPayload;
+        }
+
         // Start
         unlistenFns.push(
-          await ev.listen("hytale-sync-start", (e: any) => {
-            const payload = e.payload ?? {};
+          await ev.listen("hytale-sync-start", (e: unknown) => {
+            const event = e as SyncEvent;
+            const payload = event.payload ?? {};
             const total = payload.totalFiles ?? payload.total_files ?? null;
             setTotalFiles(total ?? null);
             setFilesWritten(0);
@@ -44,8 +60,9 @@ export default function SyncProgressModal() {
 
         // Progress
         unlistenFns.push(
-          await ev.listen("hytale-sync-progress", (e: any) => {
-            const payload = e.payload ?? {};
+          await ev.listen("hytale-sync-progress", (e: unknown) => {
+            const event = e as SyncEvent;
+            const payload = event.payload ?? {};
             const files = payload.filesWritten ?? payload.files_written ?? 0;
             const total = payload.totalFiles ?? payload.total_files ?? null;
             const cur = payload.currentFile ?? payload.current_file ?? null;
@@ -61,8 +78,9 @@ export default function SyncProgressModal() {
 
         // Complete
         unlistenFns.push(
-          await ev.listen("hytale-sync-complete", (e: any) => {
-            const payload = e.payload ?? {};
+          await ev.listen("hytale-sync-complete", (e: unknown) => {
+            const event = e as SyncEvent;
+            const payload = event.payload ?? {};
             const files = payload.filesWritten ?? payload.files_written ?? payload.files ?? 0;
             addToast(`Hytale assets synced (${files} files)`, "success");
             setInProgress(false);
@@ -78,8 +96,9 @@ export default function SyncProgressModal() {
 
         // Cancelled (optional)
         unlistenFns.push(
-          await ev.listen("hytale-sync-cancelled", (e: any) => {
-            const payload = e.payload ?? {};
+          await ev.listen("hytale-sync-cancelled", (e: unknown) => {
+            const event = e as SyncEvent;
+            const payload = event.payload ?? {};
             const files = payload.filesWritten ?? payload.files_written ?? 0;
             addToast(`Hytale asset sync cancelled (${files} files written)`, "info");
             setInProgress(false);

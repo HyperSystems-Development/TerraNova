@@ -22,6 +22,58 @@ describe("isHytaleNativeFormat", () => {
   });
 });
 
+describe("biome annotation metadata", () => {
+  it("exports comment and frame nodes into biome $NodeEditorMetadata", () => {
+    const biome = internalToHytaleBiome(
+      {
+        Name: "AnnotatedBiome",
+        Terrain: {
+          Type: "DAOTerrain",
+          Density: { Type: "Constant", Value: 0 },
+        },
+        MaterialProvider: { Type: "Constant", Material: "stone" },
+        Props: [],
+        EnvironmentProvider: { Type: "Constant", Environment: "default" },
+        TintProvider: { Type: "Constant", Color: "#ffffff" },
+      },
+      {
+        Terrain: [
+          {
+            id: "terrain-root",
+            position: { x: 12, y: 34 },
+            data: { type: "Constant", fields: { Value: 0 } },
+          } as any,
+          {
+            id: "comment-1",
+            type: "comment",
+            position: { x: 56, y: 78 },
+            data: { text: "Shape the ridge here", width: 240, height: 96 },
+          } as any,
+          {
+            id: "frame-1",
+            type: "frame",
+            position: { x: 90, y: 120 },
+            data: { name: "Terrain Notes", width: 420, height: 260 },
+          } as any,
+        ],
+      },
+    );
+
+    const metadata = biome.$NodeEditorMetadata as Record<string, unknown>;
+    const nodeEntries = metadata.$Nodes as Record<string, Record<string, unknown>>;
+    const comments = metadata.$Comments as Array<Record<string, unknown>>;
+    const groups = metadata.$Groups as Array<Record<string, unknown>>;
+
+    expect(nodeEntries["terrain-root"].$Position).toEqual({ $x: 12, $y: 34 });
+    expect(comments).toHaveLength(1);
+    expect(comments[0].$Text).toBe("Shape the ridge here");
+    expect(comments[0].$Width).toBe(240);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].$name).toBe("Terrain Notes");
+    expect(groups[0].$width).toBe(420);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Type name mapping
 // ---------------------------------------------------------------------------
@@ -234,6 +286,27 @@ describe("named inputs ↔ Inputs[] array", () => {
     expect(inputs[0].Value).toBe(0);
     expect(inputs[1].Value).toBe(1);
     expect(inputs[2].Value).toBe(0.5);
+    expect(result.InputA).toBeUndefined();
+    expect(result.InputB).toBeUndefined();
+    expect(result.Factor).toBeUndefined();
+  });
+
+  it("converts current Mix InputA/InputB/Factor to Hytale Inputs[0,1,2] on export", () => {
+    const result = internalToHytale({
+      Type: "Mix",
+      InputA: { Type: "Constant", Value: 0 },
+      InputB: { Type: "Constant", Value: 1 },
+      Factor: { Type: "Constant", Value: 0.5 },
+    });
+    expect(result.Type).toBe("Mix");
+    const inputs = result.Inputs as Record<string, unknown>[];
+    expect(inputs).toHaveLength(3);
+    expect(inputs[0].Value).toBe(0);
+    expect(inputs[1].Value).toBe(1);
+    expect(inputs[2].Value).toBe(0.5);
+    expect(result.InputA).toBeUndefined();
+    expect(result.InputB).toBeUndefined();
+    expect(result.Factor).toBeUndefined();
   });
 
   it("reverses Inputs[0] → Input for Inverter on import", () => {
@@ -1056,6 +1129,10 @@ describe("round-trip: internal → hytale → internal", () => {
     };
     const exported = internalToHytale(original);
     expect(exported.Type).toBe("Mix");
+    expect(exported.Inputs).toHaveLength(3);
+    expect(exported.InputA).toBeUndefined();
+    expect(exported.InputB).toBeUndefined();
+    expect(exported.Factor).toBeUndefined();
     const { asset: imported } = hytaleToInternal(exported);
     expect(imported.Type).toBe("Mix");
     expect((imported.InputA as Record<string, unknown>).Value).toBe(0);

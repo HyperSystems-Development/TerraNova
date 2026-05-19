@@ -76,6 +76,9 @@ const handleMultiplier: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   for (let i = 0; inputs.has(`Inputs[${i}]`); i++) {
     prod *= ctx.getInput(inputs, `Inputs[${i}]`, x, y, z);
   }
+  if (inputs.has("InputA") || inputs.has("InputB")) {
+    return ctx.getInput(inputs, "InputA", x, y, z) * ctx.getInput(inputs, "InputB", x, y, z);
+  }
   return prod;
 };
 

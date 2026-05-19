@@ -14,8 +14,8 @@ const GRADIENT_WARP_HANDLES = [densityInput("Input", "Input"), densityInput("War
 const VECTOR_WARP_HANDLES = [densityInput("Input", "Input"), densityInput("Magnitude", "Magnitude"), vectorInput("WarpVector", "Warp Vector"), densityOutput()];
 const POSITIONS_CELL_NOISE_HANDLES = [positionInput("Positions", "Positions"), curveInput("ReturnCurve", "Return Curve"), densityOutput()];
 const POSITIONS_3D_HANDLES = [positionInput("Positions", "Positions"), curveInput("DistanceCurve", "Distance Curve"), densityOutput()];
-const POSITIONS_PINCH_HANDLES = [positionInput("Positions", "Positions"), curveInput("PinchCurve", "Pinch Curve"), densityOutput()];
-const POSITIONS_TWIST_HANDLES = [positionInput("Positions", "Positions"), curveInput("TwistCurve", "Twist Curve"), densityOutput()];
+const POSITIONS_PINCH_HANDLES = [densityInput("Input", "Density"), curveInput("PinchCurve", "Pinch Curve"), densityOutput()];
+const POSITIONS_TWIST_HANDLES = [densityInput("Input", "Density"), curveInput("TwistCurve", "Twist Curve"), densityOutput()];
 
 export const SurfaceDensityNode = memo(function SurfaceDensityNode(props: TypedNodeProps) {
   return (

@@ -10,7 +10,8 @@ export function MermaidDiagram({ code }: { code: string }) {
   const id = useMemo(() => `mermaid-${Math.random().toString(16).slice(2)}`, []);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const container = containerRef.current;
+    if (!container) return;
 
     let cancelled = false;
     mermaid
@@ -30,8 +31,8 @@ export function MermaidDiagram({ code }: { code: string }) {
 
     return () => {
       cancelled = true;
-      if (containerRef.current) {
-        containerRef.current.innerHTML = "";
+      if (container) {
+        container.innerHTML = "";
       }
     };
   }, [code, id]);

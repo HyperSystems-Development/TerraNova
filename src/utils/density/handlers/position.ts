@@ -86,6 +86,10 @@ const handleGradientDensity: NodeHandler = (_ctx, fields, _inputs, _x, y) => {
 // transforms. Under ScaledPosition ancestors, gradient magnitude may be
 // over- or under-estimated proportionally to the scale factor.
 const handleGradient: NodeHandler = (ctx, fields, inputs, x, y, z) => {
+  if (!inputs.has("Input") && (fields.FromY != null || fields.ToY != null)) {
+    return handleGradientDensity(ctx, fields, inputs, x, y, z);
+  }
+
   // Directional derivative via finite differences along Axis
   const axis = fields.Axis as { x: number; y: number; z: number } | undefined;
   const ax = Number(axis?.x ?? 0);
@@ -106,14 +110,12 @@ const handleBaseHeight: NodeHandler = (ctx, fields, _inputs, _x, y) => {
   return distance ? (y - baseY) : baseY;
 };
 
-// Terrain proxy: positive below surface, negative above
-const handleTerrain: NodeHandler = (ctx, _fields, _inputs, _x, y, _z) => {
+const handleTerrain: NodeHandler = (ctx, _fields, _inputs, _x, y) => {
   const baseY = Number(ctx.contentFields["BaseHeight"] ?? ctx.contentFields["Base"] ?? 100);
   return baseY - y;
 };
 
-// HeightAboveSurface proxy: inverse of terrain
-const handleHeightAboveSurface: NodeHandler = (ctx, _fields, _inputs, _x, y, _z) => {
+const handleHeightAboveSurface: NodeHandler = (ctx, _fields, _inputs, _x, y) => {
   const baseY = Number(ctx.contentFields["BaseHeight"] ?? ctx.contentFields["Base"] ?? 100);
   return y - baseY;
 };

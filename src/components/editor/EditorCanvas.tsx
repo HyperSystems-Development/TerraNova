@@ -456,32 +456,36 @@ export function EditorCanvas({
   }, []);
 
   // ── onConnectEnd — open QuickAdd when dropped on empty canvas ────────
-  const handleConnectStart = useCallback((_event: any, params: any) => {
+  const handleConnectStart = useCallback((_event: unknown, params: unknown) => {
     connectionMadeRef.current = false;
-    const handleType = params.handleType ?? "source";
+    const typedParams = params as { handleType?: string; nodeId?: string; handleId?: string };
+    const handleType = (typedParams.handleType === "source" || typedParams.handleType === "target")
+      ? typedParams.handleType
+      : "source";
     pendingHandleRef.current = {
-      nodeId: params.nodeId,
-      handleId: params.handleId ?? "output",
+      nodeId: typedParams.nodeId ?? "",
+      handleId: typedParams.handleId ?? "output",
       handleType,
     };
 
     // Record drag start position for backward-drag distance check
-    const clientX = _event.clientX ?? _event.touches?.[0]?.clientX ?? 0;
-    const clientY = _event.clientY ?? _event.touches?.[0]?.clientY ?? 0;
+    const event = _event as { clientX?: number; clientY?: number; touches?: Array<{ clientX?: number; clientY?: number }> };
+    const clientX = event.clientX ?? event.touches?.[0]?.clientX ?? 0;
+    const clientY = event.clientY ?? event.touches?.[0]?.clientY ?? 0;
     connectStartPosRef.current = { x: clientX, y: clientY };
 
     // Input handle click → highlight upstream path from this port
-    if (handleType === "target" && params.handleId) {
-      setSelectedHandle({ nodeId: params.nodeId, handleId: params.handleId });
+    if (handleType === "target" && typedParams.handleId) {
+      setSelectedHandle({ nodeId: typedParams.nodeId ?? "", handleId: typedParams.handleId });
     } else {
       setSelectedHandle(null);
     }
 
     // Broadcast source handle category for connection suggestions
     const nodes = useEditorStore.getState().nodes;
-    const node = nodes.find((n) => n.id === params.nodeId);
+    const node = nodes.find((n) => n.id === typedParams.nodeId);
     const nodeType = node?.type ?? "default";
-    const handleId = params.handleId ?? (handleType === "source" ? "output" : "Input");
+    const handleId = typedParams.handleId ?? (handleType === "source" ? "output" : "Input");
     const handleDef = findHandleDef(nodeType, handleId);
     useDragStore.getState().setConnectingCategory(handleDef?.category ?? null);
   }, []);

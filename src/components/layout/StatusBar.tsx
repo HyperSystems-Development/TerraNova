@@ -34,7 +34,12 @@ export function StatusBar() {
   // App version
   const [appVersion, setAppVersion] = useState<string>("");
   useEffect(() => {
-    getVersion().then(setAppVersion);
+    void getVersion()
+      .then(setAppVersion)
+      .catch((e) => {
+        console.warn("Failed to get app version:", e);
+        setAppVersion("");
+      });
   }, []);
 
   // Update state
@@ -55,27 +60,27 @@ export function StatusBar() {
   const isGraphView = viewMode === "graph" || viewMode === "split";
 
   return (
-    <div className="flex items-center h-7 px-3 bg-tn-surface border-t border-tn-border text-xs text-tn-text-muted shrink-0 gap-1">
+    <div className="flex items-center h-7 px-3 bg-tn-surface border-t border-tn-border text-xs text-tn-text-muted shrink-0 gap-1" role="status" aria-live="off">
       {/* File path / error */}
       <span className="truncate min-w-0">
         {lastError ? (
-          <span className="text-red-400">{lastError}</span>
+          <span className="text-red-400" role="alert" aria-live="polite">{lastError}</span>
         ) : (
           currentFile ? currentFile.replace(projectPath ?? "", ".") : "No file open"
         )}
       </span>
 
       {/* Node/edge/selection counts */}
-      <span className="ml-3 whitespace-nowrap">
+      <span className="ml-3 whitespace-nowrap" aria-label={`${nodeCount} nodes`}>
         {nodeCount} nodes
       </span>
-      <span className="whitespace-nowrap">
+      <span className="whitespace-nowrap" aria-label={`${edgeCount} edges`}>
         {edgeCount} edges
       </span>
       {selectedCount > 0 && (
         <>
-          <span className="text-tn-border mx-1">|</span>
-          <span className="whitespace-nowrap text-tn-accent">
+          <span className="text-tn-border mx-1" aria-hidden="true">|</span>
+          <span className="whitespace-nowrap text-tn-accent" aria-label={`${selectedCount} items selected`}>
             {selectedCount} selected
           </span>
         </>
@@ -88,6 +93,8 @@ export function StatusBar() {
         <>
           <button
             onClick={() => useUIStore.getState().toggleGrid()}
+            aria-pressed={showGrid}
+            aria-label={`Toggle grid ${showGrid ? "on" : "off"}`}
             className={`px-1.5 rounded text-[10px] font-medium ${
               showGrid ? "text-tn-accent" : "text-tn-text-muted/40"
             } hover:bg-tn-accent/10`}
@@ -96,6 +103,8 @@ export function StatusBar() {
           </button>
           <button
             onClick={() => useUIStore.getState().toggleSnap()}
+            aria-pressed={snapToGrid}
+            aria-label={`Toggle snap to grid ${snapToGrid ? "on" : "off"}`}
             className={`px-1.5 rounded text-[10px] font-medium ${
               snapToGrid ? "text-tn-accent" : "text-tn-text-muted/40"
             } hover:bg-tn-accent/10`}
@@ -106,20 +115,23 @@ export function StatusBar() {
       )}
 
       {/* Zoom percentage */}
-      <span className="mx-1 text-[10px] w-8 text-right">{zoomPercent}%</span>
+      <span className="mx-1 text-[10px] w-8 text-right" aria-label={`Zoom level: ${zoomPercent}%`}>{zoomPercent}%</span>
 
       {/* Bridge */}
       <button
         onClick={() => useBridgeStore.getState().setDialogOpen(true)}
+        aria-label={`Bridge ${bridgeConnected ? "connected" : bridgeConnecting ? "connecting" : "disconnected"}`}
         className="mx-1 flex items-center gap-1 px-1.5 rounded hover:bg-tn-accent/10"
       >
-        <span className={bridgeColor}>●</span>
+        <span className={bridgeColor} aria-hidden="true">●</span>
         <span>Bridge</span>
       </button>
 
       {/* Instant Save indicator */}
       <button
         onClick={() => useSettingsStore.getState().toggleInstantSave()}
+        aria-pressed={instantSaveEnabled}
+        aria-label={`Instant Save ${instantSaveEnabled ? "enabled" : "disabled"} (Ctrl+Shift+I)`}
         className={`px-1.5 rounded text-[10px] font-medium ${
           instantSaveEnabled ? "text-sky-400" : "text-tn-text-muted/40"
         } hover:bg-sky-400/10`}
@@ -129,7 +141,7 @@ export function StatusBar() {
       </button>
 
       {/* Save state */}
-      <span className="mx-1">
+      <span className="mx-1" aria-label={isDirty ? "Unsaved changes" : "File saved"}>
         {isDirty ? (
           <span className="text-amber-400">Unsaved</span>
         ) : (
@@ -141,22 +153,24 @@ export function StatusBar() {
         <button
           onClick={downloadAndInstall}
           className="text-tn-accent hover:underline cursor-pointer"
+          aria-label={`Download update version ${updateVersion}`}
         >
           v{updateVersion} available
         </button>
       ) : updateStatus === "downloading" ? (
-        <span className="text-amber-400">Updating {updateProgress}%</span>
+        <span className="text-amber-400" aria-label={`Downloading update, ${updateProgress}% complete`}>Updating {updateProgress}%</span>
       ) : updateStatus === "restarting" ? (
-        <span className="text-amber-400">Restarting...</span>
+        <span className="text-amber-400" aria-label="Application restarting to apply update">Restarting...</span>
       ) : updateStatus === "ready" ? (
         <button
           onClick={restartToUpdate}
           className="text-emerald-400 hover:underline cursor-pointer"
+          aria-label="Restart application to apply update"
         >
           Restart to update
         </button>
       ) : (
-        <span>v{appVersion}</span>
+        <span aria-label={`Current version ${appVersion}`}>v{appVersion}</span>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { Node, Edge } from "@xyflow/react";
 import { evaluatePositions, type WorldRange } from "../positionEvaluator";
+import { jsonToGraph } from "../jsonToGraph";
 
 /* ── Helpers ───────────────────────────────────────────────────────── */
 
@@ -89,6 +90,30 @@ describe("evaluatePositions — Mesh2D", () => {
     const a = evaluatePositions(nodes, [], DEFAULT_RANGE, SEED);
     const b = evaluatePositions(nodes, [], DEFAULT_RANGE, SEED);
     expect(a).toEqual(b);
+  });
+
+  it("uses native Hytale Mesh point-generator scale fields", () => {
+    const { nodes, edges } = jsonToGraph(
+      {
+        Type: "Mesh2D",
+        PointsY: 0,
+        PointGenerator: {
+          Type: "Mesh",
+          ScaleX: 32,
+          ScaleY: 10,
+          ScaleZ: 32,
+          Jitter: 0,
+          Seed: "fullmetal",
+        },
+      },
+      0,
+      0,
+      "pos",
+      "Positions",
+    );
+
+    const result = evaluatePositions(nodes, edges, DEFAULT_RANGE, SEED);
+    expect(result).toHaveLength(16);
   });
 });
 
@@ -268,6 +293,60 @@ describe("evaluatePositions — chain", () => {
     // Occurrence preview uses 50% random filter on 16 upstream positions
     expect(result.length).toBeGreaterThan(0);
     expect(result.length).toBeLessThanOrEqual(16);
+  });
+});
+
+/* ── Native V2 Position Chains ───────────────────────────────────── */
+
+describe("evaluatePositions — native V2 position chains", () => {
+  it("evaluates Jitter2d and Scaler chains used by Fullmetal-style props", () => {
+    const { nodes, edges } = jsonToGraph(
+      {
+        Type: "Scaler",
+        Scale: { Type: "Constant", Value: { x: 2, y: 1, z: 0.5 } },
+        Positions: {
+          Type: "Jitter2d",
+          Magnitude: 0,
+          Positions: {
+            Type: "Mesh2D",
+            PointGenerator: {
+              Type: "Mesh",
+              ScaleX: 64,
+              ScaleY: 10,
+              ScaleZ: 64,
+              Jitter: 0,
+            },
+          },
+        },
+      },
+      0,
+      0,
+      "pos",
+      "Positions",
+    );
+
+    const result = evaluatePositions(nodes, edges, DEFAULT_RANGE, SEED);
+    expect(result).toHaveLength(4);
+    expect(result[0].x).toBe(-128);
+    expect(result[0].z).toBe(-32);
+  });
+
+  it("evaluates native square and triangular grid providers", () => {
+    const square = evaluatePositions(
+      [makeNode("root", "SquareGrid2d", { ScaleX: 64, ScaleZ: 64 }, { _biomeField: "Positions" })],
+      [],
+      DEFAULT_RANGE,
+      SEED,
+    );
+    const triangle = evaluatePositions(
+      [makeNode("root", "TriangularGrid2d", { ScaleX: 64, ScaleZ: 64 }, { _biomeField: "Positions" })],
+      [],
+      DEFAULT_RANGE,
+      SEED,
+    );
+
+    expect(square).toHaveLength(4);
+    expect(triangle).toHaveLength(4);
   });
 });
 

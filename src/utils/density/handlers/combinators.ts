@@ -72,10 +72,9 @@ const handleMultiMix: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   if (keys.length === 0) return 0;
   const selector = ctx.getInput(inputs, "Selector", x, y, z);
 
-  // Sort keys while preserving original index mapping for Densities lookup
-  const entries = keys.map((k, i) => ({ key: k, idx: i }));
+  const entries = keys.map((key, idx) => ({ key, idx }));
   entries.sort((a, b) => a.key - b.key);
-  const sortedKeys = entries.map(e => e.key);
+  const sortedKeys = entries.map((entry) => entry.key);
 
   let lo = 0;
   for (let i = 1; i < sortedKeys.length; i++) {

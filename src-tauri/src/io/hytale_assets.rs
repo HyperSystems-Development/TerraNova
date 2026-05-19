@@ -2,10 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io;
 use std::path::{Component, Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
-use zip::ZipArchive;
-use tauri::{Emitter, Window};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
+use tauri::{Emitter, Window};
+use zip::ZipArchive;
 
 // Cancellation flag used to abort long-running sync operations from another
 // thread/command. Set to `true` by the cancel command and checked frequently
@@ -39,6 +39,12 @@ pub struct AssetStalenessInfo {
     pub synced_at_secs: Option<u64>,
 }
 
+#[derive(Debug, Clone)]
+enum CommonOverlaySource {
+    Directory(PathBuf),
+    Zip(PathBuf),
+}
+
 fn now_iso8601() -> String {
     // Simple ISO-8601 UTC string without external crate: YYYY-MM-DDTHH:MM:SSZ
     let secs = SystemTime::now()
@@ -51,7 +57,10 @@ fn now_iso8601() -> String {
     let total_days = secs / 86400;
     // Days since 1970-01-01
     let (year, month, day) = days_to_ymd(total_days);
-    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", year, month, day, h, m, s)
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        year, month, day, h, m, s
+    )
 }
 
 fn days_to_ymd(mut days: u64) -> (u64, u64, u64) {
@@ -65,7 +74,20 @@ fn days_to_ymd(mut days: u64) -> (u64, u64, u64) {
         days -= days_in_year;
         year += 1;
     }
-    let month_days: [u64; 12] = [31, if is_leap(year) { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let month_days: [u64; 12] = [
+        31,
+        if is_leap(year) { 29 } else { 28 },
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ];
     let mut month = 1u64;
     for &md in &month_days {
         if days < md {
@@ -81,7 +103,11 @@ fn is_leap(year: u64) -> bool {
     (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
 }
 
-fn write_sync_manifest(cache_root: &Path, source_path: &Path, files_written: u64) -> Result<(), Box<dyn std::error::Error>> {
+fn write_sync_manifest(
+    cache_root: &Path,
+    source_path: &Path,
+    files_written: u64,
+) -> Result<(), Box<dyn std::error::Error>> {
     let manifest = SyncManifest {
         synced_at: now_iso8601(),
         source_path: source_path.to_string_lossy().to_string(),
@@ -117,7 +143,20 @@ fn parse_iso8601_to_secs(ts: &str) -> Option<u64> {
     for yr in 1970..y {
         total_days += if is_leap(yr) { 366 } else { 365 };
     }
-    let month_days: [u64; 12] = [31, if is_leap(y) { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let month_days: [u64; 12] = [
+        31,
+        if is_leap(y) { 29 } else { 28 },
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+    ];
     for mi_idx in 0..(mo.saturating_sub(1)) as usize {
         total_days += month_days[mi_idx];
     }
@@ -131,14 +170,19 @@ fn newest_mtime_in_dir(dir: &Path) -> Option<(u64, PathBuf)> {
     let mut newest_path = PathBuf::new();
     let mut stack = vec![dir.to_path_buf()];
     while let Some(current) = stack.pop() {
-        let Ok(entries) = fs::read_dir(&current) else { continue };
+        let Ok(entries) = fs::read_dir(&current) else {
+            continue;
+        };
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
                 stack.push(path);
             } else if let Ok(meta) = entry.metadata() {
                 if let Ok(modified) = meta.modified() {
-                    let secs = modified.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+                    let secs = modified
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs();
                     if secs > newest_secs {
                         newest_secs = secs;
                         newest_path = path;
@@ -147,20 +191,26 @@ fn newest_mtime_in_dir(dir: &Path) -> Option<(u64, PathBuf)> {
             }
         }
     }
-    if newest_secs > 0 { Some((newest_secs, newest_path)) } else { None }
+    if newest_secs > 0 {
+        Some((newest_secs, newest_path))
+    } else {
+        None
+    }
 }
 
 pub fn check_asset_staleness(source_path: &str) -> AssetStalenessInfo {
     let cache_root = match get_hytale_assets_root() {
         Ok(p) => p,
-        Err(_) => return AssetStalenessInfo {
-            synced_at: None,
-            source_path: None,
-            is_stale: false,
-            newest_source_file: None,
-            newest_source_secs: None,
-            synced_at_secs: None,
-        },
+        Err(_) => {
+            return AssetStalenessInfo {
+                synced_at: None,
+                source_path: None,
+                is_stale: false,
+                newest_source_file: None,
+                newest_source_secs: None,
+                synced_at_secs: None,
+            }
+        }
     };
 
     let manifest = read_sync_manifest(&cache_root);
@@ -194,8 +244,16 @@ pub fn check_asset_staleness(source_path: &str) -> AssetStalenessInfo {
         synced_at,
         source_path: manifest_source,
         is_stale,
-        newest_source_file: if newest_secs > 0 { Some(newest_path.to_string_lossy().to_string()) } else { None },
-        newest_source_secs: if newest_secs > 0 { Some(newest_secs) } else { None },
+        newest_source_file: if newest_secs > 0 {
+            Some(newest_path.to_string_lossy().to_string())
+        } else {
+            None
+        },
+        newest_source_secs: if newest_secs > 0 {
+            Some(newest_secs)
+        } else {
+            None
+        },
         synced_at_secs,
     }
 }
@@ -275,7 +333,9 @@ fn sanitize_relative_path(relative_path: &str) -> Result<PathBuf, Box<dyn std::e
     Ok(sanitized)
 }
 
-pub fn resolve_hytale_asset_path(relative_path: &str) -> Result<PathBuf, Box<dyn std::error::Error>> {
+pub fn resolve_hytale_asset_path(
+    relative_path: &str,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let root = get_hytale_assets_root()?;
     let sanitized_relative_path = sanitize_relative_path(relative_path)?;
     let resolved = if sanitized_relative_path.as_os_str().is_empty() {
@@ -315,7 +375,10 @@ fn sanitize_archive_entry_path(entry_name: &str) -> Result<PathBuf, Box<dyn std:
 }
 
 #[allow(dead_code)]
-fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<u64, Box<dyn std::error::Error>> {
+fn copy_directory_recursive(
+    source: &Path,
+    destination: &Path,
+) -> Result<u64, Box<dyn std::error::Error>> {
     let mut files_written = 0;
 
     if !source.exists() {
@@ -351,7 +414,9 @@ fn copy_directory_recursive(source: &Path, destination: &Path) -> Result<u64, Bo
     Ok(files_written)
 }
 
-fn resolve_common_overlay_root(source_path: &Path) -> Result<PathBuf, Box<dyn std::error::Error>> {
+fn resolve_common_overlay_source(
+    source_path: &Path,
+) -> Result<CommonOverlaySource, Box<dyn std::error::Error>> {
     if !source_path.exists() {
         return Err(format!(
             "External Common asset source not found: {}",
@@ -361,7 +426,14 @@ fn resolve_common_overlay_root(source_path: &Path) -> Result<PathBuf, Box<dyn st
     }
 
     if source_path.is_file() {
-        return Err("External Common asset source must be a directory".into());
+        let is_zip = source_path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"));
+        if is_zip {
+            return Ok(CommonOverlaySource::Zip(source_path.to_path_buf()));
+        }
+        return Err("External Common asset source must be a Common directory, a folder containing Common, or an Assets.zip file".into());
     }
 
     let direct_name = source_path
@@ -369,19 +441,225 @@ fn resolve_common_overlay_root(source_path: &Path) -> Result<PathBuf, Box<dyn st
         .and_then(|name| name.to_str())
         .unwrap_or_default();
     if direct_name.eq_ignore_ascii_case("Common") {
-        return Ok(source_path.to_path_buf());
+        return Ok(CommonOverlaySource::Directory(source_path.to_path_buf()));
     }
 
     let common_child = source_path.join("Common");
     if common_child.is_dir() {
-        return Ok(common_child);
+        return Ok(CommonOverlaySource::Directory(common_child));
     }
 
-    Err("External Common asset source must point to a Common folder or a folder containing Common".into())
+    let assets_zip = source_path.join("Assets.zip");
+    if assets_zip.is_file() {
+        return Ok(CommonOverlaySource::Zip(assets_zip));
+    }
+
+    Err("External Common asset source must point to a Common folder, a folder containing Common, or a folder containing Assets.zip".into())
+}
+
+fn common_overlay_display_path(source: &CommonOverlaySource) -> String {
+    match source {
+        CommonOverlaySource::Directory(path) => path.to_string_lossy().to_string(),
+        CommonOverlaySource::Zip(path) => format!("{}::Common", path.to_string_lossy()),
+    }
+}
+
+fn paths_equivalent(left: &Path, right: &Path) -> bool {
+    if left == right {
+        return true;
+    }
+    match (fs::canonicalize(left), fs::canonicalize(right)) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => false,
+    }
+}
+
+fn overlay_duplicates_primary_source(
+    source_path: &Path,
+    overlay_source: &CommonOverlaySource,
+) -> bool {
+    if source_path.is_file() {
+        return matches!(overlay_source, CommonOverlaySource::Zip(zip_path) if paths_equivalent(zip_path, source_path));
+    }
+
+    if !source_path.is_dir() {
+        return false;
+    }
+
+    match overlay_source {
+        CommonOverlaySource::Directory(path) => {
+            let common_dir = source_path.join("Common");
+            common_dir.is_dir() && paths_equivalent(path, &common_dir)
+        }
+        CommonOverlaySource::Zip(path) => {
+            let assets_zip = source_path.join("Assets.zip");
+            assets_zip.is_file() && paths_equivalent(path, &assets_zip)
+        }
+    }
+}
+
+fn extract_common_relative_path(entry_path: &Path) -> Option<PathBuf> {
+    let mut components = entry_path.components();
+    match components.next() {
+        Some(Component::Normal(first))
+            if first.to_string_lossy().eq_ignore_ascii_case("common") => {}
+        _ => return None,
+    }
+
+    let mut relative = PathBuf::new();
+    for component in components {
+        match component {
+            Component::Normal(part) => relative.push(part),
+            Component::CurDir => {}
+            _ => return None,
+        }
+    }
+
+    if relative.as_os_str().is_empty() {
+        None
+    } else {
+        Some(relative)
+    }
+}
+
+fn count_changed_files_in_common_zip(
+    zip_path: &Path,
+    common_dest_root: &Path,
+) -> Result<u64, Box<dyn std::error::Error>> {
+    let file = File::open(zip_path)?;
+    let mut archive = ZipArchive::new(file)?;
+    let mut changed: u64 = 0;
+
+    for index in 0..archive.len() {
+        let entry = archive.by_index(index)?;
+        if entry.is_dir() {
+            continue;
+        }
+        let entry_path = sanitize_archive_entry_path(entry.name())?;
+        let Some(relative_path) = extract_common_relative_path(&entry_path) else {
+            continue;
+        };
+        let output_path = common_dest_root.join(relative_path);
+        if output_path.exists() {
+            if let Ok(meta) = output_path.metadata() {
+                if meta.len() == entry.size() {
+                    continue;
+                }
+            }
+        }
+        changed += 1;
+    }
+
+    Ok(changed)
+}
+
+fn extract_common_zip_overlay(
+    zip_path: &Path,
+    common_dest_root: &Path,
+) -> Result<u64, Box<dyn std::error::Error>> {
+    let file = File::open(zip_path)?;
+    let mut archive = ZipArchive::new(file)?;
+    let mut files_written = 0;
+
+    for index in 0..archive.len() {
+        if CANCEL_SYNC.load(Ordering::SeqCst) {
+            return Err("sync cancelled by user".into());
+        }
+        let mut entry = archive.by_index(index)?;
+        let entry_path = sanitize_archive_entry_path(entry.name())?;
+        let Some(relative_path) = extract_common_relative_path(&entry_path) else {
+            continue;
+        };
+
+        let output_path = common_dest_root.join(relative_path);
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        if output_path.exists() {
+            if let Ok(meta) = output_path.metadata() {
+                if meta.len() == entry.size() {
+                    continue;
+                }
+            }
+        }
+
+        let mut output = File::create(&output_path)?;
+        io::copy(&mut entry, &mut output)?;
+        files_written += 1;
+    }
+
+    Ok(files_written)
+}
+
+fn extract_common_zip_overlay_with_progress(
+    zip_path: &Path,
+    common_dest_root: &Path,
+    window: &Window,
+    total_files_opt: Option<u64>,
+    files_written: &mut u64,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let file = File::open(zip_path)?;
+    let mut archive = ZipArchive::new(file)?;
+
+    for index in 0..archive.len() {
+        if CANCEL_SYNC.load(Ordering::SeqCst) {
+            let _ = window.emit(
+                "hytale-sync-cancelled",
+                &serde_json::json!({ "files_written": *files_written }),
+            );
+            return Err("sync cancelled by user".into());
+        }
+        let mut entry = archive.by_index(index)?;
+        if entry.is_dir() {
+            continue;
+        }
+        let entry_path = sanitize_archive_entry_path(entry.name())?;
+        let Some(relative_path) = extract_common_relative_path(&entry_path) else {
+            continue;
+        };
+
+        let output_path = common_dest_root.join(&relative_path);
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        if output_path.exists() {
+            if let Ok(meta) = output_path.metadata() {
+                if meta.len() == entry.size() {
+                    continue;
+                }
+            }
+        }
+
+        let mut output = File::create(&output_path)?;
+        io::copy(&mut entry, &mut output)?;
+        *files_written += 1;
+
+        let percent = total_files_opt
+            .filter(|&total| total > 0)
+            .map(|total| ((*files_written as f32) / (total as f32) * 100.0).min(100.0));
+        let _ = window.emit(
+            "hytale-sync-progress",
+            &SyncProgressEvent {
+                files_written: *files_written,
+                total_files: total_files_opt,
+                current_file: Some(format!(
+                    "{}::{}",
+                    zip_path.to_string_lossy(),
+                    relative_path.to_string_lossy()
+                )),
+                percent,
+            },
+        );
+    }
+
+    Ok(())
 }
 
 #[allow(dead_code)]
-fn extract_assets_zip(zip_path: &Path, cache_root: &Path) -> Result<u64, Box<dyn std::error::Error>> {
+fn extract_assets_zip(
+    zip_path: &Path,
+    cache_root: &Path,
+) -> Result<u64, Box<dyn std::error::Error>> {
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
     let mut files_written = 0;
@@ -424,7 +702,10 @@ fn extract_assets_zip(zip_path: &Path, cache_root: &Path) -> Result<u64, Box<dyn
 }
 
 #[allow(dead_code)]
-fn sync_from_directory(source_dir: &Path, cache_root: &Path) -> Result<(u64, String), Box<dyn std::error::Error>> {
+fn sync_from_directory(
+    source_dir: &Path,
+    cache_root: &Path,
+) -> Result<(u64, String), Box<dyn std::error::Error>> {
     let embedded_zip = source_dir.join("Assets.zip");
     if embedded_zip.is_file() {
         let files_written = extract_assets_zip(&embedded_zip, cache_root)?;
@@ -432,11 +713,16 @@ fn sync_from_directory(source_dir: &Path, cache_root: &Path) -> Result<(u64, Str
     }
 
     let mut files_written = 0;
-    files_written += copy_directory_recursive(&source_dir.join("Common"), &cache_root.join("Common"))?;
-    files_written += copy_directory_recursive(&source_dir.join("Server"), &cache_root.join("Server"))?;
+    files_written +=
+        copy_directory_recursive(&source_dir.join("Common"), &cache_root.join("Common"))?;
+    files_written +=
+        copy_directory_recursive(&source_dir.join("Server"), &cache_root.join("Server"))?;
 
     if files_written == 0 {
-        return Err("No Common/ or Server/ asset folders were found in the selected Hytale directory".into());
+        return Err(
+            "No Common/ or Server/ asset folders were found in the selected Hytale directory"
+                .into(),
+        );
     }
 
     Ok((files_written, "directory".into()))
@@ -456,7 +742,9 @@ fn count_files_in_dir(dir: &Path) -> Result<u64, Box<dyn std::error::Error>> {
     let mut count: u64 = 0;
     let mut stack = vec![dir.to_path_buf()];
     while let Some(current) = stack.pop() {
-        let Ok(entries) = fs::read_dir(&current) else { continue };
+        let Ok(entries) = fs::read_dir(&current) else {
+            continue;
+        };
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
@@ -470,7 +758,10 @@ fn count_files_in_dir(dir: &Path) -> Result<u64, Box<dyn std::error::Error>> {
 }
 
 /// Count changed files inside a zip archive (only Common/ or Server/ entries).
-fn count_changed_files_in_zip(zip_path: &Path, cache_root: &Path) -> Result<u64, Box<dyn std::error::Error>> {
+fn count_changed_files_in_zip(
+    zip_path: &Path,
+    cache_root: &Path,
+) -> Result<u64, Box<dyn std::error::Error>> {
     let file = File::open(zip_path)?;
     let mut archive = ZipArchive::new(file)?;
     let mut changed: u64 = 0;
@@ -479,13 +770,21 @@ fn count_changed_files_in_zip(zip_path: &Path, cache_root: &Path) -> Result<u64,
         let entry_path = sanitize_archive_entry_path(entry.name())?;
         if let Some(Component::Normal(first)) = entry_path.components().next() {
             let first_lower = first.to_string_lossy().to_ascii_lowercase();
-            if !(first_lower == "common" || first_lower == "server") { continue; }
-        } else { continue; }
-        if entry.is_dir() { continue; }
+            if !(first_lower == "common" || first_lower == "server") {
+                continue;
+            }
+        } else {
+            continue;
+        }
+        if entry.is_dir() {
+            continue;
+        }
         let output_path = cache_root.join(&entry_path);
         if output_path.exists() {
             if let Ok(meta) = output_path.metadata() {
-                if meta.len() == entry.size() { continue; }
+                if meta.len() == entry.size() {
+                    continue;
+                }
             }
         }
         changed += 1;
@@ -494,20 +793,32 @@ fn count_changed_files_in_zip(zip_path: &Path, cache_root: &Path) -> Result<u64,
 }
 
 /// Count changed files under a source subtree relative to a dest root.
-fn count_changed_files_in_subdir(src: &Path, dest_root: &Path) -> Result<u64, Box<dyn std::error::Error>> {
-    if !src.exists() { return Ok(0); }
+fn count_changed_files_in_subdir(
+    src: &Path,
+    dest_root: &Path,
+) -> Result<u64, Box<dyn std::error::Error>> {
+    if !src.exists() {
+        return Ok(0);
+    }
     let mut changed: u64 = 0;
     let mut stack = vec![src.to_path_buf()];
     while let Some(current) = stack.pop() {
-        let Ok(entries) = fs::read_dir(&current) else { continue };
+        let Ok(entries) = fs::read_dir(&current) else {
+            continue;
+        };
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_dir() { stack.push(path); continue; }
+            if path.is_dir() {
+                stack.push(path);
+                continue;
+            }
             let rel = path.strip_prefix(src).unwrap_or(&path);
             let dest = dest_root.join(rel);
             if dest.exists() {
                 if let (Ok(smeta), Ok(dmeta)) = (path.metadata(), dest.metadata()) {
-                    if smeta.len() == dmeta.len() { continue; }
+                    if smeta.len() == dmeta.len() {
+                        continue;
+                    }
                 }
             }
             changed += 1;
@@ -527,13 +838,28 @@ pub fn count_changed_hytale_assets_from_source(
     if source_path.is_file() {
         total = count_changed_files_in_zip(source_path, &cache_root)?;
     } else if source_path.is_dir() {
-        total += count_changed_files_in_subdir(&source_path.join("Common"), &cache_root.join("Common")).unwrap_or(0);
-        total += count_changed_files_in_subdir(&source_path.join("Server"), &cache_root.join("Server")).unwrap_or(0);
+        total +=
+            count_changed_files_in_subdir(&source_path.join("Common"), &cache_root.join("Common"))
+                .unwrap_or(0);
+        total +=
+            count_changed_files_in_subdir(&source_path.join("Server"), &cache_root.join("Server"))
+                .unwrap_or(0);
     }
 
     if let Some(overlay) = common_overlay_path {
-        let overlay_root = resolve_common_overlay_root(overlay)?;
-        total += count_changed_files_in_subdir(&overlay_root, &cache_root.join("Common")).unwrap_or(0);
+        let overlay_source = resolve_common_overlay_source(overlay)?;
+        if !overlay_duplicates_primary_source(source_path, &overlay_source) {
+            total += match overlay_source {
+                CommonOverlaySource::Directory(overlay_root) => {
+                    count_changed_files_in_subdir(&overlay_root, &cache_root.join("Common"))
+                        .unwrap_or(0)
+                }
+                CommonOverlaySource::Zip(zip_path) => {
+                    count_changed_files_in_common_zip(&zip_path, &cache_root.join("Common"))
+                        .unwrap_or(0)
+                }
+            };
+        }
     }
 
     Ok(total)
@@ -545,7 +871,7 @@ fn copy_directory_recursive_with_progress(
     window: &Window,
     total_files_opt: Option<u64>,
     files_written: &mut u64,
- ) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error>> {
     if !source.exists() {
         return Ok(());
     }
@@ -556,7 +882,10 @@ fn copy_directory_recursive_with_progress(
         let entry = entry?;
         // Check for cancellation request
         if CANCEL_SYNC.load(Ordering::SeqCst) {
-            let _ = window.emit("hytale-sync-cancelled", &serde_json::json!({ "files_written": *files_written }));
+            let _ = window.emit(
+                "hytale-sync-cancelled",
+                &serde_json::json!({ "files_written": *files_written }),
+            );
             return Err("sync cancelled by user".into());
         }
         let source_path = entry.path();
@@ -568,14 +897,22 @@ fn copy_directory_recursive_with_progress(
 
         if source_path.is_dir() {
             // Recursive call updates the shared `files_written` counter directly.
-            copy_directory_recursive_with_progress(&source_path, &destination_path, window, total_files_opt, files_written)?;
+            copy_directory_recursive_with_progress(
+                &source_path,
+                &destination_path,
+                window,
+                total_files_opt,
+                files_written,
+            )?;
         } else {
             if let Some(parent) = destination_path.parent() {
                 fs::create_dir_all(parent)?;
             }
             // Skip copying if destination exists and appears identical (same size).
             if destination_path.exists() {
-                if let (Ok(src_meta), Ok(dst_meta)) = (fs::metadata(&source_path), fs::metadata(&destination_path)) {
+                if let (Ok(src_meta), Ok(dst_meta)) =
+                    (fs::metadata(&source_path), fs::metadata(&destination_path))
+                {
                     if src_meta.len() == dst_meta.len() {
                         // identical — skip
                         continue;
@@ -617,7 +954,10 @@ fn extract_assets_zip_with_progress(
     for index in 0..archive.len() {
         // Check for cancellation request
         if CANCEL_SYNC.load(Ordering::SeqCst) {
-            let _ = window.emit("hytale-sync-cancelled", &serde_json::json!({ "files_written": *files_written }));
+            let _ = window.emit(
+                "hytale-sync-cancelled",
+                &serde_json::json!({ "files_written": *files_written }),
+            );
             return Err("sync cancelled by user".into());
         }
         let mut entry = archive.by_index(index)?;
@@ -658,7 +998,9 @@ fn extract_assets_zip_with_progress(
 
         let percent = if total_files > 0 {
             Some(((*files_written as f32) / (total_files as f32) * 100.0).min(100.0))
-        } else { None };
+        } else {
+            None
+        };
         let _ = window.emit(
             "hytale-sync-progress",
             &SyncProgressEvent {
@@ -692,14 +1034,22 @@ pub fn sync_hytale_assets_from_source_with_progress(
     // that actually need to be written (new or changed) so progress is
     // meaningful and we avoid re-downloading identical files.
     // Resolve overlay root early so we can include it in the total.
-    let overlay_root_opt = if let Some(p) = common_overlay_path {
-        Some(resolve_common_overlay_root(p)?)
+    let overlay_source_opt = if let Some(p) = common_overlay_path {
+        let resolved = resolve_common_overlay_source(p)?;
+        if overlay_duplicates_primary_source(source_path, &resolved) {
+            None
+        } else {
+            Some(resolved)
+        }
     } else {
         None
     };
 
     // Helper: count changed files inside a zip (only Common/ or Server/ entries).
-    fn count_changed_files_in_zip(zip_path: &Path, cache_root: &Path) -> Result<u64, Box<dyn std::error::Error>> {
+    fn count_changed_files_in_zip(
+        zip_path: &Path,
+        cache_root: &Path,
+    ) -> Result<u64, Box<dyn std::error::Error>> {
         let file = File::open(zip_path)?;
         let mut archive = ZipArchive::new(file)?;
         let mut changed: u64 = 0;
@@ -708,13 +1058,21 @@ pub fn sync_hytale_assets_from_source_with_progress(
             let entry_path = sanitize_archive_entry_path(entry.name())?;
             if let Some(Component::Normal(first)) = entry_path.components().next() {
                 let first_lower = first.to_string_lossy().to_ascii_lowercase();
-                if !(first_lower == "common" || first_lower == "server") { continue; }
-            } else { continue; }
-            if entry.is_dir() { continue; }
+                if !(first_lower == "common" || first_lower == "server") {
+                    continue;
+                }
+            } else {
+                continue;
+            }
+            if entry.is_dir() {
+                continue;
+            }
             let output_path = cache_root.join(&entry_path);
             if output_path.exists() {
                 if let Ok(meta) = output_path.metadata() {
-                    if meta.len() == entry.size() { continue; }
+                    if meta.len() == entry.size() {
+                        continue;
+                    }
                 }
             }
             changed += 1;
@@ -723,20 +1081,32 @@ pub fn sync_hytale_assets_from_source_with_progress(
     }
 
     // Helper: count changed files under a source subtree relative to a dest root.
-    fn count_changed_files_in_subdir(src: &Path, dest_root: &Path) -> Result<u64, Box<dyn std::error::Error>> {
-        if !src.exists() { return Ok(0); }
+    fn count_changed_files_in_subdir(
+        src: &Path,
+        dest_root: &Path,
+    ) -> Result<u64, Box<dyn std::error::Error>> {
+        if !src.exists() {
+            return Ok(0);
+        }
         let mut changed: u64 = 0;
         let mut stack = vec![src.to_path_buf()];
         while let Some(current) = stack.pop() {
-            let Ok(entries) = fs::read_dir(&current) else { continue };
+            let Ok(entries) = fs::read_dir(&current) else {
+                continue;
+            };
             for entry in entries.flatten() {
                 let path = entry.path();
-                if path.is_dir() { stack.push(path); continue; }
+                if path.is_dir() {
+                    stack.push(path);
+                    continue;
+                }
                 let rel = path.strip_prefix(src).unwrap_or(&path);
                 let dest = dest_root.join(rel);
                 if dest.exists() {
                     if let (Ok(smeta), Ok(dmeta)) = (path.metadata(), dest.metadata()) {
-                        if smeta.len() == dmeta.len() { continue; }
+                        if smeta.len() == dmeta.len() {
+                            continue;
+                        }
                     }
                 }
                 changed += 1;
@@ -750,8 +1120,12 @@ pub fn sync_hytale_assets_from_source_with_progress(
         Some(count_changed_files_in_zip(source_path, &cache_root)?)
     } else if source_path.is_dir() {
         let mut total = 0u64;
-        total += count_changed_files_in_subdir(&source_path.join("Common"), &cache_root.join("Common")).unwrap_or(0);
-        total += count_changed_files_in_subdir(&source_path.join("Server"), &cache_root.join("Server")).unwrap_or(0);
+        total +=
+            count_changed_files_in_subdir(&source_path.join("Common"), &cache_root.join("Common"))
+                .unwrap_or(0);
+        total +=
+            count_changed_files_in_subdir(&source_path.join("Server"), &cache_root.join("Server"))
+                .unwrap_or(0);
         Some(total)
     } else {
         None
@@ -759,12 +1133,28 @@ pub fn sync_hytale_assets_from_source_with_progress(
 
     // Include overlay files in the total if present
     let total_files_opt = if let Some(mut base) = total_files_opt {
-        if let Some(overlay_root) = &overlay_root_opt {
-            base += count_changed_files_in_subdir(overlay_root, &cache_root.join("Common")).unwrap_or(0);
+        if let Some(overlay_source) = &overlay_source_opt {
+            base += match overlay_source {
+                CommonOverlaySource::Directory(overlay_root) => {
+                    count_changed_files_in_subdir(overlay_root, &cache_root.join("Common"))
+                        .unwrap_or(0)
+                }
+                CommonOverlaySource::Zip(zip_path) => {
+                    count_changed_files_in_common_zip(zip_path, &cache_root.join("Common"))
+                        .unwrap_or(0)
+                }
+            };
         }
         Some(base)
-    } else if let Some(overlay_root) = &overlay_root_opt {
-        Some(count_changed_files_in_subdir(overlay_root, &cache_root.join("Common")).unwrap_or(0))
+    } else if let Some(overlay_source) = &overlay_source_opt {
+        Some(match overlay_source {
+            CommonOverlaySource::Directory(overlay_root) => {
+                count_changed_files_in_subdir(overlay_root, &cache_root.join("Common")).unwrap_or(0)
+            }
+            CommonOverlaySource::Zip(zip_path) => {
+                count_changed_files_in_common_zip(zip_path, &cache_root.join("Common")).unwrap_or(0)
+            }
+        })
     } else {
         None
     };
@@ -786,7 +1176,10 @@ pub fn sync_hytale_assets_from_source_with_progress(
         return Ok(result);
     }
 
-    let _ = window.emit("hytale-sync-start", &serde_json::json!({ "total_files": total_files_opt }));
+    let _ = window.emit(
+        "hytale-sync-start",
+        &serde_json::json!({ "total_files": total_files_opt }),
+    );
 
     let mut files_written = 0u64;
     let (files_written_inner, source_kind) = if source_path.is_file() {
@@ -798,26 +1191,60 @@ pub fn sync_hytale_assets_from_source_with_progress(
         if !is_zip {
             return Err("Expected a .zip file or a directory containing Assets.zip".into());
         }
-        extract_assets_zip_with_progress(source_path, &cache_root, window, total_files_opt.unwrap_or(0), &mut files_written)?;
+        extract_assets_zip_with_progress(
+            source_path,
+            &cache_root,
+            window,
+            total_files_opt.unwrap_or(0),
+            &mut files_written,
+        )?;
         (files_written, "zip".into())
     } else {
-        copy_directory_recursive_with_progress(&source_path.join("Common"), &cache_root.join("Common"), window, total_files_opt, &mut files_written)?;
-        copy_directory_recursive_with_progress(&source_path.join("Server"), &cache_root.join("Server"), window, total_files_opt, &mut files_written)?;
+        copy_directory_recursive_with_progress(
+            &source_path.join("Common"),
+            &cache_root.join("Common"),
+            window,
+            total_files_opt,
+            &mut files_written,
+        )?;
+        copy_directory_recursive_with_progress(
+            &source_path.join("Server"),
+            &cache_root.join("Server"),
+            window,
+            total_files_opt,
+            &mut files_written,
+        )?;
         (files_written, "directory".into())
     };
 
-    let (common_overlay_path_str, common_overlay_files_written) = if let Some(overlay_path) = common_overlay_path {
-        let overlay_root = resolve_common_overlay_root(overlay_path)?;
-        let before_overlay = files_written;
-        copy_directory_recursive_with_progress(&overlay_root, &cache_root.join("Common"), window, total_files_opt, &mut files_written)?;
-        let files = files_written.saturating_sub(before_overlay);
-        (
-            Some(overlay_root.to_string_lossy().to_string()),
-            files,
-        )
-    } else {
-        (None, 0)
-    };
+    let (common_overlay_path_str, common_overlay_files_written) =
+        if let Some(overlay_source) = &overlay_source_opt {
+            let before_overlay = files_written;
+            match overlay_source {
+                CommonOverlaySource::Directory(overlay_root) => {
+                    copy_directory_recursive_with_progress(
+                        overlay_root,
+                        &cache_root.join("Common"),
+                        window,
+                        total_files_opt,
+                        &mut files_written,
+                    )?;
+                }
+                CommonOverlaySource::Zip(zip_path) => {
+                    extract_common_zip_overlay_with_progress(
+                        zip_path,
+                        &cache_root.join("Common"),
+                        window,
+                        total_files_opt,
+                        &mut files_written,
+                    )?;
+                }
+            }
+            let files = files_written.saturating_sub(before_overlay);
+            (Some(common_overlay_display_path(overlay_source)), files)
+        } else {
+            (None, 0)
+        };
 
     let total_written = files_written_inner + common_overlay_files_written;
     write_sync_manifest(&cache_root, source_path, total_written)?;
@@ -870,16 +1297,28 @@ pub fn sync_hytale_assets_from_source(
         return Err("Unsupported Hytale asset source path".into());
     };
 
-    let (common_overlay_path, common_overlay_files_written) = if let Some(overlay_path) = common_overlay_path {
-        let overlay_root = resolve_common_overlay_root(overlay_path)?;
-        let files_written = copy_directory_recursive(&overlay_root, &cache_root.join("Common"))?;
-        (
-            Some(overlay_root.to_string_lossy().to_string()),
-            files_written,
-        )
-    } else {
-        (None, 0)
-    };
+    let (common_overlay_path, common_overlay_files_written) =
+        if let Some(overlay_path) = common_overlay_path {
+            let overlay_source = resolve_common_overlay_source(overlay_path)?;
+            if overlay_duplicates_primary_source(source_path, &overlay_source) {
+                (None, 0)
+            } else {
+                let files_written = match &overlay_source {
+                    CommonOverlaySource::Directory(overlay_root) => {
+                        copy_directory_recursive(overlay_root, &cache_root.join("Common"))?
+                    }
+                    CommonOverlaySource::Zip(zip_path) => {
+                        extract_common_zip_overlay(zip_path, &cache_root.join("Common"))?
+                    }
+                };
+                (
+                    Some(common_overlay_display_path(&overlay_source)),
+                    files_written,
+                )
+            }
+        } else {
+            (None, 0)
+        };
 
     let total_written = files_written + common_overlay_files_written;
     write_sync_manifest(&cache_root, source_path, total_written)?;
@@ -888,7 +1327,7 @@ pub fn sync_hytale_assets_from_source(
         cache_root: cache_root.to_string_lossy().to_string(),
         source_path: source_path.to_string_lossy().to_string(),
         source_kind,
-        files_written,
+        files_written: total_written,
         common_overlay_path,
         common_overlay_files_written,
     })

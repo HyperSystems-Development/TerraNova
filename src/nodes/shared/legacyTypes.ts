@@ -58,6 +58,46 @@ export function isLegacyTypeKey(typeKey: string): boolean {
 }
 
 /**
+ * Type keys that are still registered for loading old projects, but should not
+ * be offered for newly-created graphs because the current Hytale API exposes a
+ * clearer canonical V2 name.
+ */
+export const NON_CANONICAL_PALETTE_TYPE_KEYS: ReadonlySet<string> = new Set([
+  // Density aliases kept for backwards compatibility with old TerraNova files.
+  "Product",
+  "Negate",
+  "CurveFunction",
+  "CacheOnce",
+  "ImportedValue",
+  "Blend",
+  "MinFunction",
+  "MaxFunction",
+  "CoordinateX",
+  "CoordinateY",
+  "CoordinateZ",
+  "SquareRoot",
+  "DomainWarp2D",
+  "DomainWarp3D",
+  "LinearTransform",
+  "BlendCurve",
+  "TranslatedPosition",
+  "ScaledPosition",
+  "RotatedPosition",
+
+  // Current Javadocs expose Cache2dDensityAsset_Deprecated. Keep loading it,
+  // but prefer CacheDensityAsset for newly-created graphs.
+  "Cache2D",
+]);
+
+/**
+ * Whether a type should be offered in new-node UI surfaces.
+ * Existing projects can still load registered legacy/non-canonical nodes.
+ */
+export function isPaletteTypeKeyVisible(typeKey: string): boolean {
+  return !isLegacyTypeKey(typeKey) && !NON_CANONICAL_PALETTE_TYPE_KEYS.has(typeKey);
+}
+
+/**
  * Maps a legacy type key to its closest modern replacement, where a safe 1:1
  * substitution exists. Returns null when no direct replacement is available
  * (the user must manually recreate the node with the correct modern type).
@@ -80,7 +120,7 @@ export const LEGACY_TYPE_REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   ["DistanceFromAxis",    "Distance"],
   ["AngleFromOrigin",     "Angle"],
   ["AngleFromPoint",      "Angle"],
-  ["FlatCache",           "Cache2D"],
+  ["FlatCache",           "Cache"],
   ["Zero",                "Constant"],
   ["One",                 "Constant"],
   ["Amplitude",           "AmplitudeConstant"],

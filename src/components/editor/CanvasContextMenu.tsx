@@ -4,6 +4,7 @@ import { useEditorStore } from "@/stores/editorStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { makeAuthorNoteText } from "@/utils/annotationUtils";
 
 interface CanvasContextMenuProps {
   x: number;
@@ -38,12 +39,38 @@ export function CanvasContextMenu({ x, y, onClose, onQuickAdd }: CanvasContextMe
               id,
               type: "comment",
               position: flowPos,
-              data: { type: "comment", text: "", width: 200, height: 80 },
+              data: { type: "comment", text: "", width: 240, height: 110 },
               draggable: true,
               selectable: true,
             },
           ]);
           commitState("Add comment");
+          onClose();
+        }}
+      />
+      <ContextMenuItem
+        label="Add Author Note"
+        onClick={() => {
+          const flowPos = reactFlow.screenToFlowPosition({ x, y });
+          const id = `comment-${crypto.randomUUID()}`;
+          const { nodes, setNodes, commitState } = useEditorStore.getState();
+          setNodes([
+            ...nodes,
+            {
+              id,
+              type: "comment",
+              position: flowPos,
+              data: {
+                type: "comment",
+                text: makeAuthorNoteText("Explain what to tune here."),
+                width: 300,
+                height: 140,
+              },
+              draggable: true,
+              selectable: true,
+            },
+          ]);
+          commitState("Add author note");
           onClose();
         }}
       />

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isLegacyTypeKey } from "../shared/legacyTypes";
+import { isLegacyTypeKey, isPaletteTypeKeyVisible } from "../shared/legacyTypes";
 
 describe("legacy type corrections", () => {
   it("Environment:Imported is not legacy (active V2 type)", () => {
@@ -34,5 +34,15 @@ describe("legacy type corrections", () => {
     expect(isLegacyTypeKey("Prop:Box")).toBe(false);
     expect(isLegacyTypeKey("Prop:Column")).toBe(false);
     expect(isLegacyTypeKey("Prop:Cluster")).toBe(false);
+  });
+
+  it("hides non-canonical density aliases from new-node palettes", () => {
+    expect(isPaletteTypeKeyVisible("Product")).toBe(false);
+    expect(isPaletteTypeKeyVisible("CacheOnce")).toBe(false);
+    expect(isPaletteTypeKeyVisible("CurveFunction")).toBe(false);
+    expect(isPaletteTypeKeyVisible("Cache2D")).toBe(false);
+    expect(isPaletteTypeKeyVisible("Multiplier")).toBe(true);
+    expect(isPaletteTypeKeyVisible("Cache")).toBe(true);
+    expect(isPaletteTypeKeyVisible("CurveMapper")).toBe(true);
   });
 });

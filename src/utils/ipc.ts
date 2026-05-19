@@ -144,14 +144,22 @@ export async function syncHytaleAssets(
 
     (async () => {
       try {
-        unlistenComplete = await ev.once("hytale-sync-complete", (e: any) => {
+        unlistenComplete = await ev.once("hytale-sync-complete", (e: unknown) => {
           cleanup();
-          resolve(e.payload as HytaleAssetSyncResult);
+          if (e && typeof e === 'object' && 'payload' in e) {
+            resolve(e.payload as HytaleAssetSyncResult);
+          } else {
+            reject(new Error('Invalid event payload'));
+          }
         });
 
-        unlistenError = await ev.once("hytale-sync-error", (e: any) => {
+        unlistenError = await ev.once("hytale-sync-error", (e: unknown) => {
           cleanup();
-          reject(e.payload ?? e);
+          if (e && typeof e === 'object' && 'payload' in e) {
+            reject(e.payload ?? e);
+          } else {
+            reject(e);
+          }
         });
       } catch (err) {
         cleanup();

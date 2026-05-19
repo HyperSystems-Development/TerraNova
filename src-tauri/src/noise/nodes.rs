@@ -26,13 +26,7 @@ pub struct SimplexNoise2DNode {
 }
 
 impl SimplexNoise2DNode {
-    pub fn new(
-        lacunarity: f64,
-        persistence: f64,
-        scale: f64,
-        octaves: i32,
-        seed: String,
-    ) -> Self {
+    pub fn new(lacunarity: f64, persistence: f64, scale: f64, octaves: i32, seed: String) -> Self {
         // Cap octaves to prevent excessive computation (32 octaves is already extreme)
         let octaves = octaves.clamp(1, 32);
         let mut noise = FastNoiseLite::new();
@@ -42,7 +36,8 @@ impl SimplexNoise2DNode {
         let seed_int: i32 = if seed.is_empty() {
             0
         } else {
-            seed.bytes().fold(0i32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as i32))
+            seed.bytes()
+                .fold(0i32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as i32))
         };
         noise.set_seed(Some(seed_int));
         noise.set_frequency(Some((1.0 / scale.max(0.001)) as f32));
