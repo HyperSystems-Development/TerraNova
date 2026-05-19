@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { getVersion } from "@tauri-apps/api/app";
 import { useSettingsStore } from "@/stores/settingsStore";
 import {
   resolveDefaultPreReleaseAssetsPath,
@@ -13,10 +12,14 @@ import type { FlowDirection } from "@/constants";
 import { checkHytaleAssetStaleness, getHytaleAssetCacheRoot, showInFolder, syncHytaleAssets, type AssetStalenessInfo } from "@/utils/ipc";
 import { useToastStore } from "@/stores/toastStore";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
-import { WhatsNewDialog } from "./WhatsNewDialog";
+import { WhatsNewDialog, WHATS_NEW_SUPPRESS_KEY } from "./WhatsNewDialog";
 import { ChangelogDialog } from "./ChangelogDialog";
-
-const WHATS_NEW_SUPPRESS_KEY = "terranova:whats-new-suppress";
+import { SystemSettingsPanel, type SystemTab } from "./ConfigurationDialog";
+import { KeyboardShortcutsPanel } from "./KeyboardShortcutsDialog";
+import { clearAvailableHytaleAssetFoldersCache } from "@/utils/hytaleAssetFolders";
+import { clearHytaleAssetsInFolderCache } from "@/utils/getHytaleAssetsInFolder";
+import { clearHardwareDetectionCache, detectHardware, type HardwareInfo } from "@/utils/hardwareDetect";
+import { getAppVersion } from "@/utils/fetchReleases";
 
 function getWhatsNewSuppressed(): boolean {
   try { return localStorage.getItem(WHATS_NEW_SUPPRESS_KEY) === "true"; } catch { return false; }
@@ -33,17 +36,22 @@ const FLOW_DIRECTIONS: { id: FlowDirection; label: string; description: string }
   { id: "RL", label: "Right to Left", description: "Output on left, inputs on right (Hytale native)" },
 ];
 
-type SettingsTab = "editor" | "assets" | "about";
+export type SettingsTab = "general" | "system" | "assets" | "shortcuts" | "developer" | "about";
 
 const TABS: { id: SettingsTab; label: string }[] = [
-  { id: "editor", label: "Editor" },
+  { id: "general", label: "General" },
+  { id: "system", label: "System" },
   { id: "assets", label: "Assets" },
+  { id: "shortcuts", label: "Shortcuts" },
+  { id: "developer", label: "Developer" },
   { id: "about", label: "About" },
 ];
 
 interface SettingsDialogProps {
   open: boolean;
   onClose: () => void;
+  initialTab?: SettingsTab;
+  initialSystemTab?: SystemTab;
 }
 
 function formatSyncedAt(syncedAt: string): string {
@@ -58,7 +66,7 @@ function formatSyncedAt(syncedAt: string): string {
   return days === 1 ? "1 day ago" : `${days} days ago`;
 }
 
-export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
+export function SettingsDialog({ open, onClose, initialTab = "general", initialSystemTab = "cpu" }: SettingsDialogProps) {
   const flowDirection = useSettingsStore((s) => s.flowDirection);
   const setFlowDirection = useSettingsStore((s) => s.setFlowDirection);
   const autoLayoutOnOpen = useSettingsStore((s) => s.autoLayoutOnOpen);
@@ -85,6 +93,10 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const setHytaleCommonAssetsEnabled = useSettingsStore((s) => s.setHytaleCommonAssetsEnabled);
   const hytaleCommonAssetsPath = useSettingsStore((s) => s.hytaleCommonAssetsPath);
   const setHytaleCommonAssetsPath = useSettingsStore((s) => s.setHytaleCommonAssetsPath);
+  const developerMode = useSettingsStore((s) => s.developerMode);
+  const setDeveloperMode = useSettingsStore((s) => s.setDeveloperMode);
+  const debugWorkerLogging = useSettingsStore((s) => s.debugWorkerLogging);
+  const setDebugWorkerLogging = useSettingsStore((s) => s.setDebugWorkerLogging);
   const addToast = useToastStore((s) => s.addToast);
   const recentProjects = useRecentProjectsStore((s) => s.projects);
   const clearRecentProjects = useRecentProjectsStore((s) => s.clearAll);
@@ -93,7 +105,7 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const updateVersion = useUpdateStore((s) => s.version);
   const updateProgress = useUpdateStore((s) => s.progress);
 
-  const [tab, setTab] = useState<SettingsTab>("editor");
+  const [tab, setTab] = useState<SettingsTab>(initialTab);
   const [appVersion, setAppVersion] = useState("");
   const [whatsNewSuppressed, setWhatsNewSuppressedState] = useState(getWhatsNewSuppressed);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
@@ -104,12 +116,19 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   const [checkingStaleness, setCheckingStaleness] = useState(false);
   const [examplePreReleasePath, setExamplePreReleasePath] = useState("");
   const [exampleReleasePath, setExampleReleasePath] = useState("");
+  const [hardwareInfo, setHardwareInfo] = useState<HardwareInfo | null>(null);
+  const [refreshingHardware, setRefreshingHardware] = useState(false);
 
   useEffect(() => {
-    getVersion().then(setAppVersion);
+    void getAppVersion().then(setAppVersion);
     void resolveDefaultPreReleaseAssetsPath().then(setExamplePreReleasePath);
     void resolveDefaultReleaseAssetsPath().then(setExampleReleasePath);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    setTab(initialTab);
+  }, [open, initialTab]);
 
   useEffect(() => {
     if (!open) return;
@@ -117,6 +136,13 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
       .then(setHytaleAssetCacheRoot)
       .catch(() => setHytaleAssetCacheRoot(""));
   }, [open]);
+
+  useEffect(() => {
+    if (!open || (tab !== "system" && tab !== "developer")) return;
+    void detectHardware()
+      .then(setHardwareInfo)
+      .catch(() => setHardwareInfo(null));
+  }, [open, tab]);
 
   function handleToggleWhatsNew(value: boolean) {
     setWhatsNewSuppressedState(value);
@@ -159,7 +185,13 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
   }
 
   async function handleBrowseCommonAssetsSource() {
-    const selected = await openDialog({ directory: true, defaultPath: hytaleCommonAssetsPath });
+    const browseZip = hytaleCommonAssetsPath.trim().toLowerCase().endsWith(".zip")
+      || activeHytaleSourcePath.trim().toLowerCase().endsWith(".zip");
+    const selected = await openDialog(
+      browseZip
+        ? { directory: false, defaultPath: hytaleCommonAssetsPath || activeHytaleSourcePath, filters: [{ name: "Zip", extensions: ["zip"] }] }
+        : { directory: true, defaultPath: hytaleCommonAssetsPath || activeHytaleSourcePath },
+    );
     if (typeof selected === "string") setHytaleCommonAssetsPath(selected);
   }
 
@@ -186,6 +218,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
         activeHytaleSourcePath,
         hytaleCommonAssetsEnabled ? hytaleCommonAssetsPath : null,
       );
+      clearAvailableHytaleAssetFoldersCache("hytale-assets");
+      clearHytaleAssetsInFolderCache("hytale-assets");
       setHytaleAssetCacheRoot(result.cacheRoot);
       void checkHytaleAssetStaleness(activeHytaleSourcePath)
         .then(setStalenessInfo)
@@ -213,13 +247,33 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
     }
   }
 
+  function handleClearAssetBrowserCache() {
+    clearAvailableHytaleAssetFoldersCache("hytale-assets");
+    clearHytaleAssetsInFolderCache("hytale-assets");
+    addToast("Cleared cached Hytale asset folder listings.", "success");
+  }
+
+  async function handleRefreshHardware() {
+    try {
+      setRefreshingHardware(true);
+      clearHardwareDetectionCache();
+      const info = await detectHardware();
+      setHardwareInfo(info);
+      addToast("Refreshed detected hardware information.", "success");
+    } catch (error) {
+      addToast(`Could not refresh hardware information: ${error}`, "error");
+    } finally {
+      setRefreshingHardware(false);
+    }
+  }
+
   if (!open) return null;
 
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
         <div
-          className="bg-tn-panel border border-tn-border rounded-lg shadow-xl w-[680px] max-h-[85vh] flex flex-col"
+          className="bg-tn-panel border border-tn-border rounded-lg shadow-xl w-[920px] max-h-[85vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -235,12 +289,12 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           </div>
 
           {/* Tab bar */}
-          <div className="flex shrink-0 border-b border-tn-border px-5">
+          <div className="flex shrink-0 border-b border-tn-border px-5 overflow-x-auto">
             {TABS.map(({ id, label }) => (
               <button
                 key={id}
                 onClick={() => setTab(id)}
-                className={`px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors ${
+                className={`px-4 py-2.5 text-[13px] font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
                   tab === id
                     ? "border-tn-accent text-tn-accent"
                     : "border-transparent text-tn-text-muted hover:text-tn-text"
@@ -254,8 +308,8 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
           {/* Tab content */}
           <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
 
-            {/* ── Editor ── */}
-            {tab === "editor" && (
+            {/* ── General ── */}
+            {tab === "general" && (
               <>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Graph Flow Direction</label>
@@ -373,6 +427,14 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             )}
 
             {/* ── Assets ── */}
+            {tab === "system" && (
+              <SystemSettingsPanel initialTab={initialSystemTab} />
+            )}
+
+            {tab === "shortcuts" && (
+              <KeyboardShortcutsPanel />
+            )}
+
             {tab === "assets" && (
               <>
                 <div className="flex flex-col gap-1">
@@ -484,10 +546,11 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
                         className="flex-1 rounded border border-tn-border bg-tn-bg px-3 py-1.5 text-sm text-tn-text disabled:cursor-not-allowed disabled:opacity-60"
                       />
                       <button onClick={handleBrowseCommonAssetsSource} disabled={!hytaleCommonAssetsEnabled} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Browse...</button>
+                      <button onClick={() => setHytaleCommonAssetsPath(activeHytaleSourcePath)} disabled={!hytaleCommonAssetsEnabled || !activeHytaleSourcePath.trim()} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Use Source</button>
                       <button onClick={() => { void resolveDefaultCommonAssetsPath().then(setHytaleCommonAssetsPath); }} disabled={!hytaleCommonAssetsEnabled} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Default</button>
                     </div>
                     <p className="text-xs text-tn-text-muted">
-                      Point this at `Common` directly, or a parent folder that contains `Common`. Block/material PNGs will be merged into the cache after sync.
+                      Point this at `Common` directly, a parent folder that contains `Common`, or an `Assets.zip` source. TerraNova will read the internal `Common/` subtree automatically.
                     </p>
                   </div>
 
@@ -565,6 +628,102 @@ export function SettingsDialog({ open, onClose }: SettingsDialogProps) {
             )}
 
             {/* ── About ── */}
+            {tab === "developer" && (
+              <>
+                <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-tn-text">Developer Tools</p>
+                      <p className="mt-1 text-xs text-tn-text-muted">Optional controls for debugging TerraNova locally. Safe to ignore for normal editing.</p>
+                    </div>
+                    <span className="rounded border border-tn-border/60 px-2 py-1 text-[10px] uppercase tracking-wider text-tn-text-muted">
+                      Advanced
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Mode</label>
+                  <button
+                    onClick={() => setDeveloperMode(!developerMode)}
+                    className={`text-left px-3 py-2 rounded border text-sm ${
+                      developerMode ? "border-tn-accent bg-tn-accent/10" : "border-tn-border bg-tn-bg hover:bg-tn-surface"
+                    }`}
+                  >
+                    <span className="font-medium">Enable developer mode</span>
+                    <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{developerMode ? "On" : "Off"}</span>
+                    <p className="mt-0.5 text-xs text-tn-text-muted">Keeps debug-oriented controls easy to find without changing normal user defaults.</p>
+                  </button>
+                </div>
+
+                {!developerMode ? (
+                  <div className="rounded border border-tn-border/60 bg-tn-bg/60 px-3 py-2.5 text-xs text-tn-text-muted">
+                    Enable developer mode to reveal cache controls, hardware diagnostics, and verbose worker logging.
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-tn-text-muted uppercase tracking-wider">Logging</label>
+                      <button
+                        onClick={() => setDebugWorkerLogging(!debugWorkerLogging)}
+                        className={`text-left px-3 py-2 rounded border text-sm ${
+                          debugWorkerLogging ? "border-tn-accent bg-tn-accent/10" : "border-tn-border bg-tn-bg hover:bg-tn-surface"
+                        }`}
+                      >
+                        <span className="font-medium">Verbose worker logging</span>
+                        <span className="ml-2 text-[10px] font-medium text-tn-text-muted">{debugWorkerLogging ? "On" : "Off"}</span>
+                        <p className="mt-0.5 text-xs text-tn-text-muted">Logs worker startup, timeouts, and fallback behavior from density and volume previews.</p>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-3 flex flex-col gap-3">
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wider text-tn-text-muted">Caches</p>
+                          <p className="mt-1 text-xs text-tn-text-muted">Use these when asset browsing or hardware detection needs a clean refresh.</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={handleClearAssetBrowserCache}
+                            className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface"
+                          >
+                            Clear Asset Browser Cache
+                          </button>
+                          <button
+                            onClick={() => { clearHardwareDetectionCache(); setHardwareInfo(null); addToast("Cleared cached hardware detection.", "success"); }}
+                            className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface"
+                          >
+                            Clear Hardware Cache
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="rounded border border-tn-border/60 bg-tn-bg/60 p-3 flex flex-col gap-3">
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wider text-tn-text-muted">Detected Hardware</p>
+                          <p className="mt-1 text-xs text-tn-text-muted">Quick reference for the live hardware profile TerraNova is currently using.</p>
+                        </div>
+                        <div className="text-xs text-tn-text-muted flex flex-col gap-1">
+                          <p><span className="text-tn-text">CPU:</span> {hardwareInfo?.cpuName || "Unknown"}</p>
+                          <p><span className="text-tn-text">Cores:</span> {hardwareInfo?.cpuCores ?? "Unknown"}</p>
+                          <p><span className="text-tn-text">GPU:</span> {hardwareInfo?.gpuRenderer || "Unknown"}</p>
+                          <p><span className="text-tn-text">Adapters:</span> {hardwareInfo?.gpus.length ?? 0}</p>
+                          <p><span className="text-tn-text">RAM:</span> {hardwareInfo?.totalRamMb ? `${(hardwareInfo.totalRamMb / 1024).toFixed(1)} GB` : "Unknown"}</p>
+                        </div>
+                        <button
+                          onClick={() => { void handleRefreshHardware(); }}
+                          disabled={refreshingHardware}
+                          className="self-start px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {refreshingHardware ? "Refreshing..." : "Refresh Hardware Info"}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
             {tab === "about" && (
               <>
                 {/* App identity */}

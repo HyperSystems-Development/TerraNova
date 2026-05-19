@@ -22,12 +22,12 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
   const headerColor = getTypeColor(typeName);
 
   // Only show scalar fields in the body (not nested objects/arrays)
-  const scalarFields = useMemo(
-    () => Object.entries(data.fields ?? {}).filter(
+  const scalarFields = useMemo(() => {
+    const fields = data.fields ?? {};
+    return Object.entries(fields).filter(
       ([, v]) => typeof v === "string" || typeof v === "number" || typeof v === "boolean",
-    ),
-    [data.fields],
-  );
+    );
+  }, [data.fields]);
 
   // Filter s.edges for handles targeting this node; custom equality prevents re-renders when handles are unchanged
   const uniqueTargetHandles = useStore(

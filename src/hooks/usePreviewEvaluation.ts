@@ -5,6 +5,8 @@ import { evaluateInWorker, cancelEvaluation } from "@/utils/densityWorkerClient"
 import { computeFidelityScore } from "@/utils/graphDiagnostics";
 import { useConfigStore } from "@/stores/configStore";
 
+const PROGRESSIVE_STEPS = [16, 32, 64];
+
 /**
  * Auto-evaluation hook for the preview panel.
  * Watches graph changes and preview control changes, then triggers
@@ -46,19 +48,30 @@ export function usePreviewEvaluation() {
       setLoading(true);
       setPreviewError(null);
 
-      try {
-        const result = await evaluateInWorker({
-          nodes,
-          edges,
-          resolution,
-          rangeMin,
-          rangeMax,
-          yLevel,
-          rootNodeId: selectedPreviewNodeId ?? outputNodeId ?? undefined,
-          options: { contentFields },
-        });
+      const params = {
+        nodes,
+        edges,
+        rangeMin,
+        rangeMax,
+        yLevel,
+        rootNodeId: selectedPreviewNodeId ?? outputNodeId ?? undefined,
+        options: { contentFields },
+      };
 
-        // Only apply if this is still the latest evaluation
+      try {
+        // Progressive coarse-to-fine: show low-res result immediately, then refine
+        const steps = PROGRESSIVE_STEPS.filter((s) => s < resolution);
+        for (const step of steps) {
+          if (evalId !== evalIdRef.current) return;
+          const coarse = await evaluateInWorker({ ...params, resolution: step });
+          if (evalId === evalIdRef.current) {
+            setValues(coarse.values, coarse.minValue, coarse.maxValue, coarse.p02Value, coarse.p98Value);
+          }
+        }
+
+        if (evalId !== evalIdRef.current) return;
+        const result = await evaluateInWorker({ ...params, resolution });
+
         if (evalId === evalIdRef.current) {
           setValues(result.values, result.minValue, result.maxValue, result.p02Value, result.p98Value);
           usePreviewStore.getState().setFidelityScore(computeFidelityScore(nodes));

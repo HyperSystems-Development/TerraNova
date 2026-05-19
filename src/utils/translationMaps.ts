@@ -28,7 +28,7 @@ export const HYTALE_ARRAY_TO_NAMED: Record<string, string[]> = {
   PositionsPinch: ["Input"], PositionsTwist: ["Input"],
   GradientDensity: ["Input"], Gradient: ["Input"], YGradient: ["Input"],
   ClampToIndex: ["Input"], DoubleNormalizer: ["Input"],
-  // Single-input types (internal names that differ from V2)
+  // Legacy single-input types (pre-V2 names, kept for old save file compat)
   Negate: ["Input"], CurveFunction: ["Input"], CacheOnce: ["Input"],
   SquareRoot: ["Input"], CubeMath: ["Input"], LinearTransform: ["Input"],
   DomainWarp2D: ["Input"], DomainWarp3D: ["Input"],
@@ -44,7 +44,7 @@ export const HYTALE_ARRAY_TO_NAMED: Record<string, string[]> = {
   // 3-input types (V2 names)
   Mix: ["InputA", "InputB", "Factor"],
   MultiMix: ["InputA", "InputB", "Factor"],
-  // 3-input types (internal names)
+  // 3-input types (legacy pre-V2 names, kept for old save file compat)
   Blend: ["InputA", "InputB", "Factor"],
   BlendCurve: ["InputA", "InputB", "Factor"],
   Interpolate: ["InputA", "InputB", "Factor"],
@@ -126,6 +126,8 @@ export const DENSITY_NAMED_TO_ARRAY: Record<string, string[]> = {
   YSampled: ["Input", "YProvider"],
   WeightedSum: ["Inputs[0]", "Inputs[1]"],
   // 3-input types
+  Mix: ["InputA", "InputB", "Factor"],
+  MultiMix: ["InputA", "InputB", "Factor"],
   Blend: ["InputA", "InputB", "Factor"],
   BlendCurve: ["InputA", "InputB", "Factor"],
   Interpolate: ["InputA", "InputB", "Factor"],

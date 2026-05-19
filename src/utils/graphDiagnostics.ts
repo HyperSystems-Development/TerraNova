@@ -105,7 +105,7 @@ const UNSUPPORTED_TYPES = new Set([
   "BeardDensity",
   "ColumnDensity",
   "CaveDensity",
-  "ImportedValue",
+  "Imported",
 ]);
 
 function getNodeType(node: Node): string {

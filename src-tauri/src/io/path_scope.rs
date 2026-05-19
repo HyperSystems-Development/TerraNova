@@ -39,7 +39,9 @@ pub fn validate_path(path: &str) -> Result<PathBuf, String> {
 
     // Try to canonicalize the path directly (works if it exists)
     let canonical = if target.exists() {
-        target.canonicalize().map_err(|e| format!("Invalid path: {}", e))?
+        target
+            .canonicalize()
+            .map_err(|e| format!("Invalid path: {}", e))?
     } else {
         // For new files: canonicalize the nearest existing ancestor
         let mut ancestor = target.clone();

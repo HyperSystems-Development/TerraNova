@@ -40,8 +40,8 @@ export const WeightedSumNode = memo(function WeightedSumNode(props: TypedNodePro
   );
 });
 
-export const ProductNode = memo(function ProductNode(props: TypedNodeProps) {
-  const handles = useCompoundHandles(props.id, "Product");
+export const MultiplierNode = memo(function MultiplierNode(props: TypedNodeProps) {
+  const handles = useCompoundHandles(props.id, "Multiplier");
   return (
     <BaseNode
       {...props}
@@ -53,7 +53,7 @@ export const ProductNode = memo(function ProductNode(props: TypedNodeProps) {
   );
 });
 
-export const NegateNode = memo(function NegateNode(props: TypedNodeProps) {
+export const InverterNode = memo(function InverterNode(props: TypedNodeProps) {
   return (
     <BaseNode
       {...props}
@@ -77,7 +77,7 @@ export const AbsNode = memo(function AbsNode(props: TypedNodeProps) {
   );
 });
 
-export const SquareRootNode = memo(function SquareRootNode(props: TypedNodeProps) {
+export const SqrtNode = memo(function SqrtNode(props: TypedNodeProps) {
   return (
     <BaseNode
       {...props}
@@ -162,7 +162,7 @@ export const ModuloNode = memo(function ModuloNode(props: TypedNodeProps) {
   );
 });
 
-export const ImportedValueNode = memo(function ImportedValueNode(props: TypedNodeProps) {
+export const ImportedNode = memo(function ImportedNode(props: TypedNodeProps) {
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={OUTPUT_ONLY_HANDLES}>

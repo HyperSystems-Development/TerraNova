@@ -9,6 +9,7 @@ import { ThresholdedHeatmap } from "./ThresholdedHeatmap";
 import { PreviewControls } from "./PreviewControls";
 import { StatisticsPanel } from "./StatisticsPanel";
 import { CrossSectionPlot } from "./CrossSectionPlot";
+import { exportPreviewCanvas } from "@/utils/exportPreview";
 
 // Lazy-load heavy 3D components to avoid loading Three.js until needed
 const Preview3D = lazy(() => import("./Preview3D").then(m => ({ default: m.Preview3D })));
@@ -26,6 +27,17 @@ export function PreviewPanel() {
   const legendVisible = usePreviewStore((s) => s.showMaterialLegend);
   const setLegendVisible = usePreviewStore((s) => s.setShowMaterialLegend);
   const setShowWireframe = usePreviewStore((s) => s.setShowVoxelWireframe);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isCanvasReady, setIsCanvasReady] = useState(false);
+
+  const handleCanvasRef = useCallback((el: HTMLCanvasElement | null) => {
+    canvasRef.current = el;
+    setIsCanvasReady(Boolean(el));
+  }, []);
+
+  const handleExportPreview = useCallback(async () => {
+    await exportPreviewCanvas(canvasRef.current);
+  }, []);
 
   // Keyboard shortcuts for preview toggles
   useEffect(() => {
@@ -40,10 +52,15 @@ export function PreviewPanel() {
         e.preventDefault();
         setShowWireframe(!usePreviewStore.getState().showVoxelWireframe);
       }
-}
+      // Screenshot
+      if (e.key === "s" && e.altKey) {
+        e.preventDefault();
+        void handleExportPreview();
+      }
+    }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setLegendVisible, setShowWireframe]);
+  }, [handleExportPreview, setLegendVisible, setShowWireframe]);
   usePreviewEvaluation();
   useVoxelEvaluation();
   useWorldPreview();
@@ -63,7 +80,6 @@ export function PreviewPanel() {
   const worldError = usePreviewStore((s) => s.worldError);
   const voxelMeshData = usePreviewStore((s) => s.voxelMeshData);
   const viewMode = usePreviewStore((s) => s.viewMode);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const isSplitMode = viewMode === "split";
   const [controlsCollapsed, setControlsCollapsed] = useState(isSplitMode);
@@ -72,10 +88,6 @@ export function PreviewPanel() {
   useEffect(() => {
     setControlsCollapsed(isSplitMode);
   }, [isSplitMode]);
-
-  const handle3DCanvasRef = useCallback((el: HTMLCanvasElement | null) => {
-    canvasRef.current = el;
-  }, []);
 
   const fidelityScore = usePreviewStore((s) => s.fidelityScore);
   const anyLoading = isLoading || isVoxelLoading || isWorldLoading;
@@ -115,7 +127,7 @@ export function PreviewPanel() {
                 <path d="M10 3l-5 5 5 5" />
               </svg>
             </button>
-            <PreviewControls canvasRef={canvasRef} />
+            <PreviewControls canExport={isCanvasReady} onExport={handleExportPreview} />
             {/* MATERIALS section in Debug sidebar ONLY */}
               {/* ...existing code... */}
             {mode !== "voxel" && mode !== "world" && <StatisticsPanel />}
@@ -164,28 +176,28 @@ export function PreviewPanel() {
           {/* 2D mode */}
           {mode === "2d" && values && (
             showThresholdView
-              ? <ThresholdedHeatmap ref={canvasRef} />
-              : <Heatmap2D ref={canvasRef} />
+              ? <ThresholdedHeatmap ref={handleCanvasRef} />
+              : <Heatmap2D ref={handleCanvasRef} />
           )}
 
           {/* 3D heightfield mode */}
           {mode === "3d" && values && (
             <Suspense fallback={<Preview3DFallback />}>
-              <Preview3D onCanvasRef={handle3DCanvasRef} />
+              <Preview3D onCanvasRef={handleCanvasRef} />
             </Suspense>
           )}
 
           {/* Voxel mode */}
           {mode === "voxel" && (voxelDensities || isVoxelLoading) && (
             <Suspense fallback={<Preview3DFallback />}>
-              <VoxelPreview3D onCanvasRef={handle3DCanvasRef} />
+              <VoxelPreview3D onCanvasRef={handleCanvasRef} />
             </Suspense>
           )}
 
           {/* World mode — reuses VoxelPreview3D with server chunk data */}
           {mode === "world" && (voxelMeshData || isWorldLoading) && (
             <Suspense fallback={<Preview3DFallback />}>
-              <VoxelPreview3D onCanvasRef={handle3DCanvasRef} />
+              <VoxelPreview3D onCanvasRef={handleCanvasRef} />
             </Suspense>
           )}
         </div>

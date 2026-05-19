@@ -38,10 +38,9 @@ pub fn unregister_project_root(path: String) {
 /// This helper allows the frontend to open it automatically.
 #[tauri::command]
 pub fn get_launch_file() -> Option<String> {
-    std::env::args_os()
+    std::env::args()
         .skip(1)
         .find(|arg| std::path::Path::new(arg).is_file())
-        .map(|arg| std::path::PathBuf::from(arg).to_string_lossy().to_string())
 }
 
 /// Open an asset pack directory and parse all JSON files.
@@ -179,8 +178,7 @@ pub fn resolve_bundled_hytale_asset_path(relative_path: String) -> Result<String
 /// Return the managed local Hytale asset cache root used by TerraNova.
 #[tauri::command]
 pub fn get_hytale_asset_cache_root() -> Result<String, String> {
-    let root = crate::io::hytale_assets::ensure_hytale_assets_root()
-        .map_err(|e| e.to_string())?;
+    let root = crate::io::hytale_assets::ensure_hytale_assets_root().map_err(|e| e.to_string())?;
     // Register the cache as an allowed root so subsequent reads work
     path_scope::register_allowed_root(&root);
     Ok(root.to_string_lossy().to_string())
@@ -261,7 +259,10 @@ pub fn start_hytale_assets_sync(
     std::thread::spawn(move || {
         let res = crate::io::hytale_assets::sync_hytale_assets_from_source_with_progress(
             Path::new(&src),
-            overlay.as_deref().filter(|v| !v.trim().is_empty()).map(Path::new),
+            overlay
+                .as_deref()
+                .filter(|v| !v.trim().is_empty())
+                .map(Path::new),
             &win,
         );
         if let Err(e) = res {
@@ -275,8 +276,7 @@ pub fn start_hytale_assets_sync(
 /// Cancel any in-progress Hytale asset sync operation.
 #[tauri::command]
 pub fn cancel_hytale_assets_sync() -> Result<(), String> {
-    crate::io::hytale_assets::cancel_hytale_assets_sync()
-        .map_err(|e| e.to_string())
+    crate::io::hytale_assets::cancel_hytale_assets_sync().map_err(|e| e.to_string())
 }
 
 /// Check whether the Hytale asset cache is stale relative to the source path.
@@ -286,7 +286,9 @@ pub fn check_hytale_asset_staleness(
 ) -> Result<crate::io::hytale_assets::AssetStalenessInfo, String> {
     path_scope::register_allowed_root(Path::new(&source_path));
     path_scope::validate_path_str(&source_path)?;
-    Ok(crate::io::hytale_assets::check_asset_staleness(&source_path))
+    Ok(crate::io::hytale_assets::check_asset_staleness(
+        &source_path,
+    ))
 }
 
 // ── Project creation commands ───────────────────────────────────────────────
@@ -371,7 +373,10 @@ pub fn create_blank_project(target_path: String) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
-    let instances_dir = target.join("Server").join("Instances").join("DefaultInstance");
+    let instances_dir = target
+        .join("Server")
+        .join("Instances")
+        .join("DefaultInstance");
     fs::create_dir_all(&instances_dir).map_err(|e| e.to_string())?;
 
     let instance = serde_json::json!({
@@ -454,8 +459,8 @@ pub struct TemplateBiomeEntry {
 #[tauri::command]
 pub fn list_template_biomes(app: tauri::AppHandle) -> Result<Vec<TemplateBiomeEntry>, String> {
     let resource_dir = app.path().resource_dir().ok();
-    let templates_root = crate::io::template::find_templates_root(resource_dir)
-        .map_err(|e| e.to_string())?;
+    let templates_root =
+        crate::io::template::find_templates_root(resource_dir).map_err(|e| e.to_string())?;
 
     let mut entries: Vec<TemplateBiomeEntry> = Vec::new();
 
@@ -520,7 +525,9 @@ fn collect_biome_files_inner(
     if depth > MAX_TEMPLATE_DEPTH {
         return;
     }
-    let Ok(read_dir) = fs::read_dir(dir) else { return };
+    let Ok(read_dir) = fs::read_dir(dir) else {
+        return;
+    };
     for entry in read_dir.flatten() {
         let path = entry.path();
         if path.is_symlink() {

@@ -17,6 +17,7 @@ const DEFAULTS = {
   // GPU
   gpuMemoryBudgetMb: 4096,
   gpuPowerPreference: "high-performance" as GpuPowerPreference,
+  preferredGpuId: "",
   rendererPixelRatio: 0,
   enableShadows: true,
   shadowMapSize: 1024,
@@ -64,6 +65,13 @@ function getStoredString<T extends string>(key: string, fallback: T, allowed: T[
   if (!data) return fallback;
   const v = data[key];
   return typeof v === "string" && (allowed as string[]).includes(v) ? (v as T) : fallback;
+}
+
+function getStoredLooseString(key: string, fallback: string): string {
+  const data = getStored();
+  if (!data) return fallback;
+  const v = data[key];
+  return typeof v === "string" ? v : fallback;
 }
 
 // ── Persistence ──
@@ -115,6 +123,7 @@ interface ConfigValues {
   // GPU
   gpuMemoryBudgetMb: number;
   gpuPowerPreference: GpuPowerPreference;
+  preferredGpuId: string;
   rendererPixelRatio: number;
   enableShadows: boolean;
   shadowMapSize: number;
@@ -143,6 +152,7 @@ interface ConfigState extends ConfigValues {
   setEnableProgressiveVoxel: (v: boolean) => void;
   setMaxWorkerThreads: (v: number) => void;
   setGpuPowerPreference: (v: GpuPowerPreference) => void;
+  setPreferredGpuId: (v: string) => void;
   setRendererPixelRatio: (v: number) => void;
   setEnableShadows: (v: boolean) => void;
   setShadowMapSize: (v: number) => void;
@@ -165,6 +175,7 @@ function getValues(state: ConfigState): ConfigValues {
     maxWorkerThreads: state.maxWorkerThreads,
     gpuMemoryBudgetMb: state.gpuMemoryBudgetMb,
     gpuPowerPreference: state.gpuPowerPreference,
+    preferredGpuId: state.preferredGpuId,
     rendererPixelRatio: state.rendererPixelRatio,
     enableShadows: state.enableShadows,
     shadowMapSize: state.shadowMapSize,
@@ -205,6 +216,7 @@ export const useConfigStore = create<ConfigState>((set, get) => {
 
     gpuMemoryBudgetMb: getStoredNumber("gpuMemoryBudgetMb", DEFAULTS.gpuMemoryBudgetMb),
     gpuPowerPreference: getStoredString("gpuPowerPreference", DEFAULTS.gpuPowerPreference, ["high-performance", "default", "low-power"]),
+    preferredGpuId: getStoredLooseString("preferredGpuId", DEFAULTS.preferredGpuId),
     rendererPixelRatio: getStoredNumber("rendererPixelRatio", DEFAULTS.rendererPixelRatio),
     enableShadows: getStoredBool("enableShadows", DEFAULTS.enableShadows),
     shadowMapSize: getStoredNumber("shadowMapSize", DEFAULTS.shadowMapSize),
@@ -244,6 +256,7 @@ export const useConfigStore = create<ConfigState>((set, get) => {
     setEnableProgressiveVoxel: makeSetter("enableProgressiveVoxel"),
     setMaxWorkerThreads: makeSetter("maxWorkerThreads"),
     setGpuPowerPreference: makeSetter("gpuPowerPreference"),
+    setPreferredGpuId: makeSetter("preferredGpuId"),
     setRendererPixelRatio: makeSetter("rendererPixelRatio"),
     setEnableShadows: makeSetter("enableShadows"),
     setShadowMapSize: makeSetter("shadowMapSize"),

@@ -172,7 +172,7 @@ export async function getAppVersion(): Promise<string> {
   try {
     appVersionCache = await getVersion();
   } catch {
-    appVersionCache = "0.0.0";
+    appVersionCache = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "0.0.0";
   }
   return appVersionCache;
 }

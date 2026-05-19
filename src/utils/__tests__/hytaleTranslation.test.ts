@@ -22,6 +22,58 @@ describe("isHytaleNativeFormat", () => {
   });
 });
 
+describe("biome annotation metadata", () => {
+  it("exports comment and frame nodes into biome $NodeEditorMetadata", () => {
+    const biome = internalToHytaleBiome(
+      {
+        Name: "AnnotatedBiome",
+        Terrain: {
+          Type: "DAOTerrain",
+          Density: { Type: "Constant", Value: 0 },
+        },
+        MaterialProvider: { Type: "Constant", Material: "stone" },
+        Props: [],
+        EnvironmentProvider: { Type: "Constant", Environment: "default" },
+        TintProvider: { Type: "Constant", Color: "#ffffff" },
+      },
+      {
+        Terrain: [
+          {
+            id: "terrain-root",
+            position: { x: 12, y: 34 },
+            data: { type: "Constant", fields: { Value: 0 } },
+          } as any,
+          {
+            id: "comment-1",
+            type: "comment",
+            position: { x: 56, y: 78 },
+            data: { text: "Shape the ridge here", width: 240, height: 96 },
+          } as any,
+          {
+            id: "frame-1",
+            type: "frame",
+            position: { x: 90, y: 120 },
+            data: { name: "Terrain Notes", width: 420, height: 260 },
+          } as any,
+        ],
+      },
+    );
+
+    const metadata = biome.$NodeEditorMetadata as Record<string, unknown>;
+    const nodeEntries = metadata.$Nodes as Record<string, Record<string, unknown>>;
+    const comments = metadata.$Comments as Array<Record<string, unknown>>;
+    const groups = metadata.$Groups as Array<Record<string, unknown>>;
+
+    expect(nodeEntries["terrain-root"].$Position).toEqual({ $x: 12, $y: 34 });
+    expect(comments).toHaveLength(1);
+    expect(comments[0].$Text).toBe("Shape the ridge here");
+    expect(comments[0].$Width).toBe(240);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].$name).toBe("Terrain Notes");
+    expect(groups[0].$width).toBe(420);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Type name mapping
 // ---------------------------------------------------------------------------
@@ -32,9 +84,9 @@ describe("type name mapping", () => {
     expect(result.Type).toBe("Multiplier");
   });
 
-  it("maps Multiplier → Product on import", () => {
+  it("maps Multiplier → Multiplier on import (V2 pass-through)", () => {
     const { asset } = hytaleToInternal({ $NodeId: "MultiplierDensityNode-123", Type: "Multiplier" });
-    expect(asset.Type).toBe("Product");
+    expect(asset.Type).toBe("Multiplier");
   });
 
   it("maps Negate → Inverter on export", () => {
@@ -234,6 +286,27 @@ describe("named inputs ↔ Inputs[] array", () => {
     expect(inputs[0].Value).toBe(0);
     expect(inputs[1].Value).toBe(1);
     expect(inputs[2].Value).toBe(0.5);
+    expect(result.InputA).toBeUndefined();
+    expect(result.InputB).toBeUndefined();
+    expect(result.Factor).toBeUndefined();
+  });
+
+  it("converts current Mix InputA/InputB/Factor to Hytale Inputs[0,1,2] on export", () => {
+    const result = internalToHytale({
+      Type: "Mix",
+      InputA: { Type: "Constant", Value: 0 },
+      InputB: { Type: "Constant", Value: 1 },
+      Factor: { Type: "Constant", Value: 0.5 },
+    });
+    expect(result.Type).toBe("Mix");
+    const inputs = result.Inputs as Record<string, unknown>[];
+    expect(inputs).toHaveLength(3);
+    expect(inputs[0].Value).toBe(0);
+    expect(inputs[1].Value).toBe(1);
+    expect(inputs[2].Value).toBe(0.5);
+    expect(result.InputA).toBeUndefined();
+    expect(result.InputB).toBeUndefined();
+    expect(result.Factor).toBeUndefined();
   });
 
   it("reverses Inputs[0] → Input for Inverter on import", () => {
@@ -245,7 +318,7 @@ describe("named inputs ↔ Inputs[] array", () => {
       ],
       Skip: false,
     });
-    expect(asset.Type).toBe("Negate");
+    expect(asset.Type).toBe("Inverter");
     expect(asset.Input).toBeDefined();
     expect((asset.Input as Record<string, unknown>).Type).toBe("Constant");
     expect(asset.Inputs).toBeUndefined();
@@ -262,7 +335,7 @@ describe("named inputs ↔ Inputs[] array", () => {
       ],
       Skip: false,
     });
-    expect(asset.Type).toBe("Blend");
+    expect(asset.Type).toBe("Mix");
     expect(asset.InputA).toBeDefined();
     expect(asset.InputB).toBeDefined();
     expect(asset.Factor).toBeDefined();
@@ -283,7 +356,7 @@ describe("clamp field renames", () => {
     expect(result.Max).toBeUndefined();
   });
 
-  it("maps WallA/WallB → Min/Max on import (WallA→Max, WallB→Min)", () => {
+  it("preserves WallA/WallB on import (V2 field names used internally)", () => {
     const { asset } = hytaleToInternal({
       $NodeId: "ClampDensityNode-123",
       Type: "Clamp",
@@ -291,10 +364,8 @@ describe("clamp field renames", () => {
       WallB: 1,
       Skip: false,
     });
-    expect(asset.Min).toBe(1);
-    expect(asset.Max).toBe(-1);
-    expect(asset.WallA).toBeUndefined();
-    expect(asset.WallB).toBeUndefined();
+    expect(asset.WallA).toBe(-1);
+    expect(asset.WallB).toBe(1);
   });
 });
 
@@ -431,7 +502,7 @@ describe("position transform fields", () => {
       Inputs: [],
       Skip: false,
     });
-    expect(asset.Type).toBe("ScaledPosition");
+    expect(asset.Type).toBe("Scale");
     expect(asset.Scale).toEqual({ x: 2, y: 3, z: 4 });
   });
 
@@ -445,7 +516,7 @@ describe("position transform fields", () => {
       Inputs: [],
       Skip: false,
     });
-    expect(asset.Type).toBe("TranslatedPosition");
+    expect(asset.Type).toBe("Slider");
     expect(asset.Translation).toEqual({ x: 10, y: 20, z: 30 });
   });
 });
@@ -468,7 +539,7 @@ describe("DomainWarp ↔ FastGradientWarp", () => {
     expect(result.WarpOctaves).toBe(1);
   });
 
-  it("preserves FastGradientWarp fields on import", () => {
+  it("preserves FastGradientWarp fields on import (V2 field names)", () => {
     const { asset } = hytaleToInternal({
       $NodeId: "FastGradientWarp.Density-123",
       Type: "FastGradientWarp",
@@ -487,8 +558,7 @@ describe("DomainWarp ↔ FastGradientWarp", () => {
     expect(asset.WarpOctaves).toBe(1);
     expect(asset.WarpLacunarity).toBe(2);
     expect(asset.WarpPersistence).toBe(0.5);
-    expect(asset.WarpSeed).toBe("A");
-    expect(asset.Seed).toBeUndefined();
+    expect(asset.Seed).toBe("A");
   });
 });
 
@@ -513,7 +583,7 @@ describe("LinearTransform ↔ AmplitudeConstant", () => {
       Inputs: [],
       Skip: false,
     });
-    expect(asset.Type).toBe("LinearTransform");
+    expect(asset.Type).toBe("AmplitudeConstant");
     expect(asset.Scale).toBe(3);
     expect(asset.Offset).toBe(0);
   });
@@ -557,7 +627,7 @@ describe("BlendCurve ↔ MultiMix", () => {
       Curve: { Type: "Manual", Points: [{ $NodeId: "p1", In: 0, Out: 0 }, { $NodeId: "p2", In: 1, Out: 1 }] },
       Skip: false,
     });
-    expect(asset.Type).toBe("BlendCurve");
+    expect(asset.Type).toBe("MultiMix");
     expect(asset.InputA).toBeDefined();
     expect(asset.InputB).toBeDefined();
     expect(asset.Factor).toBeDefined();
@@ -567,9 +637,9 @@ describe("BlendCurve ↔ MultiMix", () => {
     expect((asset.Factor as Record<string, unknown>).Type).toBe("Constant");
   });
 
-  it("round-trips BlendCurve (MultiMix) with three inputs and curve", () => {
+  it("round-trips MultiMix with three inputs and curve", () => {
     const original = {
-      Type: "BlendCurve",
+      Type: "MultiMix",
       InputA: { Type: "Constant", Value: 0 },
       InputB: { Type: "Constant", Value: 1 },
       Factor: { Type: "Constant", Value: 0.5 },
@@ -578,7 +648,7 @@ describe("BlendCurve ↔ MultiMix", () => {
     const exported = internalToHytale(original);
     expect(exported.Type).toBe("MultiMix");
     const { asset: imported } = hytaleToInternal(exported);
-    expect(imported.Type).toBe("BlendCurve");
+    expect(imported.Type).toBe("MultiMix");
     expect((imported.InputA as Record<string, unknown>).Value).toBe(0);
     expect((imported.InputB as Record<string, unknown>).Value).toBe(1);
     expect((imported.Factor as Record<string, unknown>).Value).toBe(0.5);
@@ -1037,30 +1107,34 @@ describe("round-trip: internal → hytale → internal", () => {
   it("round-trips Clamp with nested input", () => {
     const original = {
       Type: "Clamp",
-      Min: -1,
-      Max: 1,
+      WallA: 1,
+      WallB: -1,
       Input: { Type: "Constant", Value: 0.5 },
     };
     const exported = internalToHytale(original);
     const { asset: imported } = hytaleToInternal(exported);
     expect(imported.Type).toBe("Clamp");
-    expect(imported.Min).toBe(-1);
-    expect(imported.Max).toBe(1);
+    expect(imported.WallA).toBe(1);
+    expect(imported.WallB).toBe(-1);
     expect((imported.Input as Record<string, unknown>).Type).toBe("Constant");
     expect((imported.Input as Record<string, unknown>).Value).toBe(0.5);
   });
 
-  it("round-trips Blend (Mix) with three inputs", () => {
+  it("round-trips Mix with three inputs", () => {
     const original = {
-      Type: "Blend",
+      Type: "Mix",
       InputA: { Type: "Constant", Value: 0 },
       InputB: { Type: "Constant", Value: 1 },
       Factor: { Type: "Constant", Value: 0.5 },
     };
     const exported = internalToHytale(original);
     expect(exported.Type).toBe("Mix");
+    expect(exported.Inputs).toHaveLength(3);
+    expect(exported.InputA).toBeUndefined();
+    expect(exported.InputB).toBeUndefined();
+    expect(exported.Factor).toBeUndefined();
     const { asset: imported } = hytaleToInternal(exported);
-    expect(imported.Type).toBe("Blend");
+    expect(imported.Type).toBe("Mix");
     expect((imported.InputA as Record<string, unknown>).Value).toBe(0);
     expect((imported.InputB as Record<string, unknown>).Value).toBe(1);
     expect((imported.Factor as Record<string, unknown>).Value).toBe(0.5);

@@ -34,21 +34,32 @@ fn parse_node(json: &Value) -> Result<Box<dyn NodeEval>, String> {
 
     match node_type {
         "Constant" => {
-            let value = obj
-                .get("Value")
-                .and_then(|v| v.as_f64())
-                .unwrap_or(0.0);
+            let value = obj.get("Value").and_then(|v| v.as_f64()).unwrap_or(0.0);
             Ok(Box::new(super::nodes::ConstantNode { value }))
         }
 
         "SimplexNoise2D" => {
-            let lacunarity = obj.get("Lacunarity").and_then(|v| v.as_f64()).unwrap_or(2.0);
-            let persistence = obj.get("Persistence").and_then(|v| v.as_f64()).unwrap_or(0.5);
+            let lacunarity = obj
+                .get("Lacunarity")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(2.0);
+            let persistence = obj
+                .get("Persistence")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.5);
             let scale = obj.get("Scale").and_then(|v| v.as_f64()).unwrap_or(1.0);
             let octaves = obj.get("Octaves").and_then(|v| v.as_i64()).unwrap_or(1) as i32;
-            let seed = obj.get("Seed").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let seed = obj
+                .get("Seed")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
             Ok(Box::new(super::nodes::SimplexNoise2DNode::new(
-                lacunarity, persistence, scale, octaves, seed,
+                lacunarity,
+                persistence,
+                scale,
+                octaves,
+                seed,
             )))
         }
 
@@ -91,9 +102,7 @@ fn parse_node(json: &Value) -> Result<Box<dyn NodeEval>, String> {
 }
 
 /// Parse the "Inputs" array from a node object.
-fn parse_inputs(
-    obj: &serde_json::Map<String, Value>,
-) -> Result<Vec<Box<dyn NodeEval>>, String> {
+fn parse_inputs(obj: &serde_json::Map<String, Value>) -> Result<Vec<Box<dyn NodeEval>>, String> {
     let inputs_arr = obj
         .get("Inputs")
         .and_then(|v| v.as_array())
@@ -108,9 +117,7 @@ fn parse_inputs(
 }
 
 /// Parse the first element of "Inputs" as a single input.
-fn parse_single_input(
-    obj: &serde_json::Map<String, Value>,
-) -> Result<Box<dyn NodeEval>, String> {
+fn parse_single_input(obj: &serde_json::Map<String, Value>) -> Result<Box<dyn NodeEval>, String> {
     let inputs_arr = obj
         .get("Inputs")
         .and_then(|v| v.as_array())

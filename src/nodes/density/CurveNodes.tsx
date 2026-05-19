@@ -6,7 +6,7 @@ import { densityInput, densityOutput, curveInput } from "@/nodes/shared/handles"
 const CURVE_FUNCTION_HANDLES = [densityInput("Input", "Input"), curveInput("Curve", "Curve"), densityOutput()];
 const INPUT_OUTPUT_HANDLES = [densityInput("Input", "Input"), densityOutput()];
 
-export const CurveFunctionNode = memo(function CurveFunctionNode(props: TypedNodeProps) {
+export const CurveMapperNode = memo(function CurveMapperNode(props: TypedNodeProps) {
   return (
     <BaseNode
       {...props}

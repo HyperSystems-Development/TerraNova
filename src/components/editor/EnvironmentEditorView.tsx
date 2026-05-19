@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FolderOpen, FolderPlus, Save, WandSparkles } from "lucide-react";
+import { FolderOpen, FolderPlus, Save, WandSparkles, HelpCircle } from "lucide-react";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useEditorStore } from "@/stores/editorStore";
 import { useProjectStore } from "@/stores/projectStore";
@@ -557,9 +557,23 @@ export function EnvironmentEditorView() {
   const isHytaleAssetPath = useCallback((resolvedPath: string): boolean => {
     if (!projectPath) return false;
     const norm = resolvedPath.replace(/\\/g, "/").toLowerCase();
-    const projNorm = projectPath.replace(/\\/g, "/").toLowerCase();
-    return !norm.startsWith(`${projNorm}/`);
+    const projNorm = projectPath.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+    return !(norm === projNorm || norm.startsWith(`${projNorm}/`));
   }, [projectPath]);
+
+  const refreshProjectTreeAndLookup = useCallback(async () => {
+    if (projectPath) {
+      try {
+        const entries = await listDirectory(projectPath);
+        setDirectoryTree(entries.map(mapDirEntry));
+      } catch {
+        // Tree refresh failure is non-fatal.
+      }
+    }
+    setLookupStatus("loading");
+    setLookupError(null);
+    setLookupRevision((value) => value + 1);
+  }, [projectPath, setDirectoryTree, setLookupStatus, setLookupError, setLookupRevision]);
 
   // Weather IDs in the file that only resolve to Hytale asset paths (not in project).
   const hytaleOnlyIds = useMemo(() => {
@@ -573,7 +587,7 @@ export function EnvironmentEditorView() {
       const p = weatherPathIndex[id.toLowerCase()];
       return p && isHytaleAssetPath(p);
     });
-  }, [isHytaleAssetPath, rawJsonContent, weatherPathIndex]);
+  }, [rawJsonContent, weatherPathIndex, isHytaleAssetPath]);
 
   // Weather IDs referenced but not found anywhere (not in project, not in Hytale assets).
   const missingIds = useMemo(() => {
@@ -585,6 +599,36 @@ export function EnvironmentEditorView() {
     }
     return [...allIds].filter((id) => !weatherPathIndex[id.toLowerCase()]);
   }, [rawJsonContent, weatherPathIndex, lookupStatus]);
+
+  // Auto-copy Hytale weather assets into the project's Server\Weathers folder on file open.
+  // Any unresolved state is surfaced in the Issue Log instead of a toast.
+  useEffect(() => {
+    if (hytaleOnlyIds.length === 0) return;
+    const serverRoot = inferServerRoot(currentFile, projectPath);
+    if (!serverRoot) return;
+    const weathersDir = joinPath(serverRoot, "Weathers");
+    async function autoImport() {
+      let imported = 0;
+      await createDirectory(weathersDir).catch(() => {});
+      for (const id of hytaleOnlyIds) {
+        const srcPath = weatherPathIndex[id.toLowerCase()];
+        if (!srcPath) continue;
+        const fileName = srcPath.split(/[/\\]/).pop() ?? `${id}.json`;
+        const destPath = joinPath(weathersDir, fileName);
+        try {
+          await copyFile(srcPath, destPath);
+          imported += 1;
+        } catch {
+          // Failed imports remain visible in the Issue Log.
+        }
+      }
+      if (imported > 0) {
+        await refreshProjectTreeAndLookup();
+      }
+    }
+    void autoImport();
+  // Only fire when the set of IDs changes (file switch / lookup complete).
+  }, [currentFile, hytaleOnlyIds, projectPath, weatherPathIndex, refreshProjectTreeAndLookup]);
 
   const doc = useMemo(() => rawJsonContent ?? ({} as EnvironmentDoc), [rawJsonContent]);
 
@@ -622,23 +666,9 @@ export function EnvironmentEditorView() {
     if (saveStatus !== "idle") {
       setSaveStatus("idle");
     }
-  }, [doc, rawJsonContent, saveStatus, setDirty, setRawJsonContent]);
+  }, [rawJsonContent, doc, setRawJsonContent, setDirty, saveStatus, setSaveStatus]);
 
   const isWeatherDirMissing = lookupStatus === "error" && (lookupError?.includes("not found") ?? false);
-
-  const refreshProjectTreeAndLookup = useCallback(async () => {
-    if (projectPath) {
-      try {
-        const entries = await listDirectory(projectPath);
-        setDirectoryTree(entries.map(mapDirEntry));
-      } catch {
-        // Tree refresh failure is non-fatal.
-      }
-    }
-    setLookupStatus("loading");
-    setLookupError(null);
-    setLookupRevision((value) => value + 1);
-  }, [projectPath, setDirectoryTree]);
 
   const materializeReferencedWeatherFiles = useCallback(async ({
     importIds,
@@ -698,7 +728,7 @@ export function EnvironmentEditorView() {
     if (failed > 0) {
       addToast(`Failed to materialize ${failed} weather file(s).`, imported > 0 || created > 0 ? "warning" : "error");
     }
-  }, [addToast, currentFile, projectPath, refreshProjectTreeAndLookup, weatherPathIndex]);
+  }, [currentFile, projectPath, weatherPathIndex, addToast, refreshProjectTreeAndLookup]);
 
   const handleCreateDefaultWeather = useCallback(async () => {
     const serverRoot = inferServerRoot(currentFile, projectPath);
@@ -711,38 +741,7 @@ export function EnvironmentEditorView() {
       setLookupStatus("error");
       setLookupError(String(error));
     }
-  }, [currentFile, projectPath, refreshProjectTreeAndLookup]);
-
-  const hytaleOnlyIdsKey = useMemo(() => hytaleOnlyIds.join(","), [hytaleOnlyIds]);
-
-  // Auto-copy Hytale weather assets into the project's Server\Weathers folder on file open.
-  // Any unresolved state is surfaced in the Issue Log instead of a toast.
-  useEffect(() => {
-    if (hytaleOnlyIds.length === 0) return;
-    const serverRoot = inferServerRoot(currentFile, projectPath);
-    if (!serverRoot) return;
-    const weathersDir = joinPath(serverRoot, "Weathers");
-    async function autoImport() {
-      let imported = 0;
-      await createDirectory(weathersDir).catch(() => {});
-      for (const id of hytaleOnlyIds) {
-        const srcPath = weatherPathIndex[id.toLowerCase()];
-        if (!srcPath) continue;
-        const fileName = srcPath.split(/[/\\]/).pop() ?? `${id}.json`;
-        const destPath = joinPath(weathersDir, fileName);
-        try {
-          await copyFile(srcPath, destPath);
-          imported += 1;
-        } catch {
-          // Failed imports remain visible in the Issue Log.
-        }
-      }
-      if (imported > 0) {
-        await refreshProjectTreeAndLookup();
-      }
-    }
-    void autoImport();
-  }, [currentFile, hytaleOnlyIds, hytaleOnlyIdsKey, projectPath, refreshProjectTreeAndLookup, weatherPathIndex]);
+  }, [currentFile, projectPath, refreshProjectTreeAndLookup, setLookupStatus, setLookupError]);
 
   const weathersDirPath = (() => {
     const serverRoot = inferServerRoot(currentFile, projectPath);
@@ -1031,9 +1030,28 @@ export function EnvironmentEditorView() {
   return (
     <div className="flex h-full flex-col bg-tn-bg">
       <div className="flex shrink-0 items-center justify-between border-b border-tn-border bg-tn-surface px-4 py-2">
-        <div>
-          <h2 className="text-xs font-semibold text-tn-text">Environment Editor</h2>
-          <p className="mt-0.5 text-[10px] text-tn-text-muted">{currentFile?.split(/[/\\]/).pop() ?? "Untitled"}</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-xs font-semibold text-tn-text">Environment Editor</h2>
+            <p className="mt-0.5 text-[10px] text-tn-text-muted">{currentFile?.split(/[/\\]/).pop() ?? "Untitled"}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              // Integrate with existing DocsPanel for context-sensitive help
+              // This opens the docs panel and navigates to environment editor documentation
+              const docsPanel = document.querySelector('[data-panel="docs"]') as HTMLElement;
+              if (docsPanel) {
+                docsPanel.click();
+                // Navigate to environment editor docs (would need integration with DocsPanel)
+              }
+            }}
+            className="text-tn-text-muted hover:text-tn-text transition-colors"
+            title="Open Environment Editor documentation"
+            aria-label="Open Environment Editor documentation"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -1041,6 +1059,7 @@ export function EnvironmentEditorView() {
             onClick={() => { void handleLocateWeathers(); }}
             disabled={!hasEnvironmentDoc}
             title={weathersDirPath ?? "Locate or create Server/Weathers folder"}
+            aria-label={lookupStatus === "ready" ? "Open Weathers folder" : "Create Weathers folder"}
             className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
               !hasEnvironmentDoc
                 ? "cursor-not-allowed border-tn-border/40 bg-tn-bg/50 text-tn-text-muted/50"
@@ -1049,7 +1068,7 @@ export function EnvironmentEditorView() {
                   : "border-amber-400/40 bg-amber-400/10 text-amber-300 hover:border-amber-400/70 hover:bg-amber-400/20"
             }`}
           >
-            {lookupStatus === "ready" ? <FolderOpen className="h-3.5 w-3.5" /> : <FolderPlus className="h-3.5 w-3.5" />}
+            {lookupStatus === "ready" ? <FolderOpen className="h-3.5 w-3.5" aria-hidden="true" /> : <FolderPlus className="h-3.5 w-3.5" aria-hidden="true" />}
             {lookupStatus === "ready" ? "Weathers" : "Create Weathers"}
           </button>
           <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${
@@ -1063,6 +1082,8 @@ export function EnvironmentEditorView() {
             type="button"
             onClick={handleSave}
             disabled={!hasEnvironmentDoc || !currentFile}
+            title={saveStatus === "saved" ? "File saved" : saveStatus === "error" ? "Save failed - click to retry" : "Save current file"}
+            aria-label={saveStatus === "saved" ? "File saved" : saveStatus === "error" ? "Retry save" : "Save file"}
             className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm transition-colors ${
               saveStatus === "saved"
                 ? "border-green-500/60 bg-green-500/10 text-green-300"
@@ -1071,7 +1092,7 @@ export function EnvironmentEditorView() {
                   : "border-tn-border/70 bg-tn-bg/70 text-tn-text hover:border-tn-accent hover:text-tn-accent"
             } ${!hasEnvironmentDoc || !currentFile ? "cursor-not-allowed opacity-50" : ""}`}
           >
-            <Save className="h-3.5 w-3.5" />
+            <Save className="h-3.5 w-3.5" aria-hidden="true" />
             {saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Retry Save" : "Save"}
           </button>
         </div>
@@ -1102,9 +1123,11 @@ export function EnvironmentEditorView() {
                   <button
                     type="button"
                     onClick={() => { void handleCreateDefaultWeather(); }}
+                    aria-label="Create default weather file to fix missing weather directory"
+                    title="Create a default weather file to resolve the missing weather directory issue"
                     className="inline-flex items-center gap-2 self-start rounded border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300 transition-colors hover:border-amber-400/70 hover:bg-amber-400/20"
                   >
-                    <WandSparkles className="h-3 w-3" />
+                    <WandSparkles className="h-3 w-3" aria-hidden="true" />
                     Create Default Weather
                   </button>
                 )}
@@ -1133,6 +1156,10 @@ export function EnvironmentEditorView() {
                       value={previewHour}
                       onChange={(event) => { const h = Number.parseInt(event.target.value, 10); if (Number.isFinite(h)) setPreviewHour(h); }}
                       className="min-w-[180px] flex-1 accent-tn-accent"
+                      aria-label={`Preview hour: ${previewHour}:00`}
+                      aria-valuemin={0}
+                      aria-valuemax={23}
+                      aria-valuenow={previewHour}
                     />
                     <label className="text-[10px] font-semibold uppercase tracking-wider text-tn-text-muted" htmlFor="environment-preview-jump">
                       Jump To
@@ -1146,6 +1173,7 @@ export function EnvironmentEditorView() {
                         if (Number.isFinite(h)) setPreviewHour(h);
                       }}
                       className="rounded border border-tn-border bg-tn-bg px-2 py-1 text-[11px] text-tn-text"
+                      aria-label="Jump to preset time"
                     >
                       <option value="custom">Manual slider</option>
                       {quickPreviewHours.map((preset) => (

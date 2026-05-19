@@ -46,9 +46,16 @@ export function evaluateDensityVolume(
   let minVal = Infinity;
   let maxVal = -Infinity;
 
+  ctx.clearMemo();
+
   for (let yi = 0; yi < ys; yi++) {
     const wy = yMin + yi * stepY;
     const yOffset = yi * n * n;
+
+    // Clear memo once per Y slice — cache keys include (x,y,z) so no cross-row
+    // reuse, but retaining the full 3D volume in cache (n*n*ys entries) would
+    // consume excessive memory for large volumes.
+    ctx.clearMemo();
 
     for (let zi = 0; zi < n; zi++) {
       const wz = rangeMin + zi * stepXZ;
@@ -56,7 +63,6 @@ export function evaluateDensityVolume(
       for (let xi = 0; xi < n; xi++) {
         const wx = rangeMin + xi * stepXZ;
 
-        ctx.clearMemo();
         const val = ctx.evaluate(ctx.rootId, wx, wy, wz);
 
         const idx = yOffset + zi * n + xi;

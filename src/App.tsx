@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { ReactFlowProvider } from "@xyflow/react";
@@ -19,12 +19,11 @@ import SyncProgressModal from "@/components/ui/SyncProgressModal";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ConfirmDialog } from "@/components/dialogs/ConfirmDialog";
 import { NewProjectDialog } from "@/components/dialogs/NewProjectDialog";
-import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
-import { KeyboardShortcutsDialog } from "@/components/dialogs/KeyboardShortcutsDialog";
-import { ConfigurationDialog } from "@/components/dialogs/ConfigurationDialog";
+import { SettingsDialog, type SettingsTab } from "@/components/dialogs/SettingsDialog";
+import type { SystemTab } from "@/components/dialogs/ConfigurationDialog";
 import { ExportSvgDialog } from "@/components/dialogs/ExportSvgDialog";
 import { saveRef } from "@/utils/saveRef";
-import { isMac } from "@/utils/platform";
+import { isMac, isTauriRuntime } from "@/utils/platform";
 import { checkForUpdates } from "@/utils/updater";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useToastStore } from "@/stores/toastStore";
@@ -56,12 +55,16 @@ export default function App() {
 
   const [showNewProject, setShowNewProject] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showConfig, setShowConfig] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
+  const [settingsSystemTab, setSettingsSystemTab] = useState<SystemTab>("cpu");
   const [showExportSvg, setShowExportSvg] = useState(false);
 
   // Bypass flag: when true the onCloseRequested handler lets the close through.
   const forceCloseRef = useRef(false);
+  const appWindow = useMemo(
+    () => (isTauriRuntime() ? getCurrentWindow() : null),
+    [],
+  );
 
   // Tracks whether the dialog is visible. Updated SYNCHRONOUSLY (not via
   // useEffect) so the onCloseRequested handler always reads a fresh value —
@@ -84,10 +87,10 @@ export default function App() {
 
   // ---- Disable native decorations on non-macOS (macOS keeps native traffic lights) ----
   useEffect(() => {
-    if (!isMac) {
-      getCurrentWindow().setDecorations(false);
+    if (!isMac && appWindow) {
+      void appWindow.setDecorations(false);
     }
-  }, []);
+  }, [appWindow]);
 
   // ---- Post-update verification + auto-check for updates ----
   useEffect(() => {
@@ -114,7 +117,9 @@ export default function App() {
 
   // ---- Intercept OS window close (X button / Cmd+W native) ----
   useEffect(() => {
-    const unlisten = getCurrentWindow().onCloseRequested((event) => {
+    if (!appWindow) return;
+
+    const unlisten = appWindow.onCloseRequested((event) => {
       // If we set the force-close flag, allow the window to close.
       if (forceCloseRef.current) return;
 
@@ -133,7 +138,7 @@ export default function App() {
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [openDialog]);
+  }, [appWindow, openDialog]);
 
   // ---- Support opening files from the OS (drag/drop + Open With) ----
   useEffect(() => {
@@ -193,7 +198,7 @@ export default function App() {
 
     if (pendingRef.current === "window-close") {
       forceCloseRef.current = true;
-      getCurrentWindow().close();
+      void appWindow?.close();
     } else {
       useProjectStore.getState().closeProject();
     }
@@ -257,10 +262,10 @@ export default function App() {
         setShowNewProject={setShowNewProject}
         showSettings={showSettings}
         setShowSettings={setShowSettings}
-        showShortcuts={showShortcuts}
-        setShowShortcuts={setShowShortcuts}
-        showConfig={showConfig}
-        setShowConfig={setShowConfig}
+        settingsTab={settingsTab}
+        setSettingsTab={setSettingsTab}
+        settingsSystemTab={settingsSystemTab}
+        setSettingsSystemTab={setSettingsSystemTab}
         showExportSvg={showExportSvg}
         setShowExportSvg={setShowExportSvg}
         dialog={dialog}
@@ -278,10 +283,10 @@ function ProjectEditor({
   setShowNewProject,
   showSettings,
   setShowSettings,
-  showShortcuts,
-  setShowShortcuts,
-  showConfig,
-  setShowConfig,
+  settingsTab,
+  setSettingsTab,
+  settingsSystemTab,
+  setSettingsSystemTab,
   showExportSvg,
   setShowExportSvg,
   dialog,
@@ -291,19 +296,25 @@ function ProjectEditor({
   setShowNewProject: (show: boolean) => void;
   showSettings: boolean;
   setShowSettings: (show: boolean) => void;
-  showShortcuts: boolean;
-  setShowShortcuts: (show: boolean) => void;
-  showConfig: boolean;
-  setShowConfig: (show: boolean) => void;
+  settingsTab: SettingsTab;
+  setSettingsTab: (tab: SettingsTab) => void;
+  settingsSystemTab: SystemTab;
+  setSettingsSystemTab: (tab: SystemTab) => void;
   showExportSvg: boolean;
   setShowExportSvg: (show: boolean) => void;
   dialog: React.ReactNode;
 }) {
+  const openSettings = useCallback((tab: SettingsTab = "general", systemTab: SystemTab = "cpu") => {
+    setSettingsTab(tab);
+    setSettingsSystemTab(systemTab);
+    setShowSettings(true);
+  }, [setSettingsSystemTab, setSettingsTab, setShowSettings]);
+
   // Wire up global keyboard shortcuts
   useGlobalKeyboardShortcuts({
     onCloseProject: requestCloseProject,
     onNewProject: () => setShowNewProject(true),
-    onSettings: () => setShowSettings(true),
+    onSettings: () => openSettings("general"),
     onExportSvg: () => setShowExportSvg(true),
   });
 
@@ -316,9 +327,8 @@ function ProjectEditor({
         <ProjectTitleBar
           onCloseProject={requestCloseProject}
           onNewProject={() => setShowNewProject(true)}
-          onSettings={() => setShowSettings(true)}
-          onShortcuts={() => setShowShortcuts(true)}
-          onConfig={() => setShowConfig(true)}
+          onSettings={() => openSettings("general")}
+          onShortcuts={() => openSettings("shortcuts")}
           onExportSvg={() => setShowExportSvg(true)}
         />
         <ErrorBoundary>
@@ -330,9 +340,12 @@ function ProjectEditor({
       <Toast />
       {dialog}
       <NewProjectDialog open={showNewProject} onClose={() => setShowNewProject(false)} />
-      <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} />
-      <KeyboardShortcutsDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
-      <ConfigurationDialog open={showConfig} onClose={() => setShowConfig(false)} />
+      <SettingsDialog
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        initialTab={settingsTab}
+        initialSystemTab={settingsSystemTab}
+      />
       <ExportSvgDialogWrapper open={showExportSvg} onClose={() => setShowExportSvg(false)} />
     </>
   );

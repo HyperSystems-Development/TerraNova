@@ -11,7 +11,6 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const values = usePreviewStore((s) => s.values);
-  const resolution = usePreviewStore((s) => s.resolution);
   const rangeMin = usePreviewStore((s) => s.rangeMin);
   const rangeMax = usePreviewStore((s) => s.rangeMax);
   const canvasTransform = usePreviewStore((s) => s.canvasTransform);
@@ -39,7 +38,7 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
     const canvas = canvasRef.current;
     if (!canvas || !values) return;
 
-    const n = resolution;
+    const n = Math.round(Math.sqrt(values.length));
     canvas.width = n;
     canvas.height = n;
 
@@ -59,7 +58,7 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
     }
 
     ctx.putImageData(imageData, 0, 0);
-  }, [values, resolution]);
+  }, [values]);
 
   // ── Draw overlay: surface contour at density=0 ──
   useEffect(() => {
@@ -81,7 +80,7 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, displaySize, displaySize);
 
-    const n = resolution;
+    const n = Math.round(Math.sqrt(values.length));
     const { scale, offsetX, offsetY } = canvasTransform;
 
     const gridToScreen = (gx: number, gz: number) => {
@@ -137,7 +136,7 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
     }
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [values, resolution, canvasTransform, rangeMin, rangeMax, showPositionOverlay, positionOverlayPoints, positionOverlayColor, positionOverlaySize]);
+  }, [values, canvasTransform, rangeMin, rangeMax, showPositionOverlay, positionOverlayPoints, positionOverlayColor, positionOverlaySize]);
 
   // ── Interaction rect ──
   const getInteractionRect = useCallback((): DOMRect | null => {
@@ -167,7 +166,7 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
         e.clientX - rect.left, e.clientY - rect.top,
         canvasTransform, rect.width, rangeMin, rangeMax,
       );
-      const n = resolution;
+      const n = Math.round(Math.sqrt(values.length));
       const worldRange = rangeMax - rangeMin;
       const col = Math.floor(((world.x - rangeMin) / worldRange) * n);
       const row = Math.floor(((world.z - rangeMin) / worldRange) * n);
@@ -176,14 +175,16 @@ export const ThresholdedHeatmap = forwardRef<HTMLCanvasElement>(function Thresho
         return;
       }
       const idx = row * n + col;
+      const val = values[idx];
+      if (val === undefined) { setHoverInfo(null); return; }
       setHoverInfo({
         x: Math.round(world.x),
         z: Math.round(world.z),
-        value: values[idx],
-        solid: values[idx] >= 0,
+        value: val,
+        solid: val >= 0,
       });
     },
-    [values, resolution, rangeMin, rangeMax, canvasTransform, setCanvasTransform, getInteractionRect],
+    [values, rangeMin, rangeMax, canvasTransform, setCanvasTransform, getInteractionRect],
   );
 
   const onMouseDown = useCallback(

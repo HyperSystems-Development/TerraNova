@@ -8,7 +8,7 @@ const handleConditional: NodeHandler = (ctx, fields, inputs, x, y, z) => {
     : ctx.getInput(inputs, "FalseInput", x, y, z);
 };
 
-const handleMinFunction: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleMin: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   let result = ctx.getInput(inputs, "Inputs[0]", x, y, z);
   for (let i = 1; inputs.has(`Inputs[${i}]`); i++) {
     result = Math.min(result, ctx.getInput(inputs, `Inputs[${i}]`, x, y, z));
@@ -16,7 +16,7 @@ const handleMinFunction: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   return result;
 };
 
-const handleMaxFunction: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleMax: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   let result = ctx.getInput(inputs, "Inputs[0]", x, y, z);
   for (let i = 1; inputs.has(`Inputs[${i}]`); i++) {
     result = Math.max(result, ctx.getInput(inputs, `Inputs[${i}]`, x, y, z));
@@ -34,7 +34,7 @@ const handleAverageFunction: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   return avgCount > 0 ? avgSum / avgCount : 0;
 };
 
-const handleBlend: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
+const handleMix: NodeHandler = (ctx, _fields, inputs, x, y, z) => {
   const a = ctx.getInput(inputs, "InputA", x, y, z);
   const b = ctx.getInput(inputs, "InputB", x, y, z);
   const hasFactor = inputs.has("Factor");
@@ -71,29 +71,37 @@ const handleMultiMix: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const keys = (fields.Keys as number[]) ?? [];
   if (keys.length === 0) return 0;
   const selector = ctx.getInput(inputs, "Selector", x, y, z);
+
+  const entries = keys.map((key, idx) => ({ key, idx }));
+  entries.sort((a, b) => a.key - b.key);
+  const sortedKeys = entries.map((entry) => entry.key);
+
   let lo = 0;
-  for (let i = 1; i < keys.length; i++) {
-    if (keys[i] <= selector) lo = i;
+  for (let i = 1; i < sortedKeys.length; i++) {
+    if (sortedKeys[i] <= selector) lo = i;
   }
-  const hi = Math.min(lo + 1, keys.length - 1);
+  const hi = Math.min(lo + 1, sortedKeys.length - 1);
   if (lo === hi) {
-    return ctx.getInput(inputs, `Densities[${lo}]`, x, y, z);
+    return ctx.getInput(inputs, `Densities[${entries[lo].idx}]`, x, y, z);
   }
-  const t = Math.max(0, Math.min(1, (selector - keys[lo]) / (keys[hi] - keys[lo])));
-  const a = ctx.getInput(inputs, `Densities[${lo}]`, x, y, z);
-  const b = ctx.getInput(inputs, `Densities[${hi}]`, x, y, z);
+  const t = Math.max(0, Math.min(1, (selector - sortedKeys[lo]) / (sortedKeys[hi] - sortedKeys[lo])));
+  const a = ctx.getInput(inputs, `Densities[${entries[lo].idx}]`, x, y, z);
+  const b = ctx.getInput(inputs, `Densities[${entries[hi].idx}]`, x, y, z);
   return a + (b - a) * t;
 };
 
 export function buildCombinatorHandlers(): Map<string, NodeHandler> {
   return new Map<string, NodeHandler>([
     ["Conditional", handleConditional],
-    ["MinFunction", handleMinFunction],
-    ["MaxFunction", handleMaxFunction],
+    ["Min", handleMin],
+    ["MinFunction", handleMin],
+    ["Max", handleMax],
+    ["MaxFunction", handleMax],
     ["AverageFunction", handleAverageFunction],
-    ["Blend", handleBlend],
+    ["Mix", handleMix],
+    ["Blend", handleMix],
     ["Switch", handleSwitch],
-    ["BlendCurve", handleBlendCurve],
     ["MultiMix", handleMultiMix],
+    ["BlendCurve", handleBlendCurve],
   ]);
 }

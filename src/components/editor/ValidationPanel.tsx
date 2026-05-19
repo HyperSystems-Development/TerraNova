@@ -333,8 +333,8 @@ export function ValidationPanel() {
 
   if (diagnostics.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-tn-text-muted gap-2 px-4">
-        <span className="text-2xl text-green-400">{"\u2714"}</span>
+      <div className="flex flex-col items-center justify-center h-full text-tn-text-muted gap-2 px-4" role="status" aria-live="polite">
+        <span className="text-2xl text-green-400" aria-hidden="true">{"\u2714"}</span>
         <span className="text-xs">No issues found</span>
         <span className="rounded border border-tn-border bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-wide text-tn-text-muted">
           {assetValidationBadge.label}
@@ -383,6 +383,7 @@ export function ValidationPanel() {
           <button
             type="button"
             onClick={handleRemoveAllLegacy}
+            aria-label={`Remove all ${legacyDiagnostics.length} legacy node${legacyDiagnostics.length > 1 ? "s" : ""}`}
             className="self-start rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-300 hover:bg-amber-500/20 transition-colors"
           >
             Remove all {legacyDiagnostics.length} legacy node{legacyDiagnostics.length > 1 ? "s" : ""}
@@ -407,11 +408,12 @@ export function ValidationPanel() {
                   onKeyDown={(event) => handleIssueKeyDown(event, d)}
                   role={d.nodeId || d.biomeSection ? "button" : undefined}
                   tabIndex={d.nodeId || d.biomeSection ? 0 : -1}
+                  aria-label={`${d.message}${d.nodeId ? `, click to navigate to node` : d.biomeSection ? `, click to navigate to ${d.biomeSection}` : ``}`}
                   className={`w-full text-left px-3 py-1 text-[11px] hover:bg-white/5 transition-colors flex items-start gap-1.5 ${
                     d.nodeId || d.biomeSection ? "cursor-pointer" : "cursor-default"
                   }`}
                 >
-                  <span className={`shrink-0 ${SEVERITY_COLORS[severity]}`}>
+                  <span className={`shrink-0 ${SEVERITY_COLORS[severity]}`} aria-hidden="true">
                     {SEVERITY_ICONS[severity]}
                   </span>
                   <span className="flex-1 flex flex-col gap-0.5">

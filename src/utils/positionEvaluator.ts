@@ -25,7 +25,10 @@ export const POSITION_TYPE_NAMES = [
   "Mesh2D", "Mesh3D", "SimpleHorizontal", "List",
   "Occurrence", "Offset", "Union", "Cache",
   "SurfaceProjection", "FieldFunction", "Conditional",
-  "DensityBased", "Exported", "Imported",
+  "DensityBased", "BaseHeight", "Anchor", "Bound",
+  "SquareGrid2d", "SquareGrid3d", "TriangularGrid2d",
+  "Scaler", "Jitter2d", "Jitter3d", "Clusters",
+  "Framework", "Exported", "Imported", "Empty",
 ] as const;
 
 const POSITION_TYPES = new Set<string>(POSITION_TYPE_NAMES);
@@ -139,16 +142,18 @@ export function evaluatePositions(
 
     switch (type) {
       case "Mesh2D":
-      case "Mesh3D": {
-        const resolution = (fields.Resolution as number) ?? 16;
-        const jitter = (fields.Jitter as number) ?? 0;
-        result = generateGrid(range, resolution, jitter, rng);
+      case "Mesh3D":
+      case "SquareGrid2d":
+      case "SquareGrid3d":
+      case "TriangularGrid2d": {
+        const { spacing, jitter } = resolveGridSettings(fields, inputs);
+        result = generateGrid(range, spacing, jitter, rng);
         break;
       }
 
       case "SimpleHorizontal": {
         // V2: RangeY constrains Y band; preview approximates as passthrough
-        const upstream = getUpstream(inputs, "PositionProvider");
+        const upstream = getFirstUpstream(inputs, ["PositionProvider", "Positions"]);
         result = upstream.length > 0 ? upstream : generateGrid(range, 16, 0, rng);
         break;
       }
@@ -163,7 +168,7 @@ export function evaluatePositions(
 
       case "Occurrence": {
         // V2: density FieldFunction filters positions; preview uses 50% random
-        const upstream = getUpstream(inputs, "PositionProvider");
+        const upstream = getFirstUpstream(inputs, ["PositionProvider", "Positions"]);
         result = upstream.filter(() => rng() < 0.5);
         break;
       }
@@ -172,26 +177,27 @@ export function evaluatePositions(
         const offset = (fields.Offset as { x?: number; y?: number; z?: number }) ?? {};
         const dx = offset.x ?? 0;
         const dz = offset.z ?? 0;
-        const upstream = getUpstream(inputs, "PositionProvider");
+        const upstream = getFirstUpstream(inputs, ["PositionProvider", "Positions"]);
         result = upstream.map((p) => ({ x: p.x + dx, z: p.z + dz, weight: p.weight }));
         break;
       }
 
       case "Union": {
-        const a = getUpstream(inputs, "Providers[0]");
-        const b = getUpstream(inputs, "Providers[1]");
-        result = [...a, ...b];
+        result = [];
+        for (let i = 0; inputs.has(`Providers[${i}]`) || inputs.has(`Positions[${i}]`); i++) {
+          result.push(...getFirstUpstream(inputs, [`Providers[${i}]`, `Positions[${i}]`]));
+        }
         break;
       }
 
       case "Cache":
       case "SurfaceProjection": {
-        result = getUpstream(inputs, "PositionProvider");
+        result = getFirstUpstream(inputs, ["PositionProvider", "Positions", "Input"]);
         break;
       }
 
       case "FieldFunction": {
-        const upstream = getUpstream(inputs, "PositionProvider");
+        const upstream = getFirstUpstream(inputs, ["PositionProvider", "Positions"]);
         result = upstream.map((p) => ({ ...p, weight: 0.5 }));
         break;
       }
@@ -205,6 +211,56 @@ export function evaluatePositions(
 
       case "DensityBased": {
         result = generateGrid(range, 16, 0, rng).map((p) => ({ ...p, weight: 0.5 }));
+        break;
+      }
+
+      case "BaseHeight":
+      case "Anchor": {
+        result = getFirstUpstream(inputs, ["PositionProvider", "Positions"]);
+        break;
+      }
+
+      case "Bound": {
+        const bounds = fields.Bounds as {
+          MinX?: number; MaxX?: number; MinZ?: number; MaxZ?: number;
+          minX?: number; maxX?: number; minZ?: number; maxZ?: number;
+        } | undefined;
+        const minX = Number(bounds?.MinX ?? bounds?.minX ?? -Infinity);
+        const maxX = Number(bounds?.MaxX ?? bounds?.maxX ?? Infinity);
+        const minZ = Number(bounds?.MinZ ?? bounds?.minZ ?? -Infinity);
+        const maxZ = Number(bounds?.MaxZ ?? bounds?.maxZ ?? Infinity);
+        result = getFirstUpstream(inputs, ["PositionProvider", "Positions"])
+          .filter((p) => p.x >= minX && p.x <= maxX && p.z >= minZ && p.z <= maxZ);
+        break;
+      }
+
+      case "Scaler": {
+        const scale = resolveScaleVector(fields, inputs);
+        result = getFirstUpstream(inputs, ["Positions", "PositionProvider"])
+          .map((p) => ({ x: p.x * scale.x, z: p.z * scale.z, weight: p.weight }));
+        break;
+      }
+
+      case "Jitter2d":
+      case "Jitter3d": {
+        const magnitude = Number(fields.Magnitude ?? fields.Jitter ?? 0);
+        result = getFirstUpstream(inputs, ["Positions", "PositionProvider"])
+          .map((p) => ({
+            x: p.x + (rng() * 2 - 1) * magnitude,
+            z: p.z + (rng() * 2 - 1) * magnitude,
+            weight: p.weight,
+          }));
+        break;
+      }
+
+      case "Clusters": {
+        result = getFirstUpstream(inputs, ["Positions", "PositionProvider", "Distributor", "Cluster"]);
+        break;
+      }
+
+      case "Empty":
+      case "Framework": {
+        result = [];
         break;
       }
 
@@ -225,7 +281,7 @@ export function evaluatePositions(
 
       default: {
         // Unknown type — try to follow any PositionProvider or Input handle
-        const src = inputs.get("PositionProvider") ?? inputs.get("Input");
+        const src = inputs.get("PositionProvider") ?? inputs.get("Positions") ?? inputs.get("Input");
         result = src ? evaluate(src) : [];
         break;
       }
@@ -252,6 +308,60 @@ export function evaluatePositions(
     const src = inputs.get(handle);
     if (!src) return [];
     return evaluate(src);
+  }
+
+  function getFirstUpstream(
+    inputs: Map<string, string>,
+    handles: string[],
+  ): EvaluatedPosition[] {
+    for (const handle of handles) {
+      const result = getUpstream(inputs, handle);
+      if (result.length > 0) return result;
+    }
+    return [];
+  }
+
+  function getInputFields(
+    inputs: Map<string, string>,
+    handle: string,
+  ): Record<string, unknown> | undefined {
+    const src = inputs.get(handle);
+    if (!src) return undefined;
+    const inputNode = nodeById.get(src);
+    return (inputNode?.data as Record<string, unknown> | undefined)?.fields as Record<string, unknown> | undefined;
+  }
+
+  function resolveGridSettings(
+    fields: Record<string, unknown>,
+    inputs: Map<string, string>,
+  ): { spacing: number; jitter: number } {
+    const pointGenerator =
+      getInputFields(inputs, "PointGenerator") ??
+      (fields.PointGenerator as Record<string, unknown> | undefined) ??
+      {};
+
+    const directResolution = Number(fields.Resolution ?? NaN);
+    const scaleX = Number(pointGenerator.ScaleX ?? fields.ScaleX ?? directResolution);
+    const scaleZ = Number(pointGenerator.ScaleZ ?? fields.ScaleZ ?? directResolution);
+    const spacing = Number.isFinite(directResolution)
+      ? directResolution
+      : averageFinite(scaleX, scaleZ, 16);
+    const jitter = Number(pointGenerator.Jitter ?? fields.Jitter ?? 0);
+
+    return { spacing, jitter };
+  }
+
+  function resolveScaleVector(
+    fields: Record<string, unknown>,
+    inputs: Map<string, string>,
+  ): { x: number; z: number } {
+    const scaleInput = getInputFields(inputs, "Scale");
+    const value = (scaleInput?.Value ?? fields.Scale) as { x?: number; y?: number; z?: number } | number | undefined;
+    if (typeof value === "number") return { x: value, z: value };
+    return {
+      x: Number(value?.x ?? 1),
+      z: Number(value?.z ?? value?.x ?? 1),
+    };
   }
 
   return evaluate(root.id);
@@ -282,4 +392,10 @@ function generateGrid(
   }
 
   return positions;
+}
+
+function averageFinite(a: number, b: number, fallback: number): number {
+  const values = [a, b].filter(Number.isFinite);
+  if (values.length === 0) return fallback;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }

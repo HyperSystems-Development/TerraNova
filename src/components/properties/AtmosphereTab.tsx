@@ -498,7 +498,7 @@ export function AtmosphereTab({
     }
     setBiomeLoadStatus("loading");
     try {
-      const biomesRoot = joinPath(serverRoot, "Generator/Biomes");
+      const biomesRoot = joinPath(serverRoot, "HytaleGenerator/Biomes");
       const entries = await listDirectory(biomesRoot);
       const files: { name: string; path: string }[] = [];
       function collect(list: typeof entries) {
@@ -741,7 +741,7 @@ export function AtmosphereTab({
   // Sync tint to previewStore whenever biomeConfig changes
   useEffect(() => {
     setTintColors({ color1: tintColor1, color2: tintColor2, color3: tintColor3 });
-  }, [tintColor1, tintColor2, tintColor3, setTintColors]);
+  }, [setTintColors, tintColor1, tintColor2, tintColor3]);
 
   function handleTintChange(field: "color1" | "color2" | "color3" | "constant", value: string) {
     // Map color1/2/3 to Delimiters array index

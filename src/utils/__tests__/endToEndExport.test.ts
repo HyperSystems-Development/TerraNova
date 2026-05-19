@@ -484,10 +484,10 @@ describe("$Position and editor metadata stripping", () => {
     const jsonStr = JSON.stringify(asset);
     expect(jsonStr).not.toContain("$Position");
 
-    // Actual fields should be preserved (WallAâ†’Max, WallBâ†’Min per Hytale spec)
+    // V2 field names (WallA/WallB) are preserved as-is on import
     expect(asset.Type).toBe("Clamp");
-    expect(asset.Min).toBe(1);
-    expect(asset.Max).toBe(0);
+    expect(asset.WallA).toBe(0);
+    expect(asset.WallB).toBe(1);
   });
 
   it("strips $Title, $WorkspaceID, $Groups from biome import", () => {

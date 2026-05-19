@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to build (e.g. v0.1.7)'
+        required: true
+        type: string
 
 jobs:
   build:
@@ -25,9 +31,14 @@ jobs:
     permissions:
       contents: write
 
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -56,7 +67,7 @@ jobs:
 
       - name: Sync version from git tag
         env:
-          TAG_NAME: ${{ github.ref_name }}
+          TAG_NAME: ${{ env.RELEASE_TAG }}
         run: |
           VERSION="${TAG_NAME#v}"
           echo "Updating version to $VERSION"
@@ -78,6 +89,14 @@ jobs:
           "
         shell: bash
 
+      - name: Pin linuxdeploy to fix AppImage EGL rendering
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          TAURI_TOOLS="${XDG_CACHE_HOME:-$HOME/.cache}/tauri"
+          mkdir -p "$TAURI_TOOLS"
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20250213-2/linuxdeploy-x86_64.AppImage -O "$TAURI_TOOLS/linuxdeploy-x86_64.AppImage"
+          chmod +x "$TAURI_TOOLS/linuxdeploy-x86_64.AppImage"
+
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
@@ -90,11 +109,105 @@ jobs:
         with:
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
-          tagName: ${{ github.ref_name }}
-          releaseName: 'TerraNova ${{ github.ref_name }}'
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: 'TerraNova ${{ env.RELEASE_TAG }}'
           releaseDraft: true
           prerelease: true
           args: ${{ matrix.rust_target != '' && format('--target {0}', matrix.rust_target) || '' }}
+
+      - name: Fix AppImage symlinks and repackage
+        if: matrix.platform == 'ubuntu-22.04'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          # Find the AppImage from the current build (narrow path to avoid stale cache)
+          APPIMAGE=$(find src-tauri/target -type f -path '*/bundle/appimage/*.AppImage' \
+            ! -name '*.sig' -printf '%T@ %p\n' | sort -nr | head -1 | cut -d' ' -f2-)
+          if [ -z "$APPIMAGE" ]; then
+            echo "No AppImage found, skipping"
+            exit 0
+          fi
+          echo "Found AppImage: $APPIMAGE"
+
+          # Extract (clean any stale extraction first)
+          rm -rf squashfs-root
+          chmod +x "$APPIMAGE"
+          "$APPIMAGE" --appimage-extract
+
+          # Fix symlinks that use absolute CI paths or are broken.
+          # On the runner, absolute paths like /home/runner/work/... still resolve,
+          # so we must also check for absolute targets, not just broken links.
+          cd squashfs-root
+          while IFS= read -r link; do
+            TARGET=$(readlink "$link" || true)
+            [ -z "$TARGET" ] && continue
+            if [[ "$TARGET" = /* ]] || [ ! -e "$link" ]; then
+              BASENAME=$(basename "$TARGET")
+              # Search usr/ first, then the AppDir root (e.g. .DirIcon -> TerraNova.png)
+              REAL=$(find usr -type f -name "$BASENAME" | head -1)
+              [ -z "$REAL" ] && [ -f "$BASENAME" ] && REAL="$BASENAME"
+              if [ -n "$REAL" ]; then
+                echo "Fixing symlink: $link -> $TARGET"
+                rm "$link"
+                ln -s "$REAL" "$link"
+                echo "  -> $REAL"
+              else
+                echo "  WARNING: could not find replacement for $link ($BASENAME)"
+              fi
+            fi
+          done < <(find . -maxdepth 1 -type l)
+          cd ..
+
+          # Repackage with pinned appimagetool (--appimage-extract-and-run
+          # avoids libfuse2 dependency on the CI runner)
+          wget -q https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root "$APPIMAGE"
+
+          # Re-sign the repackaged AppImage for the Tauri updater.
+          # tauri-action installs the CLI via npm (@tauri-apps/cli), not cargo.
+          # The signer reads TAURI_SIGNING_PRIVATE_KEY from the environment.
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            pnpm tauri signer sign \
+              --private-key "$TAURI_SIGNING_PRIVATE_KEY" \
+              --password "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" \
+              "$APPIMAGE"
+            echo "Re-signed: ${APPIMAGE}.sig"
+          fi
+
+          # Replace release assets with the fixed AppImage + signature
+          gh release upload "${{ env.RELEASE_TAG }}" "$APPIMAGE" --clobber
+          if [ -f "${APPIMAGE}.sig" ]; then
+            gh release upload "${{ env.RELEASE_TAG }}" "${APPIMAGE}.sig" --clobber
+          fi
+
+          # Update latest.json with the new signature so the Tauri updater
+          # validates against the repackaged AppImage, not the original.
+          if [ -f "${APPIMAGE}.sig" ]; then
+            LATEST_JSON=$(mktemp)
+            gh release download "${{ env.RELEASE_TAG }}" -p 'latest.json' -D "$(dirname "$LATEST_JSON")" -O "$LATEST_JSON" || true
+            if [ -f "$LATEST_JSON" ] && [ -s "$LATEST_JSON" ]; then
+              NEW_SIG=$(cat "${APPIMAGE}.sig")
+              node -e "
+                const fs = require('fs');
+                const latest = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+                const sig = process.argv[2];
+                for (const [key, val] of Object.entries(latest.platforms || {})) {
+                  if (val.url && val.url.includes('.AppImage')) {
+                    val.signature = sig;
+                  }
+                }
+                fs.writeFileSync(process.argv[1], JSON.stringify(latest, null, 2) + '\n');
+              " "$LATEST_JSON" "$NEW_SIG"
+              gh release upload "${{ env.RELEASE_TAG }}" "$LATEST_JSON#latest.json" --clobber
+              echo "Updated latest.json with new AppImage signature"
+            fi
+            rm -f "$LATEST_JSON"
+          fi
+
+          rm -rf squashfs-root appimagetool
 
       - name: Verify macOS code signature
         if: runner.os == 'macOS'

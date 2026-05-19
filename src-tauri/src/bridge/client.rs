@@ -24,7 +24,9 @@ impl BridgeState {
     /// Clone the client out of the mutex so callers can drop the lock before HTTP calls.
     pub async fn get_client(&self) -> Result<BridgeClient, String> {
         let lock = self.0.lock().await;
-        lock.as_ref().cloned().ok_or_else(|| "Not connected to bridge".to_string())
+        lock.as_ref()
+            .cloned()
+            .ok_or_else(|| "Not connected to bridge".to_string())
     }
 }
 
@@ -157,10 +159,7 @@ impl BridgeClient {
             req = req.timeout(Duration::from_secs(20));
         }
 
-        let response = req
-            .send()
-            .await
-            .map_err(|e| e.to_string())?;
+        let response = req.send().await.map_err(|e| e.to_string())?;
 
         if !response.status().is_success() {
             let status = response.status().as_u16();
@@ -192,8 +191,7 @@ impl BridgeClient {
             std::fs::create_dir_all(parent)
                 .map_err(|e| format!("Failed to create directories: {}", e))?;
         }
-        std::fs::copy(source_path, dest_path)
-            .map_err(|e| format!("Failed to copy file: {}", e))?;
+        std::fs::copy(source_path, dest_path).map_err(|e| format!("Failed to copy file: {}", e))?;
         Ok(())
     }
 }

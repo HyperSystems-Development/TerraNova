@@ -1,20 +1,20 @@
 {
   "Type": "NoiseRange",
-  "DefaultBiome": "ForestHillsBiome",
-  "DefaultTransitionDistance": 16,
-  "MaxBiomeEdgeDistance": 32,
+  "DefaultBiome": "shattered_archipelago",
+  "DefaultTransitionDistance": 24,
+  "MaxBiomeEdgeDistance": 48,
   "Biomes": [
     {
-      "Biome": "ForestHillsBiome",
+      "Biome": "shattered_archipelago",
       "Min": -1.0,
       "Max": 1.0
     }
   ],
   "Density": {
     "Type": "SimplexNoise2D",
-    "Frequency": 0.002,
+    "Frequency": 0.001,
     "Amplitude": 1.0,
-    "Seed": 42,
+    "Seed": "world_biome",
     "Octaves": 3,
     "Lacunarity": 2.0,
     "Gain": 0.5

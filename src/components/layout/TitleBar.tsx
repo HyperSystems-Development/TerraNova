@@ -1,14 +1,17 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useEffect, useState } from "react";
-import { isMac } from "@/utils/platform";
+import { useEffect, useMemo, useState } from "react";
+import { isMac, isTauriRuntime } from "@/utils/platform";
 
 // Simple title bar for home screen (no menus, no ReactFlow dependencies)
 export function SimpleTitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
-  const appWindow = getCurrentWindow();
+  const appWindow = useMemo(
+    () => (isTauriRuntime() ? getCurrentWindow() : null),
+    [],
+  );
 
   useEffect(() => {
-    if (isMac) return;
+    if (isMac || !appWindow) return;
 
     appWindow.isMaximized().then(setIsMaximized);
 
@@ -22,19 +25,19 @@ export function SimpleTitleBar() {
   }, [appWindow]);
 
   const handleMinimize = () => {
-    appWindow.minimize();
+    void appWindow?.minimize();
   };
 
   const handleMaximize = () => {
-    appWindow.toggleMaximize();
+    void appWindow?.toggleMaximize();
   };
 
   const handleClose = () => {
-    appWindow.close();
+    void appWindow?.close();
   };
 
-  // On macOS, native traffic lights handle window controls — just render a minimal drag region
-  if (isMac) {
+  // macOS uses native traffic lights. Browser dev mode has no Tauri window.
+  if (isMac || !appWindow) {
     return (
       <div className="h-8 bg-tn-panel border-b border-tn-border flex items-center select-none shrink-0" />
     );

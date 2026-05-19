@@ -3,9 +3,13 @@ import { useEditorStore } from "@/stores/editorStore";
 import { useBridgeStore } from "@/stores/bridgeStore";
 import { triggerManualEvaluation } from "@/hooks/usePreviewEvaluation";
 import { COLORMAPS } from "@/utils/colormaps";
-import { exportCanvasAsPNG } from "@/utils/exportPreview";
 
-export function SharedControls({ canvasRef }: { canvasRef?: React.RefObject<HTMLCanvasElement | null> }) {
+interface SharedControlsProps {
+  canExport?: boolean;
+  onExport?: () => void | Promise<void>;
+}
+
+export function SharedControls({ canExport = false, onExport }: SharedControlsProps) {
   const mode = usePreviewStore((s) => s.mode);
   const setMode = usePreviewStore((s) => s.setMode);
   const autoRefresh = usePreviewStore((s) => s.autoRefresh);
@@ -139,11 +143,9 @@ export function SharedControls({ canvasRef }: { canvasRef?: React.RefObject<HTML
       {/* Export PNG */}
       <button
         onClick={() => {
-          if (canvasRef?.current) {
-            exportCanvasAsPNG(canvasRef.current);
-          }
+          void onExport?.();
         }}
-        disabled={!canvasRef?.current}
+        disabled={!canExport}
         className="px-2 py-1 text-[11px] rounded bg-tn-panel text-tn-text-muted hover:text-tn-text hover:bg-white/10 disabled:opacity-40 transition-colors border border-tn-border"
       >
         Export PNG

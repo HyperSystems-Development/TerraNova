@@ -35,13 +35,12 @@ export function HytaleSky() {
         vertexShader: skyVertShader,
         fragmentShader: skyFragShader,
         uniforms: {
-          uHorizon: { value: new Color(atm.skyHorizon) },
-          uZenith: { value: new Color(atm.skyZenith) },
+          uHorizon: { value: new Color() },
+          uZenith: { value: new Color() },
         },
         side: BackSide,
         depthWrite: false,
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: create once, uniforms updated via useEffect below
     [],
   );
 

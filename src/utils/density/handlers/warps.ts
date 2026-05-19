@@ -4,13 +4,15 @@ import { domainWarpProgressive2D, domainWarpProgressive3D } from "../fastNoiseLi
 const handlePositionsPinch: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const strength = Number(fields.Strength ?? 1.0);
   const dist = Math.sqrt(x * x + z * z);
-  const pinchFactor = dist > 0 ? Math.pow(dist, strength) / dist : 1;
+  const pinchDist = ctx.applyCurve("PinchCurve", dist, inputs);
+  const pinchFactor = dist > 0 ? Math.pow(pinchDist, strength) / dist : 1;
   return ctx.getInput(inputs, "Input", x * pinchFactor, y, z * pinchFactor);
 };
 
 const handlePositionsTwist: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const angle = Number(fields.Angle ?? 0);
-  const rad = (angle * Math.PI / 180) * y;
+  const twistY = ctx.applyCurve("TwistCurve", y, inputs);
+  const rad = (angle * Math.PI / 180) * twistY;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
   return ctx.getInput(inputs, "Input", x * cos - z * sin, y, x * sin + z * cos);
@@ -19,24 +21,24 @@ const handlePositionsTwist: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 const handleGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   const warpFactor = Number(fields.WarpFactor ?? 1.0);
   const slopeRange = Number(fields.SlopeRange ?? fields.SampleRange ?? 1.0);
-  const is2D = fields.Is2D === true;
+  const is2D = fields.Is2D === true || fields["2D"] === true;
 
-  // V2: central finite differences — sample at ± slopeRange from origin.
-  // gradient ≈ (f(x+e) - f(x-e)) / (2e) for each axis.
-  const invRange = 1.0 / (2.0 * slopeRange);
+  if (slopeRange <= 0) return ctx.getInput(inputs, "Input", x, y, z);
 
-  const deltaX = ctx.getInput(inputs, "WarpSource", x + slopeRange, y, z)
-               - ctx.getInput(inputs, "WarpSource", x - slopeRange, y, z);
-  const deltaZ = ctx.getInput(inputs, "WarpSource", x, y, z + slopeRange)
-               - ctx.getInput(inputs, "WarpSource", x, y, z - slopeRange);
+  // V2: forward finite differences — single base evaluation, then forward samples.
+  // gradient ≈ (f(x+e) - f(x)) / e for each axis.
+  const base = ctx.getInput(inputs, "WarpSource", x, y, z);
+  const invRange = 1.0 / slopeRange;
+
+  const deltaX = ctx.getInput(inputs, "WarpSource", x + slopeRange, y, z) - base;
+  const deltaZ = ctx.getInput(inputs, "WarpSource", x, y, z + slopeRange) - base;
 
   let wx = x + warpFactor * deltaX * invRange;
   let wy = y;
   let wz = z + warpFactor * deltaZ * invRange;
 
   if (!is2D) {
-    const deltaY = ctx.getInput(inputs, "WarpSource", x, y + slopeRange, z)
-                 - ctx.getInput(inputs, "WarpSource", x, y - slopeRange, z);
+    const deltaY = ctx.getInput(inputs, "WarpSource", x, y + slopeRange, z) - base;
     wy = y + warpFactor * deltaY * invRange;
   }
 
@@ -126,6 +128,8 @@ const handleDomainWarp3D: NodeHandler = (ctx, fields, inputs, x, y, z) => {
 };
 
 export function buildWarpHandlers(): Map<string, NodeHandler> {
+  // DomainWarp2D/3D kept as aliases for backward compatibility;
+  // FastGradientWarp is the canonical V2 name.
   return new Map<string, NodeHandler>([
     ["PositionsPinch", handlePositionsPinch],
     ["PositionsTwist", handlePositionsTwist],

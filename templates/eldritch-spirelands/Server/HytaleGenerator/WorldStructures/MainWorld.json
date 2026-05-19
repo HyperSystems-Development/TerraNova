@@ -1,11 +1,11 @@
 {
   "Type": "NoiseRange",
-  "DefaultBiome": "EldritchSpirelandsBiome",
+  "DefaultBiome": "Eldritch_Spirelands",
   "DefaultTransitionDistance": 24,
   "MaxBiomeEdgeDistance": 48,
   "Biomes": [
     {
-      "Biome": "EldritchSpirelandsBiome",
+      "Biome": "Eldritch_Spirelands",
       "Min": -1,
       "Max": 1
     }

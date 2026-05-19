@@ -37,29 +37,26 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
     }
     setIsEditing(false);
     const { nodes, setNodes, commitState } = useEditorStore.getState();
-    setNodes(nodes.map((n) =>
-      n.id !== id ? n : { ...n, data: { ...n.data as object, name: editName } }
-    ));
+    setNodes(nodes.map((node) => (
+      node.id !== id ? node : { ...node, data: { ...node.data as object, name: editName } }
+    )));
     commitState("Rename frame");
     useProjectStore.getState().setDirty(true);
   }, [id, editName]);
 
-  const handleResizeEnd = useCallback(
-    (_event: ResizeDragEvent, params: ResizeParams) => {
-      const { nodes, setNodes, commitState } = useEditorStore.getState();
-      setNodes(nodes.map((n) =>
-        n.id !== id
-          ? n
-          : { ...n, data: { ...n.data as object, width: params.width, height: params.height } }
-      ));
-      commitState("Resize frame");
-      useProjectStore.getState().setDirty(true);
-    },
-    [id],
-  );
+  const handleResizeEnd = useCallback((_event: ResizeDragEvent, params: ResizeParams) => {
+    const { nodes, setNodes, commitState } = useEditorStore.getState();
+    setNodes(nodes.map((node) => (
+      node.id !== id
+        ? node
+        : { ...node, data: { ...node.data as object, width: params.width, height: params.height } }
+    )));
+    commitState("Resize frame");
+    useProjectStore.getState().setDirty(true);
+  }, [id]);
 
-  const width = nodeData.width ?? 400;
-  const height = nodeData.height ?? 300;
+  const width = nodeData.width ?? 300;
+  const height = nodeData.height ?? 200;
 
   return (
     <>
@@ -84,73 +81,76 @@ export const FrameNode = memo(function FrameNode({ id, selected, data }: NodePro
           background: FRAME_BG,
           border: `1px solid ${selected ? FRAME_COLOR : FRAME_BORDER}`,
           borderRadius: 8,
-          boxShadow: selected
-            ? `0 0 0 2px ${FRAME_COLOR}55`
-            : "none",
+          boxShadow: selected ? `0 0 0 2px ${FRAME_COLOR}55` : "none",
           pointerEvents: "all",
           position: "relative",
         }}
       >
-        {/* Label in top-left corner */}
         <div
           className="nodrag"
           style={{
             position: "absolute",
             top: 0,
             left: 0,
-            padding: "3px 10px",
-            background: `${FRAME_COLOR}22`,
+            right: 0,
+            minHeight: 28,
+            padding: "4px 10px",
+            background: `${FRAME_COLOR}18`,
             borderBottom: `1px solid ${FRAME_BORDER}`,
-            borderRight: `1px solid ${FRAME_BORDER}`,
-            borderRadius: "7px 0 6px 0",
+            borderRadius: "7px 7px 0 0",
             display: "flex",
             alignItems: "center",
-            gap: 4,
-            cursor: "text",
+            justifyContent: "space-between",
+            gap: 8,
+            cursor: "grab",
           }}
-          onDoubleClick={handleLabelDoubleClick}
         >
-          {isEditing ? (
-            <input
-              type="text"
-              value={editName}
-              autoFocus
-              onChange={(e) => setEditName(e.target.value)}
-              onBlur={handleCommit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  (e.target as HTMLInputElement).blur();
-                }
-                if (e.key === "Escape") {
-                  cancelEditRef.current = true;
-                  setIsEditing(false);
-                  setEditName(nodeData.name ?? "");
-                }
-              }}
-              className="nodrag"
-              style={{
-                background: "transparent",
-                border: "none",
-                outline: "none",
-                color: FRAME_COLOR,
-                fontSize: 11,
-                fontWeight: 600,
-                minWidth: 60,
-                width: Math.max(60, editName.length * 7),
-              }}
-            />
-          ) : (
-            <span
-              style={{
-                color: FRAME_COLOR,
-                fontSize: 11,
-                fontWeight: 600,
-                userSelect: "none",
-                cursor: "text",
-                opacity: nodeData.name ? 1 : 0.5,
-              }}
-            >
-              {nodeData.name || "Frame"}
+          <div onDoubleClick={handleLabelDoubleClick} style={{ minWidth: 0, flex: 1 }}>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editName}
+                autoFocus
+                onChange={(e) => setEditName(e.target.value)}
+                onBlur={handleCommit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCommit();
+                  if (e.key === "Escape") {
+                    cancelEditRef.current = true;
+                    setIsEditing(false);
+                    setEditName(nodeData.name ?? "");
+                  }
+                }}
+                className="nodrag"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  color: FRAME_COLOR,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  minWidth: 60,
+                  width: Math.max(60, editName.length * 7),
+                }}
+              />
+            ) : (
+              <span
+                style={{
+                  color: FRAME_COLOR,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  userSelect: "none",
+                  cursor: "text",
+                  opacity: nodeData.name ? 1 : 0.6,
+                }}
+              >
+                {nodeData.name || "Frame"}
+              </span>
+            )}
+          </div>
+          {selected && (
+            <span style={{ color: FRAME_COLOR, fontSize: 10, opacity: 0.85, userSelect: "none" }}>
+              {Math.round(width)} x {Math.round(height)}
             </span>
           )}
         </div>

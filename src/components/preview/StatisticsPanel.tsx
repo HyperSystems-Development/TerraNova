@@ -167,7 +167,7 @@ function HistogramChart({ histogram, logScale }: { histogram: Histogram; logScal
           className="absolute pointer-events-none px-1.5 py-0.5 bg-tn-panel/95 border border-tn-border rounded text-[9px] text-tn-text font-mono z-10"
           style={{ left: Math.min(hoverBin.x, 140), top: Math.max(0, hoverBin.y - 24) }}
         >
-          [{histogram.binEdges[hoverBin.idx].toFixed(3)}, {histogram.binEdges[hoverBin.idx + 1].toFixed(3)})
+          [{(histogram.binEdges[hoverBin.idx] ?? 0).toFixed(3)}, {(histogram.binEdges[hoverBin.idx + 1] ?? 0).toFixed(3)})
           : {histogram.bins[hoverBin.idx]}
         </div>
       )}

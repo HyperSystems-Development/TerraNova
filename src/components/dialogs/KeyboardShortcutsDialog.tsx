@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { KEYBINDINGS, resolveKeybinding, type KeybindingDef } from "@/config/keybindings";
 
@@ -26,7 +26,7 @@ interface KeyboardShortcutsDialogProps {
   onClose: () => void;
 }
 
-export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDialogProps) {
+export function KeyboardShortcutsPanel() {
   const keybindingOverrides = useSettingsStore((s) => s.keybindingOverrides);
   const setKeybindingOverride = useSettingsStore((s) => s.setKeybindingOverride);
   const resetKeybinding = useSettingsStore((s) => s.resetKeybinding);
@@ -57,63 +57,81 @@ export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDial
     return () => document.removeEventListener("keydown", handleCapture, { capture: true });
   }, [capturingId, handleCapture]);
 
-  // Reset capture state when dialog closes
+  const hasOverrides = Object.keys(keybindingOverrides).length > 0;
+
+  return (
+    <div className="flex flex-col min-h-0">
+      <div className="flex items-center justify-between pb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-tn-text">Keyboard Shortcuts</h3>
+          <p className="mt-1 text-xs text-tn-text-muted">Click a shortcut to record a new key combo. Press Esc to cancel capture.</p>
+        </div>
+        {hasOverrides && (
+          <button
+            onClick={resetAllKeybindings}
+            className="text-[11px] text-tn-accent hover:underline"
+          >
+            Reset All
+          </button>
+        )}
+      </div>
+
+      <div className="min-h-0 overflow-y-auto rounded border border-tn-border">
+        {CATEGORIES.map((cat) => {
+          const bindings = KEYBINDINGS.filter((k) => k.category === cat);
+          if (bindings.length === 0) return null;
+          return (
+            <div key={cat}>
+              <div className="sticky top-0 z-10 bg-tn-surface px-4 py-1.5 text-[10px] font-semibold text-tn-text-muted uppercase tracking-wider border-b border-tn-border">
+                {cat}
+              </div>
+              {bindings.map((kb) => (
+                <ShortcutRow
+                  key={kb.id}
+                  def={kb}
+                  resolved={resolveKeybinding(kb.id)}
+                  isOverridden={!!keybindingOverrides[kb.id]}
+                  isCapturing={capturingId === kb.id}
+                  onStartCapture={() => setCapturingId(kb.id)}
+                  onReset={() => resetKeybinding(kb.id)}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function KeyboardShortcutsDialog({ open, onClose }: KeyboardShortcutsDialogProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
-    if (!open) setCapturingId(null);
+    if (open) {
+      closeButtonRef.current?.focus();
+    }
   }, [open]);
 
   if (!open) return null;
 
-  const hasOverrides = Object.keys(keybindingOverrides).length > 0;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="shortcuts-dialog-title">
       <div
         className="bg-tn-panel border border-tn-border rounded-lg shadow-xl w-[480px] max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <h2 className="text-base font-semibold">Keyboard Shortcuts</h2>
-          {hasOverrides && (
-            <button
-              onClick={resetAllKeybindings}
-              className="text-[11px] text-tn-accent hover:underline"
-            >
-              Reset All
-            </button>
-          )}
+        <div className="px-5 pt-5 pb-3 border-b border-tn-border">
+          <h2 id="shortcuts-dialog-title" className="text-base font-semibold">Keyboard Shortcuts</h2>
         </div>
 
-        {/* Scrollable shortcut list */}
-        <div className="flex-1 overflow-y-auto border-t border-tn-border">
-          {CATEGORIES.map((cat) => {
-            const bindings = KEYBINDINGS.filter((k) => k.category === cat);
-            if (bindings.length === 0) return null;
-            return (
-              <div key={cat}>
-                <div className="sticky top-0 z-10 bg-tn-surface px-4 py-1.5 text-[10px] font-semibold text-tn-text-muted uppercase tracking-wider border-b border-tn-border">
-                  {cat}
-                </div>
-                {bindings.map((kb) => (
-                  <ShortcutRow
-                    key={kb.id}
-                    def={kb}
-                    resolved={resolveKeybinding(kb.id)}
-                    isOverridden={!!keybindingOverrides[kb.id]}
-                    isCapturing={capturingId === kb.id}
-                    onStartCapture={() => setCapturingId(kb.id)}
-                    onReset={() => resetKeybinding(kb.id)}
-                  />
-                ))}
-              </div>
-            );
-          })}
+        <div className="flex-1 min-h-0 px-5 py-4">
+          <KeyboardShortcutsPanel />
         </div>
 
-        {/* Footer */}
         <div className="flex justify-end px-5 py-3 border-t border-tn-border">
           <button
+            ref={closeButtonRef}
             onClick={onClose}
             className="px-4 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface"
           >
@@ -141,6 +159,7 @@ function ShortcutRow({ def, resolved, isOverridden, isCapturing, onStartCapture,
       <div className="flex items-center gap-2">
         <button
           onClick={onStartCapture}
+          aria-label={`Change keybinding for ${def.label}. Current: ${resolved}`}
           className={`px-2.5 py-1 text-[11px] font-mono rounded border min-w-[90px] text-center transition-colors ${
             isCapturing
               ? "border-tn-accent bg-tn-accent/20 text-tn-accent animate-pulse"
@@ -154,6 +173,7 @@ function ShortcutRow({ def, resolved, isOverridden, isCapturing, onStartCapture,
         {isOverridden && (
           <button
             onClick={onReset}
+            aria-label={`Reset ${def.label} to default keybinding (${def.defaultKey})`}
             className="text-[11px] text-tn-text-muted hover:text-tn-text"
             title={`Reset to ${def.defaultKey}`}
           >

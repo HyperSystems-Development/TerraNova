@@ -15,6 +15,7 @@ import {
 } from "@/schema/densitySubcategories";
 import type { DensityType } from "@/schema/density";
 import { isBridgeNode } from "@/data/bridgeRegistry";
+import { isPaletteTypeKeyVisible } from "@/nodes/shared/legacyTypes";
 
 const SNIPPET_COLOR = "#a78bfa";
 const ROOT_PALETTE_COLOR = "#8B4450";
@@ -143,7 +144,7 @@ const CONTEXT_TO_CATEGORY: Record<string, AssetCategory> = {
 export function NodePalette() {
   const [search, setSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Set<AssetCategory>>(() => new Set(Object.values(AssetCategory)));
-  const [snippetsCollapsed, setSnippetsCollapsed] = useState(true);
+  const [snippetsCollapsed, setSnippetsCollapsed] = useState<Set<string>>(() => new Set(SNIPPET_CATALOG.map((s) => s.category)));
   const [collapsedSubs, setCollapsedSubs] = useState<Set<DensitySubcategory>>(() => new Set());
   const addNode = useEditorStore((s) => s.addNode);
   const addSnippet = useEditorStore((s) => s.addSnippet);
@@ -155,16 +156,26 @@ export function NodePalette() {
   const didDragRef = useRef(false);
   const clickStaggerRef = useRef(0);
 
-  const visibleDefaults = ALL_DEFAULTS.filter((e) => isTypeVisible(e.type));
+  const visibleDefaults = ALL_DEFAULTS.filter((e) =>
+    isTypeVisible(e.type) && isPaletteTypeKeyVisible(resolveNodeTypeKey(e))
+  );
   const grouped = groupByCategory(visibleDefaults);
   const hasSearch = search.trim().length > 0;
 
-  // Filter snippets by search
+  // Filter snippets by search (name or description)
   const filteredSnippets = hasSearch
-    ? SNIPPET_CATALOG.filter((s) =>
-        s.name.toLowerCase().includes(search.trim().toLowerCase()),
-      )
+    ? SNIPPET_CATALOG.filter((s) => {
+        const lq = search.trim().toLowerCase();
+        return s.name.toLowerCase().includes(lq) || s.description.toLowerCase().includes(lq);
+      })
     : SNIPPET_CATALOG;
+
+  // Group snippets by category
+  const groupedSnippets = filteredSnippets.reduce((acc, snippet) => {
+    acc[snippet.category] = acc[snippet.category] || [];
+    acc[snippet.category].push(snippet);
+    return acc;
+  }, {} as Record<string, SnippetDefinition[]>);
 
   // Context-aware category ordering: pinned category first
   const contextCategory = editingContext ? CONTEXT_TO_CATEGORY[editingContext] : null;
@@ -292,13 +303,24 @@ export function NodePalette() {
     <div className="flex flex-col h-full">
       {/* Search */}
       <div className="p-2 border-b border-tn-border">
-        <input
-          type="text"
-          placeholder="Search nodes..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-2 py-1 text-sm bg-tn-bg border border-tn-border rounded"
-        />
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search nodes..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-2 py-1 text-sm bg-tn-bg border border-tn-border rounded pr-6"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-tn-text-muted hover:text-tn-text text-xs leading-none"
+              aria-label="Clear search"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Node list */}
@@ -453,48 +475,54 @@ export function NodePalette() {
           </div>
         )}
 
-        {/* Snippets section */}
-        {filteredSnippets.length > 0 && (
-          <div className="mb-1">
-            <button
-              onClick={() => setSnippetsCollapsed((v) => !v)}
-              className="w-full text-left px-2 py-1.5 text-xs font-semibold flex items-center gap-2 hover:bg-tn-panel/50 rounded"
-            >
-              <span
-                className="w-2.5 h-2.5 rounded-sm shrink-0"
-                style={{ backgroundColor: SNIPPET_COLOR }}
-              />
-              <span className="flex-1">Snippets</span>
-              <span className="text-tn-text-muted text-[10px]">
-                {filteredSnippets.length}
-              </span>
-              <span className="text-tn-text-muted text-[10px]">
-                {snippetsCollapsed && !hasSearch ? "▸" : "▾"}
-              </span>
-            </button>
+        {/* Snippets section grouped by category */}
+        {Object.entries(groupedSnippets).map(([category, snippets]) => {
+          const isCategoryCollapsed = snippetsCollapsed.has(category) && !hasSearch;
+          return (
+            <div key={category} className="mb-1">
+              <button
+                onClick={() => setSnippetsCollapsed((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(category)) next.delete(category);
+                  else next.add(category);
+                  return next;
+                })}
+                className="w-full text-left px-2 py-1.5 text-xs font-semibold flex items-center gap-2 hover:bg-tn-panel/50 rounded"
+              >
+                <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: SNIPPET_COLOR }} />
+                <span className="flex-1">Snippets · {category}</span>
+                <span className="text-tn-text-muted text-[10px]">{snippets.length}</span>
+                <span className="text-tn-text-muted text-[10px]">{isCategoryCollapsed ? "▸" : "▾"}</span>
+              </button>
+              {!isCategoryCollapsed && (
+                <div className="ml-2">
+                  {snippets.map((snippet) => (
+                    <button
+                      key={snippet.id}
+                      onClick={() => handleSnippetClick(snippet)}
+                      title={snippet.description}
+                      className="w-full text-left px-2 py-1 hover:bg-tn-panel/50 rounded flex items-start gap-2"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1" style={{ backgroundColor: SNIPPET_COLOR }} />
+                      <span className="flex flex-col min-w-0">
+                        <span className="text-sm truncate">{snippet.name}</span>
+                        <span className="text-[10px] text-tn-text-muted truncate">{snippet.description}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
 
-            {(!snippetsCollapsed || hasSearch) && (
-              <div className="ml-2">
-                {filteredSnippets.map((snippet) => (
-                  <button
-                    key={snippet.id}
-                    onClick={() => handleSnippetClick(snippet)}
-                    title={snippet.description}
-                    className="w-full text-left px-2 py-1 text-sm hover:bg-tn-panel/50 rounded flex items-center gap-2"
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ backgroundColor: SNIPPET_COLOR }}
-                    />
-                    <span className="truncate">{snippet.name}</span>
-                    <span className="text-tn-text-muted text-[10px] ml-auto shrink-0">
-                      {snippet.nodes.length}n
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        {/* Empty search state */}
+        {hasSearch && filteredSnippets.length === 0 && !"root".includes(search.trim().toLowerCase()) && sortedCategoryOrder.every((cat) => {
+          const entries = grouped.get(cat);
+          if (!entries) return true;
+          return entries.filter((e) => matchesSearch(e.type, search) || matchesSearch(resolveNodeTypeKey(e), search)).length === 0;
+        }) && (
+          <p className="text-center text-tn-text-muted text-xs py-6">No nodes found</p>
         )}
       </div>
     </div>

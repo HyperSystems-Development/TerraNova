@@ -15,7 +15,7 @@ function formatVec3(v: unknown): string {
   return "—";
 }
 
-export const CacheOnceNode = memo(function CacheOnceNode(props: TypedNodeProps) {
+export const CacheNode = memo(function CacheNode(props: TypedNodeProps) {
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
       <div className="text-tn-text-muted text-center py-1">Cache once</div>
@@ -31,7 +31,7 @@ export const WrapNode = memo(function WrapNode(props: TypedNodeProps) {
   );
 });
 
-export const TranslatedPositionNode = memo(function TranslatedPositionNode(props: TypedNodeProps) {
+export const SliderNode = memo(function SliderNode(props: TypedNodeProps) {
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
@@ -43,7 +43,7 @@ export const TranslatedPositionNode = memo(function TranslatedPositionNode(props
   );
 });
 
-export const ScaledPositionNode = memo(function ScaledPositionNode(props: TypedNodeProps) {
+export const ScaleNode = memo(function ScaleNode(props: TypedNodeProps) {
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
@@ -55,7 +55,7 @@ export const ScaledPositionNode = memo(function ScaledPositionNode(props: TypedN
   );
 });
 
-export const RotatedPositionNode = memo(function RotatedPositionNode(props: TypedNodeProps) {
+export const RotatorNode = memo(function RotatorNode(props: TypedNodeProps) {
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={ROTATED_HANDLES}>

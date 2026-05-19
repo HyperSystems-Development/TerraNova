@@ -3,13 +3,13 @@ import { useReactFlow } from "@xyflow/react";
 import { ALL_DEFAULTS, type CategoryDefaultsEntry } from "@/schema/defaults";
 import { SNIPPET_CATALOG, placeSnippet, type SnippetDefinition } from "@/schema/snippets";
 import { AssetCategory, CATEGORY_COLORS } from "@/schema/types";
-import { getHandles, findCompatibleInterjectHandles } from "@/nodes/handleRegistry";
+import { getHandles } from "@/nodes/handleRegistry";
 import { BlockIcon } from "@/components/properties/BlockIcon";
 import { useEditorStore } from "@/stores/editorStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useLanguage } from "@/languages/useLanguage";
-import { isLegacyTypeKey } from "@/nodes/shared/legacyTypes";
+import { isPaletteTypeKeyVisible } from "@/nodes/shared/legacyTypes";
 
 const SNIPPET_COLOR = "#a78bfa";
 
@@ -142,34 +142,19 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
   const filteredNodeEntries = useMemo(() => {
     let entries = ALL_DEFAULTS.filter((e) => isTypeVisible(e.type));
 
-    // Filter out legacy types (not present in Hytale pre-release API)
-    entries = entries.filter((e) => !isLegacyTypeKey(resolveNodeTypeKey(e)));
+    // Filter out legacy and non-canonical aliases for new-node creation.
+    entries = entries.filter((e) => isPaletteTypeKeyVisible(resolveNodeTypeKey(e)));
 
-    // Connection-aware filtering: only show types with compatible handles
+    // Connection-aware filtering: only show types that have a compatible handle
     if (compatibleCategories && pendingConnection) {
-      // Use findCompatibleInterjectHandles to filter node types
-      const { nodeId } = pendingConnection;
-      // Get connected handles for the node being connected
-      const connectedHandles = (() => {
-        const { edges } = useEditorStore.getState();
-        const connected = new Set<string>();
-        for (const e of edges) {
-          if (e.source === nodeId && e.sourceHandle) connected.add(e.sourceHandle);
-          if (e.target === nodeId && e.targetHandle) connected.add(e.targetHandle);
-        }
-        return connected;
-      })();
-
+      const needsTarget = pendingConnection.handleType === "source"; // dragging from source → need a target handle on the new node
       entries = entries.filter((entry) => {
         const typeKey = resolveNodeTypeKey(entry);
-        // Use findCompatibleInterjectHandles to check for at least one compatible handle
-        const compat = findCompatibleInterjectHandles(
-          typeKey,
-          Array.from(compatibleCategories)[0],
-          Array.from(compatibleCategories)[0],
-          connectedHandles,
+        const handles = getHandles(typeKey);
+        if (!handles.length) return false;
+        return handles.some(
+          (h) => h.type === (needsTarget ? "target" : "source") && compatibleCategories.has(h.category),
         );
-        return !!compat;
       });
     }
 
@@ -195,6 +180,7 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
     const recentKeys = getRecentTypes();
     return recentKeys
       .map((key) => {
+        if (!isPaletteTypeKeyVisible(key)) return null;
         const entry = ALL_DEFAULTS.find((e) => resolveNodeTypeKey(e) === key);
         return entry ?? null;
       })

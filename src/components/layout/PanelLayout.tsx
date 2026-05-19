@@ -92,16 +92,18 @@ function BookmarkSection() {
     <div className="border-t border-tn-border shrink-0">
       <button
         onClick={() => setCollapsed(!collapsed)}
+        aria-expanded={!collapsed}
+        aria-controls="bookmark-panel-content"
         className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-tn-text-muted hover:text-tn-text"
       >
-        <span className="text-[9px]">{collapsed ? "\u25B6" : "\u25BC"}</span>
+        <span className="text-[9px]" aria-hidden="true">{collapsed ? "\u25B6" : "\u25BC"}</span>
         <span>Bookmarks</span>
         {bookmarkCount > 0 && (
-          <span className="ml-auto text-[9px] text-tn-accent">{bookmarkCount}</span>
+          <span className="ml-auto text-[9px] text-tn-accent" aria-label={`${bookmarkCount} bookmarks`}>{bookmarkCount}</span>
         )}
       </button>
       {!collapsed && (
-        <div className="h-[200px]">
+        <div id="bookmark-panel-content" className="h-[200px]">
           <BookmarkPanel />
         </div>
       )}
@@ -115,7 +117,7 @@ function TabSidebar() {
   return (
     <>
       {/* Tab bar */}
-      <div className="flex border-b border-tn-border shrink-0">
+      <div className="flex border-b border-tn-border shrink-0" role="tablist" aria-label="Editor sidebar tabs">
         <button
           className={`flex-1 px-3 py-1.5 text-xs font-medium ${
             leftTab === "nodes"
@@ -123,6 +125,10 @@ function TabSidebar() {
               : "text-tn-text-muted hover:text-tn-text"
           }`}
           onClick={() => setLeftTab("nodes")}
+          role="tab"
+          aria-selected={leftTab === "nodes"}
+          aria-controls="nodes-panel"
+          id="tab-nodes"
         >
           Nodes
         </button>
@@ -133,6 +139,10 @@ function TabSidebar() {
               : "text-tn-text-muted hover:text-tn-text"
           }`}
           onClick={() => setLeftTab("files")}
+          role="tab"
+          aria-selected={leftTab === "files"}
+          aria-controls="files-panel"
+          id="tab-files"
         >
           Files
         </button>
@@ -143,6 +153,10 @@ function TabSidebar() {
               : "text-tn-text-muted hover:text-tn-text"
           }`}
           onClick={() => setLeftTab("history")}
+          role="tab"
+          aria-selected={leftTab === "history"}
+          aria-controls="history-panel"
+          id="tab-history"
         >
           History
         </button>
@@ -153,6 +167,10 @@ function TabSidebar() {
               : "text-tn-text-muted hover:text-tn-text"
           }`}
           onClick={() => setLeftTab("validation")}
+          role="tab"
+          aria-selected={leftTab === "validation"}
+          aria-controls="validation-panel"
+          id="tab-validation"
         >
           Issues
         </button>
@@ -160,20 +178,20 @@ function TabSidebar() {
 
       {/* Tab content — both rendered always; inactive hidden via CSS to preserve state */}
       <div className="flex-1 overflow-y-auto">
-        <div className={leftTab === "nodes" ? "flex flex-col h-full" : "hidden"}>
+        <div className={leftTab === "nodes" ? "flex flex-col h-full" : "hidden"} id="nodes-panel" role="tabpanel" aria-labelledby="tab-nodes">
           <div className="flex-1 overflow-y-auto">
             <NodePalette />
           </div>
           <BookmarkSection />
         </div>
-        <div className={leftTab === "files" ? "" : "hidden"}>
+        <div className={leftTab === "files" ? "" : "hidden"} id="files-panel" role="tabpanel" aria-labelledby="tab-files">
           <FileActions />
           <AssetTree />
         </div>
-        <div className={leftTab === "history" ? "h-full" : "hidden"}>
+        <div className={leftTab === "history" ? "h-full" : "hidden"} id="history-panel" role="tabpanel" aria-labelledby="tab-history">
           <HistoryPanel />
         </div>
-        <div className={leftTab === "validation" ? "h-full" : "hidden"}>
+        <div className={leftTab === "validation" ? "h-full" : "hidden"} id="validation-panel" role="tabpanel" aria-labelledby="tab-validation">
           <ValidationPanel />
         </div>
       </div>

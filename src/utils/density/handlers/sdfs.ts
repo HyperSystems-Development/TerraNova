@@ -88,7 +88,8 @@ const handleShell: NodeHandler = (ctx, fields, inputs, x, y, z) => {
   let say = Number(shellAxis?.y ?? 1);
   let saz = Number(shellAxis?.z ?? 0);
   const saLen = Math.sqrt(sax * sax + say * say + saz * saz);
-  if (saLen > 1e-9) { sax /= saLen; say /= saLen; saz /= saLen; }
+  if (saLen < 1e-9) return 0;
+  sax /= saLen; say /= saLen; saz /= saLen;
   const shellMirror = fields.Mirror === true;
 
   const shellDist = Math.sqrt(x * x + y * y + z * z);

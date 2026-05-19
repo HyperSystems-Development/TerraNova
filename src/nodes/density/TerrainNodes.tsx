@@ -14,8 +14,8 @@ const GRADIENT_WARP_HANDLES = [densityInput("Input", "Input"), densityInput("War
 const VECTOR_WARP_HANDLES = [densityInput("Input", "Input"), densityInput("Magnitude", "Magnitude"), vectorInput("WarpVector", "Warp Vector"), densityOutput()];
 const POSITIONS_CELL_NOISE_HANDLES = [positionInput("Positions", "Positions"), curveInput("ReturnCurve", "Return Curve"), densityOutput()];
 const POSITIONS_3D_HANDLES = [positionInput("Positions", "Positions"), curveInput("DistanceCurve", "Distance Curve"), densityOutput()];
-const POSITIONS_PINCH_HANDLES = [positionInput("Positions", "Positions"), curveInput("PinchCurve", "Pinch Curve"), densityOutput()];
-const POSITIONS_TWIST_HANDLES = [positionInput("Positions", "Positions"), curveInput("TwistCurve", "Twist Curve"), densityOutput()];
+const POSITIONS_PINCH_HANDLES = [densityInput("Input", "Density"), curveInput("PinchCurve", "Pinch Curve"), densityOutput()];
+const POSITIONS_TWIST_HANDLES = [densityInput("Input", "Density"), curveInput("TwistCurve", "Twist Curve"), densityOutput()];
 
 export const SurfaceDensityNode = memo(function SurfaceDensityNode(props: TypedNodeProps) {
   return (
@@ -139,30 +139,6 @@ export const FractalNoise3DNode = memo(function FractalNoise3DNode(props: TypedN
           <span className="text-tn-text-muted">Pers</span>
           <span>{safeDisplay(data.fields.Persistence ?? data.fields.Gain, 0.5)}</span>
         </div>
-      </div>
-    </BaseNode>
-  );
-});
-
-export const DomainWarp2DNode = memo(function DomainWarp2DNode(props: TypedNodeProps) {
-  const data = props.data;
-  return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">WarpFactor</span>
-        <span>{safeDisplay(data.fields.WarpFactor ?? data.fields.Amplitude, 1)}</span>
-      </div>
-    </BaseNode>
-  );
-});
-
-export const DomainWarp3DNode = memo(function DomainWarp3DNode(props: TypedNodeProps) {
-  const data = props.data;
-  return (
-    <BaseNode {...props} category={AssetCategory.Density} handles={INPUT_OUTPUT_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">WarpFactor</span>
-        <span>{safeDisplay(data.fields.WarpFactor ?? data.fields.Amplitude, 1)}</span>
       </div>
     </BaseNode>
   );
