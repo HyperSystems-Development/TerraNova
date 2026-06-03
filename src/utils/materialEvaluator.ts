@@ -221,6 +221,67 @@ function findMaterialRoot(nodes: Node[], edges: Edge[]): Node | null {
 
 /* ── Condition evaluation ────────────────────────────────────────── */
 
+function stripConditionType(type: string): string {
+  return type.replace(/^Condition:/, "");
+}
+
+/** Build nested condition JSON from wired Condition:* graph nodes (preview). */
+function buildConditionAssetFromNode(
+  nodeId: string,
+  nodeById: Map<string, Node>,
+  inputEdges: Map<string, Map<string, string>>,
+  ancestors: Set<string>,
+): Record<string, unknown> | null {
+  if (ancestors.has(nodeId)) return null;
+  ancestors.add(nodeId);
+
+  const node = nodeById.get(nodeId);
+  if (!node) {
+    ancestors.delete(nodeId);
+    return null;
+  }
+
+  const rawType = stripConditionType(node.type ?? getNodeType(node));
+  const fields = getNodeFields(node);
+  const inputs = inputEdges.get(nodeId) ?? new Map<string, string>();
+  const asset: Record<string, unknown> = { Type: rawType, ...fields };
+
+  const nestedId = inputs.get("Condition");
+  if (nestedId) {
+    const nested = buildConditionAssetFromNode(nestedId, nodeById, inputEdges, ancestors);
+    if (nested) asset.Condition = nested;
+  }
+
+  const conditions: unknown[] = [];
+  for (let i = 0; i < 16; i++) {
+    const childId = inputs.get(`Conditions[${i}]`) ?? (i === 0 ? inputs.get("Conditions") : undefined);
+    if (!childId) break;
+    const child = buildConditionAssetFromNode(childId, nodeById, inputEdges, ancestors);
+    if (child) conditions.push(child);
+  }
+  if (conditions.length > 0) asset.Conditions = conditions;
+
+  ancestors.delete(nodeId);
+  return asset;
+}
+
+function resolveSpaceAndDepthConditionMet(
+  fields: Record<string, unknown>,
+  inputs: Map<string, string>,
+  nodeById: Map<string, Node>,
+  inputEdges: Map<string, Map<string, string>>,
+  ctx: MaterialVoxelContext,
+): boolean {
+  const condNodeId = getMaterialInputId(inputs, "Condition");
+  if (condNodeId) {
+    const condAsset = buildConditionAssetFromNode(condNodeId, nodeById, inputEdges, new Set());
+    return condAsset ? evaluateCondition(condAsset, ctx) : false;
+  }
+  const embedded = fields.Condition;
+  if (embedded) return evaluateCondition(embedded, ctx);
+  return true;
+}
+
 function getContextValue(param: ConditionParameterType, ctx: MaterialVoxelContext): number {
   switch (param) {
     case "SPACE_ABOVE_FLOOR": return ctx.spaceAbove;
@@ -549,10 +610,8 @@ export function evaluateMaterialGraph(
       // ── SpaceAndDepth V2 (layer accumulation) ─────────────────────
 
       case "Material:SpaceAndDepth": {
-        // Check condition
-        const condition = fields.Condition;
-        if (condition && !evaluateCondition(condition, ctx)) {
-          break; // condition not met
+        if (!resolveSpaceAndDepthConditionMet(fields, inputs, nodeById, inputEdges, ctx)) {
+          break;
         }
 
         const layerContext = (fields.LayerContext as LayerContextType) ?? "DEPTH_INTO_FLOOR";
@@ -575,10 +634,12 @@ export function evaluateMaterialGraph(
           let thickness = 1;
           switch (layerType) {
             case "Material:ConstantThickness":
+            case "Layer:ConstantThickness":
               thickness = Number(layerFields.Thickness ?? 1);
               break;
 
-            case "Material:RangeThickness": {
+            case "Material:RangeThickness":
+            case "Layer:RangeThickness": {
               const rMin = Number(layerFields.RangeMin ?? 1);
               const rMax = Number(layerFields.RangeMax ?? 3);
               const seed = hashSeed(layerFields.Seed as string | number | undefined);
@@ -587,7 +648,8 @@ export function evaluateMaterialGraph(
               break;
             }
 
-            case "Material:WeightedThickness": {
+            case "Material:WeightedThickness":
+            case "Layer:WeightedThickness": {
               const entries = layerFields.PossibleThicknesses as
                 Array<{ Weight: number; Thickness: number }> | undefined;
               if (entries && entries.length > 0) {
@@ -608,7 +670,8 @@ export function evaluateMaterialGraph(
               break;
             }
 
-            case "Material:NoiseThickness": {
+            case "Material:NoiseThickness":
+            case "Layer:NoiseThickness": {
               // Evaluate density input for thickness
               const noiseId = layerInputs.get("ThicknessFunctionXZ");
               if (noiseId && densityCtx) {
@@ -641,7 +704,11 @@ export function evaluateMaterialGraph(
       case "Material:ConstantThickness":
       case "Material:RangeThickness":
       case "Material:WeightedThickness":
-      case "Material:NoiseThickness": {
+      case "Material:NoiseThickness":
+      case "Layer:ConstantThickness":
+      case "Layer:RangeThickness":
+      case "Layer:WeightedThickness":
+      case "Layer:NoiseThickness": {
         // If evaluated directly (not via SpaceAndDepth), just pass through Material
         const matId = getMaterialInputId(inputs, "Material");
         result = matId ? evaluateNode(matId, ctx) : null;

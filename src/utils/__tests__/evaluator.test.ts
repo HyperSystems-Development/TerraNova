@@ -358,6 +358,41 @@ describe("PositionsPinch", () => {
     // With strength 1.0: pinchFactor = dist^1 / dist = 1 → same as raw
     expect(Array.from(rPinch.values)).toEqual(Array.from(rRaw.values));
   });
+
+  it("with wired Positions out of Y range passes through (no origin fallback)", () => {
+    const nodes = [
+      makeNode("cx", "CoordinateX"),
+      makeNode("mesh", "Mesh2D", { Resolution: 4, Jitter: 0 }),
+      makeNode("pinch", "PositionsPinch", { PositionsMaxY: 0.0001 }),
+    ];
+    const edges = [
+      makeEdge("cx", "pinch", "Input"),
+      makeEdge("mesh", "pinch", "Positions"),
+    ];
+    const ctx = createEvaluationContext(nodes, edges, "pinch");
+    expect(ctx).not.toBeNull();
+    const out = ctx!.evaluate("pinch", 0, 1000, 0);
+    const raw = ctx!.evaluate("cx", 0, 1000, 0);
+    expect(out).toBeCloseTo(raw, 5);
+  });
+
+  it("with wired Positions at preview Y uses nearest anchor", () => {
+    const nodesRaw = [
+      makeNode("noise", "SimplexNoise2D", { Frequency: 0.05, Amplitude: 1, Seed: "a" }),
+    ];
+    const nodesPinch = [
+      makeNode("noise", "SimplexNoise2D", { Frequency: 0.05, Amplitude: 1, Seed: "a" }),
+      makeNode("mesh", "Mesh2D", { Resolution: 4, Jitter: 0 }),
+      makeNode("pinch", "PositionsPinch", { MaxDistance: 64, Strength: 2.0 }),
+    ];
+    const edges = [
+      makeEdge("noise", "pinch", "Input"),
+      makeEdge("mesh", "pinch", "Positions"),
+    ];
+    const rRaw = evalSingle(nodesRaw, [], "noise");
+    const rPinch = evalSingle(nodesPinch, edges, "pinch");
+    expect(Array.from(rPinch.values)).not.toEqual(Array.from(rRaw.values));
+  });
 });
 
 /* ══════════════════════════════════════════════════════════════════════════

@@ -1,4 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
+import type { EvaluatedPosition } from "../positionEvaluator";
 import { getCurveEvaluator, normalizePoints, catmullRomInterpolate } from "../curveEvaluators";
 import { evaluateVectorProvider, vec3Normalize, vec3Length } from "../vectorEvaluator";
 import {
@@ -77,6 +78,9 @@ export interface EvalCtx {
 
   // Re-export for handlers
   hashSeed: typeof hashSeed;
+
+  /** Lazy cache for position-warp preview (PositionsPinch / PositionsTwist). */
+  positionListCache?: Map<string, EvaluatedPosition[]>;
 }
 
 export type NodeHandler = (

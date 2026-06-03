@@ -34,7 +34,15 @@ export function evaluateDensityGrid(
   const n = Math.max(1, resolution);
   const values = new Float32Array(n * n);
 
-  const ctx = createEvaluationContext(nodes, edges, rootNodeId, options);
+  const ctx = createEvaluationContext(nodes, edges, rootNodeId, {
+    ...options,
+    contentFields: {
+      ...options?.contentFields,
+      previewRangeMin: rangeMin,
+      previewRangeMax: rangeMax,
+      previewYLevel: yLevel,
+    },
+  });
   if (!ctx) {
     return { values, minValue: 0, maxValue: 0, p02Value: 0, p98Value: 0 };
   }

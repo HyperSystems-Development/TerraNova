@@ -1,21 +1,120 @@
 import type { NodeHandler } from "../evalContext";
 import { domainWarpProgressive2D, domainWarpProgressive3D } from "../fastNoiseLiteWarp";
+import {
+  findNearestPositionAnchor,
+  rotateOffsetAroundAxis,
+  rotateXZAroundAnchor,
+} from "../positionWarpHelpers";
 
 const handlePositionsPinch: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const strength = Number(fields.Strength ?? 1.0);
-  const dist = Math.sqrt(x * x + z * z);
-  const pinchDist = ctx.applyCurve("PinchCurve", dist, inputs);
-  const pinchFactor = dist > 0 ? Math.pow(pinchDist, strength) / dist : 1;
-  return ctx.getInput(inputs, "Input", x * pinchFactor, y, z * pinchFactor);
+  const horizontalOnly = fields.HorizontalPinch !== false;
+  const maxDistance = Math.max(Number(fields.MaxDistance ?? 10), 1e-6);
+  const normalizeDistance = fields.NormalizeDistance !== false;
+  const positionsMinY = Number(fields.PositionsMinY ?? 0);
+  const positionsMaxY = Number(fields.PositionsMaxY ?? 0.0001);
+
+  const positionsNodeId = inputs.get("Positions");
+  const anchor = positionsNodeId
+    ? findNearestPositionAnchor(
+        ctx,
+        positionsNodeId,
+        x,
+        y,
+        z,
+        maxDistance,
+        positionsMinY,
+        positionsMaxY,
+        false,
+      )
+    : null;
+
+  // Wired Positions but no anchor (Y out of range / none nearby): pass through unchanged.
+  if (positionsNodeId && !anchor) {
+    return ctx.getInput(inputs, "Input", x, y, z);
+  }
+
+  const ax = anchor?.x ?? 0;
+  const ay = anchor?.y ?? 0;
+  const az = anchor?.z ?? 0;
+  const relX = x - ax;
+  const relY = horizontalOnly ? y : y - ay;
+  const relZ = z - az;
+
+  const dist = horizontalOnly
+    ? Math.sqrt(relX * relX + relZ * relZ)
+    : Math.sqrt(relX * relX + relY * relY + relZ * relZ);
+  const curveInput = normalizeDistance ? dist / maxDistance : dist;
+  const curveOutput = ctx.applyCurve("PinchCurve", curveInput, inputs);
+  const targetDist = normalizeDistance ? curveOutput * maxDistance : curveOutput;
+  const legacyStrength = fields.Strength === undefined ? 1 : Number(fields.Strength);
+  const pinchFactor = dist > 0 ? Math.pow(targetDist, legacyStrength) / dist : 1;
+  const nextRelY = horizontalOnly ? relY : relY * pinchFactor;
+  return ctx.getInput(
+    inputs,
+    "Input",
+    ax + relX * pinchFactor,
+    ay + nextRelY,
+    az + relZ * pinchFactor,
+  );
 };
 
 const handlePositionsTwist: NodeHandler = (ctx, fields, inputs, x, y, z) => {
-  const angle = Number(fields.Angle ?? 0);
-  const twistY = ctx.applyCurve("TwistCurve", y, inputs);
-  const rad = (angle * Math.PI / 180) * twistY;
+  const maxDistance = Math.max(Number(fields.MaxDistance ?? 10), 1e-6);
+  const normalizeDistance = fields.NormalizeDistance !== false;
+  const positionsMinY = Number(fields.PositionsMinY ?? 0);
+  const positionsMaxY = Number(fields.PositionsMaxY ?? 0.0001);
+  const zeroPositionsY = fields.ZeroPositionsY === true;
+
+  const positionsNodeId = inputs.get("Positions");
+  const anchor = positionsNodeId
+    ? findNearestPositionAnchor(
+        ctx,
+        positionsNodeId,
+        x,
+        y,
+        z,
+        maxDistance,
+        positionsMinY,
+        positionsMaxY,
+        zeroPositionsY,
+      )
+    : null;
+
+  if (positionsNodeId && !anchor) {
+    return ctx.getInput(inputs, "Input", x, y, z);
+  }
+
+  const ax = anchor?.x ?? 0;
+  const az = anchor?.z ?? 0;
+  const relX = x - ax;
+  const relZ = z - az;
+
+  const dist = Math.sqrt(relX * relX + relZ * relZ);
+  const curveInput = normalizeDistance ? dist / maxDistance : dist;
+  const curveDegrees = inputs.has("TwistCurve") ? ctx.applyCurve("TwistCurve", curveInput, inputs) : 0;
+  const angle = Number(fields.Angle ?? curveDegrees);
+  const rad = angle * Math.PI / 180;
   const cos = Math.cos(rad);
   const sin = Math.sin(rad);
-  return ctx.getInput(inputs, "Input", x * cos - z * sin, y, x * sin + z * cos);
+
+  const twistAxisId = inputs.get("TwistAxis");
+  if (twistAxisId) {
+    const axis = ctx.evaluateVectorProvider(
+      twistAxisId,
+      x,
+      y,
+      z,
+      ctx.nodeById,
+      ctx.inputEdges,
+      ctx.evaluate,
+    );
+    const offset = { x: relX, y: 0, z: relZ };
+    const rotated = rotateOffsetAroundAxis(offset, axis, rad);
+    return ctx.getInput(inputs, "Input", ax + rotated.x, y, az + rotated.z);
+  }
+
+  const twisted = rotateXZAroundAnchor(x, z, ax, az, cos, sin);
+  return ctx.getInput(inputs, "Input", twisted.x, y, twisted.z);
 };
 
 const handleGradientWarp: NodeHandler = (ctx, fields, inputs, x, y, z) => {
