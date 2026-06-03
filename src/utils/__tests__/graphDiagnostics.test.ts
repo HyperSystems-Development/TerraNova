@@ -9,10 +9,12 @@ function makeNode(
   type: string,
   fields: Record<string, unknown> = {},
 ): Node {
+  const dataType = type.includes(":") ? type.slice(type.indexOf(":") + 1) : type;
   return {
     id,
+    type,
     position: { x: 0, y: 0 },
-    data: { type, fields },
+    data: { type: dataType, fields },
   };
 }
 
@@ -379,7 +381,7 @@ describe("analyzeGraph - environment delimiter diagnostics", () => {
   });
 
   it("tags missing imported names as import diagnostics", () => {
-    const nodes = [makeNode("imp", "Imported", {})];
+    const nodes = [makeNode("imp", "Environment:Imported", {})];
     const diagnostics = analyzeGraph(nodes, []);
     expect(diagnostics.some((d) => d.code === "import-missing-name" && d.field === "Name")).toBe(true);
   });

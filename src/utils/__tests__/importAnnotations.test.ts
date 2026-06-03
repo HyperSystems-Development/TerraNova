@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import type { Node } from "@xyflow/react";
 import { parseNodeEditorMetadata } from "../hytaleToInternal";
 import {
   buildAnnotationNodesFromImportMetadata,
@@ -101,7 +102,7 @@ describe("hasImportAnnotations", () => {
 
 describe("mergeImportGraph", () => {
   it("appends annotations after layout without passing them to layout", async () => {
-    const graphNode = {
+    const graphNode: Node = {
       id: "n1",
       type: "Constant",
       position: { x: 0, y: 0 },
@@ -115,7 +116,7 @@ describe("mergeImportGraph", () => {
       hytaleGroups: [],
     };
 
-    const layoutFn = async (nodes: typeof graphNode[]) => {
+    const layoutFn = async (nodes: Node[]) => {
       expect(nodes).toHaveLength(1);
       return [{ ...nodes[0], position: { x: 99, y: 99 } }];
     };

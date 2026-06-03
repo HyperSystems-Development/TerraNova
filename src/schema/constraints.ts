@@ -33,6 +33,11 @@ const LOCAL_OVERRIDES: Record<string, Record<string, FieldConstraint>> = {
     Scale: { min: 0, max: 10000, message: "Scale must be >= 0" },
   },
 
+  // Density constant (bundle Constant entry is TintProvider; density uses bare type in graphs)
+  Constant: {
+    Value: { required: true, message: "Constant requires a Value" },
+  },
+
   // Clamping (V2: WallA = upper bound, WallB = lower bound)
   Clamp: {
     WallA: { required: true, message: "Clamp requires WallA (upper bound)" },

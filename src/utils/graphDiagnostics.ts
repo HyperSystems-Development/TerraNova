@@ -86,7 +86,8 @@ export type GraphDiagnosticCode =
   | "biome-tint-unknown-ref"
   | "biome-name-missing"
   | "legacy-node"
-  | "prop-conditional-lossy-export";
+  | "prop-conditional-lossy-export"
+  | "material-block-unknown";
 
 export interface GraphDiagnostic {
   nodeId: string | null;
@@ -420,18 +421,19 @@ export function analyzeGraph(
 
   // 8. Field constraint violations (bridge per-field validation into graph diagnostics)
   for (const node of nodes) {
-    const type = getNodeType(node);
-    const constraints = getConstraints(type);
+    const typeKey = node.type ?? getNodeType(node);
+    const constraints = getConstraints(typeKey);
     if (!constraints) continue;
 
     const fields = getNodeFields(node);
     const issues = validateFields(fields, constraints);
     for (const issue of issues) {
-      const isMissingImportName = type === "Imported" && issue.field === "Name";
+      const isMissingImportName =
+        getImportedAssetKind(node) !== null && issue.field === "Name";
       const constraint = constraints[issue.field];
       diagnostics.push({
         nodeId: node.id,
-        message: `${type}.${issue.field}: ${issue.message}`,
+        message: `${typeKey}.${issue.field}: ${issue.message}`,
         severity: issue.severity,
         code: isMissingImportName ? "import-missing-name" : "field-constraint",
         field: issue.field,
@@ -487,7 +489,18 @@ export function analyzeGraph(
     const importName = typeof fields.Name === "string" ? fields.Name.trim() : "";
     const knownNames = knownAssetSets[assetKind];
 
-    if (!importName || knownNames.size === 0) continue;
+    if (!importName) {
+      diagnostics.push({
+        nodeId: node.id,
+        message: `${getAssetKindLabel(assetKind)} Imported is missing a Name reference`,
+        severity: "warning",
+        code: "import-missing-name",
+        field: "Name",
+        meta: { assetKind },
+      });
+      continue;
+    }
+    if (knownNames.size === 0) continue;
     if (knownNames.has(normalizeKnownName(importName))) continue;
 
     diagnostics.push({

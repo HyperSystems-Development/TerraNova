@@ -86,7 +86,6 @@ export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
     return nodes
       .filter((n) => {
         const data = n.data as unknown as BaseNodeData;
-        const internalType = data.type ?? "";
         const customLabel = ((n.data as Record<string, unknown>).label as string) ?? "";
 
         if (graphNodeMatchesSearch(n, trimmed, matchesSearch)) return true;

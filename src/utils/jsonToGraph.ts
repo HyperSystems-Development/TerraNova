@@ -140,6 +140,7 @@ const FIELD_CATEGORY_PREFIX: Record<string, string> = {
   Props: "Prop",
   Assignments: "Assignment",
   // Density fields (no prefix — bare density type)
+  // Condition: resolved in resolveNodeType (density vs Condition:* schema)
   FieldFunction: "",
   Density: "",
   SolidityFunction: "",
@@ -195,9 +196,21 @@ const NON_DENSITY_BARE_SCHEMA_TYPES = new Set([
  * Resolve the display type name for a node.
  * Density types use bare names; other categories get "Category:Type" prefixes.
  */
+function isConditionSchemaType(assetType: string): boolean {
+  // Bare condition types resolve as Density in the bundle; prefixed lookup is authoritative.
+  if (getSchemaCategory(`Condition:${assetType}`) === AssetCategory.Condition) {
+    return true;
+  }
+  return getSchemaCategory(assetType) === AssetCategory.Condition;
+}
+
 function resolveNodeType(assetType: string, parentFieldName?: string): string {
   if (assetType.includes(":")) return assetType;
-  const prefix = parentFieldName ? FIELD_CATEGORY_PREFIX[parentFieldName] : null;
+  let prefix = parentFieldName ? FIELD_CATEGORY_PREFIX[parentFieldName] : null;
+  // Prop Conditional.Condition holds density; material graphs use Condition:* children.
+  if (parentFieldName === "Condition") {
+    prefix = isConditionSchemaType(assetType) ? "Condition" : "";
+  }
   if (prefix) return `${prefix}:${assetType}`;
   const schemaCategory = NON_DENSITY_BARE_SCHEMA_TYPES.has(assetType)
     ? getSchemaCategory(assetType)
