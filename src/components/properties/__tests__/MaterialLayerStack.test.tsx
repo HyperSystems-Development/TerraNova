@@ -299,7 +299,7 @@ describe("MaterialLayerStack — V2 (interactive)", () => {
       (n) => (n.data as Record<string, unknown>).type === "NoiseThickness",
     );
     expect(newLayerNode).toBeDefined();
-    expect(newLayerNode!.type).toBe("Material:NoiseThickness");
+    expect(newLayerNode!.type).toBe("Layer:NoiseThickness");
 
     // Material edge should be transferred
     const matEdge = state.edges.find(

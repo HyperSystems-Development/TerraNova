@@ -54,6 +54,10 @@ export function patternOutput(id = "output", label = "Output"): HandleDef {
   return { id, label, type: "source", category: AssetCategory.Pattern };
 }
 
+export function conditionInput(id: string, label: string): HandleDef {
+  return { id, label, type: "target", category: AssetCategory.Condition };
+}
+
 export function positionInput(id: string, label: string): HandleDef {
   return { id, label, type: "target", category: AssetCategory.PositionProvider };
 }

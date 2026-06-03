@@ -196,10 +196,16 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     Seed: "Random seed for noise generation. Different seeds produce different cell patterns.",
   },
   PositionsPinch: {
-    Strength: "How strongly positions are pinched toward the center. Higher values create more extreme compression.",
+    MaxDistance: "Area of effect around each anchor position, in block units.",
+    NormalizeDistance: "Normalizes PinchCurve input and output to MaxDistance instead of using raw block units.",
+    HorizontalPinch: "Restricts the pinch to the horizontal X/Z plane when enabled.",
+    PositionsMaxY: "Upper Y bound for anchor positions considered by the pinch.",
+    PositionsMinY: "Lower Y bound for anchor positions considered by the pinch.",
   },
   PositionsTwist: {
-    Angle: "Twist angle in degrees. Positions are rotated around the Y axis proportionally to their Y coordinate.",
+    MaxDistance: "Area of effect around each anchor position, in block units.",
+    NormalizeDistance: "Normalizes TwistCurve input to MaxDistance instead of using raw block units.",
+    ZeroPositionsY: "Flattens anchor positions to y=0 before applying the twist.",
   },
   GradientWarp: {
     SampleRange: "Finite-difference step size for estimating the gradient. Larger values smooth out noise.",
@@ -349,7 +355,8 @@ export const FIELD_DESCRIPTIONS: Record<string, Record<string, string | FieldDes
     Exponent: "Power to raise the input to. Values > 1 steepen the curve (push midtones darker); values < 1 flatten it (push midtones lighter).",
   },
   Exported: {
-    Name: "The name to export this node's output as. Other files can import this value by referencing this name.",
+    ExportAs: "The key used by Imported nodes to reference this exported density.",
+    SingleInstance: "When enabled, importers that reference this key share the same exported density tree instance. This is experimental.",
   },
 
   // ═══════════════════════════════════════════════════════════════════════════

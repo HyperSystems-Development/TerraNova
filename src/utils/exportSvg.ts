@@ -48,6 +48,15 @@ const PREFIX_TO_CATEGORY: Record<string, AssetCategory> = {
   Tint: AssetCategory.TintProvider,
   BlockMask: AssetCategory.BlockMask,
   Directionality: AssetCategory.Directionality,
+  PropDistribution: AssetCategory.PropDistribution,
+  Condition: AssetCategory.Condition,
+  Layer: AssetCategory.Layer,
+  PointGenerator: AssetCategory.PointGenerator,
+  Terrain: AssetCategory.Terrain,
+  CaveGenerator: AssetCategory.CaveGenerator,
+  Generator: AssetCategory.Generator,
+  Biome: AssetCategory.Biome,
+  WorldStructure: AssetCategory.WorldStructure,
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────

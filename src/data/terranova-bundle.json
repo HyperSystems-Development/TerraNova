@@ -1037,34 +1037,41 @@
     "Exported": {
       "nodeType": "Exported",
       "displayName": "Exported",
-      "category": "VectorProvider",
-      "subcategory": "",
-      "description": "Exports a vector provider for external use.",
+      "category": "Density",
+      "subcategory": "FilterTransform",
+      "description": "Exports a density field for reuse. SingleInstance is experimental and shares the exported node tree across importers that reference the same key.",
       "fields": {
+        "ExportAs": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "Key used by Imported density nodes to reference this exported density."
+        },
         "SingleInstance": {
           "type": "boolean",
           "required": false,
           "default": false,
-          "description": "Whether only one instance is allowed."
+          "description": "When enabled, importers that reference this key share the same exported density tree instance. This is experimental."
         },
-        "VectorProvider": {
-          "type": "VectorProviderAsset",
-          "required": true,
-          "default": null,
-          "description": "The vector provider to export."
+        "Skip": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Skips this node when supported by the Hytale Node Editor."
         }
       },
       "inputs": [
         {
-          "id": "VectorProvider",
-          "handleType": "VectorProvider",
-          "label": "VectorProvider"
+          "id": "Input",
+          "handleType": "Density",
+          "label": "Input",
+          "description": "Density field to export."
         }
       ],
       "outputs": [
         {
           "id": "output",
-          "handleType": "VectorProvider",
+          "handleType": "Density",
           "label": "output"
         }
       ]
@@ -1729,14 +1736,58 @@
       "nodeType": "PositionsPinch",
       "displayName": "PositionsPinch",
       "category": "Density",
-      "subcategory": "Terrain",
-      "description": "Applies a pinch transform to positions-based density sampling.",
-      "fields": {},
+      "subcategory": "PositionCoordinate",
+      "description": "Pinches or expands the input density around positions from a PositionProvider.",
+      "fields": {
+        "MaxDistance": {
+          "type": "number",
+          "required": false,
+          "default": 10,
+          "description": "Area of effect around each position, in block units."
+        },
+        "NormalizeDistance": {
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "If true, the pinch curve input and output are normalized to MaxDistance; otherwise they use block units."
+        },
+        "HorizontalPinch": {
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "If true, pinches horizontally only."
+        },
+        "PositionsMaxY": {
+          "type": "number",
+          "required": false,
+          "default": 0.0001,
+          "description": "Upper Y bound for queried positions. Positions at or above this value are ignored."
+        },
+        "PositionsMinY": {
+          "type": "number",
+          "required": false,
+          "default": 0,
+          "description": "Lower Y bound for queried positions. Positions below this value are ignored."
+        }
+      },
       "inputs": [
         {
-          "id": "input",
+          "id": "Input",
           "handleType": "Density",
-          "label": "input"
+          "label": "Input",
+          "description": "Density field to pinch or expand."
+        },
+        {
+          "id": "Positions",
+          "handleType": "PositionProvider",
+          "label": "Positions",
+          "description": "Anchor positions that pinch or expand the density field."
+        },
+        {
+          "id": "PinchCurve",
+          "handleType": "Curve",
+          "label": "PinchCurve",
+          "description": "Curve controlling how strongly the density field is pinched or expanded by distance."
         }
       ],
       "outputs": [
@@ -1751,14 +1802,52 @@
       "nodeType": "PositionsTwist",
       "displayName": "PositionsTwist",
       "category": "Density",
-      "subcategory": "Terrain",
-      "description": "Applies a twist transform to positions-based density sampling.",
-      "fields": {},
+      "subcategory": "PositionCoordinate",
+      "description": "Twists the input density around anchor positions from a PositionProvider.",
+      "fields": {
+        "MaxDistance": {
+          "type": "number",
+          "required": false,
+          "default": 10,
+          "description": "Area of effect around each position, in block units."
+        },
+        "NormalizeDistance": {
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "description": "If true, the twist curve input is normalized to MaxDistance; otherwise it uses block units."
+        },
+        "ZeroPositionsY": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Flattens the positions input to y=0 before twisting."
+        }
+      },
       "inputs": [
         {
-          "id": "input",
+          "id": "Input",
           "handleType": "Density",
-          "label": "input"
+          "label": "Input",
+          "description": "Density field to twist."
+        },
+        {
+          "id": "Positions",
+          "handleType": "PositionProvider",
+          "label": "Positions",
+          "description": "Anchor positions around which the density field is twisted."
+        },
+        {
+          "id": "TwistCurve",
+          "handleType": "Curve",
+          "label": "TwistCurve",
+          "description": "Curve controlling how much twist is applied by distance."
+        },
+        {
+          "id": "TwistAxis",
+          "handleType": "VectorProvider",
+          "label": "TwistAxis",
+          "description": "Axis around which the twist is applied."
         }
       ],
       "outputs": [
@@ -9209,18 +9298,59 @@
         }
       ]
     },
+    "PositionProvider:TriangularGrid2d": {
+      "nodeType": "TriangularGrid2d",
+      "displayName": "TriangularGrid2d",
+      "category": "PositionProvider",
+      "subcategory": "",
+      "description": "Generates a 2D infinite triangular mesh of positions with a distance of 1 block between them.",
+      "fields": {
+        "ExportAs": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "Key used by Imported position-provider nodes to reference this exported provider."
+        },
+        "Skip": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Skips this node when supported by the Hytale Node Editor."
+        }
+      },
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "output",
+          "handleType": "PositionProvider",
+          "label": "output"
+        }
+      ]
+    },
     "PropDistribution:Assigned": {
       "nodeType": "Assigned",
       "displayName": "Assigned",
       "category": "PropDistribution",
       "subcategory": "",
-      "description": "Distributes props via an assignment mapping, allowing varied prop placement based on field functions or weights.",
+      "description": "Assigns positions from the child PropDistribution using Assignments.",
       "fields": {
+        "ExportAs": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "Key used by Imported prop-distribution nodes to reference this exported distribution."
+        },
+        "Skip": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Skips this node when supported by the Hytale Node Editor."
+        },
         "OverrideAllProps": {
           "type": "boolean",
           "required": false,
           "default": false,
-          "description": "If true, replaces all props in the child distribution; if false, only fills unassigned slots."
+          "description": "When enabled, Assignments replace all positions from the child PropDistribution. When disabled, only empty positions are assigned."
         }
       },
       "inputs": [
@@ -9248,8 +9378,21 @@
       "displayName": "Constant",
       "category": "PropDistribution",
       "subcategory": "",
-      "description": "Places a single prop at all positions generated by a position provider.",
-      "fields": {},
+      "description": "Pairs the Prop with every position.",
+      "fields": {
+        "ExportAs": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "Key used by Imported prop-distribution nodes to reference this exported distribution."
+        },
+        "Skip": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Skips this node when supported by the Hytale Node Editor."
+        }
+      },
       "inputs": [
         {
           "id": "Positions",
@@ -9277,6 +9420,18 @@
       "subcategory": "",
       "description": "References a prop distribution defined elsewhere by its asset name.",
       "fields": {
+        "ExportAs": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "Key used by Imported prop-distribution nodes to reference this exported distribution."
+        },
+        "Skip": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Skips this node when supported by the Hytale Node Editor."
+        },
         "Name": {
           "type": "string",
           "required": true,
@@ -9298,8 +9453,21 @@
       "displayName": "Positions",
       "category": "PropDistribution",
       "subcategory": "",
-      "description": "A minimal prop distribution that generates positions without an associated prop.",
-      "fields": {},
+      "description": "Creates empty positions.",
+      "fields": {
+        "ExportAs": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "Key used by Imported prop-distribution nodes to reference this exported distribution."
+        },
+        "Skip": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Skips this node when supported by the Hytale Node Editor."
+        }
+      },
       "inputs": [
         {
           "id": "Positions",
@@ -9320,8 +9488,21 @@
       "displayName": "Union",
       "category": "PropDistribution",
       "subcategory": "",
-      "description": "Combines multiple prop distributions into a single distribution.",
-      "fields": {},
+      "description": "Combines all children, keeping all their positioned Props.",
+      "fields": {
+        "ExportAs": {
+          "type": "string",
+          "required": false,
+          "default": "",
+          "description": "Key used by Imported prop-distribution nodes to reference this exported distribution."
+        },
+        "Skip": {
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "description": "Skips this node when supported by the Hytale Node Editor."
+        }
+      },
       "inputs": [
         {
           "id": "PropDistributions",

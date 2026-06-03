@@ -87,6 +87,13 @@ export const NON_CANONICAL_PALETTE_TYPE_KEYS: ReadonlySet<string> = new Set([
   // Current Javadocs expose Cache2dDensityAsset_Deprecated. Keep loading it,
   // but prefer CacheDensityAsset for newly-created graphs.
   "Cache2D",
+
+  // Layer sub-assets now have their own category; keep old material-prefixed
+  // layer nodes loadable but prefer Layer:* for newly-created graphs.
+  "Material:ConstantThickness",
+  "Material:NoiseThickness",
+  "Material:RangeThickness",
+  "Material:WeightedThickness",
 ]);
 
 /**

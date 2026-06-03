@@ -379,6 +379,29 @@ export const nodeTypes: Record<string, ComponentType<any>> = {
   "PropDistribution:Positions": GenericNode,
   "PropDistribution:Union": GenericNode,
 
+  // ── Condition ──────────────────────────────────────────────────────
+  "Condition:AlwaysTrueCondition": GenericNode,
+  "Condition:AndCondition": GenericNode,
+  "Condition:EqualsCondition": GenericNode,
+  "Condition:GreaterThanCondition": GenericNode,
+  "Condition:NotCondition": GenericNode,
+  "Condition:OrCondition": GenericNode,
+  "Condition:SmallerThanCondition": GenericNode,
+
+  // ── Layer ──────────────────────────────────────────────────────────
+  "Layer:ConstantThickness": GenericNode,
+  "Layer:NoiseThickness": GenericNode,
+  "Layer:RangeThickness": GenericNode,
+  "Layer:WeightedThickness": GenericNode,
+
+  // ── Biome / world-structure assets ─────────────────────────────────
+  "Biome:BiomeAsset": GenericNode,
+  "Biome:DAOTerrain": GenericNode,
+  "Biome:HytaleGenerator": GenericNode,
+  "Biome:NoiseRange": GenericNode,
+  "Biome:WorldStructureAsset": GenericNode,
+  "Biome:WorldStructureNoiseRange": GenericNode,
+
   // ── Groups ──────────────────────────────────────────────────────────
   group: GroupNode,
 

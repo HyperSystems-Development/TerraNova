@@ -42,6 +42,16 @@ describe("analyzeGraph — disconnected inputs", () => {
   });
 });
 
+describe("analyzeGraph — prop Conditional export", () => {
+  it("warns that prop Conditional export is lossy", () => {
+    const nodes = [makeNode("pc", "Prop:Conditional", { Threshold: 0.5 })];
+    const diagnostics = analyzeGraph(nodes, []);
+    const lossy = diagnostics.filter((d) => d.code === "prop-conditional-lossy-export");
+    expect(lossy).toHaveLength(1);
+    expect(lossy[0].severity).toBe("warning");
+  });
+});
+
 describe("analyzeGraph — unsupported types", () => {
   it("emits info for unsupported preview types", () => {
     const nodes = [makeNode("sd", "SurfaceDensity")];

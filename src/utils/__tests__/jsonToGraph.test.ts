@@ -16,6 +16,49 @@ describe("jsonToGraph", () => {
     expect(fields.Amplitude).toBe(1);
   });
 
+  it("prefixes nested PropDistribution assets", () => {
+    const json = {
+      Type: "PropDistribution:Assigned",
+      PropDistribution: {
+        Type: "Positions",
+      },
+    };
+
+    const { nodes, edges } = jsonToGraph(json);
+    const child = nodes.find((node) => node.type === "PropDistribution:Positions");
+    const parent = nodes.find((node) => node.type === "PropDistribution:Assigned");
+
+    expect(child).toBeDefined();
+    expect(parent).toBeDefined();
+    expect((child!.data as Record<string, unknown>).type).toBe("Positions");
+    expect(edges).toContainEqual(expect.objectContaining({
+      source: child!.id,
+      target: parent!.id,
+      targetHandle: "PropDistribution",
+    }));
+  });
+
+  it("prefixes schema condition assets without treating them as density", () => {
+    const json = {
+      Type: "Condition:NotCondition",
+      Condition: {
+        Type: "AlwaysTrueCondition",
+      },
+    };
+
+    const { nodes, edges } = jsonToGraph(json);
+    const parent = nodes.find((node) => node.type === "Condition:NotCondition");
+    const child = nodes.find((node) => node.type === "Condition:AlwaysTrueCondition");
+
+    expect(parent).toBeDefined();
+    expect(child).toBeDefined();
+    expect(edges).toContainEqual(expect.objectContaining({
+      source: child!.id,
+      target: parent!.id,
+      targetHandle: "Condition",
+    }));
+  });
+
   it("produces nodes + edges from nested assets", () => {
     const json = {
       Type: "Clamp",
@@ -126,12 +169,15 @@ describe("jsonToGraph", () => {
     expect(fields.LayerContext).toBe("DEPTH_INTO_FLOOR");
     expect(fields.MaxExpectedDepth).toBe(16);
 
-    // Layer nodes should have Material: prefix
+    // Layer nodes should have Layer: prefix
     const layerNodes = nodes.filter((n) =>
       ["ConstantThickness", "RangeThickness"].includes((n.data as Record<string, unknown>).type as string),
     );
     expect(layerNodes).toHaveLength(2);
-    expect(layerNodes[0].type).toMatch(/^Material:/);
+    expect(layerNodes.map((node) => node.type).sort()).toEqual([
+      "Layer:ConstantThickness",
+      "Layer:RangeThickness",
+    ]);
   });
 
   it("maps CurveMapper Inputs[] to named 'Input' handle", () => {

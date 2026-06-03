@@ -27,6 +27,20 @@ const CATEGORY_MAP: Record<string, AssetCategory> = {
   BlockMask: AssetCategory.BlockMask,
   Directionality: AssetCategory.Directionality,
   Biome: AssetCategory.Biome,
+  WorldStructure: AssetCategory.WorldStructure,
+  Condition: AssetCategory.Condition,
+  Layer: AssetCategory.Layer,
+  PointGenerator: AssetCategory.PointGenerator,
+  Terrain: AssetCategory.Terrain,
+  CaveGenerator: AssetCategory.CaveGenerator,
+  Generator: AssetCategory.Generator,
+  PropDistribution: AssetCategory.PropDistribution,
+  // connections.json includes bridge target labels that are node family names
+  // rather than handle categories. Map them to the closest handle category so
+  // bridge badges do not silently disappear.
+  SpaceAndDepth: AssetCategory.MaterialProvider,
+  Prefab: AssetCategory.Prop,
+  WorldStructureAsset: AssetCategory.WorldStructure,
 };
 
 // Build bridge type map from connections.json

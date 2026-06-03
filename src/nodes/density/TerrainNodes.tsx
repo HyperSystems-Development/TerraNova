@@ -14,8 +14,8 @@ const GRADIENT_WARP_HANDLES = [densityInput("Input", "Input"), densityInput("War
 const VECTOR_WARP_HANDLES = [densityInput("Input", "Input"), densityInput("Magnitude", "Magnitude"), vectorInput("WarpVector", "Warp Vector"), densityOutput()];
 const POSITIONS_CELL_NOISE_HANDLES = [positionInput("Positions", "Positions"), curveInput("ReturnCurve", "Return Curve"), densityOutput()];
 const POSITIONS_3D_HANDLES = [positionInput("Positions", "Positions"), curveInput("DistanceCurve", "Distance Curve"), densityOutput()];
-const POSITIONS_PINCH_HANDLES = [densityInput("Input", "Density"), curveInput("PinchCurve", "Pinch Curve"), densityOutput()];
-const POSITIONS_TWIST_HANDLES = [densityInput("Input", "Density"), curveInput("TwistCurve", "Twist Curve"), densityOutput()];
+const POSITIONS_PINCH_HANDLES = [densityInput("Input", "Density"), positionInput("Positions", "Positions"), curveInput("PinchCurve", "Pinch Curve"), densityOutput()];
+const POSITIONS_TWIST_HANDLES = [densityInput("Input", "Density"), positionInput("Positions", "Positions"), curveInput("TwistCurve", "Twist Curve"), vectorInput("TwistAxis", "Twist Axis"), densityOutput()];
 
 export const SurfaceDensityNode = memo(function SurfaceDensityNode(props: TypedNodeProps) {
   return (
@@ -367,10 +367,7 @@ export const PositionsPinchNode = memo(function PositionsPinchNode(props: TypedN
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={POSITIONS_PINCH_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Strength</span>
-        <span>{safeDisplay(data.fields.Strength, 1)}</span>
-      </div>
+      <SchemaFields typeKey="PositionsPinch" fields={data.fields} />
     </BaseNode>
   );
 });
@@ -379,10 +376,7 @@ export const PositionsTwistNode = memo(function PositionsTwistNode(props: TypedN
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.Density} handles={POSITIONS_TWIST_HANDLES}>
-      <div className="flex justify-between">
-        <span className="text-tn-text-muted">Angle</span>
-        <span>{safeDisplay(data.fields.Angle, 0)}&deg;</span>
-      </div>
+      <SchemaFields typeKey="PositionsTwist" fields={data.fields} />
     </BaseNode>
   );
 });

@@ -214,8 +214,8 @@ describe("graphToJson — SpaceAndDepth Layers[]", () => {
   it("serializes Layers[] array from indexed handles", () => {
     const nodes = [
       makeNode("sad", "Material:SpaceAndDepth", { LayerContext: "DEPTH_INTO_FLOOR", MaxExpectedDepth: 16 }),
-      makeNode("layer0", "Material:ConstantThickness", { Thickness: 3 }),
-      makeNode("layer1", "Material:RangeThickness", { RangeMin: 1, RangeMax: 5, Seed: "" }),
+      makeNode("layer0", "Layer:ConstantThickness", { Thickness: 3 }),
+      makeNode("layer1", "Layer:RangeThickness", { RangeMin: 1, RangeMax: 5, Seed: "" }),
       makeNode("mat0", "Material:Constant", { Material: "stone" }),
       makeNode("mat1", "Material:Constant", { Material: "dirt" }),
     ];
@@ -236,13 +236,13 @@ describe("graphToJson — SpaceAndDepth Layers[]", () => {
     expect(layers).toHaveLength(2);
 
     const layer0 = layers[0] as Record<string, unknown>;
-    expect(layer0.Type).toBe("Material:ConstantThickness");
+    expect(layer0.Type).toBe("Layer:ConstantThickness");
     expect(layer0.Thickness).toBe(3);
     expect((layer0.Material as Record<string, unknown>).Type).toBe("Material:Constant");
     expect((layer0.Material as Record<string, unknown>).Material).toBe("stone");
 
     const layer1 = layers[1] as Record<string, unknown>;
-    expect(layer1.Type).toBe("Material:RangeThickness");
+    expect(layer1.Type).toBe("Layer:RangeThickness");
     expect(layer1.RangeMin).toBe(1);
     expect(layer1.RangeMax).toBe(5);
   });

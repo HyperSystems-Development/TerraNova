@@ -2,8 +2,10 @@ import { Fragment, memo, useMemo } from "react";
 import { Handle, useStore } from "@xyflow/react";
 import type { TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { ROW_H, handleTop, inputPosition, outputPosition, inputSide } from "@/nodes/shared/nodeLayout";
-import { INPUT_HANDLE_COLOR } from "@/nodes/shared/handles";
+import { INPUT_HANDLE_COLOR, getHandleColor, type HandleDef } from "@/nodes/shared/handles";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { getHandles } from "@/nodes/handleRegistry";
+import { AssetCategory } from "@/schema/types";
 
 /**
  * Fallback node component for any V2 type that doesn't have
@@ -12,7 +14,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
  */
 export const GenericNode = memo(function GenericNode({ selected, id, ...props }: TypedNodeProps) {
   const data = props.data;
-  const typeName = data.type ?? "Unknown";
+  const typeName = String(data.type ?? "Unknown");
   const flowDirection = useSettingsStore((s) => s.flowDirection);
   const inPos = inputPosition(flowDirection);
   const outPos = outputPosition(flowDirection);
@@ -20,6 +22,15 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
 
   // Pick a header color based on type name hash (deterministic)
   const headerColor = getTypeColor(typeName);
+  const schemaHandles = useMemo(() => getHandles(typeName), [typeName]);
+  const schemaTargetHandles = useMemo(
+    () => schemaHandles.filter((handle) => handle.type === "target"),
+    [schemaHandles],
+  );
+  const schemaSourceHandles = useMemo(
+    () => schemaHandles.filter((handle) => handle.type === "source"),
+    [schemaHandles],
+  );
 
   // Only show scalar fields in the body (not nested objects/arrays)
   const scalarFields = useMemo(() => {
@@ -41,7 +52,24 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
     (a, b) => a.length === b.length && a.every((v, i) => v === b[i]),
   );
 
-  const maxRows = Math.max(uniqueTargetHandles.length, 1); // at least 1 for output
+  const targetHandles: HandleDef[] = schemaTargetHandles.length > 0
+    ? [
+        ...schemaTargetHandles,
+        ...uniqueTargetHandles
+          .filter((handleId) => !schemaTargetHandles.some((handle) => handle.id === handleId))
+          .map((handleId) => ({ id: handleId, label: handleId, type: "target" as const, category: schemaTargetHandles[0].category })),
+      ]
+    : uniqueTargetHandles.map((handleId) => ({
+        id: handleId,
+        label: handleId,
+        type: "target" as const,
+        category: schemaSourceHandles[0]?.category ?? AssetCategory.Density,
+      }));
+  const sourceHandles: HandleDef[] = schemaSourceHandles.length > 0
+    ? schemaSourceHandles
+    : [{ id: "output", label: "Output", type: "source" as const, category: targetHandles[0]?.category ?? AssetCategory.Density }];
+  const showFallbackInput = targetHandles.length === 0;
+  const maxRows = Math.max(targetHandles.length || 1, sourceHandles.length || 1);
 
   return (
     <div
@@ -66,13 +94,12 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
 
       {/* Handle zone */}
       <div className="relative" style={{ height: maxRows * ROW_H }}>
-        {/* Dynamic target handles from edges */}
-        {uniqueTargetHandles.map((handleId, i) => (
-          <Fragment key={handleId}>
+        {targetHandles.map((handle, i) => (
+          <Fragment key={handle.id}>
             <Handle
               type="target"
               position={inPos}
-              id={handleId}
+              id={handle.id}
               style={{
                 background: INPUT_HANDLE_COLOR,
                 width: 14,
@@ -85,12 +112,11 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
               className={`absolute ${inSide}-4 text-tn-text-muted text-[10px]`}
               style={{ top: handleTop(i), transform: "translateY(-50%)" }}
             >
-              {handleId}
+              {handle.label || handle.id}
             </div>
           </Fragment>
         ))}
-        {/* Fallback target handle when no specific handles needed */}
-        {uniqueTargetHandles.length === 0 && (
+        {showFallbackInput && (
           <Handle
             type="target"
             position={inPos}
@@ -105,19 +131,28 @@ export const GenericNode = memo(function GenericNode({ selected, id, ...props }:
           />
         )}
 
-        {/* Output handle */}
-        <Handle
-          type="source"
-          position={outPos}
-          id="output"
-          style={{
-            background: headerColor,
-            width: 14,
-            height: 14,
-            border: "2px solid rgba(0,0,0,0.4)",
-            top: handleTop(0),
-          }}
-        />
+        {sourceHandles.map((handle, i) => (
+          <Fragment key={handle.id}>
+            <Handle
+              type="source"
+              position={outPos}
+              id={handle.id}
+              style={{
+                background: getHandleColor(handle.category) || headerColor,
+                width: 14,
+                height: 14,
+                border: "2px solid rgba(0,0,0,0.4)",
+                top: handleTop(i),
+              }}
+            />
+            <div
+              className="absolute right-4 text-tn-text-muted text-[10px]"
+              style={{ top: handleTop(i), transform: "translateY(-50%)" }}
+            >
+              {handle.label || handle.id}
+            </div>
+          </Fragment>
+        ))}
       </div>
 
       {/* Scalar fields zone */}

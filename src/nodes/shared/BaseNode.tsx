@@ -51,6 +51,15 @@ const CATEGORY_LABELS: Partial<Record<AssetCategory, string>> = {
   [AssetCategory.TintProvider]: "Tint",
   [AssetCategory.BlockMask]: "Block Mask",
   [AssetCategory.Directionality]: "Directionality",
+  [AssetCategory.PropDistribution]: "Prop Distribution",
+  [AssetCategory.Condition]: "Condition",
+  [AssetCategory.Layer]: "Layer",
+  [AssetCategory.PointGenerator]: "Point Generator",
+  [AssetCategory.Terrain]: "Terrain",
+  [AssetCategory.CaveGenerator]: "Cave Generator",
+  [AssetCategory.Generator]: "Generator",
+  [AssetCategory.Biome]: "Biome",
+  [AssetCategory.WorldStructure]: "World Structure",
 };
 
 const EVAL_STATUS_COLORS: Record<EvalStatus, string> = {
@@ -136,6 +145,15 @@ export const BaseNode = memo(function BaseNode({ id, type, data, selected, categ
     [AssetCategory.TintProvider]: "Tint",
     [AssetCategory.Directionality]: "Directionality",
     [AssetCategory.Scanner]: "Scanner",
+    [AssetCategory.PropDistribution]: "PropDistribution",
+    [AssetCategory.Condition]: "Condition",
+    [AssetCategory.Layer]: "Layer",
+    [AssetCategory.PointGenerator]: "PointGenerator",
+    [AssetCategory.Terrain]: "Terrain",
+    [AssetCategory.CaveGenerator]: "CaveGenerator",
+    [AssetCategory.Generator]: "Generator",
+    [AssetCategory.Biome]: "Biome",
+    [AssetCategory.WorldStructure]: "WorldStructure",
   };
   const legacyPrefix = CATEGORY_TO_PREFIX[category];
   const legacyKey = legacyPrefix ? `${legacyPrefix}:${nodeData.type}` : nodeData.type;

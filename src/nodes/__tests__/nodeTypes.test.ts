@@ -132,12 +132,22 @@ describe("Extended node types — default field values", () => {
     expect(d.Seed).toBe("A");
   });
 
-  it("PositionsPinch has Strength default", () => {
-    expect(DENSITY_DEFAULTS["PositionsPinch"].Strength).toBe(1.0);
+  it("PositionsPinch has Update 5 position-field defaults", () => {
+    expect(DENSITY_DEFAULTS["PositionsPinch"]).toEqual({
+      MaxDistance: 10,
+      NormalizeDistance: true,
+      HorizontalPinch: true,
+      PositionsMaxY: 0.0001,
+      PositionsMinY: 0,
+    });
   });
 
-  it("PositionsTwist has Angle default", () => {
-    expect(DENSITY_DEFAULTS["PositionsTwist"].Angle).toBe(0.0);
+  it("PositionsTwist has Update 5 position-field defaults", () => {
+    expect(DENSITY_DEFAULTS["PositionsTwist"]).toEqual({
+      MaxDistance: 10,
+      NormalizeDistance: true,
+      ZeroPositionsY: false,
+    });
   });
 
   it("GradientWarp has WarpFactor default", () => {
@@ -380,6 +390,9 @@ describe("New V2 types", () => {
     "PropDistribution:Assigned", "PropDistribution:Constant",
     "PropDistribution:Imported", "PropDistribution:Positions",
     "PropDistribution:Union",
+    "Condition:AlwaysTrueCondition", "Condition:EqualsCondition",
+    "Layer:ConstantThickness", "Layer:RangeThickness",
+    "Biome:BiomeAsset", "Biome:WorldStructureAsset",
   ];
 
   it.each(NEW_V2_TYPES)(

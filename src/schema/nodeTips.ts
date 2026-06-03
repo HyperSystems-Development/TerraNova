@@ -305,14 +305,14 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   PositionsPinch: [
     {
       message:
-        "Pinches the input positions toward the Y axis. Strength controls how aggressively horizontal coordinates are compressed.",
+        "Pinches or expands the input density around connected Positions. MaxDistance and PinchCurve control the affected radius.",
       severity: "info",
     },
   ],
   PositionsTwist: [
     {
       message:
-        "Twists the input positions around the Y axis. The twist amount increases with Y coordinate, creating a spiral effect.",
+        "Twists the input density around connected Positions. TwistCurve controls the amount by distance, with TwistAxis defining the rotation axis.",
       severity: "info",
     },
   ],
@@ -806,7 +806,7 @@ export const NODE_TIPS: Record<string, NodeTip[]> = {
   Exported: [
     {
       message:
-        "Exports this node's output with the given Name, making it available for import in other asset files.",
+        "Exports this node's output with ExportAs so Imported nodes can reference it from another asset file. SingleInstance is experimental.",
       severity: "info",
     },
   ],

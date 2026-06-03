@@ -130,10 +130,33 @@ describe('Schema Bundle Verification', () => {
       }
     });
 
+    it('PropDistribution nodes expose Update 5 Skip metadata', () => {
+      for (const key of [
+        'PropDistribution:Assigned',
+        'PropDistribution:Constant',
+        'PropDistribution:Imported',
+        'PropDistribution:Positions',
+        'PropDistribution:Union',
+      ]) {
+        expect(nodes[key].fields.ExportAs?.default).toBe('');
+        expect(nodes[key].fields.Skip?.default).toBe(false);
+      }
+      expect(nodes['PropDistribution:Assigned'].fields.OverrideAllProps).toBeDefined();
+    });
+
     it('PropDistribution category is registered', () => {
       const categories = (bundle as any).categories;
       expect(categories['PropDistribution']).toBeDefined();
       expect(categories['PropDistribution'].schemaDir).toBe('propdistributions');
+    });
+
+    it('Update 5 position/worldgen nodes use source-backed fields', () => {
+      expect(nodes.Exported.category).toBe('Density');
+      expect(Object.keys(nodes.Exported.fields)).toEqual(['ExportAs', 'SingleInstance', 'Skip']);
+      expect(nodes.PositionsPinch.fields.MaxDistance.default).toBe(10);
+      expect(nodes.PositionsPinch.fields.HorizontalPinch.default).toBe(true);
+      expect(nodes.PositionsTwist.fields.ZeroPositionsY.default).toBe(false);
+      expect(nodes['PositionProvider:TriangularGrid2d'].fields.Skip.default).toBe(false);
     });
   });
 
