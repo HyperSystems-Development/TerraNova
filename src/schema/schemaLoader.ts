@@ -85,18 +85,39 @@ const FULL_TO_SHORT_PREFIX: Record<string, string> = Object.fromEntries(
 );
 
 /**
+ * Expected bundle `category` for a type key (e.g. Material:Foo → MaterialProvider).
+ * Bare keys without a prefix are treated as Density, matching getDefaults().
+ */
+function expectedBundleCategory(typeKey: string): string | null {
+  const colonIdx = typeKey.indexOf(":");
+  if (colonIdx < 0) return "Density";
+  const shortPrefix = typeKey.slice(0, colonIdx + 1);
+  const fullPrefix = SHORT_TO_FULL_PREFIX[shortPrefix];
+  return fullPrefix ? fullPrefix.slice(0, -1) : null;
+}
+
+function nodeMatchesExpectedCategory(node: BundleNode, typeKey: string): boolean {
+  const expected = expectedBundleCategory(typeKey);
+  if (!expected) return true;
+  return node.category === expected;
+}
+
+/**
  * Resolve a node type key to a bundle key.
  * Tries the key as-is first, then attempts alternative prefix mappings.
+ * Bare-name fallback only applies when the bundle entry's category matches
+ * the editor prefix (avoids Material:Constant resolving to TintProvider:Constant).
  */
 function resolveNodeKey(typeKey: string): BundleNode | undefined {
-  // Direct match
-  if (nodes[typeKey]) return nodes[typeKey];
+  const direct = nodes[typeKey];
+  if (direct && nodeMatchesExpectedCategory(direct, typeKey)) return direct;
 
   // Try expanding short prefix to full category prefix
   for (const [short, full] of Object.entries(SHORT_TO_FULL_PREFIX)) {
     if (typeKey.startsWith(short)) {
       const fullKey = full + typeKey.slice(short.length);
-      if (nodes[fullKey]) return nodes[fullKey];
+      const node = nodes[fullKey];
+      if (node && nodeMatchesExpectedCategory(node, typeKey)) return node;
     }
   }
 
@@ -104,7 +125,11 @@ function resolveNodeKey(typeKey: string): BundleNode | undefined {
   const colonIdx = typeKey.indexOf(":");
   if (colonIdx >= 0) {
     const bare = typeKey.slice(colonIdx + 1);
-    if (nodes[bare]) return nodes[bare];
+    const node = nodes[bare];
+    if (node && nodeMatchesExpectedCategory(node, typeKey)) return node;
+  } else {
+    const node = nodes[typeKey];
+    if (node && nodeMatchesExpectedCategory(node, typeKey)) return node;
   }
 
   return undefined;
@@ -127,6 +152,14 @@ const HANDLE_TYPE_TO_CATEGORY: Record<string, AssetCategory> = {
   BlockMask: AssetCategory.BlockMask,
   Directionality: AssetCategory.Directionality,
   PropDistribution: AssetCategory.PropDistribution,
+  Biome: AssetCategory.Biome,
+  WorldStructure: AssetCategory.WorldStructure,
+  Condition: AssetCategory.Condition,
+  Layer: AssetCategory.Layer,
+  PointGenerator: AssetCategory.PointGenerator,
+  Terrain: AssetCategory.Terrain,
+  CaveGenerator: AssetCategory.CaveGenerator,
+  Generator: AssetCategory.Generator,
 };
 
 function mapCategory(handleType: string): AssetCategory {
@@ -371,13 +404,36 @@ export function getNodeHandles(typeKey: string): { inputs: HandleInfo[]; outputs
   return { inputs, outputs };
 }
 
+/** Legacy field rows for types missing from the bundle (no import from defaults — avoids init cycle). */
+const LEGACY_MATERIAL_STRING_FIELD: FieldDef[] = [
+  { name: "Material", type: "string", default: "Rock_Lime_Cobble" },
+];
+
+const LEGACY_NODE_FIELDS: Record<string, FieldDef[]> = {
+  "Material:Constant": LEGACY_MATERIAL_STRING_FIELD,
+  "Material:Solid": LEGACY_MATERIAL_STRING_FIELD,
+  "MaterialProvider:Constant": LEGACY_MATERIAL_STRING_FIELD,
+  "MaterialProvider:Solid": LEGACY_MATERIAL_STRING_FIELD,
+};
+
+function legacyFieldDefs(typeKey: string): FieldDef[] {
+  if (LEGACY_NODE_FIELDS[typeKey]) return LEGACY_NODE_FIELDS[typeKey];
+  for (const [short, full] of Object.entries(SHORT_TO_FULL_PREFIX)) {
+    if (typeKey.startsWith(short)) {
+      const fullKey = full + typeKey.slice(short.length);
+      if (LEGACY_NODE_FIELDS[fullKey]) return LEGACY_NODE_FIELDS[fullKey];
+    }
+  }
+  return [];
+}
+
 /**
  * Get ordered field definitions for a node type.
  * Returns `[]` if the type is not found or has no fields.
  */
 export function getNodeFields(typeKey: string): FieldDef[] {
   const node = resolveNodeKey(typeKey);
-  if (!node) return [];
+  if (!node) return legacyFieldDefs(typeKey);
 
   return Object.entries(node.fields).map(([name, field]) => {
     const def: FieldDef = {

@@ -4,9 +4,11 @@ import {
   getNodeConstraints,
   getNodeHandles,
   getNodeFields,
+  getSchemaCategory,
   isRegisteredNodeType,
   getAllNodeTypes,
 } from "../schemaLoader";
+import { AssetCategory } from "../types";
 
 describe("getNodeDefaults", () => {
   it("returns defaults for SimplexNoise2D", () => {
@@ -38,6 +40,21 @@ describe("getNodeDefaults", () => {
 
   it("returns empty object for unknown type", () => {
     expect(getNodeDefaults("NonExistentNode")).toEqual({});
+  });
+
+  it("returns Update 5 defaults for PositionsPinch and PositionsTwist", () => {
+    expect(getNodeDefaults("PositionsPinch")).toEqual({
+      MaxDistance: 10,
+      NormalizeDistance: true,
+      HorizontalPinch: true,
+      PositionsMaxY: 0.0001,
+      PositionsMinY: 0,
+    });
+    expect(getNodeDefaults("PositionsTwist")).toEqual({
+      MaxDistance: 10,
+      NormalizeDistance: true,
+      ZeroPositionsY: false,
+    });
   });
 });
 
@@ -84,6 +101,27 @@ describe("getNodeHandles", () => {
     expect(handles.inputs).toEqual([]);
     expect(handles.outputs).toEqual([]);
   });
+
+  it("returns source-backed handles for Update 5 position-density nodes", () => {
+    expect(getNodeHandles("PositionsPinch").inputs.map((h) => h.id)).toEqual([
+      "Input",
+      "Positions",
+      "PinchCurve",
+    ]);
+    expect(getNodeHandles("PositionsTwist").inputs.map((h) => h.id)).toEqual([
+      "Input",
+      "Positions",
+      "TwistCurve",
+      "TwistAxis",
+    ]);
+  });
+
+  it("maps non-density worldgen handle categories from the bundle", () => {
+    expect(getSchemaCategory("Condition:AlwaysTrueCondition")).toBe(AssetCategory.Condition);
+    expect(getSchemaCategory("Layer:RangeThickness")).toBe(AssetCategory.Layer);
+    expect(getSchemaCategory("PropDistribution:Assigned")).toBe(AssetCategory.PropDistribution);
+    expect(getSchemaCategory("Biome:WorldStructureAsset")).toBe(AssetCategory.Biome);
+  });
 });
 
 describe("getNodeFields", () => {
@@ -107,6 +145,25 @@ describe("getNodeFields", () => {
 
   it("returns empty array for unknown type", () => {
     expect(getNodeFields("NonExistentNode")).toEqual([]);
+  });
+
+  it("returns Material field for Material:Constant via legacy defaults", () => {
+    const fields = getNodeFields("Material:Constant");
+    expect(fields.map((f) => f.name)).toEqual(["Material"]);
+    expect(fields[0].default).toBe("Rock_Lime_Cobble");
+  });
+
+  it("does not map Material:Constant to TintProvider Constant", () => {
+    const fields = getNodeFields("Material:Constant");
+    expect(fields.some((f) => f.name === "Tint")).toBe(false);
+  });
+
+  it("resolves Position:TriangularGrid2d through the short editor prefix", () => {
+    expect(getSchemaCategory("Position:TriangularGrid2d")).toBe(AssetCategory.PositionProvider);
+    expect(getNodeFields("Position:TriangularGrid2d").map((f) => f.name)).toEqual([
+      "ExportAs",
+      "Skip",
+    ]);
   });
 });
 

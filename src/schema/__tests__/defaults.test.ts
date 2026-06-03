@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { DENSITY_DEFAULTS, CURVE_DEFAULTS, getDefaults } from "../defaults";
+import { ALL_DEFAULTS, DENSITY_DEFAULTS, CURVE_DEFAULTS, getDefaults, getLegacyDefaultsForType } from "../defaults";
+import { AssetCategory } from "../types";
 
 describe("V2 CODEC default alignment", () => {
   it("SimplexNoise2D defaults match V2", () => {
@@ -62,6 +63,13 @@ describe("getDefaults() — schema-driven API", () => {
     expect(d.Octaves).toBe(1);
   });
 
+  it("density Exported defaults use ExportAs, not legacy Name", () => {
+    const d = getDefaults("Exported");
+    expect(d.ExportAs).toBe("");
+    expect(d.SingleInstance).toBe(false);
+    expect(d.Name).toBeUndefined();
+  });
+
   it("returns defaults for a prefixed bundle type", () => {
     const d = getDefaults("Curve:Manual");
     expect(d).toBeDefined();
@@ -83,5 +91,27 @@ describe("getDefaults() — schema-driven API", () => {
     expect(d).toBeDefined();
     // Legacy fallback should have LayerContext
     expect(d.LayerContext ?? d.MaxExpectedDepth).toBeDefined();
+  });
+
+  it("keeps schema-only category entries canonical in ALL_DEFAULTS", () => {
+    const propDistributionAssigned = ALL_DEFAULTS.filter((entry) => entry.type === "PropDistribution:Assigned");
+    expect(propDistributionAssigned).toHaveLength(1);
+    expect(propDistributionAssigned[0].category).toBe(AssetCategory.PropDistribution);
+
+    const alwaysTrueCondition = ALL_DEFAULTS.filter((entry) => entry.type === "AlwaysTrueCondition");
+    expect(alwaysTrueCondition).toHaveLength(1);
+    expect(alwaysTrueCondition[0].category).toBe(AssetCategory.Condition);
+  });
+});
+
+describe("getLegacyDefaultsForType", () => {
+  it("resolves Material:Constant to material provider defaults", () => {
+    expect(getLegacyDefaultsForType("Material:Constant")).toEqual({
+      Material: "Rock_Lime_Cobble",
+    });
+  });
+
+  it("getDefaults uses the same legacy map for Material:Constant", () => {
+    expect(getDefaults("Material:Constant").Material).toBe("Rock_Lime_Cobble");
   });
 });

@@ -2,7 +2,7 @@ import { memo } from "react";
 import { useEdges } from "@xyflow/react";
 import { BaseNode, type TypedNodeProps } from "@/nodes/shared/BaseNode";
 import { AssetCategory } from "@/schema/types";
-import { materialInput, materialOutput, densityInput } from "@/nodes/shared/handles";
+import { materialInput, materialOutput, densityInput, conditionInput } from "@/nodes/shared/handles";
 import { safeDisplay } from "@/nodes/shared/displayUtils";
 import { SchemaFields } from "@/nodes/shared/SchemaFields";
 import { useCompoundHandles } from "@/hooks/useCompoundHandles";
@@ -52,7 +52,7 @@ export const ConstantMaterialNode = memo(function ConstantMaterialNode(props: Ty
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={HANDLES_MAT_OUT}>
-      <SchemaFields typeKey={data.type} fields={data.fields} />
+      <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -92,7 +92,7 @@ export const SpaceAndDepthMaterialNode = memo(function SpaceAndDepthMaterialNode
       <BaseNode
         {...props}
         category={AssetCategory.MaterialProvider}
-        handles={[...layerHandles, materialOutput()]}
+        handles={[conditionInput("Condition", "Condition"), ...layerHandles, materialOutput()]}
       >
         <div className="space-y-1">
           <div className="flex justify-between">
@@ -148,7 +148,7 @@ export const ConditionalMaterialNode = memo(function ConditionalMaterialNode(pro
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_CONDITIONAL}
     >
-      <SchemaFields typeKey={data.type} fields={data.fields} />
+      <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -173,7 +173,7 @@ export const HeightGradientMaterialNode = memo(function HeightGradientMaterialNo
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_HEIGHT_GRADIENT}
     >
-      <SchemaFields typeKey={data.type} fields={data.fields} />
+      <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -187,7 +187,7 @@ export const NoiseSelectorMaterialNode = memo(function NoiseSelectorMaterialNode
       category={AssetCategory.MaterialProvider}
       handles={handles}
     >
-      <SchemaFields typeKey={data.type} fields={data.fields} />
+      <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -196,7 +196,7 @@ export const SolidMaterialNode = memo(function SolidMaterialNode(props: TypedNod
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={HANDLES_MAT_OUT}>
-      <SchemaFields typeKey={data.type} fields={data.fields} />
+      <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -241,7 +241,7 @@ export const ClusterMaterialNode = memo(function ClusterMaterialNode(props: Type
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_MAT_IN_OUT}
     >
-      <SchemaFields typeKey={data.type} fields={data.fields} />
+      <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -250,7 +250,7 @@ export const ImportedMaterialNode = memo(function ImportedMaterialNode(props: Ty
   const data = props.data;
   return (
     <BaseNode {...props} category={AssetCategory.MaterialProvider} handles={HANDLES_MAT_OUT}>
-      <SchemaFields typeKey={data.type} fields={data.fields} />
+      <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -263,7 +263,7 @@ export const ExportedMaterialNode = memo(function ExportedMaterialNode(props: Ty
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_MAT_IN_OUT}
     >
-      <SchemaFields typeKey={data.type} fields={data.fields} />
+      <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -306,7 +306,7 @@ export const ConstantThicknessNode = memo(function ConstantThicknessNode(props: 
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_MAT_MATERIAL_OUT}
     >
-      <SchemaFields typeKey={data.type} fields={data.fields} />
+      <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -331,7 +331,7 @@ export const RangeThicknessNode = memo(function RangeThicknessNode(props: TypedN
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_MAT_MATERIAL_OUT}
     >
-      <SchemaFields typeKey={data.type} fields={data.fields} />
+      <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
     </BaseNode>
   );
 });
@@ -344,7 +344,7 @@ export const WeightedThicknessNode = memo(function WeightedThicknessNode(props: 
       category={AssetCategory.MaterialProvider}
       handles={HANDLES_MAT_MATERIAL_OUT}
     >
-      <SchemaFields typeKey={data.type} fields={data.fields} />
+      <SchemaFields typeKey={props.type ?? data.type} fields={data.fields} />
     </BaseNode>
   );
 });

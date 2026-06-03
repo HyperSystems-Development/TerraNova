@@ -66,6 +66,7 @@ function getLabel(fieldName: string): string {
 
 /** Format a single field value for display */
 function formatFieldValue(value: unknown, def: FieldDef): string | number {
+  const fieldName = def.name;
   // Boolean fields
   if (def.type === "boolean" || typeof value === "boolean") {
     return value ? "Yes" : "No";
@@ -93,6 +94,16 @@ function formatFieldValue(value: unknown, def: FieldDef): string | number {
   // Vec3 arrays from schema defaults (e.g. [0, 1, 0])
   if (Array.isArray(value) && value.length === 3 && (def.type === "vector3d" || def.type === "vector3i")) {
     return `(${value[0]}, ${value[1]}, ${value[2]})`;
+  }
+
+  // Nested material objects from Hytale import ({ Solid: "Rock_Stone" })
+  if (fieldName === "Material" || fieldName === "Solid") {
+    if (typeof value === "string" && value.length > 0) return value;
+    if (value && typeof value === "object") {
+      const obj = value as Record<string, unknown>;
+      if (typeof obj.Solid === "string") return obj.Solid;
+      if (typeof obj.Material === "string") return obj.Material;
+    }
   }
 
   // Other array fields (e.g. Points) - show count

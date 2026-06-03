@@ -104,8 +104,8 @@ const LEGACY_DENSITY: Record<string, DefaultFields> = {
   SwitchState: { State: 0 },
   MultiMix: { Keys: [0, 1] },
   Positions3D: { Scale: 100.0, Seed: "A" },
-  PositionsPinch: { Strength: 1.0 },
-  PositionsTwist: { Angle: 0.0 },
+  PositionsPinch: { MaxDistance: 10, NormalizeDistance: true, HorizontalPinch: true, PositionsMaxY: 0.0001, PositionsMinY: 0 },
+  PositionsTwist: { MaxDistance: 10, NormalizeDistance: true, ZeroPositionsY: false },
   XOverride: { OverrideX: 0 },
   ZOverride: { OverrideZ: 0 },
   GradientWarp: { WarpFactor: 1.0, SampleRange: 1.0, "2D": false, YFor2D: 0.0 },
@@ -117,7 +117,7 @@ const LEGACY_DENSITY: Record<string, DefaultFields> = {
   Pipeline: {},
   OffsetConstant: {},
   Cache2D: {},
-  Exported: { Name: "", SingleInstance: false },
+  Exported: { ExportAs: "", SingleInstance: false },
   Angle: { Vector: { x: 0, y: 1, z: 0 }, IsAxis: false },
   Cube: {},
   Axis: { Axis: { x: 0, y: 1, z: 0 }, IsAnchored: false },
@@ -391,6 +391,41 @@ function populateLegacyFlat() {
 }
 populateLegacyFlat();
 
+/** Editor short prefix → legacy flat-map prefix (Material: → MaterialProvider:) */
+const EDITOR_SHORT_TO_LEGACY_PREFIX: Record<string, string> = {
+  "Material:": "MaterialProvider:",
+  "Position:": "PositionProvider:",
+  "Vector:": "VectorProvider:",
+  "Environment:": "EnvironmentProvider:",
+  "Tint:": "TintProvider:",
+  "Curve:": "Curve:",
+  "Pattern:": "Pattern:",
+  "Prop:": "Prop:",
+  "Scanner:": "Scanner:",
+  "Assignment:": "Assignment:",
+  "Condition:": "Condition:",
+  "Layer:": "Layer:",
+};
+
+/**
+ * Resolve editor type keys (e.g. Material:Constant) to legacy default map keys
+ * (MaterialProvider:Constant).
+ */
+export function resolveLegacyFlatKey(typeKey: string): string {
+  if (LEGACY_FLAT[typeKey]) return typeKey;
+  for (const [short, full] of Object.entries(EDITOR_SHORT_TO_LEGACY_PREFIX)) {
+    if (typeKey.startsWith(short)) {
+      const legacyKey = full + typeKey.slice(short.length);
+      if (LEGACY_FLAT[legacyKey]) return legacyKey;
+    }
+  }
+  return typeKey;
+}
+
+export function getLegacyDefaultsForType(typeKey: string): DefaultFields {
+  return LEGACY_FLAT[resolveLegacyFlatKey(typeKey)] ?? {};
+}
+
 // ---------------------------------------------------------------------------
 // Primary API: getDefaults(typeKey)
 // ---------------------------------------------------------------------------
@@ -402,7 +437,7 @@ populateLegacyFlat();
  * @param typeKey - Full type key (e.g. "SimplexNoise2D", "Curve:Manual", "MaterialProvider:Constant")
  */
 export function getDefaults(typeKey: string): DefaultFields {
-  const legacy = LEGACY_FLAT[typeKey] ?? {};
+  const legacy = getLegacyDefaultsForType(typeKey);
   const bundleDefaults = getNodeDefaults(typeKey);
 
   // For bare keys (no prefix), the caller expects Density-category defaults.
@@ -499,8 +534,7 @@ function createCategoryProxy(
 export const DENSITY_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_DENSITY, AssetCategory.Density);
 export const CURVE_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_CURVE, AssetCategory.Curve, "Curve");
 export const MATERIAL_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_MATERIAL, AssetCategory.MaterialProvider, "MaterialProvider");
-// Conditions are sub-types of MaterialProvider in V2 — there is no separate AssetCategory.Condition
-export const CONDITION_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_CONDITION, AssetCategory.MaterialProvider, "Condition");
+export const CONDITION_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_CONDITION, AssetCategory.Condition, "Condition");
 export const PATTERN_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_PATTERN, AssetCategory.Pattern, "Pattern");
 export const POSITION_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_POSITION, AssetCategory.PositionProvider, "PositionProvider");
 export const PROP_DEFAULTS: Record<string, DefaultFields> = createCategoryProxy(LEGACY_PROP, AssetCategory.Prop, "Prop");
@@ -536,9 +570,20 @@ const CATEGORY_PREFIX: Record<string, AssetCategory> = {
   TintProvider: AssetCategory.TintProvider,
   BlockMask: AssetCategory.BlockMask,
   Directionality: AssetCategory.Directionality,
-  // Conditions are sub-types of MaterialProvider in V2
-  Condition: AssetCategory.MaterialProvider,
+  PropDistribution: AssetCategory.PropDistribution,
+  Condition: AssetCategory.Condition,
+  Layer: AssetCategory.Layer,
+  PointGenerator: AssetCategory.PointGenerator,
+  Terrain: AssetCategory.Terrain,
+  CaveGenerator: AssetCategory.CaveGenerator,
+  Generator: AssetCategory.Generator,
+  Biome: AssetCategory.Biome,
+  WorldStructure: AssetCategory.WorldStructure,
 };
+
+const CATEGORY_TO_BUNDLE_PREFIX: Partial<Record<AssetCategory, string>> = Object.fromEntries(
+  Object.entries(CATEGORY_PREFIX).map(([prefix, category]) => [category, prefix]),
+);
 
 function buildEntries(
   record: Record<string, DefaultFields>,
@@ -571,26 +616,36 @@ function buildLocalEntries(): CategoryDefaultsEntry[] {
     ...buildEntries(LEGACY_TINT, AssetCategory.TintProvider, "TintProvider"),
     ...buildEntries(LEGACY_BLOCK_MASK, AssetCategory.BlockMask, "BlockMask"),
     ...buildEntries(LEGACY_DIRECTIONALITY, AssetCategory.Directionality, "Directionality"),
-    ...buildEntries(LEGACY_CONDITION, AssetCategory.MaterialProvider, "Condition"),
+    ...buildEntries(LEGACY_CONDITION, AssetCategory.Condition, "Condition"),
   ];
 }
 
 // Build set of locally-registered type keys for dedup with schema entries
 const localEntries = buildLocalEntries();
-const localTypeSet = new Set(localEntries.map((e) => {
+function getBundleTypeKey(e: Pick<CategoryDefaultsEntry, "type" | "category">): string {
   if (e.category === AssetCategory.Density) return e.type;
-  const prefix = Object.entries(CATEGORY_PREFIX).find(([, cat]) => cat === e.category)?.[0];
+  if (e.type.includes(":")) return e.type;
+  const prefix = CATEGORY_TO_BUNDLE_PREFIX[e.category];
   return prefix ? `${prefix}:${e.type}` : e.type;
-}));
+}
+
+const localTypeSet = new Set(localEntries.map(getBundleTypeKey));
 
 // Add schema-derived entries for types not covered by legacy
 function buildSchemaEntries(): CategoryDefaultsEntry[] {
   const entries: CategoryDefaultsEntry[] = [];
-  for (const nodeType of getAllSchemaTypes()) {
-    if (localTypeSet.has(nodeType)) continue;
+  const allSchemaTypes = new Set(getAllSchemaTypes());
+  const seenTypeSet = new Set(localTypeSet);
 
+  for (const nodeType of allSchemaTypes) {
     const category = getSchemaCategory(nodeType);
     if (!category) continue;
+
+    const canonicalTypeKey = getBundleTypeKey({ type: nodeType, category });
+    if (nodeType !== canonicalTypeKey && allSchemaTypes.has(canonicalTypeKey)) continue;
+    if (seenTypeSet.has(canonicalTypeKey)) continue;
+    seenTypeSet.add(canonicalTypeKey);
+
 
     entries.push({
       type: nodeType,

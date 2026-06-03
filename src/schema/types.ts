@@ -18,6 +18,12 @@ export enum AssetCategory {
   Settings = "Settings",
   Directionality = "Directionality",
   PropDistribution = "PropDistribution",
+  Condition = "Condition",
+  Layer = "Layer",
+  PointGenerator = "PointGenerator",
+  Terrain = "Terrain",
+  CaveGenerator = "CaveGenerator",
+  Generator = "Generator",
 }
 
 /** Base fields shared by most V2 asset types */
@@ -84,4 +90,10 @@ export const CATEGORY_COLORS: Record<AssetCategory, string> = {
   [AssetCategory.Settings]: "#8C8878",
   [AssetCategory.Directionality]: "#B8648B",
   [AssetCategory.PropDistribution]: "#9B6EA5",
+  [AssetCategory.Condition]: "#8E7CC3",
+  [AssetCategory.Layer]: "#B59A5B",
+  [AssetCategory.PointGenerator]: "#6A9A8F",
+  [AssetCategory.Terrain]: "#6E8F58",
+  [AssetCategory.CaveGenerator]: "#6F6B9E",
+  [AssetCategory.Generator]: "#6D7F8F",
 };
