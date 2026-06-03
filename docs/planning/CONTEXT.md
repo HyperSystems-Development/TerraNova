@@ -50,7 +50,7 @@ TerraNova is a fully functional visual worldgen design studio for Hytale. The v0
 
 All V2 worldgen documentation lives in `hytale-server-docs/docs/worldgen/`. These 19 files are the schema source of truth for TerraNova.
 
-**Source:** Decompiled from Hytale server pre-release `2026.02.05-9ce2783f7`
+**Source:** Decompiled from Hytale server pre-release `2026.02.05-9ce2783f7` (bundled schema). Runtime asset sync in TerraNova also supports the user's **release** install via `Assets.zip`; see [Environments & Weather guide](../tutorials/environments-weather-guide.md#importing-from-hytale-assets).
 
 | # | Document | Types Defined | Relevance to TerraNova |
 |---|----------|---------------|----------------------|

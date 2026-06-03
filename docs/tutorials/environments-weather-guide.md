@@ -61,25 +61,30 @@ This is especially useful for:
 
 ### Manual Cache Setup
 
-If you want TerraNova to use Hytale assets already installed on your machine, open `Settings -> Hytale Asset Cache` and point TerraNova at your local asset source.
+If you want TerraNova to use Hytale assets already installed on your machine, open **Settings → Assets → Hytale Asset Cache** and point TerraNova at your local asset source.
 
-Common setups:
+**Default channel:** TerraNova prefers the **Release** install when both are present. Use **Pre-release** only if you intentionally work against that build.
 
-- Pre-release:
+Common setups (Windows; macOS/Linux use the same path under your Hytale data root):
 
-```text
-C:\Users\<you>\AppData\Roaming\Hytale\install\pre-release\package\game\latest\Assets.zip
-```
-
-- Release:
+- **Release (recommended)** — folder or zip:
 
 ```text
-C:\Users\<you>\AppData\Roaming\Hytale\install\release\package\game\latest
+%APPDATA%\Hytale\install\release\package\game\latest
+%APPDATA%\Hytale\install\release\package\game\latest\Assets.zip
 ```
 
-You can also point the release source directly at the `Assets.zip` inside `latest`.
+The release `latest` folder often contains only `Assets.zip` (not loose `Common/` or `Server/` trees). TerraNova detects the zip and extracts `Common/` and `Server/` into its cache automatically.
 
-If you want extra material art, block PNGs, and related shared textures, enable the external `Common` source in TerraNova settings and point it at:
+- **Pre-release** — usually the zip directly:
+
+```text
+%APPDATA%\Hytale\install\pre-release\package\game\latest\Assets.zip
+```
+
+After sync, material **Constant** nodes use **block IDs** (for example `Rock_Stone`). Icons load from cached `Common/Icons/ItemsGenerated/{blockId}.png` in the desktop app. Release assets do not use a separate `HytaleGenerator/Materials/` folder the way some older docs implied; materials live inside biome graphs.
+
+If you want extra material art, block PNGs, or overlays, enable the external **Common** source in TerraNova settings and point it at:
 
 ```text
 C:\Users\<you>\Desktop\Assets\Common
@@ -89,11 +94,13 @@ or any parent folder that contains `Common`.
 
 The sync flow is:
 
-1. choose `Pre-release` or `Release`
-2. point TerraNova at `Assets.zip` or the `latest` folder on your computer
-3. optionally layer in an external `Common` source
-4. press `Sync Now`
-5. use `Add Hytale Asset`, the Issue Log, or the Asset Tools pane against the cached files
+1. Choose **Release** (or **Pre-release** if you need that build).
+2. Point TerraNova at the `latest` folder or `Assets.zip` on your computer.
+3. Optionally layer in an external `Common` source.
+4. Press **Sync Now** (expect thousands of files for a full release zip, not zero).
+5. Use **Add Hytale Asset**, the Issue Log, or the Asset Tools pane against the cached files.
+
+**Biome round-trip:** Opening a Hytale biome imports canvas **comments** and **frames** from `$NodeEditorMetadata` when present. Saving writes them back and preserves imported `$WorkspaceID`, `$Links`, and `$FloatingNodes` even if you do not edit them on the canvas.
 
 ---
 

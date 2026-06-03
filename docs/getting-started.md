@@ -100,6 +100,6 @@ Data flows from **left to right** through the graph. The far-right node is alway
 
 - [Node Effects Reference](./reference/node-effects.md): what every node type does
 - [Curves Reference](./reference/curves.md): visual guide to every curve type with live previews
-- [Environments & Weather Guide](./tutorials/environments-weather-guide.md): atmosphere, fog, sky
+- [Environments & Weather Guide](./tutorials/environments-weather-guide.md): atmosphere, fog, sky, and syncing assets from your Hytale install
 
 **Tip:** Keep this Docs panel open while you work. Press `Ctrl+\`` to flip between Properties and Docs so you can reference a node's documentation while editing its fields.

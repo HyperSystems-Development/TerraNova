@@ -52,4 +52,4 @@ TerraNova is for the **design phase** — architect your worldgen offline, itera
 
 ---
 
-*Targets Hytale server pre-release 2026.02.05. Schema updates will track new Hytale versions as they release.*
+*Bundled schema targets Hytale server pre-release 2026.02.05. TerraNova can sync and validate against the user's installed **release** game assets (see Settings → Assets). Schema updates will track new Hytale versions as they release.*

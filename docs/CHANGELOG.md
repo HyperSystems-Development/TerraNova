@@ -2,6 +2,26 @@
 
 All notable changes to [TerraNova](https://github.com/HyperSystems-Development/TerraNova) are documented in this file.
 
+## Unreleased
+
+### Features
+
+- **Hytale release asset sync** — Pointing TerraNova at the installed **release** `latest` folder (or its `Assets.zip`) extracts game assets into the local cache; pre-release remains available as an alternate channel in Settings
+- **Canvas annotation import** — Biome and density imports merge Hytale `$NodeEditorMetadata` comments and frames onto the graph after auto-layout; export writes native lowercase keys with PascalCase fallback
+- **Editor metadata preservation** — `$WorkspaceID`, `$Links`, and `$FloatingNodes` from imported files are kept across save and export when not edited on the canvas
+- **Block icons from synced cache** — Material fields show PNGs from `Common/Icons/ItemsGenerated` after sync (desktop app), with bundled icons as fallback
+- **Editor QoL** — Improved quick add and node search (prefixed types), toolbar actions, and canvas status strip
+
+### Bug Fixes
+
+- **Material:Constant fields** — Prefixed material nodes no longer resolve to Tint `Constant` schema fields; `Material` shows the correct block ID editor
+- **Material export shape** — Constant material leaves export as `{ Solid, Fluid: "", SolidBottomUp: false }` to match release biomes
+
+### Documentation
+
+- **AGENTS.md** — Agent memory for recurring preferences (release-first assets, verification gates, no unsolicited commits)
+- **Hytale asset guide** — Environments tutorial updated for release `Assets.zip` layout and sync defaults
+
 ## [0.1.7-pre.2] — 2026-03-18
 
 ### Features

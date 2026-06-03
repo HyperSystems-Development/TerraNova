@@ -37,7 +37,7 @@
 
 **Schema Validation** — Real-time diagnostics on type errors, missing fields, and invalid ranges. Error, warning, and info badges appear directly on nodes. Legacy node detection with suggested replacements.
 
-**Hytale Asset Sync** — Sync assets from your Hytale installation with progress tracking, cancellation support, and staleness detection. Browse and reference assets directly from the editor.
+**Hytale Asset Sync** — Sync from your installed game (defaults to the **release** `latest` folder or `Assets.zip` on Windows). TerraNova extracts `Common/` and `Server/` from the zip when the game ships assets that way. Progress tracking, cancellation, staleness detection, and block icons from `Common/Icons/ItemsGenerated` after sync.
 
 **Bridge Integration** — Connect to a running Hytale server and push exported asset packs directly. Design offline, deploy in one click.
 
@@ -188,6 +188,8 @@ pnpm install
 # Launch in development mode (opens app window with hot reload)
 pnpm tauri dev
 ```
+
+For block icons and asset validation against real game data, sync once in **Settings → Assets** using your Hytale **release** install path (see [Environments & Weather guide](docs/tutorials/environments-weather-guide.md#importing-from-hytale-assets)).
 
 ### Build
 
