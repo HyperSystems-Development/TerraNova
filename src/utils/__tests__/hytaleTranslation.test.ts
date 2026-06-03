@@ -195,6 +195,54 @@ describe("Skip field", () => {
     expect(result.Skip).toBe(false);
   });
 
+  it("adds Skip: false and PropDistribution node ids on export", () => {
+    const result = internalToHytale({
+      Type: "PropDistribution:Assigned",
+      OverrideAllProps: true,
+      PropDistribution: { Type: "PropDistribution:Positions" },
+      Assignments: { Type: "Assignment:Imported", Name: "Trees" },
+    });
+
+    expect(result.Type).toBe("Assigned");
+    expect(result.Skip).toBe(false);
+    expect(String(result.$NodeId)).toMatch(/^Assigned\.PropDistribution-/);
+    expect((result.PropDistribution as Record<string, unknown>).Skip).toBe(false);
+    expect(String((result.PropDistribution as Record<string, unknown>).$NodeId)).toMatch(/^Positions\.PropDistribution-/);
+  });
+
+  it("imports Props PropDistribution trees without Hytale metadata", () => {
+    const { wrapper } = hytaleToInternalBiome({
+      $NodeId: "Biome-1",
+      Type: "Biome",
+      Props: [
+        {
+          PropDistribution: {
+            $NodeId: "Assigned.PropDistribution-1",
+            Type: "Assigned",
+            Skip: false,
+            OverrideAllProps: true,
+            PropDistribution: {
+              $NodeId: "Positions.PropDistribution-2",
+              Type: "Positions",
+              Skip: false,
+            },
+          },
+        },
+      ],
+    });
+
+    const props = wrapper.Props as Array<Record<string, unknown>>;
+    const distribution = props[0].PropDistribution as Record<string, unknown>;
+    const child = distribution.PropDistribution as Record<string, unknown>;
+
+    expect(distribution.Type).toBe("Assigned");
+    expect(distribution.Skip).toBeUndefined();
+    expect(distribution.__hytaleNodeId).toBe("Assigned.PropDistribution-1");
+    expect(child.Type).toBe("Positions");
+    expect(child.Skip).toBeUndefined();
+    expect(child.__hytaleNodeId).toBe("Positions.PropDistribution-2");
+  });
+
   it("strips Skip on import", () => {
     const { asset } = hytaleToInternal({
       $NodeId: "ConstantDensityNode-123",
@@ -203,6 +251,19 @@ describe("Skip field", () => {
       Skip: false,
     });
     expect(asset.Skip).toBeUndefined();
+  });
+
+  it("does not export legacy Name on density Exported nodes", () => {
+    const result = internalToHytale({
+      Type: "Exported",
+      Name: "LegacyName",
+      SingleInstance: true,
+      Input: { Type: "Constant", Value: 1 },
+    });
+
+    expect(result.Name).toBeUndefined();
+    expect(result.ExportAs).toBe("LegacyName");
+    expect(result.SingleInstance).toBe(true);
   });
 });
 
@@ -726,10 +787,12 @@ describe("curve points", () => {
 // ---------------------------------------------------------------------------
 
 describe("material string ↔ object", () => {
-  it("wraps material string as {$NodeId, Solid} on export", () => {
+  it("wraps material string as release-style Material leaf on export", () => {
     const result = internalToHytale({ Type: "Constant", Material: "Rock_Lime_Cobble" });
     const mat = result.Material as Record<string, unknown>;
     expect(mat.Solid).toBe("Rock_Lime_Cobble");
+    expect(mat.Fluid).toBe("");
+    expect(mat.SolidBottomUp).toBe(false);
     expect(mat.$NodeId).toBeDefined();
   });
 
@@ -740,6 +803,7 @@ describe("material string ↔ object", () => {
       Material: {
         $NodeId: "Material-456",
         Solid: "Rock_Lime_Cobble",
+        SolidBottomUp: false,
       },
     });
     expect(asset.Material).toBe("Rock_Lime_Cobble");
@@ -1840,6 +1904,44 @@ describe("HeightGradient → Queue[FieldFunction(YValue)] export", () => {
     expect(mat.Solid).toBeUndefined();
     expect(mat.Empty).toBeUndefined();
     expect(mat.DepthThreshold).toBeUndefined();
+  });
+
+  it("exports explicit SpaceAndDepth Layers instead of reconstructing flat legacy layers", () => {
+    const exported = internalToHytale({
+      Type: "Material:SpaceAndDepth",
+      LayerContext: "DEPTH_INTO_FLOOR",
+      MaxExpectedDepth: 24,
+      Layers: [
+        {
+          Type: "Layer:ConstantThickness",
+          Thickness: 2,
+          Material: { Type: "Material:Constant", Material: "Soil_Grass" },
+        },
+        {
+          Type: "Layer:RangeThickness",
+          RangeMin: 3,
+          RangeMax: 7,
+          Seed: "A",
+          Material: { Type: "Material:Constant", Material: "Soil_Dirt" },
+        },
+      ],
+    });
+
+    expect(exported.Type).toBe("SpaceAndDepth");
+    expect(exported.LayerContext).toBe("DEPTH_INTO_FLOOR");
+    expect(exported.MaxExpectedDepth).toBe(24);
+    expect(exported.DepthThreshold).toBeUndefined();
+    expect(exported.Solid).toBeUndefined();
+    expect(exported.Empty).toBeUndefined();
+
+    const layers = exported.Layers as Record<string, unknown>[];
+    expect(layers).toHaveLength(2);
+    expect(layers[0].Type).toBe("ConstantThickness");
+    expect(String(layers[0].$NodeId)).toMatch(/^ConstantThickness\.Layer-/);
+    expect((layers[0].Material as Record<string, unknown>).Type).toBe("Constant");
+    expect(layers[1].Type).toBe("RangeThickness");
+    expect(layers[1].RangeMax).toBe(7);
+    expect(String(layers[1].$NodeId)).toMatch(/^RangeThickness\.Layer-/);
   });
 
   it("does not emit HeightGradient type in exported material tree", () => {

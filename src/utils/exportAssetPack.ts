@@ -40,7 +40,20 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
   const currentFile = useProjectStore.getState().currentFile;
   if (!currentFile) return null;
 
-  const { nodes, edges, originalWrapper, biomeRanges, noiseRangeConfig, editingContext, settingsConfig, biomeConfig, biomeSections, activeBiomeSection, outputNodeId } = useEditorStore.getState();
+  const {
+    nodes,
+    edges,
+    originalWrapper,
+    biomeRanges,
+    noiseRangeConfig,
+    editingContext,
+    settingsConfig,
+    biomeConfig,
+    biomeSections,
+    activeBiomeSection,
+    outputNodeId,
+    preservedNodeEditorMetadata,
+  } = useEditorStore.getState();
 
   // NoiseRange files
   if (originalWrapper?.Type === "NoiseRange") {
@@ -56,7 +69,7 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
     }
     const densityJson = graphToJson(nodes, edges);
     if (densityJson) output.Density = densityJson;
-    const noiseRangeResult = normalizeExport(output, nodes) as Record<string, unknown>;
+    const noiseRangeResult = normalizeExport(output, nodes, preservedNodeEditorMetadata) as Record<string, unknown>;
     // ContentFields → Framework conversion for Hytale compatibility
     if (Array.isArray(noiseRangeResult.ContentFields) && (!noiseRangeResult.Framework || (Array.isArray(noiseRangeResult.Framework) && noiseRangeResult.Framework.length === 0) || (typeof noiseRangeResult.Framework === "object" && Object.keys(noiseRangeResult.Framework as object).length === 0))) {
       const entries = (noiseRangeResult.ContentFields as Record<string, unknown>[]).map((cf) => ({
@@ -170,6 +183,7 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
       Object.fromEntries(
         Object.entries(updatedSections).map(([key, section]) => [key, section.nodes]),
       ),
+      preservedNodeEditorMetadata,
     ) as Record<string, unknown>;
   }
 
@@ -179,19 +193,19 @@ export function serializeCurrentFile(): Record<string, unknown> | null {
 
   if (originalWrapper) {
     if ("Type" in originalWrapper) {
-      return normalizeExport(json, nodes) as Record<string, unknown>;
+      return normalizeExport(json, nodes, preservedNodeEditorMetadata) as Record<string, unknown>;
     }
     // Non-typed wrapper
     const output = { ...originalWrapper };
     let replaced = false;
     for (const [key, val] of Object.entries(output)) {
       if (val && typeof val === "object" && "Type" in (val as Record<string, unknown>)) {
-        output[key] = normalizeExport(json, nodes);
+        output[key] = normalizeExport(json, nodes, preservedNodeEditorMetadata);
         replaced = true;
         break;
       }
     }
-    return (replaced ? output : normalizeExport(json, nodes)) as Record<string, unknown>;
+    return (replaced ? output : normalizeExport(json, nodes, preservedNodeEditorMetadata)) as Record<string, unknown>;
   }
 
   return normalizeExport(json, nodes) as Record<string, unknown>;
@@ -304,7 +318,32 @@ export async function exportCurrentJson(): Promise<void> {
 
     // Run lightweight pre-export validation (warn but don't block)
     const currentFile = useProjectStore.getState().currentFile ?? "";
-    const validationWarnings = validateExport(json, currentFile);
+    const { nodes, biomeSections } = useEditorStore.getState();
+    const propConditionalWarnings: string[] = [];
+    const scanNodes = (list: typeof nodes) => {
+      for (const node of list) {
+        const rfType = node.type ?? "";
+        const dataType = (node.data as Record<string, unknown>).type as string | undefined;
+        if (rfType === "Prop:Conditional" || dataType === "Prop:Conditional") {
+          propConditionalWarnings.push(
+            "Prop Conditional exports only TrueInput — FalseInput and condition are dropped",
+          );
+          break;
+        }
+      }
+    };
+    scanNodes(nodes);
+    if (biomeSections) {
+      for (const section of Object.values(biomeSections)) {
+        scanNodes(section.nodes);
+        if (propConditionalWarnings.length > 0) break;
+      }
+    }
+
+    const validationWarnings = [
+      ...validateExport(json, currentFile),
+      ...propConditionalWarnings,
+    ];
     if (validationWarnings.length > 0) {
       addToast(`Export warnings: ${validationWarnings.join("; ")}`, "warning");
     }

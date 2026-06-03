@@ -24,6 +24,12 @@ import {
 } from "./translationMaps";
 import type { Node } from "@xyflow/react";
 import { DEFAULT_WORLD_HEIGHT } from "@/constants";
+import {
+  mergePreservedNodeEditorMetadata,
+  type PreservedNodeEditorMetadata,
+} from "@/utils/nodeEditorMetadata";
+import { getSchemaCategory } from "@/schema/schemaLoader";
+import { AssetCategory } from "@/schema/types";
 
 // ---------------------------------------------------------------------------
 // Type name mapping (internal → V2/Hytale)
@@ -81,6 +87,50 @@ interface TransformContext {
   reactFlowNodes?: Node[];
 }
 
+const SCHEMA_CATEGORY_TO_EXPORT_CATEGORY: Partial<Record<AssetCategory, string>> = {
+  [AssetCategory.Curve]: "curve",
+  [AssetCategory.MaterialProvider]: "material",
+  [AssetCategory.Pattern]: "pattern",
+  [AssetCategory.PositionProvider]: "position",
+  [AssetCategory.Prop]: "prop",
+  [AssetCategory.Scanner]: "scanner",
+  [AssetCategory.Assignment]: "assignment",
+  [AssetCategory.VectorProvider]: "vector",
+  [AssetCategory.EnvironmentProvider]: "environment",
+  [AssetCategory.TintProvider]: "tint",
+  [AssetCategory.BlockMask]: "blockMask",
+  [AssetCategory.Directionality]: "directionality",
+  [AssetCategory.PropDistribution]: "propdistribution",
+  [AssetCategory.Condition]: "condition",
+  [AssetCategory.Layer]: "layer",
+  [AssetCategory.PointGenerator]: "pointgenerator",
+  [AssetCategory.Terrain]: "terrain",
+  [AssetCategory.CaveGenerator]: "cavegenerator",
+  [AssetCategory.Generator]: "generator",
+  [AssetCategory.Biome]: "biome",
+  [AssetCategory.WorldStructure]: "worldstructure",
+};
+
+const NON_DENSITY_BARE_SCHEMA_TYPES = new Set([
+  "AlwaysTrueCondition",
+  "AndCondition",
+  "EqualsCondition",
+  "GreaterThanCondition",
+  "NotCondition",
+  "OrCondition",
+  "SmallerThanCondition",
+  "ConstantThickness",
+  "NoiseThickness",
+  "RangeThickness",
+  "WeightedThickness",
+  "BiomeAsset",
+  "DAOTerrain",
+  "HytaleGenerator",
+  "NoiseRange",
+  "WorldStructureAsset",
+  "WorldStructureNoiseRange",
+]);
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -89,10 +139,9 @@ function generateNodeId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
-function inferCategory(parentField: string | undefined, type: string): string {
-  if (parentField && parentField in FIELD_TO_CATEGORY) {
-    return FIELD_TO_CATEGORY[parentField];
-  }
+function inferCategory(parentField: string | undefined, type: string, explicitCategory?: string): string {
+  if (explicitCategory) return explicitCategory;
+
   // Infer from type prefix for category:Type nodes (e.g., "Material:Constant")
   if (type.includes(":")) {
     const catPrefix = type.split(":")[0].toLowerCase();
@@ -102,8 +151,32 @@ function inferCategory(parentField: string | undefined, type: string): string {
     if (catPrefix === "position") return "position";
     if (catPrefix === "scanner") return "scanner";
     if (catPrefix === "prop") return "prop";
+    if (catPrefix === "propdistribution") return "propdistribution";
     if (catPrefix === "assignment") return "assignment";
     if (catPrefix === "vector") return "vector";
+    if (catPrefix === "environment") return "environment";
+    if (catPrefix === "tint") return "tint";
+    if (catPrefix === "blockmask") return "blockMask";
+    if (catPrefix === "directionality") return "directionality";
+    if (catPrefix === "condition") return "condition";
+    if (catPrefix === "layer") return "layer";
+    if (catPrefix === "pointgenerator") return "pointgenerator";
+    if (catPrefix === "terrain") return "terrain";
+    if (catPrefix === "cavegenerator") return "cavegenerator";
+    if (catPrefix === "generator") return "generator";
+    if (catPrefix === "biome") return "biome";
+    if (catPrefix === "worldstructure") return "worldstructure";
+  }
+  const bareType = stripCategoryPrefix(type);
+  const schemaCategory = NON_DENSITY_BARE_SCHEMA_TYPES.has(bareType)
+    ? getSchemaCategory(bareType)
+    : null;
+  if (schemaCategory && schemaCategory !== AssetCategory.Density) {
+    const category = SCHEMA_CATEGORY_TO_EXPORT_CATEGORY[schemaCategory];
+    if (category) return category;
+  }
+  if (parentField && parentField in FIELD_TO_CATEGORY) {
+    return FIELD_TO_CATEGORY[parentField];
   }
   return "density"; // default
 }
@@ -482,6 +555,22 @@ function transformSpaceAndDepthFields(
     return result;
   }
 
+  if ("Layers" in result && Array.isArray(result.Layers)) {
+    result.Layers = (result.Layers as unknown[]).map((layer) => {
+      if (layer && typeof layer === "object" && "Type" in (layer as Record<string, unknown>)) {
+        return transformNode(layer as V2Asset, { ...ctx, parentField: "Layers", category: "layer" });
+      }
+      return layer;
+    });
+    if (!("LayerContext" in result)) result.LayerContext = "DEPTH_INTO_FLOOR";
+    if (!("MaxExpectedDepth" in result)) result.MaxExpectedDepth = 16;
+    delete result.DepthThreshold;
+    delete result.Solid;
+    delete result.Empty;
+    delete result.__originalMaxExpectedDepth;
+    return result;
+  }
+
   // 2-layer case: reconstruct from DepthThreshold/Empty/Solid
   const depthThreshold = (result.DepthThreshold as number) ?? 2;
   const originalMaxDepth = (result.__originalMaxExpectedDepth as number) ?? 16;
@@ -719,10 +808,13 @@ function transformCurvePoints(points: unknown[]): unknown[] {
 // Material string → object wrapping
 // ---------------------------------------------------------------------------
 
+/** Hytale release format: Material leaf with Solid block id (see Assets.zip biomes). */
 function wrapMaterialString(value: string): Record<string, unknown> {
   return {
     $NodeId: generateNodeId("Material"),
     Solid: value,
+    Fluid: "",
+    SolidBottomUp: false,
   };
 }
 
@@ -1281,7 +1373,7 @@ function transformDensityConditional(
 
 export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Record<string, unknown> {
   const internalType = stripCategoryPrefix(asset.Type);
-  const category = inferCategory(ctx.parentField, asset.Type);
+  const category = inferCategory(ctx.parentField, asset.Type, ctx.category);
 
   // Vector:Constant → Point3D format (Hytale uses { $NodeId: "Point3D-...", X, Y, Z } without Type)
   // Detect by category prefix OR by value shape (for nodes in fields like Range/Offset
@@ -1388,9 +1480,11 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
     hytaleType = INTERNAL_TO_HYTALE_TYPES[internalType] ?? internalType;
   }
 
-  // Framework-specific types pass through without $NodeId/Skip injection
+  // Framework-specific types pass through without $NodeId/Skip injection.
+  // Keep this to unprefixed framework entries so PropDistribution:Positions
+  // still exports as a normal prop-distribution node.
   const FRAMEWORK_TYPES = new Set(["Positions", "DecimalConstants", "DensityConstants"]);
-  if (FRAMEWORK_TYPES.has(hytaleType)) {
+  if (!asset.Type.includes(":") && FRAMEWORK_TYPES.has(hytaleType)) {
     const output: Record<string, unknown> = { Type: hytaleType };
     for (const [key, value] of Object.entries(asset)) {
       if (key === "Type") continue;
@@ -1525,6 +1619,13 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
   // Cache
   if (hytaleType === "Cache") {
     transformedFields = transformCacheFields(transformedFields);
+  }
+
+  if (hytaleType === "Exported" && category === "density") {
+    if (transformedFields.ExportAs === undefined && typeof transformedFields.Name === "string") {
+      transformedFields.ExportAs = transformedFields.Name;
+    }
+    delete transformedFields.Name;
   }
 
   // ColumnLinear scanner
@@ -1730,7 +1831,7 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
       value && typeof value === "object" && !Array.isArray(value) &&
       "Type" in (value as Record<string, unknown>)
     ) {
-      output[key] = transformNode(value as V2Asset, { ...ctx, parentField: key });
+      output[key] = transformNode(value as V2Asset, { parentField: key, reactFlowNodes: ctx.reactFlowNodes });
       continue;
     }
 
@@ -1741,7 +1842,7 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
       "Type" in value[0]
     ) {
       output[key] = value.map((item) =>
-        transformNode(item as V2Asset, { ...ctx, parentField: key }),
+        transformNode(item as V2Asset, { parentField: key, reactFlowNodes: ctx.reactFlowNodes }),
       );
       continue;
     }
@@ -1791,12 +1892,16 @@ export function transformNode(asset: V2Asset, ctx: TransformContext = {}): Recor
 export function internalToHytale(
   asset: V2Asset,
   reactFlowNodes?: Node[],
+  preservedMetadata?: PreservedNodeEditorMetadata | null,
 ): Record<string, unknown> {
   const result = transformNode(asset, { reactFlowNodes });
 
   // Generate $NodeEditorMetadata at root if React Flow nodes available
   if (reactFlowNodes && reactFlowNodes.length > 0) {
-    result.$NodeEditorMetadata = generateNodeEditorMetadata(reactFlowNodes);
+    result.$NodeEditorMetadata = mergePreservedNodeEditorMetadata(
+      generateNodeEditorMetadata(reactFlowNodes),
+      preservedMetadata,
+    );
   }
 
   return result;
@@ -1809,6 +1914,7 @@ export function internalToHytale(
 export function internalToHytaleBiome(
   wrapper: Record<string, unknown>,
   sectionNodes?: Record<string, Node[]>,
+  preservedMetadata?: PreservedNodeEditorMetadata | null,
 ): Record<string, unknown> {
   const output: Record<string, unknown> = {};
 
@@ -1872,6 +1978,9 @@ export function internalToHytaleBiome(
       output[key] = value.map((prop) => {
         if (!prop || typeof prop !== "object") return prop;
         const propObj = { ...(prop as Record<string, unknown>) };
+        if (propObj.PropDistribution && typeof propObj.PropDistribution === "object" && "Type" in (propObj.PropDistribution as Record<string, unknown>)) {
+          propObj.PropDistribution = transformNode(propObj.PropDistribution as V2Asset, { parentField: "PropDistribution", category: "propdistribution" });
+        }
         if (propObj.Positions && typeof propObj.Positions === "object" && "Type" in (propObj.Positions as Record<string, unknown>)) {
           propObj.Positions = transformNode(propObj.Positions as V2Asset, { parentField: "PositionProvider", category: "position" });
         }
@@ -1882,6 +1991,21 @@ export function internalToHytaleBiome(
           propObj.Prop = transformNode(propObj.Prop as V2Asset, { parentField: "Prop", category: "prop" });
         }
         return propObj;
+      });
+      continue;
+    }
+
+    if (key === "PropDistribution" && value && typeof value === "object" && "Type" in (value as Record<string, unknown>)) {
+      output[key] = transformNode(value as V2Asset, { parentField: key, category: "propdistribution" });
+      continue;
+    }
+
+    if (key === "PropDistributions" && Array.isArray(value)) {
+      output[key] = value.map((distribution) => {
+        if (!distribution || typeof distribution !== "object" || !("Type" in (distribution as Record<string, unknown>))) {
+          return distribution;
+        }
+        return transformNode(distribution as V2Asset, { parentField: key, category: "propdistribution" });
       });
       continue;
     }
@@ -1907,7 +2031,10 @@ export function internalToHytaleBiome(
   if (sectionNodes) {
     const allNodes = Object.values(sectionNodes).flat();
     if (allNodes.length > 0) {
-      output.$NodeEditorMetadata = generateNodeEditorMetadata(allNodes);
+      output.$NodeEditorMetadata = mergePreservedNodeEditorMetadata(
+        generateNodeEditorMetadata(allNodes),
+        preservedMetadata,
+      );
     }
   }
 
@@ -1926,9 +2053,14 @@ function generateNodeEditorMetadata(nodes: Node[]): Record<string, unknown> {
   for (const node of nodes) {
     if (node.type === "comment") {
       const d = node.data as { text?: string; width?: number; height?: number };
+      const text = d.text ?? "";
       $Comments.push({
-        "$Text": d.text ?? "",
+        // Hytale release assets use lowercase keys; keep PascalCase for older TerraNova exports.
+        "$text": text,
+        "$Text": text,
         "$Position": { "$x": node.position.x, "$y": node.position.y },
+        "$width": d.width ?? 200,
+        "$height": d.height ?? 80,
         "$Width": d.width ?? 200,
         "$Height": d.height ?? 80,
       });

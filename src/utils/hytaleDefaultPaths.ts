@@ -61,11 +61,7 @@ export async function resolveDefaultReleaseAssetsPath(): Promise<string> {
  * Common folder path.
  */
 export async function resolveDefaultCommonAssetsPath(): Promise<string> {
-  const preReleaseZip = await resolveDefaultPreReleaseAssetsPath();
-  if (await pathExists(preReleaseZip).catch(() => false)) {
-    return preReleaseZip;
-  }
-
+  // Prefer installed release (user's active game) before pre-release.
   const releaseRoot = await resolveDefaultReleaseAssetsPath();
   const releaseZip = await join(releaseRoot, "Assets.zip");
   if (await pathExists(releaseZip).catch(() => false)) {
@@ -75,6 +71,11 @@ export async function resolveDefaultCommonAssetsPath(): Promise<string> {
   const releaseCommon = await join(releaseRoot, "Common");
   if (await pathExists(releaseCommon).catch(() => false)) {
     return releaseCommon;
+  }
+
+  const preReleaseZip = await resolveDefaultPreReleaseAssetsPath();
+  if (await pathExists(preReleaseZip).catch(() => false)) {
+    return preReleaseZip;
   }
 
   const home = await homeDir();

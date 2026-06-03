@@ -838,12 +838,21 @@ pub fn count_changed_hytale_assets_from_source(
     if source_path.is_file() {
         total = count_changed_files_in_zip(source_path, &cache_root)?;
     } else if source_path.is_dir() {
-        total +=
-            count_changed_files_in_subdir(&source_path.join("Common"), &cache_root.join("Common"))
-                .unwrap_or(0);
-        total +=
-            count_changed_files_in_subdir(&source_path.join("Server"), &cache_root.join("Server"))
-                .unwrap_or(0);
+        let embedded_zip = source_path.join("Assets.zip");
+        if embedded_zip.is_file() {
+            total = count_changed_files_in_zip(&embedded_zip, &cache_root)?;
+        } else {
+            total += count_changed_files_in_subdir(
+                &source_path.join("Common"),
+                &cache_root.join("Common"),
+            )
+            .unwrap_or(0);
+            total += count_changed_files_in_subdir(
+                &source_path.join("Server"),
+                &cache_root.join("Server"),
+            )
+            .unwrap_or(0);
+        }
     }
 
     if let Some(overlay) = common_overlay_path {
@@ -1119,14 +1128,23 @@ pub fn sync_hytale_assets_from_source_with_progress(
         // Zip source: count only changed entries inside the archive.
         Some(count_changed_files_in_zip(source_path, &cache_root)?)
     } else if source_path.is_dir() {
-        let mut total = 0u64;
-        total +=
-            count_changed_files_in_subdir(&source_path.join("Common"), &cache_root.join("Common"))
-                .unwrap_or(0);
-        total +=
-            count_changed_files_in_subdir(&source_path.join("Server"), &cache_root.join("Server"))
-                .unwrap_or(0);
-        Some(total)
+        let embedded_zip = source_path.join("Assets.zip");
+        if embedded_zip.is_file() {
+            Some(count_changed_files_in_zip(&embedded_zip, &cache_root)?)
+        } else {
+            let mut total = 0u64;
+            total += count_changed_files_in_subdir(
+                &source_path.join("Common"),
+                &cache_root.join("Common"),
+            )
+            .unwrap_or(0);
+            total += count_changed_files_in_subdir(
+                &source_path.join("Server"),
+                &cache_root.join("Server"),
+            )
+            .unwrap_or(0);
+            Some(total)
+        }
     } else {
         None
     };
@@ -1200,21 +1218,33 @@ pub fn sync_hytale_assets_from_source_with_progress(
         )?;
         (files_written, "zip".into())
     } else {
-        copy_directory_recursive_with_progress(
-            &source_path.join("Common"),
-            &cache_root.join("Common"),
-            window,
-            total_files_opt,
-            &mut files_written,
-        )?;
-        copy_directory_recursive_with_progress(
-            &source_path.join("Server"),
-            &cache_root.join("Server"),
-            window,
-            total_files_opt,
-            &mut files_written,
-        )?;
-        (files_written, "directory".into())
+        let embedded_zip = source_path.join("Assets.zip");
+        if embedded_zip.is_file() {
+            extract_assets_zip_with_progress(
+                &embedded_zip,
+                &cache_root,
+                window,
+                total_files_opt.unwrap_or(0),
+                &mut files_written,
+            )?;
+            (files_written, "zip".into())
+        } else {
+            copy_directory_recursive_with_progress(
+                &source_path.join("Common"),
+                &cache_root.join("Common"),
+                window,
+                total_files_opt,
+                &mut files_written,
+            )?;
+            copy_directory_recursive_with_progress(
+                &source_path.join("Server"),
+                &cache_root.join("Server"),
+                window,
+                total_files_opt,
+                &mut files_written,
+            )?;
+            (files_written, "directory".into())
+        }
     };
 
     let (common_overlay_path_str, common_overlay_files_written) =

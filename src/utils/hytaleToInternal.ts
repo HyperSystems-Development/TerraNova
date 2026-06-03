@@ -7,6 +7,8 @@
 
 import { DEFAULT_WORLD_HEIGHT } from "@/constants";
 import { HYTALE_ARRAY_TO_NAMED } from "./translationMaps";
+import { getSchemaCategory } from "@/schema/schemaLoader";
+import { AssetCategory } from "@/schema/types";
 
 // ---------------------------------------------------------------------------
 // Type name mapping (V2/Hytale → internal)
@@ -45,9 +47,54 @@ const NORMALIZER_FIELDS = {
 
 interface ImportContext {
   parentField?: string;
+  category?: string;
   /** Collected $NodeEditorMetadata from root, if any */
   metadata?: Record<string, unknown>;
 }
+
+const SCHEMA_CATEGORY_TO_IMPORT_CATEGORY: Partial<Record<AssetCategory, string>> = {
+  [AssetCategory.Curve]: "curve",
+  [AssetCategory.MaterialProvider]: "material",
+  [AssetCategory.Pattern]: "pattern",
+  [AssetCategory.PositionProvider]: "position",
+  [AssetCategory.Prop]: "prop",
+  [AssetCategory.Scanner]: "scanner",
+  [AssetCategory.Assignment]: "assignment",
+  [AssetCategory.VectorProvider]: "vector",
+  [AssetCategory.EnvironmentProvider]: "environment",
+  [AssetCategory.TintProvider]: "tint",
+  [AssetCategory.BlockMask]: "blockMask",
+  [AssetCategory.Directionality]: "directionality",
+  [AssetCategory.PropDistribution]: "propdistribution",
+  [AssetCategory.Condition]: "condition",
+  [AssetCategory.Layer]: "layer",
+  [AssetCategory.PointGenerator]: "pointgenerator",
+  [AssetCategory.Terrain]: "terrain",
+  [AssetCategory.CaveGenerator]: "cavegenerator",
+  [AssetCategory.Generator]: "generator",
+  [AssetCategory.Biome]: "biome",
+  [AssetCategory.WorldStructure]: "worldstructure",
+};
+
+const NON_DENSITY_BARE_SCHEMA_TYPES = new Set([
+  "AlwaysTrueCondition",
+  "AndCondition",
+  "EqualsCondition",
+  "GreaterThanCondition",
+  "NotCondition",
+  "OrCondition",
+  "SmallerThanCondition",
+  "ConstantThickness",
+  "NoiseThickness",
+  "RangeThickness",
+  "WeightedThickness",
+  "BiomeAsset",
+  "DAOTerrain",
+  "HytaleGenerator",
+  "NoiseRange",
+  "WorldStructureAsset",
+  "WorldStructureNoiseRange",
+]);
 
 /** Shape of a comment entry from Hytale's $NodeEditorMetadata.$Comments */
 export interface HytaleComment {
@@ -130,11 +177,11 @@ export function parseNodeEditorMetadata(raw: Record<string, unknown>): {
       const comment = c as Record<string, unknown>;
       const pos = comment["$Position"] as Record<string, unknown> | undefined;
       hytaleComments.push({
-        text: (comment["$text"] as string) ?? "",
+        text: (comment["$Text"] as string) ?? (comment["$text"] as string) ?? "",
         x: (pos?.["$x"] as number) ?? 0,
         y: (pos?.["$y"] as number) ?? 0,
-        width: (comment["$width"] as number) ?? 200,
-        height: (comment["$height"] as number) ?? 80,
+        width: (comment["$Width"] as number) ?? (comment["$width"] as number) ?? 200,
+        height: (comment["$Height"] as number) ?? (comment["$height"] as number) ?? 80,
       });
     }
   }
@@ -666,20 +713,35 @@ function distributeInputs(
 function inferCategoryFromNodeId(nodeId: string): string | undefined {
   if (nodeId.includes("DensityNode") || nodeId.includes(".Density")) return "density";
   if (nodeId.includes("MaterialProvider")) return "material";
-  if (nodeId.includes("SADMP")) return "sadLayer";
+  if (nodeId.includes("SADMP") || nodeId.includes(".Layer")) return "layer";
+  if (nodeId.includes(".Condition")) return "condition";
   if (nodeId.includes("Curve")) return "curve";
   if (nodeId.includes("CurvePoint")) return "curvePoint";
   if (nodeId.includes(".Pattern")) return "pattern";
   if (nodeId.includes(".Scanner")) return "scanner";
   if (nodeId.includes(".Assignments")) return "assignment";
+  if (nodeId.includes(".PropDistribution")) return "propdistribution";
   if (nodeId.includes("Positions")) return "position";
   if (nodeId.includes("VectorProvider") || nodeId.includes("Point3D")) return "vector";
+  if (nodeId.includes("PointGenerator")) return "pointgenerator";
+  if (nodeId.includes(".WorldStructure")) return "worldstructure";
+  if (nodeId.includes(".CaveGenerator")) return "cavegenerator";
+  if (nodeId.includes(".Generator")) return "generator";
+  if (nodeId.includes("Biome")) return "biome";
+  if (nodeId.includes("Terrain")) return "terrain";
   if (nodeId.includes("Prop")) return "prop";
   if (nodeId.includes(".Directionality")) return "directionality";
   if (nodeId.includes(".EnvironmentProvider")) return "environment";
   if (nodeId.includes(".TintProvider")) return "tint";
   if (nodeId.includes(".BlockMask")) return "blockMask";
   return undefined;
+}
+
+function inferCategoryFromType(type: string): string | undefined {
+  if (!NON_DENSITY_BARE_SCHEMA_TYPES.has(type)) return undefined;
+  const schemaCategory = getSchemaCategory(type);
+  if (!schemaCategory || schemaCategory === AssetCategory.Density) return undefined;
+  return SCHEMA_CATEGORY_TO_IMPORT_CATEGORY[schemaCategory];
 }
 
 // ---------------------------------------------------------------------------
@@ -881,9 +943,10 @@ function transformNodeToInternal(
   }
 
   // Determine category for field transforms
-  const category = nodeId
-    ? inferCategoryFromNodeId(nodeId)
-    : (ctx.parentField ? inferCategoryFromParent(ctx.parentField) : "density");
+  const category = ctx.category ??
+    (nodeId ? inferCategoryFromNodeId(nodeId) : undefined) ??
+    inferCategoryFromType(hytaleType) ??
+    (ctx.parentField ? inferCategoryFromParent(ctx.parentField) : "density");
 
   // Detect Abs(SimplexNoise) compound → collapse to SimplexRidgeNoise
   if (hytaleType === "Abs" && "Inputs" in asset && Array.isArray(asset.Inputs)) {
@@ -981,7 +1044,7 @@ function transformNodeToInternal(
           const sumInputs = (sumNode as Record<string, unknown>)?.Inputs as Record<string, unknown>[] | undefined;
           const conditionNode = sumInputs?.[0];
           if (conditionNode && typeof conditionNode === "object" && "Type" in conditionNode) {
-            condition = transformNodeToInternal(conditionNode as Record<string, unknown>, { ...ctx, parentField: "Condition" }, metadata);
+            condition = transformNodeToInternal(conditionNode as Record<string, unknown>, { ...ctx, parentField: "Condition", category: "density" }, metadata);
           }
         } catch {
           // Fallback: leave condition as default Constant
@@ -1312,6 +1375,7 @@ function inferCategoryFromParent(parentField: string): string {
     InputA: "density",
     InputB: "density",
     Condition: "density",
+    Conditions: "condition",
     TrueInput: "density",
     FalseInput: "density",
     Factor: "density",
@@ -1336,13 +1400,21 @@ function inferCategoryFromParent(parentField: string): string {
     Surface: "pattern",
     PositionProvider: "position",
     Positions: "position",
+    PropDistribution: "propdistribution",
+    PropDistributions: "propdistribution",
     Scanner: "scanner",
     ChildScanner: "scanner",
     Prop: "prop",
     Assignments: "assignment",
     Top: "assignment",
     Bottom: "assignment",
-    Layers: "sadLayer",
+    Layers: "layer",
+    Layer: "layer",
+    PointGenerator: "pointgenerator",
+    Biome: "biome",
+    WorldStructure: "worldstructure",
+    Generator: "generator",
+    CaveGenerator: "cavegenerator",
     Queue: "material",
     Directionality: "directionality",
     EnvironmentProvider: "environment",
@@ -1513,7 +1585,7 @@ export function hytaleToInternalBiome(
         const propObj: Record<string, unknown> = {};
         for (const [pk, pv] of Object.entries(prop as Record<string, unknown>)) {
           if (pk === "$NodeId") continue;
-          if ((pk === "Positions" || pk === "Assignments" || pk === "Prop") &&
+          if ((pk === "Positions" || pk === "Assignments" || pk === "Prop" || pk === "PropDistribution") &&
               pv && typeof pv === "object" && "Type" in (pv as Record<string, unknown>)) {
             propObj[pk] = transformNodeToInternal(pv as Record<string, unknown>, { parentField: pk }, metadata);
           } else {

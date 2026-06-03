@@ -25,8 +25,9 @@ import {
   normalizeExport,
   internalToHytaleBiome,
 } from "@/utils/fileTypeDetection";
-// TODO: re-enable when annotation import is restored
-// import type { ImportMetadata } from "@/utils/hytaleToInternal";
+import type { ImportMetadata } from "@/utils/hytaleToInternal";
+import { extractPreservedNodeEditorMetadata } from "@/utils/nodeEditorMetadata";
+import { mergeImportGraph } from "@/utils/importAnnotations";
 import mapDirEntry from "@/utils/mapDirEntry";
 import { getDirname, findServerRoot, isPathInProject } from "@/utils/pathUtils";
 import { useRecentProjectsStore } from "@/stores/recentProjectsStore";
@@ -37,12 +38,6 @@ import { extractMaterialConfig } from "@/utils/materialResolver";
 import { useUIStore } from "@/stores/uiStore";
 import { usePreviewStore } from "@/stores/previewStore";
 import { resolveBiomeAtmosphere } from "@/utils/resolveBiomeAtmosphere";
-
-// TODO: Annotation import constants — uncomment when annotation import is re-enabled
-// const IMPORT_COMMENT_W = 200;
-// const IMPORT_COMMENT_H = 80;
-// const IMPORT_FRAME_W = 300;
-// const IMPORT_FRAME_H = 200;
 
 /**
  * Always auto-layout on import as RL.
@@ -97,9 +92,20 @@ function getReachableNodeIds(
  */
 async function extractBiomeSections(
   wrapper: Record<string, unknown>,
+  fileImportMeta?: ImportMetadata | null,
 ): Promise<{ sections: Record<string, BiomeSectionData>; config: BiomeConfig; sectionKeys: string[] }> {
   const sections: Record<string, BiomeSectionData> = {};
   const sectionKeys: string[] = [];
+  let pendingAnnotations: ImportMetadata | null | undefined = fileImportMeta;
+
+  const layoutSection = async (
+    nodes: import("@xyflow/react").Node[],
+    edges: import("@xyflow/react").Edge[],
+  ) => {
+    const meta = pendingAnnotations;
+    pendingAnnotations = null;
+    return mergeImportGraph(nodes, edges, meta, importAutoLayout);
+  };
 
   // Terrain → graph the Density subtree
   const terrain = wrapper.Terrain as Record<string, unknown> | undefined;
@@ -114,7 +120,7 @@ async function extractBiomeSections(
         rootNode.data = { ...(rootNode.data as Record<string, unknown>), _outputNode: true, _biomeField: "Terrain" };
         terrainOutputId = rootNode.id;
       }
-      const layoutedNodes = await importAutoLayout(nodes, edges);
+      const layoutedNodes = await layoutSection(nodes, edges);
       // layoutedNodes and edges are freshly created — no clone needed
       const terrainInitial: SectionHistoryEntry = { nodes: layoutedNodes, edges, outputNodeId: terrainOutputId, label: "Initial" };
       sections["Terrain"] = { nodes: layoutedNodes, edges, outputNodeId: terrainOutputId, history: [terrainInitial], historyIndex: 0 };
@@ -132,7 +138,7 @@ async function extractBiomeSections(
       rootNode.data = { ...(rootNode.data as Record<string, unknown>), _outputNode: true };
       matOutputId = rootNode.id;
     }
-    const layoutedNodes = await importAutoLayout(nodes, edges);
+    const layoutedNodes = await layoutSection(nodes, edges);
     // layoutedNodes and edges are freshly created — no clone needed
     const matInitial: SectionHistoryEntry = { nodes: layoutedNodes, edges, outputNodeId: matOutputId, label: "Initial" };
     sections["MaterialProvider"] = { nodes: layoutedNodes, edges, outputNodeId: matOutputId, history: [matInitial], historyIndex: 0 };
@@ -176,7 +182,7 @@ async function extractBiomeSections(
         allEdges.push(...edges);
       }
 
-      const layoutedNodes = await importAutoLayout(allNodes, allEdges);
+      const layoutedNodes = await layoutSection(allNodes, allEdges);
       const key = `Props[${i}]`;
       // layoutedNodes and allEdges are freshly created — no clone needed
       const propInitial: SectionHistoryEntry = { nodes: layoutedNodes, edges: allEdges, outputNodeId: null, label: "Initial" };
@@ -209,7 +215,7 @@ async function extractBiomeSections(
       };
       environmentOutputId = rootNode.id;
     }
-    const layoutedNodes = await importAutoLayout(nodes, edges);
+    const layoutedNodes = await layoutSection(nodes, edges);
     const environmentInitial: SectionHistoryEntry = {
       nodes: layoutedNodes,
       edges,
@@ -250,7 +256,7 @@ async function extractBiomeSections(
       };
       tintOutputId = rootNode.id;
     }
-    const layoutedNodes = await importAutoLayout(nodes, edges);
+    const layoutedNodes = await layoutSection(nodes, edges);
     const tintInitial: SectionHistoryEntry = {
       nodes: layoutedNodes,
       edges,
@@ -417,12 +423,18 @@ export function useTauriIO() {
 
         // Auto-detect Hytale native format and normalize to internal
         let content: unknown = rawContent;
+        let importMeta: ImportMetadata | null = null;
         if (rawContent && typeof rawContent === "object") {
-          const { content: normalized } = normalizeImportWithMeta(rawContent as Record<string, unknown>);
+          const { content: normalized, metadata } = normalizeImportWithMeta(rawContent as Record<string, unknown>);
           content = normalized;
+          importMeta = metadata;
+          useEditorStore.getState().setPreservedNodeEditorMetadata(
+            extractPreservedNodeEditorMetadata(metadata?.nodeEditorMetadata),
+          );
         }
 
         if (content && typeof content === "object" && isEnvironmentFile(content as Record<string, unknown>, filePath)) {
+          useEditorStore.getState().setPreservedNodeEditorMetadata(null);
           useEditorStore.setState({
             nodes: [],
             edges: [],
@@ -445,6 +457,7 @@ export function useTauriIO() {
         }
 
         if (content && typeof content === "object" && isWeatherFile(content as Record<string, unknown>, filePath)) {
+          useEditorStore.getState().setPreservedNodeEditorMetadata(null);
           useEditorStore.setState({
             nodes: [],
             edges: [],
@@ -489,7 +502,7 @@ export function useTauriIO() {
             const density = typed.Density;
             if (density && typeof density === "object" && "Type" in (density as Record<string, unknown>)) {
               const { nodes: newNodes, edges: newEdges } = jsonToGraph(density as Record<string, unknown>);
-              const layoutedNodes = await importAutoLayout(newNodes, newEdges);
+              const layoutedNodes = await mergeImportGraph(newNodes, newEdges, importMeta, importAutoLayout);
               setNodes(layoutedNodes);
               setEdges(newEdges);
             } else {
@@ -509,7 +522,7 @@ export function useTauriIO() {
             const { nodes: newNodes, edges: newEdges } = jsonToGraph(typed);
 
             // Auto-layout for clean positioning instead of naive x-300 offsets
-            const layoutedNodes = await importAutoLayout(newNodes, newEdges);
+            const layoutedNodes = await mergeImportGraph(newNodes, newEdges, importMeta, importAutoLayout);
             setNodes(layoutedNodes);
             setEdges(newEdges);
 
@@ -621,7 +634,7 @@ export function useTauriIO() {
         } else if (content && typeof content === "object" && isBiomeFile(content as Record<string, unknown>, filePath)) {
           // Biome wrapper file — extract all sections
           const wrapper = content as Record<string, unknown>;
-          const { sections, config, sectionKeys } = await extractBiomeSections(wrapper);
+          const { sections, config, sectionKeys } = await extractBiomeSections(wrapper, importMeta);
 
           // Try to load ContentFields from sibling WorldStructures/MainWorld.json
           let contentFields: Record<string, number> | undefined;
@@ -656,10 +669,6 @@ export function useTauriIO() {
           // Load first section into canvas
           const firstKey = sectionKeys[0] ?? null;
           let firstSection = firstKey ? sections[firstKey] : null;
-
-          // TODO: Annotation import disabled — Hytale positions don't map to
-          // TerraNova's auto-layouted coordinates. Revisit with proper placement.
-          // if (importMeta && firstSection) { ... }
 
           // Atomic state update — sets ALL biome state at once to avoid race conditions.
           // Sections already have their initial history entry from extractBiomeSections(),
@@ -709,7 +718,7 @@ export function useTauriIO() {
           for (const [, val] of Object.entries(wrapper)) {
             if (val && typeof val === "object" && "Type" in (val as Record<string, unknown>)) {
               const { nodes: newNodes, edges: newEdges } = jsonToGraph(val as Record<string, unknown>);
-              const layoutedNodes = await importAutoLayout(newNodes, newEdges);
+              const layoutedNodes = await mergeImportGraph(newNodes, newEdges, importMeta, importAutoLayout);
               setNodes(layoutedNodes);
               setEdges(newEdges);
               commitState("Initial");
@@ -745,6 +754,7 @@ export function useTauriIO() {
               store.setEditingContext("RawJson");
               store.setRawJsonContent(wrapper);
               store.setOriginalWrapper(null);
+              store.setPreservedNodeEditorMetadata(null);
               setNodes([]);
               setEdges([]);
             }
@@ -753,6 +763,7 @@ export function useTauriIO() {
           setNodes([]);
           setEdges([]);
           useEditorStore.getState().setOriginalWrapper(null);
+          useEditorStore.getState().setPreservedNodeEditorMetadata(null);
         }
       } catch (err) {
         setLastError(`Failed to open file: ${err}`);
@@ -783,7 +794,8 @@ export function useTauriIO() {
         return;
       }
 
-      const { nodes, edges, originalWrapper, biomeRanges, noiseRangeConfig } = useEditorStore.getState();
+      const { nodes, edges, originalWrapper, biomeRanges, noiseRangeConfig, preservedNodeEditorMetadata } =
+        useEditorStore.getState();
 
       // NoiseRange files: reassemble the full structure
       if (originalWrapper?.Type === "NoiseRange") {
@@ -796,7 +808,7 @@ export function useTauriIO() {
         }
         const densityJson = graphToJson(nodes, edges);
         if (densityJson) output.Density = densityJson;
-        const hytaleOutput = normalizeExport(output, nodes);
+        const hytaleOutput = normalizeExport(output, nodes, preservedNodeEditorMetadata);
         await writeAssetFile(currentFile, hytaleOutput);
         setDirty(false);
         return;
@@ -976,6 +988,7 @@ export function useTauriIO() {
           Object.fromEntries(
             Object.entries(updatedSections).map(([key, section]) => [key, section.nodes]),
           ),
+          preservedNodeEditorMetadata,
         );
         await writeAssetFile(currentFile, hytaleOutput);
         setDirty(false);
@@ -987,7 +1000,7 @@ export function useTauriIO() {
         if (originalWrapper) {
           if ("Type" in originalWrapper) {
             // Direct typed asset — convert to Hytale native format
-            const hytaleJson = normalizeExport(json, nodes);
+            const hytaleJson = normalizeExport(json, nodes, preservedNodeEditorMetadata);
             await writeAssetFile(currentFile, hytaleJson);
           } else {
             // Non-typed wrapper (e.g. Biome) — inject rebuilt asset into the correct sub-property
@@ -995,16 +1008,18 @@ export function useTauriIO() {
             let replaced = false;
             for (const [key, val] of Object.entries(output)) {
               if (val && typeof val === "object" && "Type" in (val as Record<string, unknown>)) {
-                output[key] = normalizeExport(json, nodes);
+                output[key] = normalizeExport(json, nodes, preservedNodeEditorMetadata);
                 replaced = true;
                 break;
               }
             }
-            const finalOutput = replaced ? output : normalizeExport(json, nodes);
+            const finalOutput = replaced
+              ? output
+              : normalizeExport(json, nodes, preservedNodeEditorMetadata);
             await writeAssetFile(currentFile, finalOutput);
           }
         } else {
-          const hytaleJson = normalizeExport(json, nodes);
+          const hytaleJson = normalizeExport(json, nodes, preservedNodeEditorMetadata);
           await writeAssetFile(currentFile, hytaleJson);
         }
         setDirty(false);

@@ -96,7 +96,7 @@ function getStoredHytaleAssetSourceChannel(): HytaleAssetSourceChannel {
   if (parsed?.hytaleAssetSourceChannel === "pre-release" || parsed?.hytaleAssetSourceChannel === "release") {
     return parsed.hytaleAssetSourceChannel;
   }
-  return "pre-release";
+  return "release";
 }
 
 function getStoredHytalePreReleaseAssetsPath(): string {

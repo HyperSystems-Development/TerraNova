@@ -83,6 +83,7 @@ export interface FileGraphCache {
   activeBiomeSection: string | null;
   editingContext: string | null;
   originalWrapper: Record<string, unknown> | null;
+  preservedNodeEditorMetadata: import("@/utils/nodeEditorMetadata").PreservedNodeEditorMetadata | null;
   rawJsonContent: Record<string, unknown> | null;
   outputNodeId: string | null;
   history: HistoryEntry[];
@@ -187,6 +188,7 @@ export interface ConfigSliceState {
   contentFields: Record<string, number>;
   materialConfig: BiomeMaterialConfig | null;
   originalWrapper: Record<string, unknown> | null;
+  preservedNodeEditorMetadata: import("@/utils/nodeEditorMetadata").PreservedNodeEditorMetadata | null;
   editingContext: string | null;
   rawJsonContent: Record<string, unknown> | null;
   jsonViewDraft: string | null;
@@ -196,6 +198,9 @@ export interface ConfigSliceState {
   setContentFields: (fields: Record<string, number>) => void;
   setMaterialConfig: (config: BiomeMaterialConfig | null) => void;
   setOriginalWrapper: (wrapper: Record<string, unknown> | null) => void;
+  setPreservedNodeEditorMetadata: (
+    metadata: import("@/utils/nodeEditorMetadata").PreservedNodeEditorMetadata | null,
+  ) => void;
   setEditingContext: (context: string | null) => void;
   setRawJsonContent: (content: Record<string, unknown> | null) => void;
   setJsonViewDraft: (draft: string | null) => void;

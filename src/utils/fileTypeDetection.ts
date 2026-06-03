@@ -1,6 +1,7 @@
 import { isHytaleNativeFormat, hytaleToInternal, hytaleToInternalBiome, type ImportMetadata } from "@/utils/hytaleToInternal";
 import { internalToHytale, internalToHytaleBiome } from "@/utils/internalToHytale";
 import { hasOldTerraNovaNaming, migrateAssetTree } from "@/utils/migration";
+import type { PreservedNodeEditorMetadata } from "@/utils/nodeEditorMetadata";
 import type { Node } from "@xyflow/react";
 
 /**
@@ -180,9 +181,17 @@ export function normalizeImportWithMeta(content: Record<string, unknown>): {
 /**
  * Convert internal format to Hytale native format for export.
  */
-export function normalizeExport(content: Record<string, unknown>, nodes?: Node[]): Record<string, unknown> {
+export function normalizeExport(
+  content: Record<string, unknown>,
+  nodes?: Node[],
+  preservedMetadata?: PreservedNodeEditorMetadata | null,
+): Record<string, unknown> {
   if ("Type" in content) {
-    return internalToHytale(content as { Type: string; [key: string]: unknown }, nodes);
+    return internalToHytale(
+      content as { Type: string; [key: string]: unknown },
+      nodes,
+      preservedMetadata,
+    );
   }
   return content;
 }
