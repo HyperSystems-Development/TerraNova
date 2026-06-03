@@ -1,4 +1,5 @@
 import { listDirectory, readAssetFile, type DirectoryEntryData } from "@/utils/ipc";
+import { loadSyncedBlockMaterialIds } from "@/utils/blockIconUrl";
 import { joinPath, normalizePath, getDirname, inferServerRoot } from "@/utils/pathUtils";
 
 export interface AssetReferenceCollection {
@@ -11,7 +12,11 @@ const PROJECT_ASSET_LOOKUP_CACHE = new Map<string, Promise<AssetReferenceCollect
 const WORKSPACE_ENVIRONMENT_HINT_CACHE = new Map<string, Promise<string[]>>();
 const WORKSPACE_FILE_NAME = "_Workspace.json";
 const WORKSPACE_SUFFIX = "Client/NodeEditor/Workspaces/HytaleGenerator Java";
-const ROAMING_WORKSPACE_SUFFIX = `AppData/Roaming/Hytale/install/pre-release/package/game/latest/${WORKSPACE_SUFFIX}`;
+
+const ROAMING_WORKSPACE_SUFFIXES = [
+  `AppData/Roaming/Hytale/install/release/package/game/latest/${WORKSPACE_SUFFIX}`,
+  `AppData/Roaming/Hytale/install/pre-release/package/game/latest/${WORKSPACE_SUFFIX}`,
+] as const;
 
 export type AssetReferenceKind = "environment" | "tint" | "material" | "prop";
 export type AssetValidationLookupSource = "project-server" | "workspace-schema";
@@ -22,10 +27,17 @@ export type AssetValidationBadgeMode =
   | "built-in-only";
 
 const ASSET_DIRECTORY_CANDIDATES: Record<AssetReferenceKind, string[]> = {
-  environment: ["Environments"],
-  tint: ["Tints", "TintProvider", "TintProviders"],
-  material: ["Materials", "MaterialProvider", "MaterialProviders"],
-  prop: ["Props", "Prop"],
+  environment: ["Environments", "HytaleGenerator/Environments"],
+  tint: ["Tints", "HytaleGenerator/Tints", "TintProvider", "TintProviders"],
+  material: [
+    "HytaleGenerator/Assignments",
+    "HytaleGenerator/Materials",
+    "Assignments",
+    "Materials",
+    "MaterialProvider",
+    "MaterialProviders",
+  ],
+  prop: ["HytaleGenerator/Props", "Props", "Prop"],
 };
 
 export interface AssetValidationBadge {
@@ -89,7 +101,9 @@ function buildWorkspaceCandidates(
     inferUserProfileRoot(currentFile)
     ?? inferUserProfileRoot(projectPath);
   if (profileRoot) {
-    pushCandidate(joinPath(profileRoot, ROAMING_WORKSPACE_SUFFIX));
+    for (const suffix of ROAMING_WORKSPACE_SUFFIXES) {
+      pushCandidate(joinPath(profileRoot, suffix));
+    }
   }
 
   return candidates;
@@ -568,6 +582,28 @@ export async function resolveAssetValidationLookup(
         // Leave this kind unavailable; diagnostics will skip unknown-ref checks.
       }
     }
+  }
+
+  try {
+    const blockIds = await loadSyncedBlockMaterialIds();
+    if (blockIds.length > 0) {
+      const merged = new Map<string, string>();
+      for (const name of namesByKind.material) {
+        merged.set(name.toLowerCase(), name);
+      }
+      for (const blockId of blockIds) {
+        const key = blockId.toLowerCase();
+        if (!merged.has(key)) {
+          merged.set(key, blockId);
+        }
+      }
+      namesByKind.material = [...merged.values()];
+      if (!sourceByKind.material) {
+        sourceByKind.material = "project-server";
+      }
+    }
+  } catch {
+    // Block icon index is optional for validation.
   }
 
   return {

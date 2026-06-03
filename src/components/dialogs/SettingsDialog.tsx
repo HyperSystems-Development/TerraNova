@@ -17,9 +17,11 @@ import { WhatsNewDialog, WHATS_NEW_SUPPRESS_KEY } from "./WhatsNewDialog";
 import { ChangelogDialog } from "./ChangelogDialog";
 import { SystemSettingsPanel, type SystemTab } from "./ConfigurationDialog";
 import { KeyboardShortcutsPanel } from "./KeyboardShortcutsDialog";
+import { clearBlockIconCache } from "@/utils/blockIconUrl";
 import { clearAvailableHytaleAssetFoldersCache } from "@/utils/hytaleAssetFolders";
 import { clearHytaleAssetsInFolderCache } from "@/utils/getHytaleAssetsInFolder";
 import { clearHardwareDetectionCache, detectHardware, type HardwareInfo } from "@/utils/hardwareDetect";
+import { isTauriRuntime } from "@/utils/platform";
 
 function getWhatsNewSuppressed(): boolean {
   try { return localStorage.getItem(WHATS_NEW_SUPPRESS_KEY) === "true"; } catch { return false; }
@@ -120,9 +122,14 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   const [refreshingHardware, setRefreshingHardware] = useState(false);
 
   useEffect(() => {
-    getVersion().then(setAppVersion);
-    void resolveDefaultPreReleaseAssetsPath().then(setExamplePreReleasePath);
-    void resolveDefaultReleaseAssetsPath().then(setExampleReleasePath);
+    if (!isTauriRuntime()) {
+      setAppVersion("browser preview");
+      return;
+    }
+
+    void getVersion().then(setAppVersion).catch(() => setAppVersion(""));
+    void resolveDefaultPreReleaseAssetsPath().then(setExamplePreReleasePath).catch(() => setExamplePreReleasePath(""));
+    void resolveDefaultReleaseAssetsPath().then(setExampleReleasePath).catch(() => setExampleReleasePath(""));
   }, []);
 
   useEffect(() => {
@@ -150,6 +157,10 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   }
 
   async function handleBrowseExportPath() {
+    if (!isTauriRuntime()) {
+      addToast("Folder browsing is available in the TerraNova desktop app.", "warning");
+      return;
+    }
     const selected = await openDialog({ directory: true, defaultPath: exportPath ?? undefined });
     if (selected) setExportPath(selected);
   }
@@ -176,6 +187,10 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   }
 
   async function handleBrowseHytaleAssetSource() {
+    if (!isTauriRuntime()) {
+      addToast("Folder browsing is available in the TerraNova desktop app.", "warning");
+      return;
+    }
     const selected = await openDialog(
       hytaleAssetSourceChannel === "pre-release"
         ? { directory: false, defaultPath: activeHytaleSourcePath, filters: [{ name: "Zip", extensions: ["zip"] }] }
@@ -185,6 +200,10 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   }
 
   async function handleBrowseCommonAssetsSource() {
+    if (!isTauriRuntime()) {
+      addToast("Folder browsing is available in the TerraNova desktop app.", "warning");
+      return;
+    }
     const browseZip = hytaleCommonAssetsPath.trim().toLowerCase().endsWith(".zip")
       || activeHytaleSourcePath.trim().toLowerCase().endsWith(".zip");
     const selected = await openDialog(
@@ -196,6 +215,10 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   }
 
   async function handleSyncHytaleAssets() {
+    if (!isTauriRuntime()) {
+      addToast("Hytale asset sync is available in the TerraNova desktop app.", "warning");
+      return;
+    }
     if (!hytaleAssetSyncEnabled) {
       addToast("Enable managed Hytale assets in Settings before syncing.", "warning");
       return;
@@ -220,6 +243,7 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
       );
       clearAvailableHytaleAssetFoldersCache("hytale-assets");
       clearHytaleAssetsInFolderCache("hytale-assets");
+      clearBlockIconCache();
       setHytaleAssetCacheRoot(result.cacheRoot);
       void checkHytaleAssetStaleness(activeHytaleSourcePath)
         .then(setStalenessInfo)
@@ -240,6 +264,10 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
 
   async function handleOpenHytaleAssetCache() {
     if (!hytaleAssetCacheRoot) return;
+    if (!isTauriRuntime()) {
+      addToast("Opening the asset cache is available in the TerraNova desktop app.", "warning");
+      return;
+    }
     try {
       await showInFolder(hytaleAssetCacheRoot);
     } catch (error) {
@@ -254,6 +282,10 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
   }
 
   async function handleRefreshHardware() {
+    if (!isTauriRuntime()) {
+      addToast("Hardware detection is available in the TerraNova desktop app.", "warning");
+      return;
+    }
     try {
       setRefreshingHardware(true);
       clearHardwareDetectionCache();
@@ -507,10 +539,14 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                       <button onClick={handleBrowseHytaleAssetSource} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap">Browse...</button>
                       <button
                         onClick={() => {
+                          if (!isTauriRuntime()) {
+                            addToast("Default Hytale asset paths are available in the TerraNova desktop app.", "warning");
+                            return;
+                          }
                           const resolve = hytaleAssetSourceChannel === "pre-release"
                             ? resolveDefaultPreReleaseAssetsPath
                             : resolveDefaultReleaseAssetsPath;
-                          void resolve().then(setActiveHytaleSourcePath);
+                          void resolve().then(setActiveHytaleSourcePath).catch(() => setActiveHytaleSourcePath(""));
                         }}
                         className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap"
                       >
@@ -547,7 +583,19 @@ export function SettingsDialog({ open, onClose, initialTab = "general", initialS
                       />
                       <button onClick={handleBrowseCommonAssetsSource} disabled={!hytaleCommonAssetsEnabled} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Browse...</button>
                       <button onClick={() => setHytaleCommonAssetsPath(activeHytaleSourcePath)} disabled={!hytaleCommonAssetsEnabled || !activeHytaleSourcePath.trim()} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Use Source</button>
-                      <button onClick={() => { void resolveDefaultCommonAssetsPath().then(setHytaleCommonAssetsPath); }} disabled={!hytaleCommonAssetsEnabled} className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50">Default</button>
+                      <button
+                        onClick={() => {
+                          if (!isTauriRuntime()) {
+                            addToast("Default Hytale asset paths are available in the TerraNova desktop app.", "warning");
+                            return;
+                          }
+                          void resolveDefaultCommonAssetsPath().then(setHytaleCommonAssetsPath).catch(() => setHytaleCommonAssetsPath(""));
+                        }}
+                        disabled={!hytaleCommonAssetsEnabled}
+                        className="px-3 py-1.5 text-sm rounded border border-tn-border hover:bg-tn-surface text-tn-text-muted whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Default
+                      </button>
                     </div>
                     <p className="text-xs text-tn-text-muted">
                       Point this at `Common` directly, a parent folder that contains `Common`, or an `Assets.zip` source. TerraNova will read the internal `Common/` subtree automatically.

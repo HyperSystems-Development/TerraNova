@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { clearBlockIconCache } from "@/utils/blockIconUrl";
 import { useToastStore } from "@/stores/toastStore";
 
 export default function SyncProgressModal() {
@@ -82,6 +83,7 @@ export default function SyncProgressModal() {
             const event = e as SyncEvent;
             const payload = event.payload ?? {};
             const files = payload.filesWritten ?? payload.files_written ?? payload.files ?? 0;
+            clearBlockIconCache();
             addToast(`Hytale assets synced (${files} files)`, "success");
             setInProgress(false);
             // animate out

@@ -85,7 +85,8 @@ export type GraphDiagnosticCode =
   | "biome-tint-missing-ref-name"
   | "biome-tint-unknown-ref"
   | "biome-name-missing"
-  | "legacy-node";
+  | "legacy-node"
+  | "prop-conditional-lossy-export";
 
 export interface GraphDiagnostic {
   nodeId: string | null;
@@ -249,6 +250,20 @@ export function analyzeGraph(
         nodeId: node.id,
         message: `${type}: not supported in preview (returns 0)`,
         severity: "info",
+      });
+    }
+  }
+
+  // 2a. Prop Conditional export is lossy (Hytale has no prop Conditional)
+  for (const node of nodes) {
+    const typeKey = node.type ?? getNodeType(node);
+    if (typeKey === "Prop:Conditional" || (getNodeType(node) === "Conditional" && typeKey.startsWith("Prop:"))) {
+      diagnostics.push({
+        nodeId: node.id,
+        message:
+          "Prop Conditional exports only TrueInput to Hytale — FalseInput and the condition are dropped at export",
+        severity: "warning",
+        code: "prop-conditional-lossy-export",
       });
     }
   }
@@ -430,7 +445,40 @@ export function analyzeGraph(
     }
   }
 
-  // 8b. Imported asset reference validation
+  // 8b. Material Constant block ID validation (release uses block ids, not Materials/*.json)
+  for (const node of nodes) {
+    const typeKey = node.type ?? "";
+    const isMaterialConstant =
+      typeKey === "Material:Constant"
+      || (getNodeType(node) === "Constant" && typeKey.startsWith("Material:"));
+    if (!isMaterialConstant) continue;
+
+    const fields = getNodeFields(node);
+    let blockId = "";
+    const rawMaterial = fields.Material;
+    if (typeof rawMaterial === "string") {
+      blockId = rawMaterial.trim();
+    } else if (rawMaterial && typeof rawMaterial === "object") {
+      const solid = (rawMaterial as Record<string, unknown>).Solid;
+      if (typeof solid === "string") blockId = solid.trim();
+    }
+    if (!blockId || blockId === "Empty" || blockId === "Air") continue;
+
+    const knownMaterials = knownAssetSets.material;
+    if (knownMaterials.size === 0) continue;
+    if (!knownMaterials.has(normalizeKnownName(blockId))) {
+      diagnostics.push({
+        nodeId: node.id,
+        message: `Material Constant references unknown block "${blockId}" (not in project assets or synced block icons)`,
+        severity: "warning",
+        code: "material-block-unknown",
+        field: "Material",
+        meta: { assetKind: "material", importName: blockId },
+      });
+    }
+  }
+
+  // 8c. Imported asset reference validation
   for (const node of nodes) {
     const assetKind = getImportedAssetKind(node);
     if (!assetKind) continue;
@@ -452,7 +500,7 @@ export function analyzeGraph(
     });
   }
 
-  // 8c. Environment:DensityDelimited delimiter validation
+  // 8d. Environment:DensityDelimited delimiter validation
   for (const node of nodes) {
     if (!isEnvironmentDensityDelimitedNode(node)) continue;
     const fields = getNodeFields(node);
