@@ -3,30 +3,21 @@ import { useReactFlow } from "@xyflow/react";
 import { ALL_DEFAULTS, type CategoryDefaultsEntry } from "@/schema/defaults";
 import { SNIPPET_CATALOG, placeSnippet, type SnippetDefinition } from "@/schema/snippets";
 import { AssetCategory, CATEGORY_COLORS } from "@/schema/types";
-import { getHandles } from "@/nodes/handleRegistry";
+import { findHandleDef, getHandles } from "@/nodes/handleRegistry";
+import type { HandleDef } from "@/nodes/shared/handles";
 import { BlockIcon } from "@/components/properties/BlockIcon";
 import { useEditorStore } from "@/stores/editorStore";
 import { useToastStore } from "@/stores/toastStore";
 import { useProjectStore } from "@/stores/projectStore";
 import { useLanguage } from "@/languages/useLanguage";
 import { isPaletteTypeKeyVisible } from "@/nodes/shared/legacyTypes";
+import { entryMatchesSearch } from "@/utils/nodeTypeSearch";
+import { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
+import connectionsData from "@/data/connections.json";
+
+export { resolveNodeTypeKey } from "@/utils/nodeTypeKeys";
 
 const SNIPPET_COLOR = "#a78bfa";
-
-const CATEGORY_PREFIX: Partial<Record<AssetCategory, string>> = {
-  [AssetCategory.Curve]: "Curve",
-  [AssetCategory.MaterialProvider]: "Material",
-  [AssetCategory.Pattern]: "Pattern",
-  [AssetCategory.PositionProvider]: "Position",
-  [AssetCategory.Prop]: "Prop",
-  [AssetCategory.Scanner]: "Scanner",
-  [AssetCategory.Assignment]: "Assignment",
-  [AssetCategory.VectorProvider]: "Vector",
-  [AssetCategory.EnvironmentProvider]: "Environment",
-  [AssetCategory.TintProvider]: "Tint",
-  [AssetCategory.BlockMask]: "BlockMask",
-  [AssetCategory.Directionality]: "Directionality",
-};
 
 const CATEGORY_LABELS: Partial<Record<AssetCategory, string>> = {
   [AssetCategory.Density]: "Density",
@@ -42,10 +33,23 @@ const CATEGORY_LABELS: Partial<Record<AssetCategory, string>> = {
   [AssetCategory.TintProvider]: "Tint",
   [AssetCategory.BlockMask]: "Block Mask",
   [AssetCategory.Directionality]: "Directionality",
+  [AssetCategory.PropDistribution]: "Prop Distribution",
+  [AssetCategory.Condition]: "Condition",
+  [AssetCategory.Layer]: "Layer",
+  [AssetCategory.PointGenerator]: "Point Generator",
+  [AssetCategory.Terrain]: "Terrain",
+  [AssetCategory.CaveGenerator]: "Cave Generator",
+  [AssetCategory.Generator]: "Generator",
+  [AssetCategory.Biome]: "Biome",
+  [AssetCategory.WorldStructure]: "World Structure",
 };
 
 const RECENT_KEY = "tn-recent-nodes";
 const MAX_RECENT = 8;
+const QUICK_ADD_WIDTH = 360;
+const QUICK_ADD_HEIGHT = 430;
+const QUICK_ADD_MARGIN = 12;
+const connectionMatrix = connectionsData.connectionMatrix as Record<string, Record<string, number>>;
 
 function getRecentTypes(): string[] {
   try {
@@ -66,9 +70,30 @@ function addRecentType(typeKey: string) {
   }
 }
 
-function resolveNodeTypeKey(entry: CategoryDefaultsEntry): string {
-  const prefix = CATEGORY_PREFIX[entry.category];
-  return prefix ? `${prefix}:${entry.type}` : entry.type;
+export function canConnectHandleCategories(
+  sourceCategory: AssetCategory,
+  targetCategory: AssetCategory,
+): boolean {
+  return sourceCategory === targetCategory ||
+    (connectionMatrix[sourceCategory]?.[targetCategory] ?? 0) > 0;
+}
+
+export function findCompatibleHandleForPendingConnection(
+  typeKey: string,
+  pendingConnection: PendingConnection,
+): HandleDef | null {
+  const pendingHandle = findHandleDef(pendingConnection.nodeType, pendingConnection.handleId);
+  if (!pendingHandle) return null;
+
+  const needsTarget = pendingConnection.handleType === "source";
+  const handles = getHandles(typeKey);
+
+  return handles.find((handle) => {
+    if (handle.type !== (needsTarget ? "target" : "source")) return false;
+    return needsTarget
+      ? canConnectHandleCategories(pendingHandle.category, handle.category)
+      : canConnectHandleCategories(handle.category, pendingHandle.category);
+  }) ?? null;
 }
 
 export interface PendingConnection {
@@ -90,6 +115,63 @@ type DisplayEntry =
   | { kind: "node"; entry: CategoryDefaultsEntry }
   | { kind: "snippet"; snippet: SnippetDefinition };
 
+interface QuickAddDisplaySections {
+  entries: DisplayEntry[];
+  recentCount: number;
+  snippetCount: number;
+  nodeCount: number;
+}
+
+export function buildQuickAddDisplaySections(
+  recentEntries: CategoryDefaultsEntry[],
+  filteredSnippets: SnippetDefinition[],
+  filteredNodeEntries: CategoryDefaultsEntry[],
+  pendingConnection?: PendingConnection | null,
+): QuickAddDisplaySections {
+  const entries: DisplayEntry[] = [];
+  const recentKeys = new Set<string>();
+  const showRecents = !pendingConnection;
+
+  if (showRecents) {
+    for (const entry of recentEntries) {
+      entries.push({ kind: "node", entry });
+      recentKeys.add(resolveNodeTypeKey(entry));
+    }
+  }
+
+  if (!pendingConnection) {
+    for (const snippet of filteredSnippets) {
+      entries.push({ kind: "snippet", snippet });
+    }
+  }
+
+  let nodeCount = 0;
+  for (const entry of filteredNodeEntries) {
+    if (showRecents && recentKeys.has(resolveNodeTypeKey(entry))) continue;
+    entries.push({ kind: "node", entry });
+    nodeCount += 1;
+  }
+
+  return {
+    entries,
+    recentCount: showRecents ? recentKeys.size : 0,
+    snippetCount: pendingConnection ? 0 : filteredSnippets.length,
+    nodeCount,
+  };
+}
+
+export function clampQuickAddPosition(
+  position: { x: number; y: number },
+  viewport: { width: number; height: number },
+): { x: number; y: number } {
+  const maxX = Math.max(QUICK_ADD_MARGIN, viewport.width - QUICK_ADD_WIDTH - QUICK_ADD_MARGIN);
+  const maxY = Math.max(QUICK_ADD_MARGIN, viewport.height - QUICK_ADD_HEIGHT - QUICK_ADD_MARGIN);
+  return {
+    x: Math.max(QUICK_ADD_MARGIN, Math.min(position.x, maxX)),
+    y: Math.max(QUICK_ADD_MARGIN, Math.min(position.y, maxY)),
+  };
+}
+
 export function QuickAddDialog({ open, position, pendingConnection, onClose }: QuickAddDialogProps) {
   const [search, setSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -107,35 +189,9 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
     }
   }, [open]);
 
-  // Get compatible categories for connection-aware filtering
-  const compatibleCategories = useMemo(() => {
+  const pendingHandleDef = useMemo(() => {
     if (!pendingConnection) return null;
-    const { nodeType, handleId } = pendingConnection;
-    const defs = getHandles(nodeType);
-    if (!defs.length) return null;
-    const handleDef = defs.find((h) => h.id === handleId);
-    if (!handleDef) return null;
-    // Terrain/prop awareness: prioritize block for terrain, plant for prop
-    // Block: MaterialProvider, Density, Pattern, etc.
-    // Plant: Prop, Pattern (with plant material), etc.
-    if (handleDef.category === AssetCategory.MaterialProvider || handleDef.category === AssetCategory.Density) {
-      // Terrain connection: prioritize block node types
-      return new Set([
-        AssetCategory.MaterialProvider,
-        AssetCategory.Density,
-        AssetCategory.Pattern,
-        AssetCategory.BlockMask,
-      ]);
-    }
-    if (handleDef.category === AssetCategory.Prop) {
-      // Prop connection: prioritize plant node types
-      return new Set([
-        AssetCategory.Prop,
-        AssetCategory.Pattern,
-      ]);
-    }
-    // Fallback: use original category
-    return new Set([handleDef.category]);
+    return findHandleDef(pendingConnection.nodeType, pendingConnection.handleId) ?? null;
   }, [pendingConnection]);
 
   // Filter node entries
@@ -146,24 +202,19 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
     entries = entries.filter((e) => isPaletteTypeKeyVisible(resolveNodeTypeKey(e)));
 
     // Connection-aware filtering: only show types that have a compatible handle
-    if (compatibleCategories && pendingConnection) {
-      const needsTarget = pendingConnection.handleType === "source"; // dragging from source → need a target handle on the new node
+    if (pendingConnection) {
       entries = entries.filter((entry) => {
         const typeKey = resolveNodeTypeKey(entry);
-        const handles = getHandles(typeKey);
-        if (!handles.length) return false;
-        return handles.some(
-          (h) => h.type === (needsTarget ? "target" : "source") && compatibleCategories.has(h.category),
-        );
+        return findCompatibleHandleForPendingConnection(typeKey, pendingConnection) !== null;
       });
     }
 
     if (search) {
-      entries = entries.filter((e) => matchesSearch(e.type, search));
+      entries = entries.filter((e) => entryMatchesSearch(e, search, matchesSearch));
     }
 
     return entries.slice(0, 50); // Limit visible results
-  }, [search, compatibleCategories, pendingConnection, isTypeVisible, matchesSearch]);
+  }, [search, pendingConnection, isTypeVisible, matchesSearch]);
 
   // Filter snippet entries
   const filteredSnippets = useMemo(() => {
@@ -187,14 +238,18 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
       .filter(Boolean) as CategoryDefaultsEntry[];
   }, [search]);
 
-  // Build unified display list: Recent → Snippets → All Nodes
-  const displayEntries: DisplayEntry[] = useMemo(() => {
-    const result: DisplayEntry[] = [];
-    for (const e of recentEntries) result.push({ kind: "node", entry: e });
-    for (const s of filteredSnippets) result.push({ kind: "snippet", snippet: s });
-    for (const e of filteredNodeEntries) result.push({ kind: "node", entry: e });
-    return result;
-  }, [recentEntries, filteredSnippets, filteredNodeEntries]);
+  // Build unified display list: Recent -> Snippets -> All Nodes.
+  // Recents are hidden for wire-drop quick-add so stale entries cannot bypass compatibility filtering.
+  const displaySections = useMemo(
+    () => buildQuickAddDisplaySections(
+      recentEntries,
+      filteredSnippets,
+      filteredNodeEntries,
+      pendingConnection,
+    ),
+    [recentEntries, filteredSnippets, filteredNodeEntries, pendingConnection],
+  );
+  const displayEntries = displaySections.entries;
 
   // Clamp selected index
   useEffect(() => {
@@ -228,11 +283,7 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
         const handles = getHandles(nodeTypeKey);
         if (handles.length) {
           const needsTarget = pendingConnection.handleType === "source";
-          const compatHandle = handles.find(
-            (h) =>
-              h.type === (needsTarget ? "target" : "source") &&
-              compatibleCategories?.has(h.category),
-          );
+          const compatHandle = findCompatibleHandleForPendingConnection(nodeTypeKey, pendingConnection);
           if (compatHandle) {
             const connection = needsTarget
               ? {
@@ -254,7 +305,7 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
 
       onClose();
     },
-    [reactFlow, position, pendingConnection, compatibleCategories, onClose],
+    [reactFlow, position, pendingConnection, onClose],
   );
 
   const placeSnippetEntry = useCallback(
@@ -293,6 +344,22 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
         e.preventDefault();
         setSelectedIndex((i) => Math.max(i - 1, 0));
         break;
+      case "PageDown":
+        e.preventDefault();
+        setSelectedIndex((i) => Math.min(i + 6, displayEntries.length - 1));
+        break;
+      case "PageUp":
+        e.preventDefault();
+        setSelectedIndex((i) => Math.max(i - 6, 0));
+        break;
+      case "Home":
+        e.preventDefault();
+        setSelectedIndex(0);
+        break;
+      case "End":
+        e.preventDefault();
+        setSelectedIndex(Math.max(0, displayEntries.length - 1));
+        break;
       case "Enter":
         e.preventDefault();
         if (displayEntries[selectedIndex]) {
@@ -316,24 +383,32 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
 
   if (!open) return null;
 
-  // Clamp to viewport
-  const clampedX = Math.min(position.x, window.innerWidth - 280);
-  const clampedY = Math.min(position.y, window.innerHeight - 360);
+  const clamped = clampQuickAddPosition(position, {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
 
   // Compute section boundaries for labels
-  const recentCount = recentEntries.length;
-  const snippetCount = filteredSnippets.length;
+  const recentCount = displaySections.recentCount;
+  const snippetCount = displaySections.snippetCount;
 
   return (
     <div className="fixed inset-0 z-[100]" onMouseDown={onClose}>
       <div
-        className="absolute bg-tn-surface border border-tn-border rounded-lg shadow-xl w-[260px] overflow-hidden"
-        style={{ left: clampedX, top: clampedY }}
+        className="absolute bg-tn-surface border border-tn-border rounded-lg shadow-xl overflow-hidden"
+        style={{ left: clamped.x, top: clamped.y, width: QUICK_ADD_WIDTH }}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-3 py-2 text-[11px] text-tn-text-muted font-medium border-b border-tn-border">
-          {pendingConnection ? "Connect to..." : "Add Node"}
+        <div className="px-3 py-2 border-b border-tn-border">
+          <div className="text-[11px] text-tn-text-muted font-semibold">
+            {pendingConnection ? "Connect compatible node" : "Add node"}
+          </div>
+          <div className="mt-0.5 text-[10px] text-tn-text-muted/70">
+            {pendingConnection
+              ? "Filtered to nodes with a matching handle."
+              : "Recent choices, snippets, and every visible node type."}
+          </div>
         </div>
 
         {/* Search input */}
@@ -341,7 +416,7 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search nodes..."
+            placeholder={pendingConnection ? "Search compatible nodes..." : "Search nodes or snippets..."}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -353,7 +428,7 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
         </div>
 
         {/* Results */}
-        <div ref={listRef} className="max-h-[280px] overflow-y-auto pb-1">
+        <div ref={listRef} className="max-h-[320px] overflow-y-auto pb-1">
           {/* Recent label */}
           {!search && recentCount > 0 && (
             <div className="px-3 py-1 text-[10px] text-tn-text-muted font-medium uppercase tracking-wider">
@@ -378,7 +453,7 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
                     </div>
                   )}
                   <button
-                    className={`w-full text-left px-3 py-1.5 flex items-center gap-2 text-[12px] ${
+                    className={`w-full text-left px-3 py-2 flex items-start gap-2 text-[12px] ${
                       isSelected ? "bg-tn-accent/20" : "hover:bg-white/5"
                     }`}
                     onMouseEnter={() => setSelectedIndex(i)}
@@ -386,10 +461,15 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
                     title={de.snippet.description}
                   >
                     <span
-                      className="w-2 h-2 rounded-full shrink-0"
+                      className="w-2.5 h-2.5 rounded-full shrink-0 mt-1"
                       style={{ backgroundColor: SNIPPET_COLOR }}
                     />
-                    <span className="flex-1 truncate">{de.snippet.name}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block truncate">{de.snippet.name}</span>
+                      <span className="block truncate text-[10px] text-tn-text-muted/70">
+                        {de.snippet.description}
+                      </span>
+                    </span>
                     <span className="text-[10px]" style={{ color: SNIPPET_COLOR }}>
                       Snippet
                     </span>
@@ -401,6 +481,9 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
             const entry = de.entry;
             const color = CATEGORY_COLORS[entry.category];
             const categoryLabel = CATEGORY_LABELS[entry.category] ?? entry.category;
+            const pendingCategoryLabel = pendingHandleDef
+              ? (CATEGORY_LABELS[pendingHandleDef.category] ?? pendingHandleDef.category)
+              : categoryLabel;
 
             return (
               <div key={`${i < recentCount ? "r-" : ""}${entry.category}:${entry.type}-${i}`}>
@@ -410,13 +493,13 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
                   </div>
                 )}
                 <button
-                  className={`w-full text-left px-3 py-1.5 flex items-center gap-2 text-[12px] ${
+                  className={`w-full text-left px-3 py-2 flex items-center gap-2 text-[12px] ${
                     isSelected ? "bg-tn-accent/20" : "hover:bg-white/5"
                   }`}
                   onMouseEnter={() => setSelectedIndex(i)}
                   onClick={() => placeNode(entry)}
                   title={pendingConnection
-                    ? `Suggested: compatible with ${categoryLabel} (${entry.category})`
+                    ? `Suggested: compatible with ${pendingCategoryLabel} (${pendingHandleDef?.category ?? entry.category})`
                     : undefined}
                 >
                   {/* Show BlockIcon if materialId is available, else fallback to colored dot */}
@@ -436,17 +519,30 @@ export function QuickAddDialog({ open, position, pendingConnection, onClose }: Q
                       style={{ backgroundColor: color }}
                     />
                   )}
-                  <span className="flex-1 truncate">{getTypeDisplayName(entry.type)}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block truncate">{getTypeDisplayName(entry.type)}</span>
+                    <span className="block truncate text-[10px] text-tn-text-muted/60">{entry.type}</span>
+                  </span>
                   <span className="text-[10px] text-tn-text-muted">{categoryLabel}</span>
                 </button>
               </div>
             );
           })}
           {displayEntries.length === 0 && (
-            <div className="px-3 py-4 text-center text-[11px] text-tn-text-muted">
-              No matching nodes
+            <div className="px-4 py-6 text-center text-[11px] text-tn-text-muted">
+              <div className="font-medium text-tn-text">No matching nodes</div>
+              <div className="mt-1 text-tn-text-muted/70">
+                {pendingConnection
+                  ? "Try a broader search or drop the wire on the canvas without filtering."
+                  : "Try a type name, category, or snippet name."}
+              </div>
             </div>
           )}
+        </div>
+
+        <div className="flex items-center justify-between border-t border-tn-border px-3 py-1.5 text-[10px] text-tn-text-muted/70">
+          <span>{displayEntries.length} shown</span>
+          <span>Enter place | Esc close</span>
         </div>
       </div>
     </div>

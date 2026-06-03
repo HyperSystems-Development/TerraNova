@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useEditorStore } from "@/stores/editorStore";
 import { useLanguage } from "@/languages/useLanguage";
 import type { BaseNodeData } from "@/nodes/shared/BaseNode";
+import { graphNodeMatchesSearch, graphNodeMatchesTypeFilter } from "@/utils/nodeTypeSearch";
 
 interface NodeSearchDialogProps {
   open: boolean;
@@ -15,7 +16,10 @@ interface SearchResult {
   internalType: string;
   label: string | null;
   position: { x: number; y: number };
+  selected: boolean;
 }
+
+const MAX_VISIBLE_RESULTS = 60;
 
 export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
   const [query, setQuery] = useState("");
@@ -24,9 +28,23 @@ export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const nodes = useEditorStore((s) => s.nodes);
   const edges = useEditorStore((s) => s.edges);
+  const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
   const setSelectedNodeId = useEditorStore((s) => s.setSelectedNodeId);
   const reactFlow = useReactFlow();
   const { getTypeDisplayName, matchesSearch } = useLanguage();
+
+  const toSearchResult = useCallback((n: typeof nodes[number]): SearchResult => {
+    const data = n.data as unknown as BaseNodeData;
+    const internalType = data.type ?? "";
+    return {
+      nodeId: n.id,
+      displayType: getTypeDisplayName(internalType),
+      internalType,
+      label: ((n.data as Record<string, unknown>).label as string) ?? null,
+      position: n.position,
+      selected: !!n.selected || n.id === selectedNodeId,
+    };
+  }, [getTypeDisplayName, selectedNodeId]);
 
   useEffect(() => {
     if (open) {
@@ -38,7 +56,7 @@ export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
 
   const matches: SearchResult[] = useMemo(() => {
     const trimmed = query.trim();
-    if (!trimmed) return [];
+    if (!trimmed) return nodes.map(toSearchResult);
 
     // Parse prefix filters
     const typePrefix = trimmed.match(/^type:(\S+)$/i);
@@ -54,42 +72,14 @@ export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
       }
       return nodes
         .filter((n) => connectedIds.has(n.id))
-        .map((n) => {
-          const data = n.data as unknown as BaseNodeData;
-          const internalType = data.type ?? "";
-          return {
-            nodeId: n.id,
-            displayType: getTypeDisplayName(internalType),
-            internalType,
-            label: ((n.data as Record<string, unknown>).label as string) ?? null,
-            position: n.position,
-          };
-        });
+        .map(toSearchResult);
     }
 
     if (typePrefix) {
-      // Exact type filter (matches internal or display name)
-      const typeQuery = typePrefix[1].toLowerCase();
+      const typeQuery = typePrefix[1];
       return nodes
-        .filter((n) => {
-          const data = n.data as unknown as BaseNodeData;
-          const internalType = data.type ?? "";
-          return (
-            internalType.toLowerCase() === typeQuery ||
-            getTypeDisplayName(internalType).toLowerCase() === typeQuery
-          );
-        })
-        .map((n) => {
-          const data = n.data as unknown as BaseNodeData;
-          const internalType = data.type ?? "";
-          return {
-            nodeId: n.id,
-            displayType: getTypeDisplayName(internalType),
-            internalType,
-            label: ((n.data as Record<string, unknown>).label as string) ?? null,
-            position: n.position,
-          };
-        });
+        .filter((n) => graphNodeMatchesTypeFilter(n, typeQuery, getTypeDisplayName))
+        .map(toSearchResult);
     }
 
     // Default: search by type name (language-aware), custom label, field values, and node ID
@@ -99,8 +89,7 @@ export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
         const internalType = data.type ?? "";
         const customLabel = ((n.data as Record<string, unknown>).label as string) ?? "";
 
-        // Language-aware type matching (checks both internal + display name)
-        if (matchesSearch(internalType, trimmed)) return true;
+        if (graphNodeMatchesSearch(n, trimmed, matchesSearch)) return true;
 
         // Custom label search
         if (customLabel && customLabel.toLowerCase().includes(trimmed.toLowerCase())) return true;
@@ -115,25 +104,20 @@ export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
 
         return false;
       })
-      .map((n) => {
-        const data = n.data as unknown as BaseNodeData;
-        const internalType = data.type ?? "";
-        return {
-          nodeId: n.id,
-          displayType: getTypeDisplayName(internalType),
-          internalType,
-          label: ((n.data as Record<string, unknown>).label as string) ?? null,
-          position: n.position,
-        };
-      });
-  }, [query, nodes, edges, getTypeDisplayName, matchesSearch]);
+      .map(toSearchResult);
+  }, [query, nodes, edges, getTypeDisplayName, matchesSearch, toSearchResult]);
+
+  const visibleMatches = useMemo(
+    () => matches.slice(0, MAX_VISIBLE_RESULTS),
+    [matches],
+  );
 
   // Clamp selected index when results change
   useEffect(() => {
-    if (selectedIndex >= matches.length) {
-      setSelectedIndex(Math.max(0, matches.length - 1));
+    if (selectedIndex >= visibleMatches.length) {
+      setSelectedIndex(Math.max(0, visibleMatches.length - 1));
     }
-  }, [matches.length, selectedIndex]);
+  }, [visibleMatches.length, selectedIndex]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -145,6 +129,9 @@ export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
 
   function selectNode(nodeId: string) {
     setSelectedNodeId(nodeId);
+    useEditorStore.getState().setNodes(
+      nodes.map((n) => ({ ...n, selected: n.id === nodeId })),
+    );
     const node = nodes.find((n) => n.id === nodeId);
     if (node) {
       reactFlow.fitView({
@@ -160,16 +147,32 @@ export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        setSelectedIndex((i) => Math.min(i + 1, matches.length - 1));
+        setSelectedIndex((i) => Math.min(i + 1, visibleMatches.length - 1));
         break;
       case "ArrowUp":
         e.preventDefault();
         setSelectedIndex((i) => Math.max(i - 1, 0));
         break;
+      case "PageDown":
+        e.preventDefault();
+        setSelectedIndex((i) => Math.min(i + 8, visibleMatches.length - 1));
+        break;
+      case "PageUp":
+        e.preventDefault();
+        setSelectedIndex((i) => Math.max(i - 8, 0));
+        break;
+      case "Home":
+        e.preventDefault();
+        setSelectedIndex(0);
+        break;
+      case "End":
+        e.preventDefault();
+        setSelectedIndex(Math.max(0, visibleMatches.length - 1));
+        break;
       case "Enter":
         e.preventDefault();
-        if (matches[selectedIndex]) {
-          selectNode(matches[selectedIndex].nodeId);
+        if (visibleMatches[selectedIndex]) {
+          selectNode(visibleMatches[selectedIndex].nodeId);
         }
         break;
       case "Escape":
@@ -196,7 +199,7 @@ export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search nodes... (type:Name or connected:nodeId)"
+            placeholder="Search nodes... (type:noise or connected:nodeId)"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -207,16 +210,21 @@ export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
           />
           <div className="mt-1.5 text-[10px] text-tn-text-muted flex gap-3">
             <span>{matches.length} result{matches.length !== 1 ? "s" : ""}</span>
-            <span className="text-tn-text-muted/50">\u2191\u2193 navigate \u00B7 Enter select \u00B7 Esc close</span>
+            <span className="text-tn-text-muted/50">Arrows navigate | Enter select | Esc close</span>
           </div>
         </div>
         <div ref={listRef} className="max-h-[300px] overflow-y-auto">
-          {matches.length === 0 && query.trim() && (
+          {nodes.length === 0 && (
+            <div className="px-3 py-4 text-sm text-tn-text-muted text-center">
+              No nodes in this graph yet
+            </div>
+          )}
+          {nodes.length > 0 && matches.length === 0 && query.trim() && (
             <div className="px-3 py-4 text-sm text-tn-text-muted text-center">
               No matching nodes found
             </div>
           )}
-          {matches.slice(0, 30).map((result, i) => {
+          {visibleMatches.map((result, i) => {
             const isSelected = i === selectedIndex;
             return (
               <button
@@ -230,6 +238,11 @@ export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="font-medium truncate">{result.displayType}</span>
+                    {result.selected && (
+                      <span className="rounded bg-tn-accent/15 px-1 text-[9px] text-tn-accent">
+                        Selected
+                      </span>
+                    )}
                     {showDualName(result) && (
                       <span className="text-[10px] text-tn-text-muted truncate">
                         ({result.internalType})
@@ -246,9 +259,9 @@ export function NodeSearchDialog({ open, onClose }: NodeSearchDialogProps) {
               </button>
             );
           })}
-          {matches.length > 30 && (
+          {matches.length > MAX_VISIBLE_RESULTS && (
             <div className="px-3 py-2 text-xs text-tn-text-muted text-center">
-              +{matches.length - 30} more results
+              +{matches.length - MAX_VISIBLE_RESULTS} more results
             </div>
           )}
         </div>

@@ -20,6 +20,11 @@ export const graphInitialState = {
   outputNodeId: null as string | null,
 };
 
+function deriveSelectedNodeId(nodes: Node[]): string | null {
+  const selectedNodes = nodes.filter((node) => node.selected);
+  return selectedNodes.length === 1 ? selectedNodes[0].id : null;
+}
+
 // ---------------------------------------------------------------------------
 // Slice creator
 // ---------------------------------------------------------------------------
@@ -38,9 +43,13 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
       if (hasRemove) {
         // Deletions are undoable
         const mutateAndCommit = getMutateAndCommit();
-        mutateAndCommit((state) => ({
-          nodes: applyNodeChanges(changes, state.nodes),
-        }), "Edit nodes");
+        mutateAndCommit((state) => {
+          const nodes = applyNodeChanges(changes, state.nodes);
+          return {
+            nodes,
+            selectedNodeId: deriveSelectedNodeId(nodes),
+          };
+        }, "Edit nodes");
         markDirty();
       } else {
         // Position changes (moves) and other non-destructive changes:
@@ -48,7 +57,11 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
         const hasDragEnd = changes.some(
           (c) => c.type === "position" && c.dragging === false,
         );
-        set({ nodes: applyNodeChanges(changes, get().nodes) });
+        const nodes = applyNodeChanges(changes, get().nodes);
+        set({
+          nodes,
+          selectedNodeId: deriveSelectedNodeId(nodes),
+        });
         if (hasDragEnd) markDirty();
       }
     },
@@ -99,15 +112,27 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
       }
     },
 
-    setNodes: (nodes) => set({ nodes }),
+    setNodes: (nodes) => set({
+      nodes,
+      selectedNodeId: deriveSelectedNodeId(nodes),
+    }),
     setEdges: (edges) => set({ edges }),
-    setSelectedNodeId: (id) => set({ selectedNodeId: id }),
+    setSelectedNodeId: (id) => set((state) => ({
+      selectedNodeId: id,
+      nodes: state.nodes.map((node) => {
+        const selected = id === node.id;
+        return node.selected === selected ? node : { ...node, selected };
+      }),
+    })),
 
     addNode: (node) => {
       const mutateAndCommit = getMutateAndCommit();
       const typeName = (node.data as Record<string, unknown>)?.type ?? node.type ?? "node";
       mutateAndCommit((state) => ({
-        nodes: [...state.nodes, node],
+        nodes: [
+          ...state.nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+          { ...node, selected: true },
+        ],
         selectedNodeId: node.id,
       }), `Add ${typeName}`);
     },
@@ -532,10 +557,10 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
         const nextIndex = existingLayerEdges.length;
 
         const layerNodeId = crypto.randomUUID();
-        const layerDefaults = getDefaults(`MaterialProvider:${layerType}`);
+        const layerDefaults = getDefaults(`Layer:${layerType}`);
         const layerNode: Node = {
           id: layerNodeId,
-          type: `Material:${layerType}`,
+          type: `Layer:${layerType}`,
           position: { x: -300, y: nextIndex * 150 },
           data: { type: layerType, fields: { ...layerDefaults } },
         };
@@ -632,10 +657,10 @@ export const createGraphSlice: SliceCreator<GraphSliceState> = (set, get) => {
         if (!layerEdge) return {};
 
         const newNodeId = crypto.randomUUID();
-        const layerDefaults = getDefaults(`MaterialProvider:${newType}`);
+        const layerDefaults = getDefaults(`Layer:${newType}`);
         const newNode: Node = {
           id: newNodeId,
-          type: `Material:${newType}`,
+          type: `Layer:${newType}`,
           position: { ...oldNode.position },
           data: { type: newType, fields: { ...layerDefaults } },
         };

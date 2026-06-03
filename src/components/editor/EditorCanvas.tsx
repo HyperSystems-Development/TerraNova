@@ -29,6 +29,7 @@ import { QuickAddDialog, type PendingConnection } from "./QuickAddDialog";
 import { RootDock } from "./RootDock";
 import { CanvasContextMenu } from "./CanvasContextMenu";
 import { NodeContextMenu } from "./NodeContextMenu";
+import { CanvasStatusStrip } from "./CanvasStatusStrip";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { MIN_ZOOM, MAX_ZOOM } from "@/constants";
 import { useConnectionValidation } from "@/hooks/useConnectionValidation";
@@ -55,6 +56,15 @@ const PREFIX_TO_CATEGORY: Record<string, AssetCategory> = {
   "Tint:": AssetCategory.TintProvider,
   "BlockMask:": AssetCategory.BlockMask,
   "Directionality:": AssetCategory.Directionality,
+  "PropDistribution:": AssetCategory.PropDistribution,
+  "Condition:": AssetCategory.Condition,
+  "Layer:": AssetCategory.Layer,
+  "PointGenerator:": AssetCategory.PointGenerator,
+  "Terrain:": AssetCategory.Terrain,
+  "CaveGenerator:": AssetCategory.CaveGenerator,
+  "Generator:": AssetCategory.Generator,
+  "Biome:": AssetCategory.Biome,
+  "WorldStructure:": AssetCategory.WorldStructure,
 };
 
 function getNodeColor(node: Node): string {
@@ -146,6 +156,26 @@ export function EditorCanvas({
   // Track mouse position for keyboard-invoked quick-add
   const mousePosRef = useRef({ x: 0, y: 0 });
   const canvasContainerRef = useRef<HTMLDivElement>(null);
+
+  const getQuickAddAnchor = useCallback(() => {
+    const rect = canvasContainerRef.current?.getBoundingClientRect();
+    if (!rect) {
+      return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    }
+
+    const current = mousePosRef.current;
+    const insideCanvas =
+      current.x >= rect.left &&
+      current.x <= rect.right &&
+      current.y >= rect.top &&
+      current.y <= rect.bottom;
+
+    if (insideCanvas) return current;
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+  }, []);
 
   // ── Ctrl+scroll → vertical pan, Alt+scroll → horizontal pan ──────────
   useEffect(() => {
@@ -276,12 +306,30 @@ export function EditorCanvas({
     disabled: inspectMode,
     onSearchOpen: () => setSearchOpen(true),
     onQuickAdd: () => {
-      // Open at current cursor position (tracked via mousemove on wrapper)
-      setQuickAddPos({ x: mousePosRef.current.x, y: mousePosRef.current.y });
+      // Open at current cursor position, or canvas center before the first pointer move.
+      setQuickAddPos(getQuickAddAnchor());
       setPendingConnection(null);
       setQuickAddOpen(true);
     },
   });
+
+  useEffect(() => {
+    if (inspectMode) return;
+
+    const openSearch = () => setSearchOpen(true);
+    const openQuickAdd = () => {
+      setQuickAddPos(getQuickAddAnchor());
+      setPendingConnection(null);
+      setQuickAddOpen(true);
+    };
+
+    window.addEventListener("terranova:open-node-search", openSearch);
+    window.addEventListener("terranova:open-quick-add", openQuickAdd);
+    return () => {
+      window.removeEventListener("terranova:open-node-search", openSearch);
+      window.removeEventListener("terranova:open-quick-add", openQuickAdd);
+    };
+  }, [inspectMode, getQuickAddAnchor]);
 
   // ── Bidirectional path highlighting ─────────────────────────────────
   const { upstreamEdgeIds, downstreamEdgeIds, hasHighlight } = useMemo(() => {
@@ -569,7 +617,7 @@ export function EditorCanvas({
   return (
     <div
       ref={canvasContainerRef}
-      className="w-full h-full"
+      className="relative w-full h-full"
       style={knifeActive ? { cursor: "crosshair" } : undefined}
       onMouseUp={handleMouseUp}
       onMouseMove={(e) => {
@@ -654,6 +702,8 @@ export function EditorCanvas({
           />
         )}
       </ReactFlow>
+
+      {!inspectMode && <CanvasStatusStrip />}
 
       {/* Knife tool cut line overlay */}
       {!inspectMode && <KnifeOverlay {...knifeOverlayProps} />}

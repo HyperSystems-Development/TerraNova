@@ -35,6 +35,15 @@ const CATEGORY_LABELS: Partial<Record<AssetCategory, string>> = {
   [AssetCategory.TintProvider]: "Tint",
   [AssetCategory.BlockMask]: "Block Mask",
   [AssetCategory.Directionality]: "Directionality",
+  [AssetCategory.PropDistribution]: "Prop Distribution",
+  [AssetCategory.Condition]: "Condition",
+  [AssetCategory.Layer]: "Layer",
+  [AssetCategory.PointGenerator]: "Point Generator",
+  [AssetCategory.Terrain]: "Terrain",
+  [AssetCategory.CaveGenerator]: "Cave Generator",
+  [AssetCategory.Generator]: "Generator",
+  [AssetCategory.Biome]: "Biome",
+  [AssetCategory.WorldStructure]: "World Structure",
 };
 
 /** Category order for display */
@@ -52,6 +61,15 @@ const CATEGORY_ORDER: AssetCategory[] = [
   AssetCategory.TintProvider,
   AssetCategory.BlockMask,
   AssetCategory.Directionality,
+  AssetCategory.PropDistribution,
+  AssetCategory.Condition,
+  AssetCategory.Layer,
+  AssetCategory.PointGenerator,
+  AssetCategory.Terrain,
+  AssetCategory.CaveGenerator,
+  AssetCategory.Generator,
+  AssetCategory.Biome,
+  AssetCategory.WorldStructure,
 ];
 
 /** Map from category → prefix used in node type registry */
@@ -68,6 +86,15 @@ const CATEGORY_PREFIX: Partial<Record<AssetCategory, string>> = {
   [AssetCategory.TintProvider]: "Tint",
   [AssetCategory.BlockMask]: "BlockMask",
   [AssetCategory.Directionality]: "Directionality",
+  [AssetCategory.PropDistribution]: "PropDistribution",
+  [AssetCategory.Condition]: "Condition",
+  [AssetCategory.Layer]: "Layer",
+  [AssetCategory.PointGenerator]: "PointGenerator",
+  [AssetCategory.Terrain]: "Terrain",
+  [AssetCategory.CaveGenerator]: "CaveGenerator",
+  [AssetCategory.Generator]: "Generator",
+  [AssetCategory.Biome]: "Biome",
+  [AssetCategory.WorldStructure]: "WorldStructure",
 };
 
 /** Human-readable subcategory labels for density nodes */
@@ -107,6 +134,7 @@ function groupDensityBySub(
 
 /** Resolve the React Flow node type key from category + type name */
 function resolveNodeTypeKey(entry: CategoryDefaultsEntry): string {
+  if (entry.type.includes(":")) return entry.type;
   const prefix = CATEGORY_PREFIX[entry.category];
   return prefix ? `${prefix}:${entry.type}` : entry.type;
 }
@@ -139,6 +167,15 @@ const CONTEXT_TO_CATEGORY: Record<string, AssetCategory> = {
   TintProvider: AssetCategory.TintProvider,
   BlockMask: AssetCategory.BlockMask,
   Directionality: AssetCategory.Directionality,
+  PropDistribution: AssetCategory.PropDistribution,
+  Condition: AssetCategory.Condition,
+  Layer: AssetCategory.Layer,
+  PointGenerator: AssetCategory.PointGenerator,
+  Terrain: AssetCategory.Terrain,
+  CaveGenerator: AssetCategory.CaveGenerator,
+  Generator: AssetCategory.Generator,
+  Biome: AssetCategory.Biome,
+  WorldStructure: AssetCategory.WorldStructure,
 };
 
 export function NodePalette() {
@@ -179,9 +216,14 @@ export function NodePalette() {
 
   // Context-aware category ordering: pinned category first
   const contextCategory = editingContext ? CONTEXT_TO_CATEGORY[editingContext] : null;
+  const categoriesWithEntries = Array.from(grouped.keys());
+  const baseCategoryOrder = [
+    ...CATEGORY_ORDER,
+    ...categoriesWithEntries.filter((cat) => !CATEGORY_ORDER.includes(cat)),
+  ];
   const sortedCategoryOrder = contextCategory
-    ? [contextCategory, ...CATEGORY_ORDER.filter((c) => c !== contextCategory)]
-    : CATEGORY_ORDER;
+    ? [contextCategory, ...baseCategoryOrder.filter((c) => c !== contextCategory)]
+    : baseCategoryOrder;
 
   const toggleCategory = useCallback((cat: AssetCategory) => {
     setCollapsed((prev) => {

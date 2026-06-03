@@ -206,6 +206,7 @@ export function useKeyboardShortcuts({ onSearchOpen, onQuickAdd, disabled = fals
           };
           store.addNode(newRoot);
           rootNode = newRoot;
+          store.setSelectedNodeId(selectedNode.id);
         }
 
         // Remove any existing edge into Root (only one source at a time)

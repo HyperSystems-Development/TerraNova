@@ -839,6 +839,19 @@ export function PropertyPanel() {
     [biomeConfig, setBiomeConfig, commitState, setDirty],
   );
 
+  const updateAnnotationData = useCallback((updates: Record<string, unknown>) => {
+    if (!selectedNodeId) return;
+    const { nodes, setNodes } = useEditorStore.getState();
+    setNodes(nodes.map((node) => (
+      node.id !== selectedNodeId ? node : { ...node, data: { ...node.data as object, ...updates } }
+    )));
+  }, [selectedNodeId]);
+
+  const commitAnnotationChange = useCallback((label: string) => {
+    commitState(label);
+    setDirty(true);
+  }, [commitState, setDirty]);
+
   if (!selectedNode) {
     if (editingContext === "NoiseRange" && noiseRangeConfig) {
       return (
@@ -1445,16 +1458,6 @@ export function PropertyPanel() {
     width?: number;
     height?: number;
   };
-  const updateAnnotationData = useCallback((updates: Record<string, unknown>) => {
-    const { nodes, setNodes } = useEditorStore.getState();
-    setNodes(nodes.map((node) => (
-      node.id !== selectedNode.id ? node : { ...node, data: { ...node.data as object, ...updates } }
-    )));
-  }, [selectedNode.id]);
-  const commitAnnotationChange = useCallback((label: string) => {
-    commitState(label);
-    setDirty(true);
-  }, [commitState, setDirty]);
 
   return (
     <div className="flex flex-col p-3 gap-2 overflow-y-auto flex-1 min-h-0">
